@@ -50,5 +50,8 @@
     <ClInclude Include="src\engine-adapter-factory.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine-group.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

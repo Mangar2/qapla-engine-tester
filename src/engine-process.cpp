@@ -154,60 +154,66 @@ void EngineProcess::writeLine(const std::string& line) {
 #endif
 }
 
-
-std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::milliseconds timeout) {
-    std::string line;
-    char ch;
+std::optional<std::string> EngineProcess::readLine(std::chrono::milliseconds timeout) {
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
+    auto findEOL = [&]() -> int {
+        for (std::size_t i = 0; i < charsInBuf_; ++i) {
+            if (stdoutBuf_[i] == '\n') return static_cast<int>(i);
+        }
+        return -1;
+        };
+
     while (true) {
-        auto now = std::chrono::steady_clock::now();
-        if (now >= deadline) return std::nullopt;
+        int eolPos = findEOL();
+        if (eolPos >= 0) {
+            std::string line(stdoutBuf_, eolPos);
+			if (line.back() == '\r') {
+				line.pop_back();
+			}
 
-        int ms = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
+            std::size_t skip = static_cast<std::size_t>(eolPos + 1);
+            while (skip < charsInBuf_ &&
+                static_cast<unsigned char>(stdoutBuf_[skip]) < 32) {
+                ++skip;
+            }
 
-#ifdef _WIN32
-        DWORD bytesAvailable;
-        if (!PeekNamedPipe(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), nullptr, 0, nullptr, &bytesAvailable, nullptr)) {
+            charsInBuf_ -= skip;
+            std::memmove(stdoutBuf_, stdoutBuf_ + skip, charsInBuf_);
+            stdoutBuf_[charsInBuf_] = 0;
+
+            return line;
+        }
+
+        if (std::chrono::steady_clock::now() >= deadline) {
             return std::nullopt;
         }
-        if (bytesAvailable == 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
-        }
-        DWORD read;
-        if (!ReadFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), &ch, 1, &read, nullptr) || read == 0) break;
-#else
-        struct pollfd pfd = { fd, POLLIN, 0 };
-        int ret = poll(&pfd, 1, ms);
-        if (ret <= 0) return std::nullopt;
-        ssize_t r = read(fd, &ch, 1);
-        if (r <= 0) break;
-#endif
-        if (ch == '\n') break;
-        line += ch;
-    }
-    return line;
-}
 
-std::optional<std::string> EngineProcess::readLine(std::chrono::milliseconds timeout) {
-    return readLineImpl(
-#ifdef _WIN32
-        _open_osfhandle(reinterpret_cast<intptr_t>(stdoutRead_), 0),
-#else
-        stdoutRead_,
-#endif
-        timeout);
+        if (charsInBuf_ >= cBufSize - 1) {
+            throw std::runtime_error("Engine stdout buffer overflow: no newline in buffer");
+        }
+
+        DWORD bytesRead = 0;
+        BOOL success = ReadFile(stdoutRead_,
+            stdoutBuf_ + charsInBuf_,
+            static_cast<DWORD>(cBufSize - 1 - charsInBuf_),
+            &bytesRead,
+            nullptr);
+        if (!success) {
+            DWORD error = GetLastError();
+            if (error == ERROR_HANDLE_EOF || error == ERROR_BROKEN_PIPE) {
+                return std::nullopt;
+            }
+            throw std::runtime_error("ReadFile failed: " + std::to_string(error));
+        }
+
+        charsInBuf_ += bytesRead;
+        stdoutBuf_[charsInBuf_] = 0;
+    }
 }
 
 std::optional<std::string> EngineProcess::readErrorLine(std::chrono::milliseconds timeout) {
-    return readLineImpl(
-#ifdef _WIN32
-        _open_osfhandle(reinterpret_cast<intptr_t>(stderrRead_), 0),
-#else
-        stderrRead_,
-#endif
-        timeout);
+    return "";
 }
 
 void EngineProcess::terminate() {

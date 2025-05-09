@@ -59,7 +59,7 @@ public:
      * @brief Starts the engine process and initializes communication.
      * @return true if the engine was started successfully.
      */
-    virtual bool runEngine() = 0;
+    virtual void runEngine() = 0;
 
     /**
      * @brief Forcefully terminates the engine process and performs cleanup.

@@ -24,7 +24,7 @@
 #include <chrono>
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory = std::nullopt)
+    const std::optional<std::filesystem::path>& workingDirectory)
     : process_(enginePath, workingDirectory) {
 }
 
@@ -42,6 +42,7 @@ void UciAdapter::runUciHandshake() {
             throw std::runtime_error("Engine is not an uci engine");
             break; 
         }
+        std::cout << "[ENGINE] " << *line << std::endl;
 
         if (*line == "uciok") {
             break;
@@ -68,35 +69,29 @@ void UciAdapter::runUciHandshake() {
     }
 }
 
-bool UciAdapter::runEngine() {
+void UciAdapter::runEngine() {
     try {
-        running_ = true;
-        readerThread_ = std::thread(&UciAdapter::readerLoop, this);
-        writeCommand("uci");
-        waitForReady();
-        return true;
+        runUciHandshake();
+		state_ = UciState::Initialized;
     }
     catch (const std::exception& e) {
-        std::cerr << "Failed to start UCI engine: " << e.what() << '\n';
-        return false;
+        reportProtocolError("initialization", std::string("Failed to start UCI engine:  ") + e.what());
     }
 }
 
 void UciAdapter::terminateEngine() {
-    if (!running_) return;
     try {
+        state_ = UciState::Terminating;
         process_.writeLine("quit");
     }
     catch (...) {
         // ignore write errors
     }
     process_.terminate();
-    running_ = false;
     if (readerThread_.joinable()) readerThread_.join();
 }
 
 void UciAdapter::newGame(const GameStartPosition& position) {
-    // Currently, only sets internal state if needed. Extend if persistent state is added.
     writeCommand("ucinewgame");
     waitForReady();
 }
@@ -106,7 +101,6 @@ void UciAdapter::moveNow() {
 }
 
 void UciAdapter::setPonder(bool enabled) {
-    ponderEnabled_ = enabled;
     writeCommand(std::string("setoption name Ponder value ") + (enabled ? "true" : "false"));
 }
 
@@ -116,7 +110,7 @@ void UciAdapter::ticker() {
 
 void UciAdapter::ponder(const GameState& game, GoLimits& limits) {
     // Pondering handled like normal search in UCI
-    calcMove(game, limits);
+
 }
 
 void UciAdapter::calcMove(const GameState& game, GoLimits& limits, const MoveList& limitMoves) {
@@ -137,8 +131,6 @@ void UciAdapter::calcMove(const GameState& game, GoLimits& limits, const MoveLis
         << " binc " << limits.bincMs;
 
     if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
-
-    if (ponderEnabled_) oss << " ponder";
 
     writeCommand(oss.str());
 }
@@ -167,10 +159,6 @@ void UciAdapter::setOptionMap(const OptionMap& list) {
 }
 
 void UciAdapter::waitForReady() {
-    writeCommand("isready");
-    std::unique_lock<std::mutex> lock(commandMutex_);
-    readyCv_.wait(lock, [this] { return ready_; });
-    ready_ = false;
 }
 
 void UciAdapter::sendPosition(const GameState& game) {
@@ -191,19 +179,9 @@ void UciAdapter::sendPosition(const GameState& game) {
 }
 
 void UciAdapter::readerLoop() {
-    while (running_ && process_.isRunning()) {
+    while (process_.isRunning()) {
         if (auto line = process_.readLine(std::chrono::milliseconds(100))) {
-            if (*line == "uciok") {
-                // no lock needed; uciok only sent once
-            }
-            else if (*line == "readyok") {
-                std::lock_guard<std::mutex> lock(commandMutex_);
-                ready_ = true;
-                readyCv_.notify_all();
-            }
-            else {
-                std::cout << "[ENGINE] " << *line << '\n';
-            }
+            std::cout << "[ENGINE] " << *line << std::endl;
         }
     }
 }

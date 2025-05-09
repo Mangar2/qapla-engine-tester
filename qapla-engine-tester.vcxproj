@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClInclude Include="src\engine-adapter-factory.h" />
     <ClInclude Include="src\engine-adapter.h" />
+    <ClInclude Include="src\engine-group.h" />
     <ClInclude Include="src\engine-process.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />

@@ -18,20 +18,31 @@
  */
 #pragma once
 
-#include "engine-adapter-factory.h"
-#include "uci-adapter.h"
+#include <vector>
+#include <memory>
+#include <functional>
+#include "engine-adapter.h"
 
-std::vector<std::unique_ptr<EngineAdapter>>
-EngineAdapterFactory::createUci(const std::filesystem::path& executablePath,
-    std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count) const
-{
-    std::vector<std::unique_ptr<EngineAdapter>> result;
-    result.reserve(count);
-
-    for (std::size_t i = 0; i < count; ++i) {
-        result.push_back(std::make_unique<UciAdapter>(executablePath, workingDirectory));
+class EngineGroup {
+public:
+    explicit EngineGroup(std::vector<std::unique_ptr<EngineAdapter>> adapters)
+        : engines_(std::move(adapters)) {
     }
 
-    return result;
-}
+    void forEach(const std::function<void(EngineAdapter&)>& fn) {
+        for (auto& engine : engines_) {
+            fn(*engine);
+        }
+    }
+
+    std::size_t size() const {
+        return engines_.size();
+    }
+
+    EngineAdapter& operator[](std::size_t index) {
+        return *engines_.at(index);
+    }
+
+private:
+    std::vector<std::unique_ptr<EngineAdapter>> engines_;
+};

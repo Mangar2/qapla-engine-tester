@@ -17,55 +17,28 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "engine-process.h"
+#include "engine-adapter-factory.h"
+#include "engine-group.h"
+
 #include <iostream>
-#include <thread>
 
 int main() {
-    try {
-        EngineProcess engine(
-            "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe"
-        );
+    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe";
+    const std::size_t engineCount = 1;
 
-        std::cout << "Engine gestartet.\n";
+    EngineAdapterFactory factory;
+    EngineGroup group(factory.createUci(enginePath, std::nullopt, engineCount));
 
-        engine.writeLine("uci");
+    std::cout << "Starting engines...\n";
+    group.forEach([](EngineAdapter& e) { e.runEngine(); });
 
-        while (true) {
-            auto line = engine.readLine(std::chrono::milliseconds(1000));
-            if (!line) {
-                std::cerr << "Timeout beim Warten auf UCI-Antwort.\n";
-                break;
-            }
+    std::cout << "Sending 'quit'...\n";
+    group.forEach([](EngineAdapter& e) { e.writeCommand("quit"); });
 
-            std::cout << "[ENGINE] " << *line << '\n';
+    std::cout << "Terminating engines...\n";
+    group.forEach([](EngineAdapter& e) { e.terminateEngine(); });
 
-            if (*line == "uciok") break;
-        }
-
-        // engine.writeLine("quit");
-
-        // Warte kurz auf Prozessende
-        for (int i = 0; i < 10; ++i) {
-            if (!engine.isRunning()) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        if (engine.isRunning()) {
-            std::cerr << "Engine lebt noch - wird nun beendet.\n";
-            engine.terminate();
-        }
-        else {
-            std::cout << "Engine hat sich korrekt beendet.\n";
-        }
-
-    }
-    catch (const std::exception& ex) {
-        std::cerr << "Fehler: " << ex.what() << '\n';
-        return 1;
-    }
-
+    std::cout << "All engines completed.\n";
     return 0;
 }
-
 

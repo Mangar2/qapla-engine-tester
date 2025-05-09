@@ -33,6 +33,13 @@
 
 using UciOptions = std::unordered_map<std::string, UciOption>;
 
+enum class UciState {
+    Uninitialized,   
+	Initialized,     // After uciok
+	Ready,           // After isready
+    Terminating      // Quitting
+};
+
  /**
   * @brief UCI protocol adapter implementing EngineAdapter.
   *        Runs the engine in a dedicated thread, handles UCI I/O.
@@ -43,7 +50,7 @@ public:
         const std::optional<std::filesystem::path>& workingDirectory = std::nullopt);
     ~UciAdapter();
 
-    bool runEngine() override;
+    void runEngine() override;
     void terminateEngine() override;
 
     void newGame(const GameStartPosition& position) override;
@@ -82,16 +89,15 @@ private:
 
     EngineProcess process_;
     std::thread readerThread_;
-    std::atomic<bool> running_{ false };
-    std::atomic<bool> ponderEnabled_{ false };
 
 	UciOptions supportedOptions_;
     OptionMap options_;
     std::mutex commandMutex_;
     std::condition_variable readyCv_;
-    bool ready_ = false;
 
 	std::string engineName_;
 	std::string engineAuthor_;
+
+    std::atomic<UciState> state_ = UciState::Uninitialized;
 
 };
