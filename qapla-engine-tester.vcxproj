@@ -129,18 +129,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\engine-adapter-factory.cpp" />
+    <ClCompile Include="src\engine-worker-factory.cpp" />
     <ClCompile Include="src\engine-process.cpp" />
+    <ClCompile Include="src\engine-worker.cpp" />
     <ClCompile Include="src\qapla-engine-tester.cpp" />
     <ClCompile Include="src\uci-adpater.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\engine-adapter-factory.h" />
+    <ClInclude Include="src\engine-worker-factory.h" />
     <ClInclude Include="src\engine-adapter.h" />
     <ClInclude Include="src\engine-group.h" />
     <ClInclude Include="src\engine-process.h" />
+    <ClInclude Include="src\engine-worker.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
+    <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\uci-adapter.h" />
     <ClInclude Include="src\uci-option.h" />
   </ItemGroup>

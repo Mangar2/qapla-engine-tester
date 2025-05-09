@@ -17,26 +17,23 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "engine-adapter-factory.h"
+#include "engine-worker-factory.h"
 #include "engine-group.h"
 
 #include <iostream>
 
 int main() {
     const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe";
-    const std::size_t engineCount = 1;
+    const std::size_t engineCount = 10;
 
-    EngineAdapterFactory factory;
+    EngineWorkerFactory factory;
+    std::cout << "Starting engines...\n";
     EngineGroup group(factory.createUci(enginePath, std::nullopt, engineCount));
 
-    std::cout << "Starting engines...\n";
-    group.forEach([](EngineAdapter& e) { e.runEngine(); });
-
-    std::cout << "Sending 'quit'...\n";
-    group.forEach([](EngineAdapter& e) { e.writeCommand("quit"); });
-
-    std::cout << "Terminating engines...\n";
-    group.forEach([](EngineAdapter& e) { e.terminateEngine(); });
+    std::cout << "Stopping engines...\n";
+    group.forEach([](EngineWorker& e) {
+        e.stop();  // Ruft terminateEngine und beendet den Thread
+        });
 
     std::cout << "All engines completed.\n";
     return 0;

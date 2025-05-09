@@ -75,6 +75,7 @@ public:
     void setOptionMap(const OptionMap& list) override;
 
 private:
+    static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 500 };
     static constexpr std::chrono::milliseconds engineQuitTimeout{ 1000 };
 
@@ -84,15 +85,19 @@ private:
     };
 	std::vector<ProtocolError> protocolErrors_; // Stores protocol errors
 
-    void readerLoop();                          // Worker thread: reads stdout/stderr
     void waitForReady();                        // Sends "isready" and waits for "readyok"
     void sendPosition(const GameState& game);   // Sends position + moves
 	void runUciHandshake();                     // Runs the UCI handshake
+    void skipLines(std::chrono::milliseconds timeout);
 
     void reportProtocolError(std::string_view context, std::string_view message) {
         protocolErrors_.emplace_back(std::string(context), std::string(message));
 		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
     }
+
+	void logEngineOutput(std::string_view message) {
+		std::cout << "[] -> " << message << std::endl;
+	}
 
     EngineProcess process_;
 

@@ -24,21 +24,23 @@
 #include <string>
 #include <unordered_map>
 
-#include "engine-adapter.h"
+#include "engine-worker.h"
 
  /**
   * @brief Factory for creating EngineAdapter instances based on engine type.
   */
-class EngineAdapterFactory {
+class EngineWorkerFactory {
 public:
     /**
-     * @brief Attempts to create an EngineAdapter for the given executable path.
-     * @param executablePath Full path to the engine binary.
-     * @param workingDirectory Optional working directory for the engine process.
-     * @param options Optional startup options to be applied after initialization.
-     * @return A ready-to-use EngineAdapter instance.
+     * @brief Creates one or more engine workers for the given engine executable.
+     * Each worker runs its own adapter instance in a dedicated thread.
+     *
+     * @param executablePath Path to the engine binary.
+     * @param workingDirectory Optional working directory for the engine.
+     * @param count Number of engine workers to create.
+     * @return A vector of fully initialized EngineWorker instances.
      */
-    std::vector<std::unique_ptr<EngineAdapter>>
+    std::vector<std::unique_ptr<EngineWorker>>
         createUci(const std::filesystem::path& executablePath,
             std::optional<std::filesystem::path> workingDirectory = std::nullopt,
             std::size_t count = 1) const;

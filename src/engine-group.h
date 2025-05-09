@@ -21,28 +21,50 @@
 #include <vector>
 #include <memory>
 #include <functional>
-#include "engine-adapter.h"
+#include "engine-worker.h"
 
+ /**
+  * @brief Groups multiple EngineWorker instances for batch control.
+  *
+  * EngineGroup allows coordinated operations on multiple workers,
+  * such as broadcasting commands or querying state in parallel setups.
+  */
 class EngineGroup {
 public:
-    explicit EngineGroup(std::vector<std::unique_ptr<EngineAdapter>> adapters)
-        : engines_(std::move(adapters)) {
+    /**
+     * @brief Constructs an engine group from a list of EngineWorker instances.
+     * @param workers Vector of initialized EngineWorker objects.
+     */
+    explicit EngineGroup(std::vector<std::unique_ptr<EngineWorker>> workers)
+        : engines_(std::move(workers)) {
     }
 
-    void forEach(const std::function<void(EngineAdapter&)>& fn) {
+    /**
+     * @brief Applies a function to each EngineWorker in the group.
+     * @param fn Function taking EngineWorker& as parameter.
+     */
+    void forEach(const std::function<void(EngineWorker&)>& fn) {
         for (auto& engine : engines_) {
             fn(*engine);
         }
     }
 
+    /**
+     * @brief Returns the number of workers in the group.
+     */
     std::size_t size() const {
         return engines_.size();
     }
 
-    EngineAdapter& operator[](std::size_t index) {
+    /**
+     * @brief Accesses a specific EngineWorker by index.
+     * @param index Index of the worker to access.
+     * @return Reference to the EngineWorker.
+     */
+    EngineWorker& operator[](std::size_t index) {
         return *engines_.at(index);
     }
 
 private:
-    std::vector<std::unique_ptr<EngineAdapter>> engines_;
+    std::vector<std::unique_ptr<EngineWorker>> engines_;
 };

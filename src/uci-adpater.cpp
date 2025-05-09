@@ -32,6 +32,16 @@ UciAdapter::~UciAdapter() {
     terminateEngine();
 }
 
+void UciAdapter::skipLines(std::chrono::milliseconds timeout) {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        auto line = process_.readLine(timeout);
+        if (!line) continue;
+		logEngineOutput(*line);
+    }
+}
+
 void UciAdapter::runUciHandshake() {
     writeCommand("uci");
 
@@ -42,7 +52,7 @@ void UciAdapter::runUciHandshake() {
             throw std::runtime_error("Engine is not an uci engine");
             break; 
         }
-        std::cout << "[ENGINE] " << *line << std::endl;
+		logEngineOutput(*line);
 
         if (*line == "uciok") {
             break;
@@ -71,6 +81,7 @@ void UciAdapter::runUciHandshake() {
 
 void UciAdapter::runEngine() {
     try {
+        skipLines(engineIntroScanDuration);
         runUciHandshake();
 		state_ = UciState::Initialized;
     }
@@ -80,6 +91,9 @@ void UciAdapter::runEngine() {
 }
 
 void UciAdapter::terminateEngine() {
+	if (state_ == UciState::Terminating) {
+		return; // Already terminating
+	}
     state_ = UciState::Terminating;
 
     try {
@@ -96,10 +110,9 @@ void UciAdapter::terminateEngine() {
     // Force termination if the engine didn't quit in time
     try {
         process_.terminate();
-        reportProtocolError("termination", "Engine did not terminate after quit");
     }
     catch (const std::exception& ex) {
-        reportProtocolError("termination", std::string("Failed to force-terminate engine: ") + ex.what());
+        reportProtocolError("termination", std::string("Termination error: ") + ex.what());
     }
 
 }

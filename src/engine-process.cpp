@@ -296,6 +296,7 @@ void EngineProcess::terminate() {
         throw std::runtime_error("waitpid() failed");
     }
 #endif
+    throw std::runtime_error("Engine did not end by itself");
 }
 
 bool EngineProcess::isRunning() const {

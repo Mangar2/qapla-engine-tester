@@ -18,19 +18,20 @@
  */
 #pragma once
 
-#include "engine-adapter-factory.h"
+#include "engine-worker-factory.h"
 #include "uci-adapter.h"
 
-std::vector<std::unique_ptr<EngineAdapter>>
-EngineAdapterFactory::createUci(const std::filesystem::path& executablePath,
+std::vector<std::unique_ptr<EngineWorker>>
+EngineWorkerFactory::createUci(const std::filesystem::path& executablePath,
     std::optional<std::filesystem::path> workingDirectory,
     std::size_t count) const
 {
-    std::vector<std::unique_ptr<EngineAdapter>> result;
+    std::vector<std::unique_ptr<EngineWorker>> result;
     result.reserve(count);
 
     for (std::size_t i = 0; i < count; ++i) {
-        result.push_back(std::make_unique<UciAdapter>(executablePath, workingDirectory));
+        result.push_back(std::make_unique<EngineWorker>(
+            std::make_unique<UciAdapter>(executablePath, workingDirectory)));
     }
 
     return result;
