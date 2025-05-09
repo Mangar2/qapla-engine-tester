@@ -51,6 +51,12 @@ public:
     ~UciAdapter();
 
     void runEngine() override;
+
+    /**
+     * Attempts to gracefully terminate the UCI engine. If the engine is already
+     * terminated or unreachable, this is treated as a normal condition.
+     * If forced termination fails, the adapter reports a critical error.
+     */
     void terminateEngine() override;
 
     void newGame(const GameStartPosition& position) override;
@@ -70,6 +76,7 @@ public:
 
 private:
     static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 500 };
+    static constexpr std::chrono::milliseconds engineQuitTimeout{ 1000 };
 
     struct ProtocolError {
         std::string context;

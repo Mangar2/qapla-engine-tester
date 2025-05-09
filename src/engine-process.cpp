@@ -154,88 +154,146 @@ void EngineProcess::writeLine(const std::string& line) {
 #endif
 }
 
-std::optional<std::string> EngineProcess::readLine(std::chrono::milliseconds timeout) {
+
+
+std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::milliseconds timeout) {
+    std::string line;
+    char ch;
     auto deadline = std::chrono::steady_clock::now() + timeout;
 
-    auto findEOL = [&]() -> int {
-        for (std::size_t i = 0; i < charsInBuf_; ++i) {
-            if (stdoutBuf_[i] == '\n') return static_cast<int>(i);
-        }
-        return -1;
-        };
-
     while (true) {
-        int eolPos = findEOL();
-        if (eolPos >= 0) {
-            std::string line(stdoutBuf_, eolPos);
-			if (line.back() == '\r') {
-				line.pop_back();
-			}
+        auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) return std::nullopt;
 
-            std::size_t skip = static_cast<std::size_t>(eolPos + 1);
-            while (skip < charsInBuf_ &&
-                static_cast<unsigned char>(stdoutBuf_[skip]) < 32) {
-                ++skip;
-            }
+        int ms = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
 
-            charsInBuf_ -= skip;
-            std::memmove(stdoutBuf_, stdoutBuf_ + skip, charsInBuf_);
-            stdoutBuf_[charsInBuf_] = 0;
-
-            return line;
-        }
-
-        if (std::chrono::steady_clock::now() >= deadline) {
+#ifdef _WIN32
+        DWORD bytesAvailable;
+        if (!PeekNamedPipe(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), nullptr, 0, nullptr, &bytesAvailable, nullptr)) {
             return std::nullopt;
         }
-
-        if (charsInBuf_ >= cBufSize - 1) {
-            throw std::runtime_error("Engine stdout buffer overflow: no newline in buffer");
+        if (bytesAvailable == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
         }
-
-        DWORD bytesRead = 0;
-        BOOL success = ReadFile(stdoutRead_,
-            stdoutBuf_ + charsInBuf_,
-            static_cast<DWORD>(cBufSize - 1 - charsInBuf_),
-            &bytesRead,
-            nullptr);
-        if (!success) {
-            DWORD error = GetLastError();
-            if (error == ERROR_HANDLE_EOF || error == ERROR_BROKEN_PIPE) {
-                return std::nullopt;
-            }
-            throw std::runtime_error("ReadFile failed: " + std::to_string(error));
-        }
-
-        charsInBuf_ += bytesRead;
-        stdoutBuf_[charsInBuf_] = 0;
+        DWORD read;
+        if (!ReadFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), &ch, 1, &read, nullptr) || read == 0) break;
+#else
+        struct pollfd pfd = { fd, POLLIN, 0 };
+        int ret = poll(&pfd, 1, ms);
+        if (ret <= 0) return std::nullopt;
+        ssize_t r = read(fd, &ch, 1);
+        if (r <= 0) break;
+#endif
+        if (ch == '\n') break;
+        line += ch;
     }
+	if (line.back() == '\r') {
+		line.pop_back();
+	}
+    return line;
+}
+
+std::optional<std::string> EngineProcess::readLine(std::chrono::milliseconds timeout) {
+    return readLineImpl(
+#ifdef _WIN32
+        _open_osfhandle(reinterpret_cast<intptr_t>(stdoutRead_), 0),
+#else
+        stdoutRead_,
+#endif
+        timeout);
 }
 
 std::optional<std::string> EngineProcess::readErrorLine(std::chrono::milliseconds timeout) {
-    return "";
+    return readLineImpl(
+#ifdef _WIN32
+        _open_osfhandle(reinterpret_cast<intptr_t>(stderrRead_), 0),
+#else
+        stderrRead_,
+#endif
+        timeout);
 }
 
+bool EngineProcess::waitForExit(std::chrono::milliseconds timeout) {
+#ifdef _WIN32
+    if (!childProcess_) return true;
+
+    DWORD waitResult = WaitForSingleObject(childProcess_, static_cast<DWORD>(timeout.count()));
+    if (waitResult == WAIT_OBJECT_0) {
+        return true; // Process has exited
+    }
+    else if (waitResult == WAIT_TIMEOUT) {
+        return false; // Still running
+    }
+    else {
+        throw std::runtime_error("WaitForSingleObject failed");
+    }
+#else
+    if (childPid_ <= 0) return true;
+
+    int status = 0;
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    while (true) {
+        pid_t result = waitpid(childPid_, &status, WNOHANG);
+        if (result > 0) {
+            return true; // Prozess ist beendet
+        }
+        else if (result == 0) {
+            if (std::chrono::steady_clock::now() >= deadline) {
+                return false; // Timeout abgelaufen
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+        else {
+            if (errno == EINTR) continue;
+            throw std::runtime_error("waitpid failed");
+        }
+    }
+#endif
+}
+
+/**
+ * Terminates the engine process if it is still running.
+ * If the process is already terminated, this is considered a successful outcome.
+ * If termination fails, an exception is thrown.
+ */
 void EngineProcess::terminate() {
 #ifdef _WIN32
-    if (childProcess_) {
-        BOOL result = TerminateProcess(childProcess_, 1);
-        if (!result) {
+    if (!childProcess_) {
+        return; // Already terminated (positive case)
+    }
+
+    DWORD exitCode;
+    if (GetExitCodeProcess(childProcess_, &exitCode)) {
+        if (exitCode != STILL_ACTIVE) {
+            return; // Process already exited
+        }
+
+        if (!TerminateProcess(childProcess_, 1)) {
             DWORD error = GetLastError();
             throw std::runtime_error("TerminateProcess failed with error code: " + std::to_string(error));
         }
     }
+    else {
+        DWORD error = GetLastError();
+        throw std::runtime_error("GetExitCodeProcess failed with error code: " + std::to_string(error));
+    }
 #else
-    if (childPid_ > 0) {
-        int killResult = kill(childPid_, SIGKILL);
-        if (killResult == -1) {
-            throw std::runtime_error("kill() failed");
-        }
+    if (childPid_ <= 0) {
+        return; // Already terminated (positive case)
+    }
 
-        int waitResult = waitpid(childPid_, nullptr, 0);
-        if (waitResult == -1) {
-            throw std::runtime_error("waitpid() failed");
-        }
+    if (kill(childPid_, 0) == -1 && errno == ESRCH) {
+        return; // Process no longer exists (positive case)
+    }
+
+    if (kill(childPid_, SIGKILL) == -1) {
+        throw std::runtime_error("kill(SIGKILL) failed");
+    }
+
+    if (waitpid(childPid_, nullptr, 0) == -1) {
+        throw std::runtime_error("waitpid() failed");
     }
 #endif
 }

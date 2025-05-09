@@ -88,6 +88,13 @@ public:
     std::optional<std::string> readErrorLine(std::chrono::milliseconds timeout);
 
     /**
+     * @brief Waits for the engine process to exit within the given timeout.
+     * @param milliseconds Timeout in milliseconds to wait.
+     * @return true if the process exited within the timeout; false otherwise.
+     */
+    bool waitForExit(std::chrono::milliseconds timeout);
+
+    /**
      * @brief Forcefully terminates the engine process.
      *        Can be called manually before destruction.
      */
@@ -100,17 +107,8 @@ public:
     bool isRunning() const;
 
 private:
-    int findEOL() const {
-        for (std::size_t i = 0; i < charsInBuf_; ++i) {
-            if (stdoutBuf_[i] == '\n') return static_cast<int>(i);
-        }
-        return -1;
-    }
-
     mutable std::string stdoutBuffer_;
-    static constexpr std::size_t cBufSize = 4096;
-    char stdoutBuf_[cBufSize + 1] = { 0 };
-    std::size_t charsInBuf_ = 0;
+    std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);
 
 #ifdef _WIN32
     HANDLE childProcess_ = nullptr;

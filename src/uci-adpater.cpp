@@ -80,15 +80,35 @@ void UciAdapter::runEngine() {
 }
 
 void UciAdapter::terminateEngine() {
+    state_ = UciState::Terminating;
+
     try {
-        state_ = UciState::Terminating;
         process_.writeLine("quit");
     }
     catch (...) {
-        // ignore write errors
+        // Engine might already be gone; nothing to do
     }
-    process_.terminate();
-    if (readerThread_.joinable()) readerThread_.join();
+
+    // Give the engine a short time to exit normally
+    if (process_.waitForExit(engineQuitTimeout)) {
+        if (readerThread_.joinable()) {
+            readerThread_.join();
+        }
+        return;
+    }
+
+    // Force termination if the engine didn't quit in time
+    try {
+        process_.terminate();
+        reportProtocolError("termination", "Engine did not terminate after quit");
+    }
+    catch (const std::exception& ex) {
+        reportProtocolError("termination", std::string("Failed to force-terminate engine: ") + ex.what());
+    }
+
+    if (readerThread_.joinable()) {
+        readerThread_.join();
+    }
 }
 
 void UciAdapter::newGame(const GameStartPosition& position) {
