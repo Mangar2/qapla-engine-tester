@@ -95,12 +95,10 @@ private:
     }
 
     EngineProcess process_;
-    std::thread readerThread_;
 
 	UciOptions supportedOptions_;
     OptionMap options_;
     std::mutex commandMutex_;
-    std::condition_variable readyCv_;
 
 	std::string engineName_;
 	std::string engineAuthor_;

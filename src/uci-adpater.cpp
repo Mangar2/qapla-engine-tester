@@ -91,10 +91,6 @@ void UciAdapter::terminateEngine() {
 
     // Give the engine a short time to exit normally
     if (process_.waitForExit(engineQuitTimeout)) {
-        if (readerThread_.joinable()) {
-            readerThread_.join();
-        }
-        return;
     }
 
     // Force termination if the engine didn't quit in time
@@ -106,9 +102,6 @@ void UciAdapter::terminateEngine() {
         reportProtocolError("termination", std::string("Failed to force-terminate engine: ") + ex.what());
     }
 
-    if (readerThread_.joinable()) {
-        readerThread_.join();
-    }
 }
 
 void UciAdapter::newGame(const GameStartPosition& position) {
@@ -198,10 +191,3 @@ void UciAdapter::sendPosition(const GameState& game) {
     writeCommand(oss.str());
 }
 
-void UciAdapter::readerLoop() {
-    while (process_.isRunning()) {
-        if (auto line = process_.readLine(std::chrono::milliseconds(100))) {
-            std::cout << "[ENGINE] " << *line << std::endl;
-        }
-    }
-}
