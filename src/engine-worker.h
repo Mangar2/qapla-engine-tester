@@ -25,6 +25,7 @@
 #include <queue>
 #include <functional>
 #include <optional>
+#include "game-state.h"
 
 class EngineAdapter;
 
@@ -43,7 +44,7 @@ public:
      * @brief Constructs the worker and starts its internal thread.
      * @param adapter The engine adapter to control. Ownership is transferred.
      */
-    explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter);
+    explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier);
 
     /**
      * @brief Destructs the worker and cleanly shuts down its thread.
@@ -61,6 +62,14 @@ public:
      */
     void stop();
 
+    /**
+     * Requests the engine to compute the best move for the given game state and search limits.
+     *
+     * @param gameState The current game state (includes starting position and move history).
+     * @param limits The constraints for the upcoming search (time, depth, nodes, etc.).
+     */
+    void computeMove(const GameState& gameState, const GoLimits& limits);
+
 private:
 
     /**
@@ -73,12 +82,42 @@ private:
      */
     void post(std::optional<std::function<void(EngineAdapter&)>> task);
 
+	/**
+	 * @brief Waits for the engine to be ready for the next command.
+	 *
+	 * It blocks until the engine is ready or the timeout is reached.
+	 *
+	 * @param timeout The maximum time to wait for the engine to be ready.
+	 * @return true if the engine is ready, false if the timeout was reached.
+	 */
+    bool waitForReady(std::chrono::milliseconds timeout);
+
+	/**
+	 * @brief loop to get engine output.
+	 *
+	 */
+    void readLoop();
+
+    static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
+    static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
+
     void threadLoop();
 
     std::queue<std::optional<std::function<void(EngineAdapter&)>>> taskQueue_;
+    std::string identifier_;
+
+    // Ready synchronization
+    std::mutex readyMutex_;
+    std::condition_variable readyCv_;
+    bool readyReceived_ = false;
+
+    // Read thread
+	std::thread readThread_;
+
+    // Work thread
     std::mutex mutex_;
     std::condition_variable cv_;
-    std::thread thread_;
-    bool running_ = true;
+    std::thread workThread_;
+    std::atomic<bool> running_ = false;
     std::unique_ptr<EngineAdapter> adapter_;
 };

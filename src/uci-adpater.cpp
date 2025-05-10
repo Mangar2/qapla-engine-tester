@@ -38,7 +38,7 @@ void UciAdapter::skipLines(std::chrono::milliseconds timeout) {
     while (std::chrono::steady_clock::now() < deadline) {
         auto line = process_.readLine(timeout);
         if (!line) continue;
-		logEngineOutput(*line);
+		logOutput(*line);
     }
 }
 
@@ -52,7 +52,7 @@ void UciAdapter::runUciHandshake() {
             throw std::runtime_error("Engine is not an uci engine");
             break; 
         }
-		logEngineOutput(*line);
+        logOutput(*line);
 
         if (*line == "uciok") {
             break;
@@ -83,7 +83,7 @@ void UciAdapter::runEngine() {
     try {
         skipLines(engineIntroScanDuration);
         runUciHandshake();
-		state_ = UciState::Initialized;
+		state_ = EngineState::Initialized;
     }
     catch (const std::exception& e) {
         reportProtocolError("initialization", std::string("Failed to start UCI engine:  ") + e.what());
@@ -91,10 +91,10 @@ void UciAdapter::runEngine() {
 }
 
 void UciAdapter::terminateEngine() {
-	if (state_ == UciState::Terminating) {
+	if (state_ == EngineState::Terminating) {
 		return; // Already terminating
 	}
-    state_ = UciState::Terminating;
+    state_ = EngineState::Terminating;
 
     try {
         process_.writeLine("quit");
@@ -119,7 +119,6 @@ void UciAdapter::terminateEngine() {
 
 void UciAdapter::newGame(const GameStartPosition& position) {
     writeCommand("ucinewgame");
-    waitForReady();
 }
 
 void UciAdapter::moveNow() {
@@ -139,7 +138,7 @@ void UciAdapter::ponder(const GameState& game, GoLimits& limits) {
 
 }
 
-void UciAdapter::calcMove(const GameState& game, GoLimits& limits, const MoveList& limitMoves) {
+void UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
     sendPosition(game);
 
     std::ostringstream oss;
@@ -157,6 +156,7 @@ void UciAdapter::calcMove(const GameState& game, GoLimits& limits, const MoveLis
         << " binc " << limits.bincMs;
 
     if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
+    // TODO: Add searchmoves
 
     writeCommand(oss.str());
 }
@@ -181,10 +181,10 @@ void UciAdapter::setOptionMap(const OptionMap& list) {
         oss << "setoption name " << key << " value " << value;
         writeCommand(oss.str());
     }
-    waitForReady();
 }
 
-void UciAdapter::waitForReady() {
+void UciAdapter::askForReady() {
+	writeCommand("isready");
 }
 
 void UciAdapter::sendPosition(const GameState& game) {
@@ -202,5 +202,44 @@ void UciAdapter::sendPosition(const GameState& game) {
         }
     }
     writeCommand(oss.str());
+}
+
+EngineEvent UciAdapter::readEvent() {
+    std::string line;
+    if (!std::getline(*outputStream_, line)) {
+        return EngineEvent(EngineEvent::Type::Error, "Engine output stream closed unexpectedly");
+    }
+
+    trim(line); // optional: Leerzeichen entfernen
+
+    if (line == "readyok") {
+        return EngineEvent(EngineEvent::Type::ReadyOk, line);
+    }
+
+    if (line.rfind("bestmove ", 0) == 0) {
+        std::istringstream iss(line);
+        std::string token, best, ponder;
+        iss >> token >> best;
+        EngineEvent event(EngineEvent::Type::BestMove, line);
+        event.bestMove = best;
+        if (iss >> token >> ponder && token == "ponder") {
+            event.ponderMove = ponder;
+        }
+        return event;
+    }
+
+    if (line.rfind("info ", 0) == 0) {
+        // Option 1: nur weiterreichen
+        EngineEvent event(EngineEvent::Type::Info, line);
+        // Option 2: parse into SearchInfo (siehe vorherige Vorschläge)
+        return event;
+    }
+
+    if (line == "ponderhit") {
+        return EngineEvent(EngineEvent::Type::PonderHit, line);
+    }
+
+    // Unbekanntes Format
+    return EngineEvent(EngineEvent::Type::Unknown, line);
 }
 

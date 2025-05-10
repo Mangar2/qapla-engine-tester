@@ -129,21 +129,44 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\bitboardmasks.cpp" />
+    <ClCompile Include="src\board.cpp" />
     <ClCompile Include="src\engine-worker-factory.cpp" />
     <ClCompile Include="src\engine-process.cpp" />
     <ClCompile Include="src\engine-worker.cpp" />
+    <ClCompile Include="src\game-manager.cpp" />
+    <ClCompile Include="src\hashconstants.cpp" />
+    <ClCompile Include="src\magics.cpp" />
+    <ClCompile Include="src\movegenerator.cpp" />
+    <ClCompile Include="src\piecesignature.cpp" />
+    <ClCompile Include="src\pst.cpp" />
     <ClCompile Include="src\qapla-engine-tester.cpp" />
     <ClCompile Include="src\uci-adpater.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\bitboardmasks.h" />
+    <ClInclude Include="src\bits.h" />
+    <ClInclude Include="src\board.h" />
+    <ClInclude Include="src\boardstate.h" />
     <ClInclude Include="src\engine-worker-factory.h" />
     <ClInclude Include="src\engine-adapter.h" />
     <ClInclude Include="src\engine-group.h" />
     <ClInclude Include="src\engine-process.h" />
     <ClInclude Include="src\engine-worker.h" />
+    <ClInclude Include="src\evalvalue.h" />
+    <ClInclude Include="src\game-manager.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
+    <ClInclude Include="src\hashconstants.h" />
     <ClInclude Include="src\logger.h" />
+    <ClInclude Include="src\magics.h" />
+    <ClInclude Include="src\materialbalance.h" />
+    <ClInclude Include="src\move.h" />
+    <ClInclude Include="src\movegenerator.h" />
+    <ClInclude Include="src\movelist.h" />
+    <ClInclude Include="src\piecesignature.h" />
+    <ClInclude Include="src\pst.h" />
+    <ClInclude Include="src\types.h" />
     <ClInclude Include="src\uci-adapter.h" />
     <ClInclude Include="src\uci-option.h" />
   </ItemGroup>

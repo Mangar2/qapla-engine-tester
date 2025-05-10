@@ -14,26 +14,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @copyright Copyright (c) 2021 Volker Böhm
+ * @Overview
+ * Defines a list of standard constants for calculating transposition table hashes
  */
+
 #pragma once
 
-#include "engine-worker-factory.h"
-#include "uci-adapter.h"
+#include <cstdint>
+#include "types.h"
 
-std::vector<std::unique_ptr<EngineWorker>>
-EngineWorkerFactory::createUci(const std::filesystem::path& executablePath,
-    std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count) const
-{
-    std::vector<std::unique_ptr<EngineWorker>> result;
-    result.reserve(count);
+namespace QaplaBasics {
 
-    for (std::size_t i = 0; i < count; ++i) {
-        auto identifier = "#" + std::to_string(i);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory);
-        result.push_back(std::make_unique<EngineWorker>(std::move(adapter), identifier));
-    }
+	typedef uint64_t hash_t;
 
-    return result;
+	class HashConstants
+	{
+	public:
+		static const hash_t cHashBoardRandoms[BOARD_SIZE][PIECE_AMOUNT];
+		static const hash_t EP_RANDOMS[BOARD_SIZE];
+		static const hash_t COLOR_RANDOMS[2];
+		static const hash_t CASTLE_RANDOMS[64];
+
+	private:
+		HashConstants(void) {};
+
+	};
+
 }
+
+

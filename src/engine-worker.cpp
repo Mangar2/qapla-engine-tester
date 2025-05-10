@@ -19,18 +19,26 @@
 
 #include "engine-worker.h"
 #include "engine-adapter.h"  
+#include "logger.h"
 
 #include <stdexcept>
 
-EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter)
-    : adapter_(std::move(adapter)),
-    thread_(&EngineWorker::threadLoop, this) {
+EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier)
+    : adapter_(std::move(adapter)), identifier_(identifier)
+    {
+
+	workThread_ = std::thread(&EngineWorker::threadLoop, this);
     if (!adapter_) {
         throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
     }
 
-    post([](EngineAdapter& adapter) {
+    adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput) {
+        Logger::instance().log(id, message, isOutput);
+        });
+
+    post([this](EngineAdapter& adapter) {
         adapter.runEngine();  
+        readThread_ = std::thread(&EngineWorker::readLoop, this);
     });
 }
 
@@ -47,12 +55,12 @@ void EngineWorker::stop() {
             // Nothing to do, if we cannot stop it, we can do nothing else
         }
         });
-
+    running_ = false;
     post(std::nullopt);  // Shutdown-Signal
     cv_.notify_all();
 
-    if (thread_.joinable()) {
-        thread_.join();
+    if (workThread_.joinable()) {
+        workThread_.join();
     }
 }
 
@@ -60,7 +68,8 @@ void EngineWorker::stop() {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::threadLoop() {
-    while (true) {
+    running_ = true;
+    while (running_) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
         {
@@ -90,4 +99,50 @@ void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task)
         taskQueue_.push(std::move(task));
     }
     cv_.notify_one();
+}
+
+bool EngineWorker::waitForReady(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(readyMutex_);
+    readyReceived_ = false;
+    return readyCv_.wait_for(lock, timeout, [this] {
+        return readyReceived_;
+    });
+}
+
+void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
+    post([this, gameState, limits](EngineAdapter& adapter) {
+        try {
+            adapter.askForReady();
+
+            if (!waitForReady(ReadyTimeoutNormal)) {
+                // TODO: GameManager über Timeout informieren
+                return;
+            }
+
+            adapter.computeMove(gameState, limits);
+        }
+        catch (...) {
+            // TODO: Fehlerereignis an GameManager senden
+        }
+        });
+}
+
+void EngineWorker::readLoop() {
+    while (running_) {
+        EngineEvent event = adapter_->readEvent(); // blockierender Aufruf
+
+        // Synchronisationslogik für readyok
+        if (event.type == EngineEvent::Type::ReadyOk) {
+            {
+                std::scoped_lock lock(readyMutex_);
+                readyReceived_ = true;
+            }
+            readyCv_.notify_all();
+        }
+
+        // Weiterleitung an übergeordnete Spielsteuerung
+        if (gameEventSink_) {
+            gameEventSink_(event);
+        }
+    }
 }

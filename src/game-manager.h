@@ -17,23 +17,17 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 #pragma once
+#include "engine-worker.h"
+#include "engine-event.h"
+#include "game-state.h"
+#include "go-limits.h"
 
-#include "engine-worker-factory.h"
-#include "uci-adapter.h"
+class GameManager {
+public:
+    GameManager(std::unique_ptr<EngineWorker> engine);
 
-std::vector<std::unique_ptr<EngineWorker>>
-EngineWorkerFactory::createUci(const std::filesystem::path& executablePath,
-    std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count) const
-{
-    std::vector<std::unique_ptr<EngineWorker>> result;
-    result.reserve(count);
+    void start();
 
-    for (std::size_t i = 0; i < count; ++i) {
-        auto identifier = "#" + std::to_string(i);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory);
-        result.push_back(std::make_unique<EngineWorker>(std::move(adapter), identifier));
-    }
-
-    return result;
-}
+private:
+    std::unique_ptr<EngineWorker> engine_;
+};

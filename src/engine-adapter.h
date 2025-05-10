@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <optional>
+#include <functional>
 
 #include "game-start-position.h"
 #include "game-state.h"
@@ -30,7 +31,7 @@
 using OptionMap = std::unordered_map<std::string, std::string>;
 
 /**
- * @brief UCI-style limits for calculating a single move.
+ * @brief limits for calculating a single move.
  */
 struct GoLimits {
     int64_t wtimeMs = 0;
@@ -43,8 +44,43 @@ struct GoLimits {
     std::optional<int> nodes;
     std::optional<int> mateIn;
     std::optional<int64_t> movetimeMs;
-
+    MoveList& limitMoves;
     bool infinite = false;
+};
+
+struct SearchInfo {
+    std::optional<int> depth;
+    std::optional<int> selDepth;
+    std::optional<int64_t> timeMs;
+    std::optional<int64_t> nodes;
+    std::optional<int64_t> nps;
+    std::vector<std::string> pv;
+};
+
+struct EngineEvent {
+    enum class Type {
+        ReadyOk,
+        BestMove,
+        Info,
+        PonderHit,
+        Error,
+        Unknown
+    };
+
+    Type type;
+    std::string rawLine;
+
+    std::optional<std::string> bestMove;
+    std::optional<std::string> ponderMove;
+    std::optional<std::string> errorMessage;
+
+    std::optional<SearchInfo> searchInfo;
+};
+
+enum class EngineState {
+    Uninitialized,
+    Initialized,     // After uciok
+    Terminating      // Quitting
 };
 
  /**
@@ -65,6 +101,19 @@ public:
      * @brief Forcefully terminates the engine process and performs cleanup.
      */
     virtual void terminateEngine() = 0;
+
+    /**
+     * Blocks until a new engine output line is available and returns it as an interpreted EngineEvent.
+     * This method is called exclusively by the read loop of the EngineWorker.
+     *
+     * @return A semantically interpreted EngineEvent.
+     */
+    virtual EngineEvent readEvent() = 0;
+
+	/**
+	 * @brief Sends a are you ready command to the engine.
+	 */
+	virtual void askForReady() = 0;
 
     /**
      * @brief Prepares the engine for a new game.
@@ -100,8 +149,7 @@ public:
 	 * @param limits      Calculation limits (time, depth, etc.).
 	 * @param limitMoves  Optional list of moves to consider.
      */
-    virtual void calcMove(const GameState& game, GoLimits& limits,
-        const MoveList& limitMoves = {}) = 0;
+    virtual void computeMove(const GameState& game, const GoLimits& limits) = 0;
 
     /**
      * @brief Instructs the engine to stop calculation.
@@ -123,4 +171,37 @@ public:
      */
     virtual void setOptionMap(const OptionMap& list) = 0;
 
+    /**
+     * @brief Assigns a logger function to use for engine communication output.
+     *        Typically called by the EngineWorker to inject context.
+     */
+    void setLogger(std::function<void(std::string_view, bool)> logger) {
+        logger_ = std::move(logger);
+    }
+
+	/**
+	 * @brief Checks if the engine is currently running.
+	 * @return true if the engine is initialized and running.
+	 */
+    bool isRunning() {
+		return state_ == EngineState::Initialized;
+    }
+
+protected:
+    /**
+     * @brief Emits a log message using the configured logger, if any.
+     */
+    void logOutput(std::string_view message) const {
+        if (logger_) {
+            logger_(message, true);
+        }
+    }
+	void logInput(std::string_view message) const {
+		if (logger_) {
+			logger_(message, false);
+		}
+	}
+
+    mutable std::function<void(std::string_view, bool)> logger_;
+    std::atomic<EngineState> state_ = EngineState::Uninitialized;
 };

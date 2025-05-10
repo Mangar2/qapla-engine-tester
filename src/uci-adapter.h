@@ -33,13 +33,6 @@
 
 using UciOptions = std::unordered_map<std::string, UciOption>;
 
-enum class UciState {
-    Uninitialized,   
-	Initialized,     // After uciok
-	Ready,           // After isready
-    Terminating      // Quitting
-};
-
  /**
   * @brief UCI protocol adapter implementing EngineAdapter.
   *        Runs the engine in a dedicated thread, handles UCI I/O.
@@ -59,17 +52,23 @@ public:
      */
     void terminateEngine() override;
 
+    EngineEvent readEvent() override;
+
     void newGame(const GameStartPosition& position) override;
     void moveNow() override;
     void setPonder(bool enabled) override;
     void ticker() override;
 
     void ponder(const GameState& game, GoLimits& limits) override;
-    void calcMove(const GameState& game, GoLimits& limits,
-        const MoveList& limitMoves = {}) override;
+    void computeMove(const GameState& game, const GoLimits& limits) override;
 
     void stopCalc() override;
     void writeCommand(const std::string& command) override;
+
+    /**
+     * @brief Sends a are you ready command to the engine.
+     */
+    void askForReady() override;
 
     const OptionMap& getOptionMap() const override;
     void setOptionMap(const OptionMap& list) override;
@@ -85,7 +84,7 @@ private:
     };
 	std::vector<ProtocolError> protocolErrors_; // Stores protocol errors
 
-    void waitForReady();                        // Sends "isready" and waits for "readyok"
+
     void sendPosition(const GameState& game);   // Sends position + moves
 	void runUciHandshake();                     // Runs the UCI handshake
     void skipLines(std::chrono::milliseconds timeout);
@@ -94,10 +93,6 @@ private:
         protocolErrors_.emplace_back(std::string(context), std::string(message));
 		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
     }
-
-	void logEngineOutput(std::string_view message) {
-		std::cout << "[] -> " << message << std::endl;
-	}
 
     EngineProcess process_;
 
@@ -108,6 +103,6 @@ private:
 	std::string engineName_;
 	std::string engineAuthor_;
 
-    std::atomic<UciState> state_ = UciState::Uninitialized;
+
 
 };

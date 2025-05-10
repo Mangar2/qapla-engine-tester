@@ -16,24 +16,24 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2025 Volker Böhm
  */
-#pragma once
 
-#include "engine-worker-factory.h"
-#include "uci-adapter.h"
+#include "game-manager.h"
+#include <iostream>
 
-std::vector<std::unique_ptr<EngineWorker>>
-EngineWorkerFactory::createUci(const std::filesystem::path& executablePath,
-    std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count) const
-{
-    std::vector<std::unique_ptr<EngineWorker>> result;
-    result.reserve(count);
+GameManager::GameManager(std::unique_ptr<EngineWorker> engine)
+    : engine_(std::move(engine)) {
 
-    for (std::size_t i = 0; i < count; ++i) {
-        auto identifier = "#" + std::to_string(i);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory);
-        result.push_back(std::make_unique<EngineWorker>(std::move(adapter), identifier));
-    }
+    engine_->setEventSink([this](const EngineEvent& event) {
+        if (event.getType() == EngineEvent::Type::BestMove) {
+            std::cout << "Best move: " << (event.bestMove ? *event.bestMove : "(none)") << "\n";
+        }
+        });
+}
 
-    return result;
+void GameManager::start() {
+    GameState game;
+    GoLimits limits;
+    limits.movetimeMs = 1000;
+
+    engine_->computeMove(game, limits);
 }
