@@ -25,6 +25,7 @@
 #include <optional>
 #include <functional>
 
+#include "engine-process.h"
 #include "game-start-position.h"
 #include "game-state.h"
 
@@ -44,7 +45,7 @@ struct GoLimits {
     std::optional<int> nodes;
     std::optional<int> mateIn;
     std::optional<int64_t> movetimeMs;
-    MoveList& limitMoves;
+    std::optional<MoveList> limitMoves;
     bool infinite = false;
 };
 
@@ -64,7 +65,8 @@ struct EngineEvent {
         Info,
         PonderHit,
         Error,
-        Unknown
+        Unknown,
+        NoData
     };
 
     Type type;
@@ -89,6 +91,10 @@ enum class EngineState {
   */
 class EngineAdapter {
 public:
+    EngineAdapter(std::filesystem::path enginePath,
+        const std::optional<std::filesystem::path>& workingDirectory)
+        : process_(enginePath, workingDirectory) {
+    }
     virtual ~EngineAdapter() = default;
 
     /**
@@ -191,17 +197,19 @@ protected:
     /**
      * @brief Emits a log message using the configured logger, if any.
      */
-    void logOutput(std::string_view message) const {
+    void logFromEngine(std::string_view message) const {
         if (logger_) {
             logger_(message, true);
         }
     }
-	void logInput(std::string_view message) const {
+	void logToEngine(std::string_view message) const {
 		if (logger_) {
 			logger_(message, false);
 		}
 	}
-
     mutable std::function<void(std::string_view, bool)> logger_;
     std::atomic<EngineState> state_ = EngineState::Uninitialized;
+    EngineProcess process_;
+
+
 };

@@ -154,7 +154,35 @@ void EngineProcess::writeLine(const std::string& line) {
 #endif
 }
 
+std::optional<std::string> EngineProcess::readLineBlocking() {
+    std::string line;
+    char ch;
 
+#ifdef _WIN32
+    DWORD read = 0;
+
+    while (true) {
+        if (!ReadFile(stdoutRead_, &ch, 1, &read, nullptr) || read == 0) break;
+        if (ch == '\n') break;
+        line += ch;
+    }
+#else
+    int fd = stdoutRead_;
+
+    while (true) {
+        ssize_t r = read(stdoutRead_, &ch, 1);
+        if (r <= 0) break;
+        if (ch == '\n') break;
+        line += ch;
+    }
+#endif
+
+    if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+    }
+
+    return line.empty() ? std::nullopt : std::make_optional(std::move(line));
+}
 
 std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::milliseconds timeout) {
     std::string line;

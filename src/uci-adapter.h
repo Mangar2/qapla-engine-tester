@@ -77,6 +77,7 @@ private:
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 500 };
     static constexpr std::chrono::milliseconds engineQuitTimeout{ 1000 };
+    static constexpr std::chrono::milliseconds readTimeout{ 1000 };
 
     struct ProtocolError {
         std::string context;
@@ -93,8 +94,6 @@ private:
         protocolErrors_.emplace_back(std::string(context), std::string(message));
 		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
     }
-
-    EngineProcess process_;
 
 	UciOptions supportedOptions_;
     OptionMap options_;

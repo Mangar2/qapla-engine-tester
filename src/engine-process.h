@@ -70,6 +70,13 @@ public:
      */
     std::optional<std::string> readLine(std::chrono::milliseconds timeout);
 
+	/**
+	 * @brief Reads a single line from stdout blocking.
+	 * @return Line from stdout. 
+	 * @throws std::runtime_error if reading fails.
+	 */
+    std::optional<std::string> readLineBlocking();
+
     /**
      * @brief Attempts to read a single line from stdout without blocking.
      * @return Line from stdout if available immediately, or std::nullopt if no data is ready.

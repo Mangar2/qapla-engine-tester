@@ -56,15 +56,5 @@ public:
         return engines_.size();
     }
 
-    /**
-     * @brief Accesses a specific EngineWorker by index.
-     * @param index Index of the worker to access.
-     * @return Reference to the EngineWorker.
-     */
-    EngineWorker& operator[](std::size_t index) {
-        return *engines_.at(index);
-    }
-
-private:
     std::vector<std::unique_ptr<EngineWorker>> engines_;
 };

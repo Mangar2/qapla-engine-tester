@@ -24,7 +24,7 @@ GameManager::GameManager(std::unique_ptr<EngineWorker> engine)
     : engine_(std::move(engine)) {
 
     engine_->setEventSink([this](const EngineEvent& event) {
-        if (event.getType() == EngineEvent::Type::BestMove) {
+        if (event.type == EngineEvent::Type::BestMove) {
             std::cout << "Best move: " << (event.bestMove ? *event.bestMove : "(none)") << "\n";
         }
         });

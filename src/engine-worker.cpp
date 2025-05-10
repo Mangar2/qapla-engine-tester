@@ -27,7 +27,6 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     : adapter_(std::move(adapter)), identifier_(identifier)
     {
 
-	workThread_ = std::thread(&EngineWorker::threadLoop, this);
     if (!adapter_) {
         throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
     }
@@ -35,11 +34,26 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput) {
         Logger::instance().log(id, message, isOutput);
         });
+    running_ = true;
+    workThread_ = std::thread(&EngineWorker::threadLoop, this);
+    startupFuture_ = startupPromise_.get_future();
 
     post([this](EngineAdapter& adapter) {
-        adapter.runEngine();  
-        readThread_ = std::thread(&EngineWorker::readLoop, this);
-    });
+        try {
+            adapter.runEngine();
+            readThread_ = std::thread(&EngineWorker::readLoop, this);
+
+            adapter.askForReady();
+            if (!waitForReady(ReadyTimeoutStartup)) {
+                throw std::runtime_error("Engine failed startup readiness check");
+            }
+
+            startupPromise_.set_value(); // Erfolg
+        }
+        catch (...) {
+            startupPromise_.set_exception(std::current_exception()); // Fehler
+        }
+        });
 }
 
 EngineWorker::~EngineWorker() {
@@ -62,13 +76,15 @@ void EngineWorker::stop() {
     if (workThread_.joinable()) {
         workThread_.join();
     }
+	if (readThread_.joinable()) {
+		readThread_.join();
+	}
 }
 
 /**
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::threadLoop() {
-    running_ = true;
     while (running_) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
@@ -109,6 +125,13 @@ bool EngineWorker::waitForReady(std::chrono::milliseconds timeout) {
     });
 }
 
+bool EngineWorker::startupReady() {
+    post([](EngineAdapter& adapter) {
+        adapter.askForReady();
+        });
+    return waitForReady(ReadyTimeoutStartup);
+}
+
 void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
     post([this, gameState, limits](EngineAdapter& adapter) {
         try {
@@ -141,8 +164,8 @@ void EngineWorker::readLoop() {
         }
 
         // Weiterleitung an übergeordnete Spielsteuerung
-        if (gameEventSink_) {
-            gameEventSink_(event);
+        if (eventSink_) {
+            eventSink_(event);
         }
     }
 }

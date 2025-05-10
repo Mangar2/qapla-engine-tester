@@ -21,19 +21,27 @@
 #include "engine-worker-factory.h"
 #include "uci-adapter.h"
 
-std::vector<std::unique_ptr<EngineWorker>>
-EngineWorkerFactory::createUci(const std::filesystem::path& executablePath,
+EngineList EngineWorkerFactory::createUci(
+    const std::filesystem::path& executablePath,
     std::optional<std::filesystem::path> workingDirectory,
     std::size_t count) const
 {
-    std::vector<std::unique_ptr<EngineWorker>> result;
-    result.reserve(count);
+    std::vector<std::unique_ptr<EngineWorker>> engines;
+    engines.reserve(count);
 
     for (std::size_t i = 0; i < count; ++i) {
         auto identifier = "#" + std::to_string(i);
         auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory);
-        result.push_back(std::make_unique<EngineWorker>(std::move(adapter), identifier));
+        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifier);
+        engines.push_back(std::move(worker));
     }
-
-    return result;
+    std::vector<std::future<void>> futures;
+    futures.reserve(count);
+    for (auto& worker : engines) {
+        futures.push_back(worker->getStartupFuture());
+    }
+    for (auto& f : futures) {
+        f.get(); // blockiert bis Engine fertig
+    }
+    return engines;
 }

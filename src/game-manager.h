@@ -18,9 +18,8 @@
  */
 #pragma once
 #include "engine-worker.h"
-#include "engine-event.h"
+#include "engine-adapter.h"
 #include "game-state.h"
-#include "go-limits.h"
 
 class GameManager {
 public:

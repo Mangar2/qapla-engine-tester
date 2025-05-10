@@ -26,6 +26,7 @@
 
 #include "engine-worker.h"
 
+using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
  /**
   * @brief Factory for creating EngineAdapter instances based on engine type.
   */
@@ -40,7 +41,7 @@ public:
      * @param count Number of engine workers to create.
      * @return A vector of fully initialized EngineWorker instances.
      */
-    std::vector<std::unique_ptr<EngineWorker>>
+    EngineList
         createUci(const std::filesystem::path& executablePath,
             std::optional<std::filesystem::path> workingDirectory = std::nullopt,
             std::size_t count = 1) const;

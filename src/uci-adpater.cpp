@@ -22,10 +22,12 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
+#include <sstream>
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory)
-    : process_(enginePath, workingDirectory) {
+	: EngineAdapter(enginePath, workingDirectory)
+{
 }
 
 UciAdapter::~UciAdapter() {
@@ -38,7 +40,7 @@ void UciAdapter::skipLines(std::chrono::milliseconds timeout) {
     while (std::chrono::steady_clock::now() < deadline) {
         auto line = process_.readLine(timeout);
         if (!line) continue;
-		logOutput(*line);
+		logFromEngine(*line);
     }
 }
 
@@ -52,7 +54,7 @@ void UciAdapter::runUciHandshake() {
             throw std::runtime_error("Engine is not an uci engine");
             break; 
         }
-        logOutput(*line);
+        logFromEngine(*line);
 
         if (*line == "uciok") {
             break;
@@ -167,6 +169,7 @@ void UciAdapter::stopCalc() {
 
 void UciAdapter::writeCommand(const std::string& command) {
     std::lock_guard<std::mutex> lock(commandMutex_);
+	logToEngine(command);
     process_.writeLine(command);
 }
 
@@ -205,12 +208,13 @@ void UciAdapter::sendPosition(const GameState& game) {
 }
 
 EngineEvent UciAdapter::readEvent() {
-    std::string line;
-    if (!std::getline(*outputStream_, line)) {
-        return EngineEvent(EngineEvent::Type::Error, "Engine output stream closed unexpectedly");
+    std::optional<std::string> optLine = process_.readLineBlocking();
+    if (!optLine) {
+        return EngineEvent{ EngineEvent::Type::NoData, "" };
     }
 
-    trim(line); // optional: Leerzeichen entfernen
+	std::string line = *optLine;
+	logFromEngine(line);
 
     if (line == "readyok") {
         return EngineEvent(EngineEvent::Type::ReadyOk, line);

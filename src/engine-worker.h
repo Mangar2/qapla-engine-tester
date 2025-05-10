@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2025 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 #pragma once
 
@@ -25,7 +25,9 @@
 #include <queue>
 #include <functional>
 #include <optional>
+#include <future>
 #include "game-state.h"
+#include "engine-adapter.h"
 
 class EngineAdapter;
 
@@ -40,47 +42,69 @@ class EngineAdapter;
  */
 class EngineWorker {
 public:
-    /**
-     * @brief Constructs the worker and starts its internal thread.
-     * @param adapter The engine adapter to control. Ownership is transferred.
-     */
-    explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier);
+	/**
+	 * @brief Constructs the worker and starts its internal thread.
+	 * @param adapter The engine adapter to control. Ownership is transferred.
+	 */
+	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier);
 
-    /**
-     * @brief Destructs the worker and cleanly shuts down its thread.
-     */
-    ~EngineWorker();
+	/**
+	 * @brief Destructs the worker and cleanly shuts down its thread.
+	 */
+	~EngineWorker();
 
-    EngineWorker(const EngineWorker&) = delete;
-    EngineWorker& operator=(const EngineWorker&) = delete;
+	EngineWorker(const EngineWorker&) = delete;
+	EngineWorker& operator=(const EngineWorker&) = delete;
 
-    /**
-     * @brief Gracefully shuts down the engine worker and the associated engine.
-     *
-     * Sends "quit" to the engine, attempts a clean shutdown, and forcibly terminates
-     * the engine process if necessary. Then joins the worker thread.
-     */
-    void stop();
 
-    /**
-     * Requests the engine to compute the best move for the given game state and search limits.
-     *
-     * @param gameState The current game state (includes starting position and move history).
-     * @param limits The constraints for the upcoming search (time, depth, nodes, etc.).
-     */
-    void computeMove(const GameState& gameState, const GoLimits& limits);
+	void stop();
+
+	/**
+	 * @brief Führt einmalig nach dem Start der Engine ein erweitertes isready/readyok durch.
+	 *        Timeout ist festgelegt intern.
+	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).
+	 */
+	bool startupReady();
+
+	/**
+	 * Requests the engine to compute the best move for the given game state and search limits.
+	 *
+	 * @param gameState The current game state (includes starting position and move history).
+	 * @param limits The constraints for the upcoming search (time, depth, nodes, etc.).
+	 */
+	void computeMove(const GameState& gameState, const GoLimits& limits);
+
+	/**
+	 * @brief Sets the event sink for engine events.
+	 *
+	 * The event sink is a callback function that will be called with engine events.
+	 * This allows the main application to handle engine events asynchronously.
+	 *
+	 * @param sink The event sink function.
+	 */
+	void setEventSink(std::function<void(const EngineEvent&)> sink) {
+		eventSink_ = std::move(sink);
+	}
+
+	/**
+	 * Returns a future that becomes ready when the engine has completed its startup phase.
+	 * This includes process launch, UCI handshake, and isready/readyok confirmation.
+	 */
+	std::future<void> getStartupFuture() {
+		return std::move(startupFuture_);
+	}
 
 private:
 
-    /**
-     * @brief Posts a task to be executed on the worker thread.
-     *
-     * The task receives a reference to the internal EngineAdapter and can perform any synchronous
-     * sequence of operations. Tasks are executed sequentially in FIFO order.
-     *
-     * @param task The task to execute.
-     */
-    void post(std::optional<std::function<void(EngineAdapter&)>> task);
+	/**
+	 * @brief Posts a task to be executed on the worker thread.
+	 *
+	 * The task receives a reference to the internal EngineAdapter and can perform any synchronous
+	 * sequence of operations. Tasks are executed sequentially in FIFO order.
+	 *
+	 * @param task The task to execute.
+	 */
+	void post(std::optional<std::function<void(EngineAdapter&)>> task);
 
 	/**
 	 * @brief Waits for the engine to be ready for the next command.
@@ -90,34 +114,42 @@ private:
 	 * @param timeout The maximum time to wait for the engine to be ready.
 	 * @return true if the engine is ready, false if the timeout was reached.
 	 */
-    bool waitForReady(std::chrono::milliseconds timeout);
+	bool waitForReady(std::chrono::milliseconds timeout);
 
 	/**
 	 * @brief loop to get engine output.
 	 *
 	 */
-    void readLoop();
+	void readLoop();
 
-    static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
-    static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
+	static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
+	static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
 
-    void threadLoop();
+	void threadLoop();
 
-    std::queue<std::optional<std::function<void(EngineAdapter&)>>> taskQueue_;
-    std::string identifier_;
+	std::queue<std::optional<std::function<void(EngineAdapter&)>>> taskQueue_;
+	std::string identifier_;
 
-    // Ready synchronization
-    std::mutex readyMutex_;
-    std::condition_variable readyCv_;
-    bool readyReceived_ = false;
+	// Startup synchronization
+	std::promise<void> startupPromise_;
+	std::future<void> startupFuture_;
 
-    // Read thread
+	// Ready synchronization
+	std::mutex readyMutex_;
+	std::condition_variable readyCv_;
+	bool readyReceived_ = false;
+
+	// Read thread
 	std::thread readThread_;
 
-    // Work thread
-    std::mutex mutex_;
-    std::condition_variable cv_;
-    std::thread workThread_;
-    std::atomic<bool> running_ = false;
-    std::unique_ptr<EngineAdapter> adapter_;
+	// Work thread
+	std::mutex mutex_;
+	std::condition_variable cv_;
+	std::thread workThread_;
+	std::atomic<bool> running_ = false;
+	std::unique_ptr<EngineAdapter> adapter_;
+
+	// GameManager communication
+private:
+	std::function<void(const EngineEvent&)> eventSink_;
 };
