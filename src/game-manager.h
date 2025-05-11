@@ -17,16 +17,61 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 #pragma once
+
+#include <memory>
+#include <future>
+#include <mutex>
+
 #include "engine-worker.h"
-#include "engine-adapter.h"
+#include "timer.h"
+#include "time-control.h"
 #include "game-state.h"
 
+ /**
+  * @brief Manages a single chess game between the application and an engine.
+  *        Controls the engine's lifecycle and reacts to engine events via FSM logic.
+  */
 class GameManager {
 public:
+    /**
+     * @brief Constructs a GameManager with a ready-to-use EngineWorker instance.
+     */
     GameManager(std::unique_ptr<EngineWorker> engine);
 
-    void start();
+    /**
+     * @brief Starts the game by sending a compute command to the engine.
+     */
+    void run();
+
+    /**
+     * @brief Returns a future that becomes ready when the game is complete.
+     */
+    std::future<void> getFinishedFuture() {
+        return std::move(finishedFuture_);
+    }
+
+    /**
+     * Initiates asynchronous move computation using the current time control.
+     *
+     * @param game The game state to compute the move for.
+     */
+    void computeMove();
+
+	/**
+	 * @brief Initiates the test run for the engine.
+	 */
+    void runTests();
 
 private:
+    void handleState(const EngineEvent& event);
+
+	void evaluateMovetime(const EngineEvent& event);
+
     std::unique_ptr<EngineWorker> engine_;
+    std::promise<void> finishedPromise_;
+    std::future<void> finishedFuture_ = finishedPromise_.get_future();
+
+    Timer timer_;
+	TimeControl timeControl_;
+	GameState gameState_;
 };

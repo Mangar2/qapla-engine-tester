@@ -70,6 +70,7 @@ struct EngineEvent {
     };
 
     Type type;
+    int64_t timestampMs;
     std::string rawLine;
 
     std::optional<std::string> bestMove;

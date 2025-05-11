@@ -23,12 +23,19 @@
 #include <filesystem>
 #include <optional>
 #include <chrono>
+#include <deque>
 
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <unistd.h>
 #endif
+
+struct EngineLine {
+    std::string content;
+    bool complete;
+    int64_t timestampMs; 
+};
 
  /**
   * @brief Manages the lifecycle and communication of an external engine process.
@@ -56,6 +63,11 @@ public:
     EngineProcess& operator=(const EngineProcess&) = delete;
 
     /**
+	 * @brief Closes the engine process handles and releases resources.
+     */
+    void closeAllHandles();
+
+    /**
      * @brief Sends a single line to the engine's stdin.
      * @param line Line to send (without newline).
      * @throws std::runtime_error if writing fails.
@@ -70,12 +82,15 @@ public:
      */
     std::optional<std::string> readLine(std::chrono::milliseconds timeout);
 
-	/**
-	 * @brief Reads a single line from stdout blocking.
-	 * @return Line from stdout. 
-	 * @throws std::runtime_error if reading fails.
-	 */
-    std::optional<std::string> readLineBlocking();
+    /**
+     * Blocks until a complete line from the engine has been read and returns it with timestamp.
+     *
+     * If no complete line is currently available, the method continues reading from the pipe
+     * until one is. Lines are read and timestamped in readFromPipe().
+     *
+     * @return An EngineLine containing the line content, timestamp, and completeness flag.
+     */
+    EngineLine readLineBlocking();
 
     /**
      * @brief Attempts to read a single line from stdout without blocking.
@@ -114,7 +129,30 @@ public:
     bool isRunning() const;
 
 private:
+
     mutable std::string stdoutBuffer_;
+
+    /**
+     * Appends a line or line fragment to the line queue with timestamp.
+     *
+     * If the last entry is incomplete and this is a continuation (lineTerminated = false),
+     * the content is appended to the existing entry. Otherwise, a new entry is created.
+     *
+     * @param text The text to add.
+     * @param lineTerminated True if the text ends with a line break (complete line).
+     */
+    void appendToLineQueue(const std::string& text, bool lineTerminated);
+
+    /**
+     * Reads a block of raw bytes from the engine's stdout pipe and splits them into lines.
+     *
+     * Each complete line (ending with '\n') is stored in lineQueue_ with a timestamp.
+     * The last partial line, if any, is also stored but marked as incomplete.
+     * This method does not block if data is not immediately available.
+     */
+    void readFromPipe();
+    std::deque<EngineLine> lineQueue_;
+
     std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);
 
 #ifdef _WIN32

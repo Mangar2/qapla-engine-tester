@@ -17,12 +17,15 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "uci-adapter.h"
 
 #include <iostream>
 #include <sstream>
 #include <chrono>
 #include <sstream>
+#include "timer.h"
+
+#include "uci-adapter.h"
+#include "engine-process.h"
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory)
@@ -152,16 +155,18 @@ void UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
     if (limits.nodes) oss << " nodes " << *limits.nodes;
     if (limits.mateIn) oss << " mate " << *limits.mateIn;
 
-    oss << " wtime " << limits.wtimeMs
-        << " btime " << limits.btimeMs
-        << " winc " << limits.wincMs
-        << " binc " << limits.bincMs;
+    if (limits.wtimeMs > 0) oss << " wtime " << limits.wtimeMs;
+    if (limits.btimeMs > 0) oss << " btime " << limits.btimeMs;
+    if (limits.wincMs > 0)  oss << " winc " << limits.wincMs;
+    if (limits.bincMs > 0)  oss << " binc " << limits.bincMs;
 
     if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
+
     // TODO: Add searchmoves
 
     writeCommand(oss.str());
 }
+
 
 void UciAdapter::stopCalc() {
     writeCommand("stop");
@@ -208,23 +213,23 @@ void UciAdapter::sendPosition(const GameState& game) {
 }
 
 EngineEvent UciAdapter::readEvent() {
-    std::optional<std::string> optLine = process_.readLineBlocking();
-    if (!optLine) {
-        return EngineEvent{ EngineEvent::Type::NoData, "" };
+    EngineLine engineLine = process_.readLineBlocking();
+    if (engineLine.content == "") {
+        return EngineEvent{ EngineEvent::Type::NoData, engineLine.timestampMs, "" };
     }
 
-	std::string line = *optLine;
-	logFromEngine(line);
+	const std::string& line = engineLine.content;
 
+    logFromEngine(line);
     if (line == "readyok") {
-        return EngineEvent(EngineEvent::Type::ReadyOk, line);
+        return EngineEvent(EngineEvent::Type::ReadyOk, engineLine.timestampMs, line);
     }
 
     if (line.rfind("bestmove ", 0) == 0) {
         std::istringstream iss(line);
         std::string token, best, ponder;
         iss >> token >> best;
-        EngineEvent event(EngineEvent::Type::BestMove, line);
+        EngineEvent event(EngineEvent::Type::BestMove, engineLine.timestampMs, line);
         event.bestMove = best;
         if (iss >> token >> ponder && token == "ponder") {
             event.ponderMove = ponder;
@@ -234,16 +239,16 @@ EngineEvent UciAdapter::readEvent() {
 
     if (line.rfind("info ", 0) == 0) {
         // Option 1: nur weiterreichen
-        EngineEvent event(EngineEvent::Type::Info, line);
+        EngineEvent event(EngineEvent::Type::Info, engineLine.timestampMs, line);
         // Option 2: parse into SearchInfo (siehe vorherige Vorschläge)
         return event;
     }
 
     if (line == "ponderhit") {
-        return EngineEvent(EngineEvent::Type::PonderHit, line);
+        return EngineEvent(EngineEvent::Type::PonderHit, engineLine.timestampMs, line);
     }
 
     // Unbekanntes Format
-    return EngineEvent(EngineEvent::Type::Unknown, line);
+    return EngineEvent(EngineEvent::Type::Unknown, engineLine.timestampMs, line);
 }
 

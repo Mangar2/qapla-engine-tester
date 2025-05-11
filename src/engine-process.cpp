@@ -36,6 +36,8 @@
 #include <poll.h>
 #endif
 
+#include "timer.h"
+
 EngineProcess::EngineProcess(const std::filesystem::path& path,
     const std::optional<std::filesystem::path>& workingDir) {
 #ifdef _WIN32
@@ -126,15 +128,27 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
 
 EngineProcess::~EngineProcess() {
     terminate();
+}
+
+void EngineProcess::closeAllHandles() {
 #ifdef _WIN32
-    CloseHandle(stdinWrite_);
-    CloseHandle(stdoutRead_);
-    CloseHandle(stderrRead_);
-    CloseHandle(childProcess_);
+    if (stdinWrite_)   CloseHandle(stdinWrite_);
+    if (stdoutRead_)   CloseHandle(stdoutRead_);
+    if (stderrRead_)   CloseHandle(stderrRead_);
+    if (childProcess_) CloseHandle(childProcess_);
+
+    stdinWrite_ = 0;
+    stdoutRead_ = 0;
+    stderrRead_ = 0;
+    childProcess_ = 0;
 #else
-    close(stdinWrite_);
-    close(stdoutRead_);
-    close(stderrRead_);
+    if (stdinWrite_ >= 0) close(stdinWrite_);
+    if (stdoutRead_ >= 0) close(stdoutRead_);
+    if (stderrRead_ >= 0) close(stderrRead_);
+
+    stdinWrite_ = -1;
+    stdoutRead_ = -1;
+    stderrRead_ = -1;
 #endif
 }
 
@@ -154,34 +168,69 @@ void EngineProcess::writeLine(const std::string& line) {
 #endif
 }
 
-std::optional<std::string> EngineProcess::readLineBlocking() {
-    std::string line;
-    char ch;
+void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminated) {
+    int64_t now = Timer::getCurrentTimeMs();
+
+    if (!lineQueue_.empty() && !lineQueue_.back().complete) {
+        lineQueue_.back().content += text;
+		lineQueue_.back().complete = lineTerminated;
+        return;
+    }
+
+    lineQueue_.emplace_back(EngineLine{ text, lineTerminated, now });
+}
+
+void EngineProcess::readFromPipe() {
+    char temp[1024];
+    int64_t now = Timer::getCurrentTimeMs();
+    if (stdoutRead_ == 0) {
+        return;
+    }
 
 #ifdef _WIN32
-    DWORD read = 0;
-
-    while (true) {
-        if (!ReadFile(stdoutRead_, &ch, 1, &read, nullptr) || read == 0) break;
-        if (ch == '\n') break;
-        line += ch;
+    DWORD bytesRead = 0;
+    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
+        return;
     }
+    std::string incoming(temp, bytesRead);
 #else
-    int fd = stdoutRead_;
-
-    while (true) {
-        ssize_t r = read(stdoutRead_, &ch, 1);
-        if (r <= 0) break;
-        if (ch == '\n') break;
-        line += ch;
-    }
+    ssize_t r = read(stdoutRead_, temp, sizeof(temp));
+    if (r <= 0) return;
+    std::string incoming(temp, r);
 #endif
 
-    if (!line.empty() && line.back() == '\r') {
-        line.pop_back();
+    size_t start = 0;
+    size_t newline;
+    while ((newline = incoming.find('\n', start)) != std::string::npos) {
+        std::string line = incoming.substr(start, newline - start);
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+		appendToLineQueue(line, true);
+        start = newline + 1;
     }
 
-    return line.empty() ? std::nullopt : std::make_optional(std::move(line));
+    if (start < incoming.size()) {
+        std::string fragment = incoming.substr(start);
+		appendToLineQueue(fragment, false);
+    }
+}
+
+EngineLine EngineProcess::readLineBlocking() {
+    while (true) {
+
+        if (!lineQueue_.empty() && lineQueue_.front().complete) {
+            EngineLine line = std::move(lineQueue_.front());
+            lineQueue_.pop_front();
+            return line;
+        }
+#ifdef _WIN32
+        if (stdoutRead_ == 0) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
+#else
+        if (stdoutRead_ < 0) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
+#endif
+        readFromPipe();
+    }
 }
 
 std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::milliseconds timeout) {
@@ -294,13 +343,11 @@ void EngineProcess::terminate() {
 
     DWORD exitCode;
     if (GetExitCodeProcess(childProcess_, &exitCode)) {
-        if (exitCode != STILL_ACTIVE) {
-            return; // Process already exited
-        }
-
-        if (!TerminateProcess(childProcess_, 1)) {
-            DWORD error = GetLastError();
-            throw std::runtime_error("TerminateProcess failed with error code: " + std::to_string(error));
+        if (exitCode == STILL_ACTIVE) {
+            if (!TerminateProcess(childProcess_, 1)) {
+                DWORD error = GetLastError();
+                throw std::runtime_error("TerminateProcess failed with error code: " + std::to_string(error));
+            }
         }
     }
     else {
@@ -308,22 +355,19 @@ void EngineProcess::terminate() {
         throw std::runtime_error("GetExitCodeProcess failed with error code: " + std::to_string(error));
     }
 #else
-    if (childPid_ <= 0) {
-        return; // Already terminated (positive case)
-    }
+    if (childPid_ > 0) {
+        if (kill(childPid_, 0) != -1 || errno != ESRCH) {
+            if (kill(childPid_, SIGKILL) == -1) {
+                throw std::runtime_error("kill(SIGKILL) failed");
+            }
 
-    if (kill(childPid_, 0) == -1 && errno == ESRCH) {
-        return; // Process no longer exists (positive case)
-    }
-
-    if (kill(childPid_, SIGKILL) == -1) {
-        throw std::runtime_error("kill(SIGKILL) failed");
-    }
-
-    if (waitpid(childPid_, nullptr, 0) == -1) {
-        throw std::runtime_error("waitpid() failed");
+            if (waitpid(childPid_, nullptr, 0) == -1) {
+                throw std::runtime_error("waitpid() failed");
+            }
+        }
     }
 #endif
+    closeAllHandles();
     throw std::runtime_error("Engine did not end by itself");
 }
 

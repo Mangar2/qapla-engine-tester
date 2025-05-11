@@ -148,6 +148,7 @@
     <ClInclude Include="src\bits.h" />
     <ClInclude Include="src\board.h" />
     <ClInclude Include="src\boardstate.h" />
+    <ClInclude Include="src\engine-checklist.h" />
     <ClInclude Include="src\engine-worker-factory.h" />
     <ClInclude Include="src\engine-adapter.h" />
     <ClInclude Include="src\engine-group.h" />
@@ -166,6 +167,8 @@
     <ClInclude Include="src\movelist.h" />
     <ClInclude Include="src\piecesignature.h" />
     <ClInclude Include="src\pst.h" />
+    <ClInclude Include="src\time-control.h" />
+    <ClInclude Include="src\timer.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\uci-adapter.h" />
     <ClInclude Include="src\uci-option.h" />

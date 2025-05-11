@@ -20,6 +20,7 @@
 #include "engine-worker.h"
 #include "engine-adapter.h"  
 #include "logger.h"
+#include "timer.h"
 
 #include <stdexcept>
 
@@ -76,6 +77,7 @@ void EngineWorker::stop() {
     if (workThread_.joinable()) {
         workThread_.join();
     }
+    
 	if (readThread_.joinable()) {
 		readThread_.join();
 	}
@@ -135,13 +137,6 @@ bool EngineWorker::startupReady() {
 void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
     post([this, gameState, limits](EngineAdapter& adapter) {
         try {
-            adapter.askForReady();
-
-            if (!waitForReady(ReadyTimeoutNormal)) {
-                // TODO: GameManager über Timeout informieren
-                return;
-            }
-
             adapter.computeMove(gameState, limits);
         }
         catch (...) {

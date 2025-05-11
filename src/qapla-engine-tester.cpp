@@ -26,24 +26,43 @@
 #include "engine-worker-factory.h"
 #include "engine-group.h"
 #include "game-manager.h"
+#include "engine-checklist.h"
 
 int main() {
     const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe";
-    const std::size_t engineCount = 1000;
+	const std::filesystem::path stockfish = "C:\\Chess\\Engines\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe";
+    const std::size_t engineCount = 1;
+
+    std::cout << "[Startup] Waiting 3 seconds before test begins...\n";
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::cout << "[Startup] Starting test now.\n";
 
     EngineWorkerFactory factory;
     std::cout << "Starting engines...\n";
-    EngineGroup group(factory.createUci(enginePath, std::nullopt, engineCount));
+    EngineGroup group(factory.createUci(stockfish, std::nullopt, engineCount));
 
-	//GameManager gameManager(std::move(group.engines_[0]));  
-	//gameManager.start();
+    std::vector<std::unique_ptr<GameManager>> games;
+    std::vector<std::future<void>> futures;
+
+    for (auto& engine : group.engines_) {
+        auto manager = std::make_unique<GameManager>(std::move(engine));
+        manager->run(); // startet computeMove()
+        futures.push_back(manager->getFinishedFuture());
+        games.push_back(std::move(manager));
+    }
+
+    // Auf Abschluss aller Spiele warten
+    for (auto& f : futures) {
+        f.get();
+    }
 
     /*
     group.forEach([](EngineWorker& e) {
         e.stop();  
         });
 	*/
-    std::cout << "All engines completed.\n";
+    
+	EngineChecklist::print(std::cout);
     return 0;
 }
 
