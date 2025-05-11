@@ -237,23 +237,24 @@ namespace QaplaBasics
 		 * Checks for draw due to missing material
 		 * Tricky but jump free implementation
 		 */
-		bool drawDueToMissingMaterial() const
+		bool drawDueToMissingMaterial(bool sameBishopColor) const
 		{
-			constexpr pieceSignature_t ONLY_KNIGHT_AND_BISHOP =
-				pieceSignature_t(SignatureMask::ALL) & ~(Signature::BISHOP | Signature::KNIGHT);
+			constexpr pieceSignature_t blackBishop = static_cast<pieceSignature_t>(Signature::BISHOP) << SIG_SHIFT_BLACK;
+			constexpr pieceSignature_t blackKnight = static_cast<pieceSignature_t>(Signature::KNIGHT) << SIG_SHIFT_BLACK;
+			constexpr pieceSignature_t whiteBishop = static_cast<pieceSignature_t>(Signature::BISHOP);
+			constexpr pieceSignature_t whiteKnight = static_cast<pieceSignature_t>(Signature::KNIGHT);
 
-			// Checks that no other bit is set than "one bishop" and "one knight"
-			bool anyColorNotMoreThanOneNightAndOneBishop =
-				(_signature & (ONLY_KNIGHT_AND_BISHOP | (ONLY_KNIGHT_AND_BISHOP << SIG_SHIFT_BLACK))) == 0;
-			// Checks that "one bishop" and "one knight" is not set at the same time
-			bool hasEitherKnightOrBishop = (_signature & (_signature >> 2)) == 0;
-			return anyColorNotMoreThanOneNightAndOneBishop && hasEitherKnightOrBishop;
+			return _signature == whiteBishop
+				|| _signature == whiteKnight
+				|| _signature == blackBishop
+				|| _signature == blackKnight
+				|| (_signature == (blackBishop | whiteBishop) && sameBishopColor);
 		}
 
 		/**
 		 * Tansforms a string constant in a piece signature (like KKN = one Knight)
 		 */
-		void set(string pieces);
+		void set(std::string pieces);
 
 		/**
 		 * Generates a list of signatures from a pattern. It supports "+" (one or more pieces),
@@ -364,9 +365,9 @@ namespace QaplaBasics
 				return 0;
 		}
 
-		static constexpr array<pieceSignature_t, PIECE_AMOUNT> pieceToSignature = []()
+		static constexpr std::array<pieceSignature_t, PIECE_AMOUNT> pieceToSignature = []()
 		{
-			array<pieceSignature_t, PIECE_AMOUNT> result{};
+			std::array<pieceSignature_t, PIECE_AMOUNT> result{};
 			for (size_t i = 0; i < PIECE_AMOUNT; ++i)
 				result[i] = pieceSignature_t(Signature::EMPTY);
 			result[WHITE_PAWN] = pieceSignature_t(Signature::PAWN);
@@ -406,9 +407,9 @@ namespace QaplaBasics
 		 * Prevents futility pruning when the remaining material after a capture
 		 * consists of fewer than two pieces.
 		 */
-		static inline array<pieceSignature_t, size_t(SignatureMask::SIZE)> futilityOnCaptureMap = []()
+		static inline std::array<pieceSignature_t, size_t(SignatureMask::SIZE)> futilityOnCaptureMap = []()
 		{
-			array<pieceSignature_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
+			std::array<pieceSignature_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
 			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::SIZE); index++)
 			{
 				result[index] = true;
@@ -428,9 +429,9 @@ namespace QaplaBasics
 		 *
 		 * This table is used for fast material evaluation in search heuristics.
 		 */
-		static inline array<value_t, size_t(SignatureMask::SIZE)> staticPiecesValue = []()
+		static inline std::array<value_t, size_t(SignatureMask::SIZE)> staticPiecesValue = []()
 		{
-			array<value_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
+			std::array<value_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
 			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::ALL); index++)
 			{
 				result[index] =

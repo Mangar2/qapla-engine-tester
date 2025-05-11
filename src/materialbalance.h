@@ -100,10 +100,10 @@ namespace QaplaBasics {
 			return _materialValue;
 		}
 
-		const array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
+		const std::array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
 			return pieceValues;
 		}
-		array<EvalValue, PIECE_AMOUNT>& getPieceValues() {
+		std::array<EvalValue, PIECE_AMOUNT>& getPieceValues() {
 			return pieceValues;
 		}
 
@@ -122,10 +122,10 @@ namespace QaplaBasics {
 	private:
 
 		EvalValue _materialValue;
-		array<EvalValue, PIECE_AMOUNT> pieceValues;
-		array<value_t, PIECE_AMOUNT> absolutePieceValues;
+		std::array<EvalValue, PIECE_AMOUNT> pieceValues;
+		std::array<value_t, PIECE_AMOUNT> absolutePieceValues;
 
-		static constexpr array<value_t, PIECE_AMOUNT> pieceValuesForMoveSorting =
+		static constexpr std::array<value_t, PIECE_AMOUNT> pieceValuesForMoveSorting =
 		{ 0, 0, 100, -100, 300, -300, 300, -300, 500, -500, 900, -900 , MAX_VALUE, -MAX_VALUE };
 
 	};

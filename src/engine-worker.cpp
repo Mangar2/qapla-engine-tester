@@ -137,7 +137,10 @@ bool EngineWorker::startupReady() {
 void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
     post([this, gameState, limits](EngineAdapter& adapter) {
         try {
-            adapter.computeMove(gameState, limits);
+            int64_t sendTimestamp = adapter.computeMove(gameState, limits);
+            if (eventSink_) {
+				eventSink_(EngineEvent{ EngineEvent::Type::ComputeMoveSent, sendTimestamp });
+            }
         }
         catch (...) {
             // TODO: Fehlerereignis an GameManager senden

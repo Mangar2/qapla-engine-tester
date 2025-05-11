@@ -22,10 +22,34 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "game-start-position.h"  // enthält GameType + FEN
+#include "movegenerator.h"
 
-using Move = std::string;
-using MoveList = std::vector<Move>;
+using MoveStr = std::string;
+using MoveStrList = std::vector<MoveStr>;
+
+/**
+ * @brief Enumerates all meaningful game termination types.
+ *
+ * Includes PGN-standard outcomes and additional technical results relevant
+ * for engine testing or protocol-level termination.
+ */
+enum class GameResult {
+	Ongoing,               ///< The game is still in progress
+	Checkmate,             ///< One player is checkmated
+	Stalemate,             ///< The game ended in stalemate
+	DrawByRepetition,      ///< Draw due to threefold repetition
+	DrawByFiftyMoveRule,   ///< Draw due to the 50-move rule
+	DrawByInsufficientMaterial, ///< Draw due to insufficient mating material
+	DrawByAgreement,       ///< Draw by mutual agreement (PGN result: ½–½)
+	Resignation,           ///< One side resigns
+	Timeout,               ///< One side ran out of time
+	IllegalMove,           ///< A player made an illegal move (e.g. engine bug)
+	Adjudication,          ///< Tester or supervisor declared a result externally
+	Forfeit,               ///< Forfeit due to rule violation or technical fault
+	TerminatedByTester     ///< Game was aborted or terminated by the test system
+};
+
+enum class Side { White, Black, Draw, Undefined };
 
  /**
   * @brief Represents the current state of a chess game for engine interaction,
@@ -33,24 +57,41 @@ using MoveList = std::vector<Move>;
   */
 class GameState {
 public:
-    GameState() = default;
+	GameState();
 
-    const GameStartPosition& startPosition() const { return start_; }
-    void setStartPosition(const GameStartPosition& pos) { start_ = pos; }
+	bool isWhiteToMove() const { return position_.isWhiteToMove(); }
 
-    const std::vector<std::string>& moveList() const { return moves_; }
-    void addMove(std::string move) { moves_.push_back(std::move(move)); }
-    void clearMoves() { moves_.clear(); }
+	std::string getFen() const { return position_.getFen(); }
 
-    int fullmoveNumber() const { return fullmoveNumber_; }
-    void setFullmoveNumber(int number) { fullmoveNumber_ = number; }
+	/**
+	 * @brief Performs a move on the current position and updates the move list.
+	 * @param move The move to perform.
+	 */
+	void doMove(const QaplaBasics::Move& move);
 
-    bool whiteToMove() const { return whiteToMove_; }
-    void setWhiteToMove(bool white) { whiteToMove_ = white; }
+	/**
+	 * @brief Undo the last move and restore the previous position.
+	 */
+	void undoMove();
 
+	/**
+	 * Find the correct move providing a partial move information
+	 */
+	QaplaBasics::Move stringToMove(std::string move, bool requireLan);
+
+	/**
+	 * @brief Checks if the game is over and returns the result.
+	 * @return The result of the game and the winner side.
+	 */
+	std::tuple<GameResult, Side> getGameResult();
+	
+	std::vector<std::string> strMoves;
 private:
-    GameStartPosition start_;              // initial setup (variant + FEN)
-    std::vector<std::string> moves_;       // move list in UCI format
-    int fullmoveNumber_ = 1;               // starting move number
-    bool whiteToMove_ = true;              // whose turn it is
+    QaplaMoveGenerator::MoveGenerator position_;
+
+	bool isThreefoldRepetition() const;
+
+	std::vector<QaplaBasics::Move> moveList_;  // list of moves played so far
+	std::vector<QaplaBasics::BoardState> boardState_; // list of board states
+	std::vector<uint64_t> hashList_; // list of hash values
 };

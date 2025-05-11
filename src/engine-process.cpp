@@ -152,10 +152,11 @@ void EngineProcess::closeAllHandles() {
 #endif
 }
 
-void EngineProcess::writeLine(const std::string& line) {
+int64_t EngineProcess::writeLine(const std::string& line) {
 #ifdef _WIN32
     std::string withNewline = line + '\n';
     DWORD written;
+	int64_t now = Timer::getCurrentTimeMs();
     if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), &written, nullptr)) {
         throw std::runtime_error("Failed to write to stdin");
     }
@@ -166,6 +167,7 @@ void EngineProcess::writeLine(const std::string& line) {
         throw std::runtime_error("Failed to write to stdin");
     }
 #endif
+    return now;
 }
 
 void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminated) {

@@ -29,32 +29,42 @@
 #include <vector>
 #include <iostream>
 
- /**
-  * Represents a single checklist item for engine evaluation.
-  */
-struct EngineChecklistItem {
-    std::string category;
-    std::string description;
-    bool passed;
-};
-
-/**
- * Holds and outputs the structured checklist result of the engine.
- */
 class EngineChecklist {
 public:
-    static void addItem(const std::string& category, const std::string& description, bool passed) {
-        items_.emplace_back(EngineChecklistItem{ category, description, passed });
+    /**
+     * Reports the result of a single evaluation point for a topic.
+     *
+     * @param topic Logical topic name (e.g., "Move legality")
+     * @param passed True if the check passed; false if it failed.
+     */
+    static void report(std::string_view topic, bool passed) {
+        auto& stat = stats_[std::string(topic)];
+        ++stat.total;
+        if (!passed) ++stat.failures;
     }
 
     static void print(std::ostream& os) {
         os << "== Engine Checklist Report ==\n";
-        for (const auto& item : items_) {
-            os << (item.passed ? "PASS " : "FAIL ")  
-                << item.description << " (" << item.category << ")\n";
+        for (const auto& [topic, stat] : stats_) {
+            const bool passed = stat.total > 0 && stat.failures == 0;
+            const int percentFail = stat.total > 0
+                ? static_cast<int>((100 * stat.failures) / stat.total)
+                : 0;
+            if (passed) {
+                os << "PASS " << topic << " (" << stat.total << ")\n";
+			}
+            else {
+                os << "FAIL " << topic << ": " << stat.failures << " failed / "
+                    << stat.total << " total (" << percentFail << "% failure)\n";
+            }
         }
     }
 
 private:
-    static inline std::vector<EngineChecklistItem> items_;
+    struct Stat {
+        int total = 0;
+        int failures = 0;
+    };
+
+    static inline std::unordered_map<std::string, Stat> stats_;
 };

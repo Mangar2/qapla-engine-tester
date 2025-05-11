@@ -165,7 +165,7 @@ namespace QaplaBasics {
 	}
 
 
-	void PieceSignature::set(string pieces) {
+	void PieceSignature::set(std::string pieces) {
 		_signature = 0;
 		pieceSignature_t shift = 0;
 

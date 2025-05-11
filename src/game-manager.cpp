@@ -31,44 +31,63 @@ GameManager::GameManager(std::unique_ptr<EngineWorker> engine)
 
 void GameManager::handleState(const EngineEvent& event) {
     if (event.type == EngineEvent::Type::BestMove) {
-        evaluateMovetime(event);
-        finishedPromise_.set_value();
+        handleBestMove(event);
+        //finishedPromise_.set_value();
+    }
+    else if (event.type == EngineEvent::Type::ComputeMoveSent) {
+		computeMoveStartTimestamp_ = event.timestampMs;
     }
 }
 
-void GameManager::evaluateMovetime(const EngineEvent& event) {
-    const auto elapsedMs = timer_.elapsedMs(event.timestampMs);
-    std::string resultText;
-    bool passed = true;
+void GameManager::handleBestMove(const EngineEvent& event) {
+    if (!handleCheck("Computing a move did not return a move", !event.bestMove.has_value())) return;
+	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
+	if (!handleCheck("Computing a move returned an illegal move", move.isEmpty(), *event.bestMove)) return;
+    gameState_.doMove(move);
+    checkTime(event);
+    computeMove();
+}
 
-    if (auto moveTime = timeControl_.moveTimeMs()) {
-        const int64_t lower = (*moveTime * 85) / 100;
-        const int64_t upper = *moveTime + 5;
+void GameManager::checkTime(const EngineEvent& event) {
+	const int64_t GRACE_MS = 5; // ms
+    const int64_t elapsedMs = event.timestampMs - computeMoveStartTimestamp_;
+    const GoLimits& limits = timeControl_.createGoLimits();
+    const bool white = gameState_.isWhiteToMove();
+    int numLimits = 0;
 
-        if (elapsedMs < lower) {
-            resultText = "used too little time (" + std::to_string(elapsedMs) + "ms)";
-            passed = false;
-        }
-        else if (elapsedMs > upper) {
-            resultText = "exceeded time limit (" + std::to_string(elapsedMs) + "ms)";
-            passed = false;
-        }
-        else {
-            resultText = "used " + std::to_string(elapsedMs) + "ms";
-        }
-    }
-    else {
-        resultText = "no movetime specified";
-        passed = false;
+     // Overrun ist always an error, every limit must be respected
+    const int64_t timeLeft = white ? limits.wtimeMs : limits.btimeMs;
+    if (timeLeft > 0) {
+		handleCheck("wtime/btime overrun", elapsedMs >= timeLeft,
+			std::to_string(elapsedMs) + " >= " + std::to_string(timeLeft));
+        numLimits++;
     }
 
-    EngineChecklist::addItem("Timemanagement", "Supports movetime: " + resultText, passed);
+	if (limits.movetimeMs.has_value()) {
+		handleCheck("movetime overrun", elapsedMs > *limits.movetimeMs + GRACE_MS,
+			std::to_string(elapsedMs) + " >= " + std::to_string(*limits.movetimeMs));
+        numLimits++;
+	}
+
+    // Underrun is never an error; we still check it for selected time models
+    // to verify if the engine follows expected timing behavior.
+    // This check is only applied if exactly one time constraint is active.
+    if (numLimits == 1) {
+        if (limits.movetimeMs.has_value()) {
+            handleCheck("movetime underrun", elapsedMs < *limits.movetimeMs * 9 / 10,
+                std::to_string(elapsedMs) + " < " + std::to_string(*limits.movetimeMs));
+        }
+    }
 }
 
 void GameManager::computeMove() {
     GoLimits limits = timeControl_.createGoLimits();
-    timer_.start();
     engine_->computeMove(gameState_, limits);
+}
+
+bool GameManager::isLegalMove(const std::string& moveText) {
+    const auto move = gameState_.stringToMove(moveText, requireLan_);
+    return !move.isEmpty();
 }
 
 void GameManager::runTests() {

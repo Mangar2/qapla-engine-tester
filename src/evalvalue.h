@@ -27,8 +27,6 @@
 #include <array>
 #include "types.h"
 
-using namespace std;
-
 namespace QaplaBasics {
 
 	using value_t = int32_t;
@@ -120,7 +118,7 @@ namespace QaplaBasics {
 		constexpr EvalValue(value_t value) : _midgame(value), _endgame(value) {}
 		constexpr EvalValue(value_t midgame, value_t endgame) : _midgame(midgame), _endgame(endgame) {}
 		constexpr EvalValue(const value_t value[2]) : _midgame(value[0]), _endgame(value[1]) {}
-		constexpr EvalValue(const array<value_t, 2> value) : _midgame(value[0]), _endgame(value[1]) {}
+		constexpr EvalValue(const std::array<value_t, 2> value) : _midgame(value[0]), _endgame(value[1]) {}
 
 		/**
 		 * Returns a tapered evaluation value depending on the given game phase.
@@ -131,8 +129,8 @@ namespace QaplaBasics {
 			return (value_t(_midgame) * midgameInPercent + value_t(_endgame) * (100 - midgameInPercent)) / 100;
 		}
 
-		constexpr array<value_t, 2> getValue() const {
-			const array<value_t, 2> result = { _midgame, _endgame };
+		constexpr std::array<value_t, 2> getValue() const {
+			const std::array<value_t, 2> result = { _midgame, _endgame };
 			return result;
 		}
 
@@ -163,13 +161,13 @@ namespace QaplaBasics {
 		}
 
 		//This method handles all the outputs.    
-		friend ostream& operator<<(ostream&, const EvalValue&);
+		friend std::ostream& operator<<(std::ostream&, const EvalValue&);
 	private:
 		value_t _midgame;
 		value_t _endgame;
 	};
 
-	inline ostream& operator<<(ostream& o, const EvalValue& v) {
+	inline std::ostream& operator<<(std::ostream& o, const EvalValue& v) {
 		o << "{" << std::right << std::setw(3) << v._midgame << ", " 
 			<< std::right << std::setw(3) << v._endgame << "}";
 		return o;

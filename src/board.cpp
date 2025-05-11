@@ -274,8 +274,8 @@ void Board::undoMove(Move move, BoardState recentBoardState) {
 	assert(_board[departure] != NO_PIECE);
 }
 
-string Board::getFen() const {
-	string result = "";
+std::string Board::getFen() const {
+	std::string result = "";
 	File file;
 	Rank rank;
 	int amoutOfEmptyFields;
@@ -324,15 +324,15 @@ void Board::printPst(Piece piece) const {
 		const auto square = lsb(bb);
 		total += PST::getValue(square, piece);
 	}
-	cout << total << " (";
+	std::cout << total << " (";
 
 	for (auto bb = pieceBB; bb; bb &= bb - 1)
 	{
 		const auto square = lsb(bb);
 		const auto value = PST::getValue(square, piece);
-		cout << squareToString(square) << value << " ";
+		std::cout << squareToString(square) << value << " ";
 	}
-	cout << ")" << endl;
+	std::cout << ")" << std::endl;
 }
 
 
@@ -344,7 +344,7 @@ void Board::printPst() const {
 
 
 void Board::printFen() const {
-	cout << getFen() << endl;
+	std::cout << getFen() << std::endl;
 }
 
 void Board::print() const {

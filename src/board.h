@@ -140,7 +140,10 @@ namespace QaplaBasics {
 		 * No side has any pawn, no side has more than either a Knight or a Bishop
 		 */
 		inline auto drawDueToMissingMaterial() const {
-			return _pieceSignature.drawDueToMissingMaterial();
+			static const bitBoard_t WHITE_FIELDS = 0x55AA55AA55AA55AA;
+			const bool sameBishopColor = ((bitBoardsPiece[WHITE_BISHOP] & WHITE_FIELDS) != 0 
+				== (bitBoardsPiece[BLACK_BISHOP] & WHITE_FIELDS) != 0);
+			return _pieceSignature.drawDueToMissingMaterial(sameBishopColor);
 		}
 
 		/**
@@ -306,7 +309,7 @@ namespace QaplaBasics {
 		/**
 		 * Gets the board in Fen representation
 		 */
-		string getFen() const;
+		std::string getFen() const;
 
 		/**
 		 * Prints the board as fen to std-out
@@ -386,10 +389,10 @@ namespace QaplaBasics {
 
 
 	protected:
-		array<Square, COLOR_COUNT> kingSquares;
+		std::array<Square, COLOR_COUNT> kingSquares;
 
-		array<bitBoard_t, PIECE_AMOUNT> bitBoardsPiece;
-		array<bitBoard_t, COLOR_COUNT> bitBoardAllPiecesOfOneColor;
+		std::array<bitBoard_t, PIECE_AMOUNT> bitBoardsPiece;
+		std::array<bitBoard_t, COLOR_COUNT> bitBoardAllPiecesOfOneColor;
 		bitBoard_t bitBoardAllPieces;
 
 	private:
@@ -479,13 +482,13 @@ namespace QaplaBasics {
 		bool _whiteToMove;	
 		// Board properties put on the search stack
 		BoardState _boardState;
-		array<Piece, BOARD_SIZE> _board;
+		std::array<Piece, BOARD_SIZE> _board;
 
 		// Chess 960 variables
-		array<Square, 2> _kingStartSquare;
-		array<Square, 2> _queenRookStartSquare;
-		array<Square, 2> _kingRookStartSquare;
-		array<uint16_t, static_cast<uint32_t>(BOARD_SIZE)> _clearCastleFlagMask;
+		std::array<Square, 2> _kingStartSquare;
+		std::array<Square, 2> _queenRookStartSquare;
+		std::array<Square, 2> _kingRookStartSquare;
+		std::array<uint16_t, static_cast<uint32_t>(BOARD_SIZE)> _clearCastleFlagMask;
 	};
 }
 

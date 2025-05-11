@@ -60,10 +60,9 @@ public:
     void ticker() override;
 
     void ponder(const GameState& game, GoLimits& limits) override;
-    void computeMove(const GameState& game, const GoLimits& limits) override;
+    int64_t computeMove(const GameState& game, const GoLimits& limits) override;
 
     void stopCalc() override;
-    void writeCommand(const std::string& command) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -97,7 +96,7 @@ private:
 
 	UciOptions supportedOptions_;
     OptionMap options_;
-    std::mutex commandMutex_;
+    
 
 	std::string engineName_;
 	std::string engineAuthor_;

@@ -143,7 +143,7 @@ void UciAdapter::ponder(const GameState& game, GoLimits& limits) {
 
 }
 
-void UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
+int64_t UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
     sendPosition(game);
 
     std::ostringstream oss;
@@ -164,18 +164,12 @@ void UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
 
     // TODO: Add searchmoves
 
-    writeCommand(oss.str());
+    return writeCommand(oss.str());
 }
 
 
 void UciAdapter::stopCalc() {
     writeCommand("stop");
-}
-
-void UciAdapter::writeCommand(const std::string& command) {
-    std::lock_guard<std::mutex> lock(commandMutex_);
-	logToEngine(command);
-    process_.writeLine(command);
 }
 
 const OptionMap& UciAdapter::getOptionMap() const {
@@ -197,15 +191,15 @@ void UciAdapter::askForReady() {
 
 void UciAdapter::sendPosition(const GameState& game) {
     std::ostringstream oss;
-    if (game.startPosition().fen().empty()) {
+    if (game.strMoves.empty()) {
         oss << "position startpos";
     }
     else {
-        oss << "position fen " << game.startPosition().fen();
+        oss << "position fen " << game.getFen();
     }
-    if (!game.moveList().empty()) {
+    if (!game.strMoves.empty()) {
         oss << " moves";
-        for (const auto& move : game.moveList()) {
+        for (const auto& move : game.strMoves) {
             oss << " " << move;
         }
     }

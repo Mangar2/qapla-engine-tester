@@ -71,8 +71,9 @@ public:
      * @brief Sends a single line to the engine's stdin.
      * @param line Line to send (without newline).
      * @throws std::runtime_error if writing fails.
+     * @returns timestamp when the data has been written
      */
-    void writeLine(const std::string& line);
+    int64_t writeLine(const std::string& line);
 
     /**
      * @brief Reads a single line from stdout with a timeout.

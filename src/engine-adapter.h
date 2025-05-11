@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <optional>
 #include <functional>
+#include <mutex>
 
 #include "engine-process.h"
 #include "game-start-position.h"
@@ -45,7 +46,7 @@ struct GoLimits {
     std::optional<int> nodes;
     std::optional<int> mateIn;
     std::optional<int64_t> movetimeMs;
-    std::optional<MoveList> limitMoves;
+    std::optional<std::vector<std::string>> limitMoves;
     bool infinite = false;
 };
 
@@ -60,6 +61,7 @@ struct SearchInfo {
 
 struct EngineEvent {
     enum class Type {
+        ComputeMoveSent,
         ReadyOk,
         BestMove,
         Info,
@@ -155,18 +157,24 @@ public:
 	 * @param game        Current game state.
 	 * @param limits      Calculation limits (time, depth, etc.).
 	 * @param limitMoves  Optional list of moves to consider.
+	 * @returns the timestamp the calculate move commad has been sent to the engine.
      */
-    virtual void computeMove(const GameState& game, const GoLimits& limits) = 0;
+    virtual int64_t computeMove(const GameState& game, const GoLimits& limits) = 0;
 
     /**
      * @brief Instructs the engine to stop calculation.
      */
     virtual void stopCalc() = 0;
 
-    /**
-     * @brief Sends a raw string command to the engine.
-     */
-    virtual void writeCommand(const std::string& command) = 0;
+	/**
+	 * @brief Sends a command to the engine's stdin.
+	 * @param command Command to send (without newline).
+	 */
+    int64_t writeCommand(const std::string& command) {
+        std::lock_guard<std::mutex> lock(commandMutex_);
+        logToEngine(command);
+        return process_.writeLine(command);
+    }
 
     /**
      * @brief Returns the current engine option list.
@@ -211,6 +219,6 @@ protected:
     mutable std::function<void(std::string_view, bool)> logger_;
     std::atomic<EngineState> state_ = EngineState::Uninitialized;
     EngineProcess process_;
-
+    std::mutex commandMutex_;
 
 };

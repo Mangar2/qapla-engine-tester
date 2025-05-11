@@ -169,7 +169,7 @@ void MoveGenerator::computeCastlingMasksForMoveGeneration()
 		if (square != getKingRookStartSquare<COLOR>()) castlePieceMaskKingSide[COLOR] |= 1ULL << square;
 	}
 	for (square = getKingSquare<COLOR>() - 1; 
-		 square >= min(queenSideCastlingTarget, getQueenRookStartSquare<COLOR>());
+		 square >= std::min(queenSideCastlingTarget, getQueenRookStartSquare<COLOR>());
 		--square) {
 		if (square != getQueenRookStartSquare<COLOR>()) castlePieceMaskQueenSide[COLOR] |= 1ULL << square;
 	}
@@ -670,7 +670,7 @@ void MoveGenerator::genMovesOfMovingColor(MoveList& moveList) {
 
 template <Piece COLOR>
 std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitmaps() const {
-	array<bitBoard_t, Piece::PIECE_AMOUNT / 2> result;
+	std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> result;
 	bitBoard_t discoveredCheckMask = 0;
 	const auto OPPONENT_COLOR = switchColor(COLOR);
 	const auto kingPos = kingSquares[COLOR];

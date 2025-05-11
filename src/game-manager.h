@@ -22,6 +22,7 @@
 #include <future>
 #include <mutex>
 
+#include "engine-checklist.h"
 #include "engine-worker.h"
 #include "timer.h"
 #include "time-control.h"
@@ -73,8 +74,33 @@ public:
 
 private:
     void handleState(const EngineEvent& event);
+	void handleBestMove(const EngineEvent& event);
 
-	void evaluateMovetime(const EngineEvent& event);
+    bool isLegalMove(const std::string& moveText);
+
+    /**
+     * @brief Evaluates whether the engine respected the time constraints defined in GoLimits.
+     *
+     * This function considers all active time limits (e.g. movetime, wtime, btime, movesToGo)
+     * and verifies that the engine stopped within the strictest constraint.
+     * If no limits are set, it ensures that the engine used a non-trivial amount of time.
+     *
+     * @param event The EngineEvent containing the bestmove timestamp for timing analysis.
+     */
+    void checkTime(const EngineEvent& event);
+
+    /**
+     * @brief General check handling method.
+	 * @param name Checklist-Name of the topic.
+	 * @param detail Detailed error message to be logged
+     */
+    bool handleCheck(std::string_view name, bool failed, std::string_view detail = "") {
+        EngineChecklist::report(name, !failed);
+        if (failed) {
+            std::cerr << "Error: " << name << ": " << detail << std::endl;
+        }
+		return !failed;
+    }
 
     std::unique_ptr<EngineWorker> engine_;
     std::promise<void> finishedPromise_;
@@ -83,4 +109,6 @@ private:
     Timer timer_;
 	TimeControl timeControl_;
 	GameState gameState_;
+	int64_t computeMoveStartTimestamp_ = 0;
+    bool requireLan_ = true;
 };

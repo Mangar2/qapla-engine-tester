@@ -98,8 +98,8 @@ namespace QaplaBasics {
 		 * Swaps an entry of the move list
 		 */
 		void swapEntry(uint32_t index1, uint32_t index2) {
-			swap(moveList[index1], moveList[index2]);
-			swap(moveWeights[index1], moveWeights[index2]);
+			std::swap(moveList[index1], moveList[index2]);
+			std::swap(moveWeights[index1], moveWeights[index2]);
 		}
 
 		/**
@@ -160,7 +160,7 @@ namespace QaplaBasics {
 			for (uint32_t i = 0; i < totalMoveAmount; i++)
 			{
 				moveList[i].print();
-				cout << endl;
+				std::cout << std::endl;
 			}
 		}
 
@@ -173,8 +173,8 @@ namespace QaplaBasics {
 		// Thus, MAX_MOVE_AMOUNT is set conservatively to 300.
 		static const int32_t MAX_MOVE_AMOUNT = 300;
 
-		array<Move, MAX_MOVE_AMOUNT> moveList;
-		array<value_t, MAX_MOVE_AMOUNT> moveWeights;
+		std::array<Move, MAX_MOVE_AMOUNT> moveList;
+		std::array<value_t, MAX_MOVE_AMOUNT> moveWeights;
 	public:
 		uint32_t totalMoveAmount;
 		uint32_t nonSilentMoveAmount;

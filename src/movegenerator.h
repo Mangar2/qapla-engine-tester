@@ -51,7 +51,7 @@ namespace QaplaMoveGenerator {
 		 *
 		 * @return True if the side to move is in check, false otherwise.
 		 */
-		inline bool isInCheck() {
+		inline bool isInCheck() const {
 			bool result;
 			if (isWhiteToMove()) {
 				result = (bitBoardsPiece[WHITE_KING] & attackMask[BLACK]) != 0;
@@ -331,31 +331,31 @@ namespace QaplaMoveGenerator {
 		 * Bitboards representing all squares attacked by each side.
 		 * Indexed by side color: attackMask[WHITE] or attackMask[BLACK].
 		 */
-		array<bitBoard_t, 2> attackMask;
+		std::array<bitBoard_t, 2> attackMask;
 
 		/**
 		 * Bitboards marking all pinned pieces for each side.
 		 * A pinned piece cannot legally move in arbitrary directions.
 		 */
-		array<bitBoard_t, 2> pinnedMask;
+		std::array<bitBoard_t, 2> pinnedMask;
 
 		// Squares attacked by pawns
-		array<bitBoard_t, 2> pawnAttack;
+		std::array<bitBoard_t, 2> pawnAttack;
 
-		array<bitBoard_t, BOARD_SIZE> pieceAttackMask;
+		std::array<bitBoard_t, BOARD_SIZE> pieceAttackMask;
 		
 		/**
 		 * Bitboards used to check if the king passes through attacked squares when castling.
 		 * Required for castling legality checks.
 		 */
-		array<bitBoard_t, 2> castleAttackMaskKingSide;
-		array<bitBoard_t, 2> castleAttackMaskQueenSide;
+		std::array<bitBoard_t, 2> castleAttackMaskKingSide;
+		std::array<bitBoard_t, 2> castleAttackMaskQueenSide;
 
 		/**
 		 * Bitboards used to verify that the castling path is free of pieces.
 		 */
-		array<bitBoard_t, 2> castlePieceMaskKingSide;
-		array<bitBoard_t, 2> castlePieceMaskQueenSide;
+		std::array<bitBoard_t, 2> castlePieceMaskKingSide;
+		std::array<bitBoard_t, 2> castlePieceMaskQueenSide;
 	};
 
 }
