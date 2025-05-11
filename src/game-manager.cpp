@@ -43,7 +43,7 @@ void GameManager::evaluateMovetime(const EngineEvent& event) {
 
     if (auto moveTime = timeControl_.moveTimeMs()) {
         const int64_t lower = (*moveTime * 85) / 100;
-        const int64_t upper = *moveTime;
+        const int64_t upper = *moveTime + 5;
 
         if (elapsedMs < lower) {
             resultText = "used too little time (" + std::to_string(elapsedMs) + "ms)";

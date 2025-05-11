@@ -56,11 +56,9 @@ int main() {
         f.get();
     }
 
-    /*
-    group.forEach([](EngineWorker& e) {
-        e.stop();  
-        });
-	*/
+    for (auto& gm : games) {
+        gm->stop();  
+    }
     
 	EngineChecklist::print(std::cout);
     return 0;

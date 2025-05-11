@@ -338,16 +338,20 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout) {
 void EngineProcess::terminate() {
 #ifdef _WIN32
     if (!childProcess_) {
+        closeAllHandles();
         return; // Already terminated (positive case)
     }
 
     DWORD exitCode;
     if (GetExitCodeProcess(childProcess_, &exitCode)) {
-        if (exitCode == STILL_ACTIVE) {
-            if (!TerminateProcess(childProcess_, 1)) {
-                DWORD error = GetLastError();
-                throw std::runtime_error("TerminateProcess failed with error code: " + std::to_string(error));
-            }
+        if (exitCode != STILL_ACTIVE) {
+            closeAllHandles();
+            return; // Process already exited
+        }
+
+        if (!TerminateProcess(childProcess_, 1)) {
+            DWORD error = GetLastError();
+            throw std::runtime_error("TerminateProcess failed with error code: " + std::to_string(error));
         }
     }
     else {
@@ -355,16 +359,22 @@ void EngineProcess::terminate() {
         throw std::runtime_error("GetExitCodeProcess failed with error code: " + std::to_string(error));
     }
 #else
-    if (childPid_ > 0) {
-        if (kill(childPid_, 0) != -1 || errno != ESRCH) {
-            if (kill(childPid_, SIGKILL) == -1) {
-                throw std::runtime_error("kill(SIGKILL) failed");
-            }
+    if (childPid_ <= 0) {
+        closeAllHandles();
+        return; // Already terminated (positive case)
+    }
 
-            if (waitpid(childPid_, nullptr, 0) == -1) {
-                throw std::runtime_error("waitpid() failed");
-            }
-        }
+    if (kill(childPid_, 0) == -1 && errno == ESRCH) {
+        closeAllHandles();
+        return; // Process no longer exists (positive case)
+    }
+
+    if (kill(childPid_, SIGKILL) == -1) {
+        throw std::runtime_error("kill(SIGKILL) failed");
+    }
+
+    if (waitpid(childPid_, nullptr, 0) == -1) {
+        throw std::runtime_error("waitpid() failed");
     }
 #endif
     closeAllHandles();

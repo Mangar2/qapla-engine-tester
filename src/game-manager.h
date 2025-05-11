@@ -38,6 +38,15 @@ public:
      */
     GameManager(std::unique_ptr<EngineWorker> engine);
 
+	/**
+	 * @brief stops the engine if it is running.
+	 */
+	void stop() {
+		if (engine_ ) {
+			engine_->stop();
+		}
+	}
+
     /**
      * @brief Starts the game by sending a compute command to the engine.
      */
