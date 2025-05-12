@@ -26,7 +26,9 @@
 #include <thread>
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
+#include <psapi.h>
 #include <io.h>
 #else
 #include <unistd.h>
@@ -168,6 +170,21 @@ int64_t EngineProcess::writeLine(const std::string& line) {
     }
 #endif
     return now;
+}
+
+/**
+ * Returns the current memory usage (in bytes) of the engine process.
+ */
+std::size_t EngineProcess::getMemoryUsage() const {
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    if (GetProcessMemoryInfo(childProcess_, reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc), sizeof(pmc))) {
+        return pmc.PrivateUsage; // Private memory used by process
+    }
+    return 0;
+#else
+    // Linux version follows below
+#endif
 }
 
 void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminated) {

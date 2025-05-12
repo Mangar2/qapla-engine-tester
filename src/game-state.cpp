@@ -110,6 +110,7 @@ void GameState::doMove(const QaplaBasics::Move& move) {
 void GameState::undoMove() {
 	if (moveList_.empty()) return;
 	position_.undoMove(moveList_.back(), boardState_.back());
+	position_.computeAttackMasksForBothColors();
 	moveList_.pop_back();
 	boardState_.pop_back();
 	strMoves.pop_back();

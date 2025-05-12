@@ -20,18 +20,19 @@
 #include <memory>
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
+#include "engine-checklist.h"
 
 void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
     EngineWorkerFactory factory;
     auto list = factory.createUci(enginePath, std::nullopt, 1);
-	engineWorker_ = std::move(list[0]);
-	gameManager_ = std::make_unique<GameManager>(std::move(engineWorker_));
+	gameManager_ = std::make_unique<GameManager>(std::move(list[0]));
 }
 
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     runStartStopTest(enginePath);
 	createGameManager(enginePath, true);
-	runGoLimitsTests();
+    runHashTableMemoryTest();
+    runGoLimitsTests();
     runPlaceholderTest();
 	gameManager_->stop();
 }
@@ -112,6 +113,41 @@ void EngineTestController::runGoLimitsTests() {
     }
     std::cout << "  ...done" << std::endl;
 }
+
+void EngineTestController::runHashTableMemoryTest() {
+    std::cout << "Running test: Hash table memory release on shrink\n";
+    try {
+        if (!gameManager_ || !gameManager_->getEngine()) {
+            std::cerr << "EngineWorker not initialized.\n";
+            return;
+        }
+
+        // Set high hash size
+        gameManager_->getEngine()->setOption("Hash", "512");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300)); // Allow allocation
+        std::size_t memHigh = gameManager_->getEngine()->getEngineMemoryUsage();
+
+        // Set low hash size
+        gameManager_->getEngine()->setOption("Hash", "1");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300)); // Allow deallocation
+        std::size_t memLow = gameManager_->getEngine()->getEngineMemoryUsage();
+
+        handleCheck("Engine memory increases / shrinks with hash size as expected", 
+            (memLow + 400000 > memHigh), 
+            "Memory did not shrink as expected when changing Hash from 512 to 1; usage was "
+            + std::to_string(memHigh) + " bytes before, now " + std::to_string(memLow) + " bytes.");
+
+        // Back to normal
+        gameManager_->getEngine()->setOption("Hash", "32");
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception during hash table memory test: " << e.what() << "\n";
+    }
+    catch (...) {
+        std::cerr << "Unknown exception during hash table memory test.\n";
+    }
+}
+
 
 void EngineTestController::runPlaceholderTest() {
     std::cout << "Running test: Placeholder for additional tests...\n";

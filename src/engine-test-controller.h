@@ -59,7 +59,27 @@ private:
      */
     void runGoLimitsTests();
 
+    /**
+     * @brief Tests whether changing the UCI hash table size affects memory usage as expected.
+     *
+     * Sends different values for the "Hash" option to the engine and checks if memory
+     * usage increases or decreases accordingly.
+     */
+    void runHashTableMemoryTest();
+
+    /**
+     * @brief General check handling method.
+     * @param name Checklist-Name of the topic.
+     * @param detail Detailed error message to be logged
+     */
+    bool handleCheck(std::string_view name, bool failed, std::string_view detail = "") {
+        EngineChecklist::report(name, !failed);
+        if (failed) {
+            std::cerr << "Error: " << name << ": " << detail << std::endl;
+        }
+        return !failed;
+    }
+
     std::unique_ptr<GameManager> gameManager_;
-    std::unique_ptr<EngineWorker> engineWorker_;
 
 };

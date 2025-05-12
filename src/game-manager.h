@@ -83,6 +83,15 @@ public:
      */
     void computeMove(bool startPos, const std::string fen = "");
 
+
+    /**
+     * @brief Returns a reference to the EngineWorker instance.
+     *
+     * @return A reference to the EngineWorker.
+     */
+    EngineWorker* getEngine() {
+       return engine_.get();
+}
 private:
 	enum class Tasks {
         None,
@@ -91,6 +100,7 @@ private:
 	};
     void handleState(const EngineEvent& event);
 	void handleBestMove(const EngineEvent& event);
+	void handleInfo(const EngineEvent& event);
 
     bool isLegalMove(const std::string& moveText);
 
@@ -112,12 +122,12 @@ private:
 	 * @param name Checklist-Name of the topic.
 	 * @param detail Detailed error message to be logged
      */
-    bool handleCheck(std::string_view name, bool failed, std::string_view detail = "") {
-        EngineChecklist::report(name, !failed);
-        if (failed) {
+    bool handleCheck(std::string_view name, bool success, std::string_view detail = "") {
+        EngineChecklist::report(name, success);
+        if (!success) {
             std::cerr << "Error: " << name << ": " << detail << std::endl;
         }
-		return !failed;
+		return success;
     }
 
     /**

@@ -207,6 +207,14 @@ void UciAdapter::sendPosition(const GameState& game) {
     writeCommand(oss.str());
 }
 
+void UciAdapter::setOption(const std::string& name, const std::string& value) {
+    std::string command = "setoption name " + name;
+    if (!value.empty()) {
+        command += " value " + value;
+    }
+    writeCommand(command);
+}
+
 /**
  * Tries to read an integer from stream, checks it against given bounds,
  * and stores it in the target if valid. Reports detailed errors otherwise.
@@ -260,9 +268,9 @@ void readBoundedInt64(std::istringstream& iss,
     target = value;
 }
 
-EngineEvent UciAdapter::parseSearchInfo(const std::string& line) {
+EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timestamp) {
     SearchInfo info;
-    EngineEvent event(EngineEvent::Type::Info);
+    EngineEvent event(EngineEvent::Type::Info, timestamp, line);
     std::istringstream iss(line);
     std::string token;
     iss >> token; // "info"
@@ -363,12 +371,13 @@ EngineEvent UciAdapter::readEvent() {
 
 	const std::string& line = engineLine.content;
 
-    logFromEngine(line);
     if (line == "readyok") {
+        if (traceLevel_ >= TraceLevel::handshake) logFromEngine(line);
         return EngineEvent(EngineEvent::Type::ReadyOk, engineLine.timestampMs, line);
     }
 
     if (line.rfind("bestmove ", 0) == 0) {
+        if (traceLevel_ >= TraceLevel::commands) logFromEngine(line);
         std::istringstream iss(line);
         std::string token, best, ponder;
         iss >> token >> best;
@@ -381,15 +390,18 @@ EngineEvent UciAdapter::readEvent() {
     }
 
     if (line.rfind("info ", 0) == 0) {
-        EngineEvent event = parseSearchInfo(line);
+        if (traceLevel_ >= TraceLevel::info) logFromEngine(line);
+        EngineEvent event = parseSearchInfo(line, engineLine.timestampMs);
         return event;
     }
 
     if (line == "ponderhit") {
+        if (traceLevel_ >= TraceLevel::commands) logFromEngine(line);
         return EngineEvent(EngineEvent::Type::PonderHit, engineLine.timestampMs, line);
     }
 
     // Unbekanntes Format
+    if (traceLevel_ >= TraceLevel::error) logFromEngine(line);
     return EngineEvent(EngineEvent::Type::Unknown, engineLine.timestampMs, line);
 }
 

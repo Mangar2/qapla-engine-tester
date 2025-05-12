@@ -141,6 +141,14 @@ enum class EngineState {
     Terminating      // Quitting
 };
 
+enum class TraceLevel: int {
+	error,
+    commands,
+    handshake,
+    info,
+    none
+};
+
  /**
   * @brief Abstract interface for communicating with and controlling a chess engine,
   *        independent of the underlying protocol (e.g. UCI, XBoard).
@@ -255,6 +263,25 @@ public:
 		return state_ == EngineState::Initialized;
     }
 
+    /**
+     * Returns the current memory usage (in bytes) of the engine process.
+     */
+    std::size_t getEngineMemoryUsage() const {
+        return process_.getMemoryUsage();
+    };
+
+    /**
+     * @brief Sends a UCI 'setoption' command to the engine with the given name and value.
+     *
+     * This method does not validate option names or values. It is intended for testing
+     * purposes, including sending intentionally invalid options.
+     *
+     * @param name The name of the UCI option to set.
+     * @param value The value to assign to the option. May be empty.
+     */
+    virtual void setOption(const std::string& name, const std::string& value = {}) = 0;
+
+
 protected:
     /**
      * @brief Emits a log message using the configured logger, if any.
@@ -273,5 +300,6 @@ protected:
     std::atomic<EngineState> state_ = EngineState::Uninitialized;
     EngineProcess process_;
     std::mutex commandMutex_;
+	TraceLevel traceLevel_ = TraceLevel::handshake;
 
 };

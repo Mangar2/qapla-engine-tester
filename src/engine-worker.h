@@ -103,6 +103,22 @@ public:
 		return std::move(startupFuture_);
 	}
 
+	/**
+	 * Returns the current memory usage (in bytes) of the engine process.
+	 */
+	std::size_t getEngineMemoryUsage() const {
+		if (!adapter_) {
+			return 0;
+		}
+		return adapter_->getEngineMemoryUsage();
+	};
+
+	void setOption(const std::string& name, const std::string& value) {
+		post([this, name, value](EngineAdapter& adapter) {
+			adapter.setOption(name, value);
+			});
+	}
+
 private:
 
 	/**

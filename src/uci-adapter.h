@@ -72,6 +72,17 @@ public:
     const OptionMap& getOptionMap() const override;
     void setOptionMap(const OptionMap& list) override;
 
+    /**
+     * @brief Sends a UCI 'setoption' command to the engine with the given name and value.
+     *
+     * This method does not validate option names or values. It is intended for testing
+     * purposes, including sending intentionally invalid options.
+     *
+     * @param name The name of the UCI option to set.
+     * @param value The value to assign to the option. May be empty.
+     */
+    void setOption(const std::string& name, const std::string& value = {}) override;
+
 private:
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 500 };
@@ -94,7 +105,7 @@ private:
 		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
     }
 
-    EngineEvent parseSearchInfo(const std::string& line);
+    EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
 
 
 	UciOptions supportedOptions_;

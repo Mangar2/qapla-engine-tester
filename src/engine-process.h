@@ -25,10 +25,7 @@
 #include <chrono>
 #include <deque>
 
-#ifdef _WIN32
-#define NOMINMAX
-#include <windows.h>
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 
@@ -130,6 +127,11 @@ public:
      */
     bool isRunning() const;
 
+    /**
+     * Returns the current memory usage (in bytes) of the engine process.
+     */
+    std::size_t getMemoryUsage() const;
+
 private:
 
     mutable std::string stdoutBuffer_;
@@ -158,10 +160,10 @@ private:
     std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);
 
 #ifdef _WIN32
-    HANDLE childProcess_ = nullptr;
-    HANDLE stdinWrite_ = nullptr;
-    HANDLE stdoutRead_ = nullptr;
-    HANDLE stderrRead_ = nullptr;
+    void* childProcess_ = nullptr;
+    void* stdinWrite_ = nullptr;
+    void* stdoutRead_ = nullptr;
+    void* stderrRead_ = nullptr;
 #else
     pid_t childPid_ = -1;
     int stdinWrite_ = -1;
