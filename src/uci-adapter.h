@@ -94,6 +94,9 @@ private:
 		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
     }
 
+    EngineEvent parseSearchInfo(const std::string& line);
+
+
 	UciOptions supportedOptions_;
     OptionMap options_;
     

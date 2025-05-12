@@ -43,6 +43,9 @@ void GameManager::markFinished() {
 }
 
 void GameManager::handleState(const EngineEvent& event) {
+    for (auto& error: event.errors) {
+        handleCheck(error.name, true, error.detail);
+    }
     if (event.type == EngineEvent::Type::BestMove) {
         handleBestMove(event);
         if (task_ == Tasks::ComputeMove) {

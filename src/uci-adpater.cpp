@@ -22,6 +22,7 @@
 #include <sstream>
 #include <chrono>
 #include <sstream>
+#include <limits>
 #include "timer.h"
 
 #include "uci-adapter.h"
@@ -206,6 +207,154 @@ void UciAdapter::sendPosition(const GameState& game) {
     writeCommand(oss.str());
 }
 
+/**
+ * Tries to read an integer from stream, checks it against given bounds,
+ * and stores it in the target if valid. Reports detailed errors otherwise.
+ *
+ * @param iss Token stream to read from.
+ * @param fieldName Logical token name, used in error reporting.
+ * @param min Minimum allowed value (inclusive).
+ * @param max Maximum allowed value (inclusive).
+ * @param target Optional to assign the result.
+ * @param errors Vector collecting parse errors.
+ */
+void readBoundedInt32(std::istringstream& iss,
+    const std::string& fieldName,
+    int32_t min,
+    int32_t max,
+    std::optional<int>& target,
+    std::vector<EngineEvent::ParseError>& errors)
+{
+    int value;
+    if (!(iss >> value)) {
+        errors.push_back({ "search info " + fieldName, "Expected integer after '" + fieldName + "'"});
+        iss.clear();
+        return;
+    }
+    if (value < min || value > max) {
+        errors.push_back({ "search info " + fieldName, 
+            "Value out of range (" + std::to_string(min) + " to " + std::to_string(max) + "): " + std::to_string(value) });
+        return;
+    }
+    target = value;
+}
+
+void readBoundedInt64(std::istringstream& iss,
+    const std::string& fieldName,
+    int64_t min,
+    int64_t max,
+    std::optional<int64_t>& target,
+    std::vector<EngineEvent::ParseError>& errors)
+{
+    int value;
+    if (!(iss >> value)) {
+        errors.push_back({ "search info " + fieldName, "Expected integer after '" + fieldName + "'" });
+        iss.clear();
+        return;
+    }
+    if (value < min || value > max) {
+        errors.push_back({ "search info " + fieldName,
+            "Value out of range (" + std::to_string(min) + " to " + std::to_string(max) + "): " + std::to_string(value) });
+        return;
+    }
+    target = value;
+}
+
+EngineEvent UciAdapter::parseSearchInfo(const std::string& line) {
+    SearchInfo info;
+    EngineEvent event(EngineEvent::Type::Info);
+    std::istringstream iss(line);
+    std::string token;
+    iss >> token; // "info"
+
+    while (iss >> token) {
+        try {
+            if (token == "depth") {
+                readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
+            }
+            else if (token == "seldepth") {
+                readBoundedInt32(iss, token, 0, 1000, info.selDepth, event.errors);
+            }
+            else if (token == "multipv") {
+                readBoundedInt32(iss, token, 1, 220, info.multipv, event.errors);
+            }
+            else if (token == "score") {
+                std::string type;
+                if (!(iss >> type)) {
+                    event.errors.push_back({ "search info score", "Missing score type after 'score'" });
+                    continue;
+                }
+                if (type == "cp") {
+                    readBoundedInt32(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
+                }
+                else if (type == "mate") {
+                    readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
+                }
+                else {
+                    event.errors.push_back({ "search info score unknown type", "Unknown score type: '" + type + "'" });
+                    continue;
+                }
+
+                std::string bound;
+                if (iss >> bound) {
+                    if (bound == "lowerbound") info.scoreLowerbound = true;
+                    else if (bound == "upperbound") info.scoreUpperbound = true;
+                    else iss.seekg(-static_cast<int>(bound.size()), std::ios_base::cur);
+                }
+            }
+            else if (token == "time") {
+                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
+            }
+            else if (token == "nodes") {
+                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
+            }
+            else if (token == "nps") {
+                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
+            }
+            else if (token == "hashfull") {
+                readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
+            }
+            else if (token == "tbhits") {
+                readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
+            }
+            else if (token == "cpuload") {
+                readBoundedInt32(iss, token, 0, 100, info.cpuload, event.errors);
+            }
+            else if (token == "currmove") {
+                std::string move;
+                if (iss >> move) info.currMove = move;
+                else event.errors.push_back({ "search info currmove", "Expected move string after 'currmove'" });
+            }
+            else if (token == "currmovenumber") {
+                readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
+            }
+            else if (token == "refutation") {
+                event.errors.push_back({ "search info refutation", "Refutation parsing not yet supported" });
+            }
+            else if (token == "pv") {
+                std::string move;
+                while (iss >> move) {
+                    info.pv.push_back(move);
+                }
+                break; // PV ends the line
+            }
+            else {
+                event.errors.push_back({ "search info unknown-token", "Unrecognized token: '" + token + "'" });
+            }
+        }
+        catch (const std::exception& e) {
+            event.errors.push_back({ "search info exception", "Exception during parsing: " + std::string(e.what()) });
+        }
+    }
+
+    event.searchInfo = info;
+    return event;
+}
+
+const std::string testLine =
+"info depth xx seldepth -5 multipv 0 score xyz 999999 bounder time -1 nodes abc nps 999999999999999999999 "
+"hashfull 2000 tbhits foo cpuload 150 currmove 1234 currmovenumber -42 refutation e2e4 e7e5 unknown_token pv e2e4 e7e5";
+
 EngineEvent UciAdapter::readEvent() {
     EngineLine engineLine = process_.readLineBlocking();
     if (engineLine.content == "") {
@@ -232,9 +381,7 @@ EngineEvent UciAdapter::readEvent() {
     }
 
     if (line.rfind("info ", 0) == 0) {
-        // Option 1: nur weiterreichen
-        EngineEvent event(EngineEvent::Type::Info, engineLine.timestampMs, line);
-        // Option 2: parse into SearchInfo (siehe vorherige Vorschläge)
+        EngineEvent event = parseSearchInfo(line);
         return event;
     }
 
