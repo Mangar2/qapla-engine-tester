@@ -102,7 +102,7 @@ void UciAdapter::terminateEngine() {
     state_ = EngineState::Terminating;
 
     try {
-        writeCommand("quit");
+        process_.writeLine("quit");
     }
     catch (...) {
         // Engine might already be gone; nothing to do
@@ -122,7 +122,7 @@ void UciAdapter::terminateEngine() {
 
 }
 
-void UciAdapter::newGame() {
+void UciAdapter::newGame(const GameStartPosition& position) {
     writeCommand("ucinewgame");
 }
 

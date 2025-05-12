@@ -29,10 +29,26 @@ GameManager::GameManager(std::unique_ptr<EngineWorker> engine)
      });
 }
 
+void GameManager::markFinished() {
+    // Verhindert Ausnahme bei mehrfacher set_value()
+    if (finishedPromiseValid_) {
+        try {
+            finishedPromise_.set_value();
+        }
+        catch (const std::future_error&) {
+            // already satisfied – ignorieren oder loggen
+        }
+        finishedPromiseValid_ = false;
+    }
+}
+
 void GameManager::handleState(const EngineEvent& event) {
     if (event.type == EngineEvent::Type::BestMove) {
         handleBestMove(event);
-        //finishedPromise_.set_value();
+        if (task_ == Tasks::ComputeMove) {
+            finishedPromise_.set_value();
+			task_ = Tasks::None;
+        }
     }
     else if (event.type == EngineEvent::Type::ComputeMoveSent) {
 		computeMoveStartTimestamp_ = event.timestampMs;
@@ -45,7 +61,6 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 	if (!handleCheck("Computing a move returned an illegal move", move.isEmpty(), *event.bestMove)) return;
     gameState_.doMove(move);
     checkTime(event);
-    computeMove();
 }
 
 void GameManager::checkTime(const EngineEvent& event) {
@@ -80,6 +95,14 @@ void GameManager::checkTime(const EngineEvent& event) {
     }
 }
 
+void GameManager::computeMove(bool startPos, const std::string fen) {
+    finishedPromise_ = std::promise<void>{};
+    finishedFuture_ = finishedPromise_.get_future();
+	gameState_.setFen(startPos, fen);
+	task_ = Tasks::ComputeMove;
+    computeMove();
+}
+
 void GameManager::computeMove() {
     GoLimits limits = timeControl_.createGoLimits();
     engine_->computeMove(gameState_, limits);
@@ -90,12 +113,5 @@ bool GameManager::isLegalMove(const std::string& moveText) {
     return !move.isEmpty();
 }
 
-void GameManager::runTests() {
-    // Movetime support
-	timeControl_.setMoveTime(1000);
-    computeMove();
-}
-
 void GameManager::run() {
-    runTests();
 }

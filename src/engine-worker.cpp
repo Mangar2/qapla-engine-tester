@@ -64,6 +64,7 @@ EngineWorker::~EngineWorker() {
 void EngineWorker::stop() {
     post([](EngineAdapter& adapter) {
         try {
+			std::cout << "[EngineWorker] Stopping engine..." << std::endl;
             adapter.terminateEngine(); 
         }
         catch (...) {

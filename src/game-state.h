@@ -70,6 +70,13 @@ public:
 	void doMove(const QaplaBasics::Move& move);
 
 	/**
+	 * @brief Sets the game position to a specific FEN string.
+	 * @param startPos If true, sets the position to the starting position.
+	 * @param fen The FEN string to set, if startPos = false. 
+	 */
+	void setFen(bool startPos, const std::string fen = "");
+
+	/**
 	 * @brief Undo the last move and restore the previous position.
 	 */
 	void undoMove();

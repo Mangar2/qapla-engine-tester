@@ -75,6 +75,15 @@ public:
 	void computeMove(const GameState& gameState, const GoLimits& limits);
 
 	/**
+	 * @brief Sends a command to the engine to prepare for a new game.
+	 */
+	void newGame() {
+		post([this](EngineAdapter& adapter) {
+			adapter.newGame();
+			});
+	}
+
+	/**
 	 * @brief Sets the event sink for engine events.
 	 *
 	 * The event sink is a callback function that will be called with engine events.

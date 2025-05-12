@@ -49,6 +49,22 @@ public:
 	}
 
     /**
+	 * Sends a new game command to the engine(s).
+     */
+    void newGame() {
+        engine_->newGame();
+    }
+
+	/**
+	 * @brief Sets the time control for the game.
+	 *
+	 * @param timeControl The time control to be set.
+	 */
+	void setTime(const TimeControl& timeControl) {
+		timeControl_ = timeControl;
+	}
+
+    /**
      * @brief Starts the game by sending a compute command to the engine.
      */
     void run();
@@ -65,18 +81,20 @@ public:
      *
      * @param game The game state to compute the move for.
      */
-    void computeMove();
-
-	/**
-	 * @brief Initiates the test run for the engine.
-	 */
-    void runTests();
+    void computeMove(bool startPos, const std::string fen = "");
 
 private:
+	enum class Tasks {
+        None,
+		ComputeMove,
+        PlayGame
+	};
     void handleState(const EngineEvent& event);
 	void handleBestMove(const EngineEvent& event);
 
     bool isLegalMove(const std::string& moveText);
+
+    void computeMove();
 
     /**
      * @brief Evaluates whether the engine respected the time constraints defined in GoLimits.
@@ -102,13 +120,24 @@ private:
 		return !failed;
     }
 
+    /**
+     * @brief Signals that a computation has completed. Call once per compute cycle.
+     */
+    void markFinished();
+
     std::unique_ptr<EngineWorker> engine_;
     std::promise<void> finishedPromise_;
-    std::future<void> finishedFuture_ = finishedPromise_.get_future();
+    std::future<void> finishedFuture_;
+
+    /**
+     * @brief True if finishedPromise_ is valid and has not yet been set.
+     */
+    bool finishedPromiseValid_ = false;
 
     Timer timer_;
 	TimeControl timeControl_;
 	GameState gameState_;
 	int64_t computeMoveStartTimestamp_ = 0;
     bool requireLan_ = true;
+	Tasks task_ = Tasks::None;
 };

@@ -54,7 +54,7 @@ public:
 
     EngineEvent readEvent() override;
 
-    void newGame(const GameStartPosition& position) override;
+    void newGame() override;
     void moveNow() override;
     void setPonder(bool enabled) override;
     void ticker() override;

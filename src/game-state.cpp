@@ -33,14 +33,23 @@ using MoveStr = std::string;
 using MoveStrList = std::vector<MoveStr>;
 
 GameState::GameState() { 
+	setFen(true);
+};
+
+void GameState::setFen(bool startPos, const std::string fen) {
 	QaplaInterface::FenScanner scanner;
-	scanner.setBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", position_);
+	if (startPos) {
+		scanner.setBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", position_);
+	}
+	else {
+		scanner.setBoard(fen, position_);
+	}
 	moveList_.clear();
 	boardState_.clear();
 	strMoves.clear();
 	hashList_.clear();
 	hashList_.push_back(position_.computeBoardHash());
-};
+}
 
 std::tuple<GameResult, Side> GameState::getGameResult() {
 	if (position_.isInCheck()) {

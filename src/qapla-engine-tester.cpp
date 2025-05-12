@@ -27,6 +27,7 @@
 #include "engine-group.h"
 #include "game-manager.h"
 #include "engine-checklist.h"
+#include "engine-test-controller.h"
 
 int main() {
     const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe";
@@ -37,6 +38,9 @@ int main() {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "[Startup] Starting test now.\n";
 
+    EngineTestController controller;
+	controller.runAllTests(enginePath);
+    /*
     EngineWorkerFactory factory;
     std::cout << "Starting engines...\n";
     EngineGroup group(factory.createUci(stockfish, std::nullopt, engineCount));
@@ -59,6 +63,7 @@ int main() {
     for (auto& gm : games) {
         gm->stop();  
     }
+    */
     
 	EngineChecklist::print(std::cout);
     return 0;

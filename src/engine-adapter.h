@@ -128,7 +128,7 @@ public:
      * @brief Prepares the engine for a new game.
      * @param info Game-specific initialization parameters.
      */
-    virtual void newGame(const GameStartPosition& position) = 0;
+    virtual void newGame() = 0;
 
     /**
      * @brief Immediately requests the engine to produce a move, e.g. in force mode.
