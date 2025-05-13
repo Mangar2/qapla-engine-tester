@@ -21,11 +21,10 @@
 
 #include <string>
 #include <optional>
-#include "engine-adapter.h"
-
+#include "engine-event.h"
 
 struct MoveRecord {
-    std::string san;
+    std::string lan;
     std::string comment;
     std::string nag;
     uint64_t timeMs = 0;
@@ -49,7 +48,7 @@ struct MoveRecord {
      */
     void updateFromBestMove(const EngineEvent& event, int64_t computeStartTimestamp) {
         if (event.bestMove) {
-            san = *event.bestMove;
+            lan = *event.bestMove;
         }
         timeMs = static_cast<uint64_t>(event.timestampMs - computeStartTimestamp);
     }

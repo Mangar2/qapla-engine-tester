@@ -176,4 +176,5 @@ private:
 	Tasks task_ = Tasks::None;
     MoveRecord currentMove_;
 	GameRecord gameRecord_;
+    GoLimits currentGoLimits_;
 };

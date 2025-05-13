@@ -75,7 +75,8 @@ void GameManager::handleState(const EngineEvent& event) {
 void GameManager::handleBestMove(const EngineEvent& event) {
     if (!handleCheck("Computing a move returns a move check", event.bestMove.has_value())) return;
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
-	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), *event.bestMove)) return;
+	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), 
+        "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) return;
     gameState_.doMove(move);
 	currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_);
 	gameRecord_.addMove(currentMove_);
@@ -139,53 +140,80 @@ bool GameManager::checkForGameEnd() {
 
 void GameManager::checkTime(const EngineEvent& event) {
 	const int64_t GRACE_MS = 5; // ms
-    const int64_t elapsedMs = event.timestampMs - computeMoveStartTimestamp_;
-    const GoLimits& limits = timeControl_.createGoLimits();
+    const int64_t GRACE_NODES = 1000;
+    
+    const GoLimits limits = currentGoLimits_;
     const bool white = gameState_.isWhiteToMove();
-    int numLimits = 0;
+    const int64_t moveElapsedMs = event.timestampMs - computeMoveStartTimestamp_;
 
      // Overrun ist always an error, every limit must be respected
     const int64_t timeLeft = white ? limits.wtimeMs : limits.btimeMs;
+
+	int numLimits = (timeLeft > 0) + limits.movetimeMs.has_value() +
+		limits.depth.has_value() + limits.nodes.has_value();
+
     if (timeLeft > 0) {
-		handleCheck("wtime/btime overrun check", elapsedMs < timeLeft,
-			std::to_string(elapsedMs) + " < " + std::to_string(timeLeft));
-        numLimits++;
+		handleCheck("wtime/btime overrun check", moveElapsedMs <= timeLeft,
+            std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft));
     }
 
 	if (limits.movetimeMs.has_value()) {
-		handleCheck("movetime overrun check", elapsedMs < *limits.movetimeMs + GRACE_MS,
-			std::to_string(elapsedMs) + " < " + std::to_string(*limits.movetimeMs));
-        numLimits++;
+		handleCheck("movetime overrun check", moveElapsedMs < *limits.movetimeMs + GRACE_MS,
+			std::to_string(moveElapsedMs) + " < " + std::to_string(*limits.movetimeMs));
+        if (numLimits == 1) {
+            handleCheck("movetime underrun check", moveElapsedMs > *limits.movetimeMs * 99 / 100,
+                std::to_string(moveElapsedMs) + " > " + std::to_string(*limits.movetimeMs));
+        }
 	}
 
-    // Underrun is never an error; we still check it for selected time models
-    // to verify if the engine follows expected timing behavior.
-    // This check is only applied if exactly one time constraint is active.
-    if (numLimits == 1) {
-        if (limits.movetimeMs.has_value()) {
-            handleCheck("movetime underrun check", elapsedMs > *limits.movetimeMs * 9 / 10,
-                std::to_string(elapsedMs) + " > " + std::to_string(*limits.movetimeMs));
+	if (!event.searchInfo.has_value()) return;
+
+    if (handleCheck("Engine provides search depth info", event.searchInfo->depth.has_value())) {
+        if (limits.depth.has_value()) {
+            int depth = *event.searchInfo->depth;
+            handleCheck("depth overrun check", depth <= *limits.depth,
+                std::to_string(depth) + " > " + std::to_string(*limits.depth));
+            if (numLimits == 1) {
+                handleCheck("depth underrun check", depth >= *limits.depth,
+                    std::to_string(depth) + " > " + std::to_string(*limits.depth));
+            }
         }
     }
+
+    if (handleCheck("Engine provides nodes info", event.searchInfo->nodes.has_value())) {
+        if (limits.nodes.has_value()) {
+			int64_t nodes = *event.searchInfo->nodes;
+            handleCheck("nodes overrun check", nodes <= *limits.nodes + GRACE_NODES,
+                std::to_string(nodes) + " > " + std::to_string(*limits.nodes));
+            if (numLimits == 1) {
+                handleCheck("nodes underrun check", nodes > *limits.nodes * 9 / 10,
+                    std::to_string(nodes) + " > " + std::to_string(*limits.nodes));
+            }
+        }
+    }
+
 }
 
 void GameManager::computeMove(bool startPos, const std::string fen) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
 	gameState_.setFen(startPos, fen);
+    gameRecord_.newGame(startPos, fen);
 	task_ = Tasks::ComputeMove;
     computeMove();
 }
 
 void GameManager::computeMove() {
-    GoLimits limits = timeControl_.createGoLimits();
-    engine_->computeMove(gameState_, limits);
+    auto [whiteTime, blackTime] = gameRecord_.timeUsed();
+    currentGoLimits_ = timeControl_.createGoLimits(gameRecord_.currentPly(), whiteTime, blackTime);
+    engine_->computeMove(gameRecord_, currentGoLimits_);
 }
 
 void GameManager::computeGame(bool startPos, const std::string fen) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
     gameState_.setFen(startPos, fen);
+    gameRecord_.newGame(startPos, fen);
     task_ = Tasks::PlayGame;
     computeMove();
 }

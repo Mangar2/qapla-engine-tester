@@ -44,16 +44,12 @@ void EngineTestController::startEngine() {
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     runStartStopTest(enginePath);
     createGameManager(enginePath, true);
+    runComputeGameTest();
     runEngineOptionTests();
     runHashTableMemoryTest();
     runGoLimitsTests();
-    gameManager_->newGame();
-    TimeControl t; t.addTimeSegment({ 0, 30000, 500 });
-    gameManager_->setTime(t);
-    gameManager_->computeGame(true);
-    gameManager_->getFinishedFuture().wait();
-    
-	gameManager_->stop();
+    gameManager_->stop();
+
 }
 
 void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
@@ -212,7 +208,7 @@ std::vector<std::string> generateStringValues() {
 void EngineTestController::setOption(std::string name, std::string value) {
     auto engine = gameManager_->getEngine();
     bool success = engine->setOption(name, value);
-    if (handleCheck("Engine Options works safely", success, "  option '" + name + "' with value '" + value + " runs into timeout ")) {
+    if (handleCheck("Engine Options works safely", success, "  option '" + name + "' with value '" + value + "\n runs into timeout ")) {
         return;
     }
     bool alive = engine->isRunning();
@@ -295,6 +291,23 @@ void EngineTestController::runEngineOptionTests() {
     }
 
     std::cout << "  ...done" << std::endl;
+}
+
+void EngineTestController::runComputeGameTest() {
+    std::cout << "Running test: Computing games test...\n";
+    try {
+        gameManager_->newGame();
+        TimeControl t; t.addTimeSegment({ 0, 30000, 500 });
+        gameManager_->setTime(t);
+        gameManager_->computeGame(true);
+        gameManager_->getFinishedFuture().wait();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Exception during compute games test: " << e.what() << "\n";
+    }
+    catch (...) {
+        std::cerr << "Unknown exception during compute games test.\n";
+    }
 }
 
 void EngineTestController::runPlaceholderTest() {

@@ -30,7 +30,7 @@
 #include "engine-test-controller.h"
 
 int main() {
-    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.0-win-x86.exe";
+    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.1-win-x86.exe";
 	const std::filesystem::path stockfish = "C:\\Chess\\Engines\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe";
     const std::size_t engineCount = 1;
 

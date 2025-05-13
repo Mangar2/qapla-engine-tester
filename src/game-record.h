@@ -27,22 +27,26 @@
 #include "move-record.h"
 #include "time-control.h"
 
-enum class Side { White, Black };
-
 /**
  * Stores a list of moves and manages current game state pointer.
  * Supports forward/backward navigation and time control evaluation.
  */
 class GameRecord {
 public:
+    void newGame(bool startPos, std::string startFen) {
+		moves_.clear();
+		currentPly_ = 0;
+		startPos_ = startPos;
+		startFen_ = startFen;
+    }
     /** Adds a move at the current ply position, overwriting any future moves. */
     void addMove(const MoveRecord& move);
 
     /** Returns the current ply index. */
-    size_t currentPly() const;
+    uint32_t currentPly() const;
 
     /** Sets the current ply (0 = before first move). */
-    void setPly(size_t ply);
+    void setPly(uint32_t ply);
 
     /** Advances to the next ply if possible. */
     void advance();
@@ -50,13 +54,22 @@ public:
     /** Rewinds to the previous ply if possible. */
     void rewind();
 
-    /** Computes total time used by a player up to current ply. */
-    uint64_t timeUsed(Side side) const;
+    /**
+     * Returns the total time used by each side up to the current ply.
+     *
+     * @return A pair of milliseconds used: {whiteTime, blackTime}
+     */
+    std::pair<uint64_t, uint64_t> timeUsed() const;
 
     /** Returns const reference to move history. */
     const std::vector<MoveRecord>& history() const;
 
+	bool getStartPos() const { return startPos_; }
+	std::string getStartFen() const { return startFen_; }
+
 private:
+    bool startPos_ = true;
+    std::string startFen_;
     std::vector<MoveRecord> moves_;
-    size_t currentPly_ = 0;
+    uint32_t currentPly_ = 0;
 };

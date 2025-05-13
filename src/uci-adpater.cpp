@@ -139,12 +139,12 @@ void UciAdapter::ticker() {
     // Currently unused in UCI
 }
 
-void UciAdapter::ponder(const GameState& game, GoLimits& limits) {
+void UciAdapter::ponder(const GameRecord& game, GoLimits& limits) {
     // Pondering handled like normal search in UCI
 
 }
 
-int64_t UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
+int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits) {
     sendPosition(game);
 
     std::ostringstream oss;
@@ -177,19 +177,19 @@ void UciAdapter::askForReady() {
 	writeCommand("isready");
 }
 
-void UciAdapter::sendPosition(const GameState& game) {
+void UciAdapter::sendPosition(const GameRecord& game) {
     std::ostringstream oss;
-    if (game.strMoves.empty()) {
+    if (game.getStartPos()) {
         oss << "position startpos";
     }
     else {
-        oss << "position fen " << game.getFen();
+        oss << "position fen " << game.getStartFen();
     }
-    if (!game.strMoves.empty()) {
+    if (!game.currentPly() == 0) {
         oss << " moves";
-        for (const auto& move : game.strMoves) {
-            oss << " " << move;
-        }
+		for (uint32_t ply = 0; ply < game.currentPly(); ++ply) {
+            oss << " " << game.history()[ply].lan;
+		}
     }
     writeCommand(oss.str());
 }

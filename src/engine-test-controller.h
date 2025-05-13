@@ -79,6 +79,8 @@ private:
      * This test assumes no knowledge of specific options beyond basic types and behaviors.
      */
     void runEngineOptionTests();
+
+    void runComputeGameTest();
     
     /**
 	 * @brief Sets a specific option for the engine and checks if it runs without crashing.

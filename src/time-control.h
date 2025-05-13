@@ -23,8 +23,24 @@
 #include <optional>
 #include <cstdint>
 
-#include "engine-adapter.h"
 
+ /**
+  * @brief limits for calculating a single move.
+  */
+struct GoLimits {
+    int64_t wtimeMs = 0;
+    int64_t btimeMs = 0;
+    int64_t wincMs = 0;
+    int64_t bincMs = 0;
+    int32_t movesToGo = 0;
+
+    std::optional<int> depth;
+    std::optional<int> nodes;
+    std::optional<int> mateIn;
+    std::optional<int64_t> movetimeMs;
+    std::optional<std::vector<std::string>> limitMoves;
+    bool infinite = false;
+};
 
  /**
   * @brief Defines a stage in a time control setup.
@@ -60,11 +76,11 @@ public:
      * @brief Creates a GoLimits instance based on current time control settings.
      *
      * @param playedMoves Number of full moves already played.
-     * @param whiteClockMs White player's remaining time in milliseconds.
-     * @param blackClockMs Black player's remaining time in milliseconds.
+     * @param whiteTimeUsedMs Time consumed by white so far, in milliseconds.
+     * @param blackTimeUsedMs Time consumed by black so far, in milliseconds.
      * @return GoLimits filled according to the currently active time control.
      */
-    GoLimits createGoLimits(int playedMoves = 0, int64_t whiteClockMs = 0, int64_t blackClockMs = 0) const {
+    GoLimits createGoLimits(int playedMoves = 0, int64_t whiteTimeUsedMs = 0, int64_t blackTimeUsedMs = 0) const {
         GoLimits limits;
 
         if (movetimeMs_) {
@@ -73,22 +89,55 @@ public:
 
         limits.depth = depth_;
         limits.nodes = nodes_;
-		limits.mateIn = mateIn_;
+        limits.mateIn = mateIn_;
         limits.infinite = infinite_.value_or(false);
 
-        // Later expansion: derive correct segment from playedMoves
-        if (!timeSegments_.empty() && !movetimeMs_) {
-            const TimeSegment& seg = timeSegments_.front();  // Currently defaulting to first
-
-            limits.wtimeMs = seg.baseTimeMs;
-            limits.btimeMs = seg.baseTimeMs;
-            limits.wincMs = seg.incrementMs;
-            limits.bincMs = seg.incrementMs;
-            limits.movesToGo = seg.movesToPlay;
+        if (timeSegments_.empty() || movetimeMs_) {
+            return limits;
         }
+
+        int remainingMoves = playedMoves;
+        int64_t whiteTotalTime = 0;
+        int64_t blackTotalTime = 0;
+        int64_t whiteIncrement = 0;
+        int64_t blackIncrement = 0;
+        int nextMovesToGo = 0;
+
+        size_t i = 0;
+        while (true) {
+            const TimeSegment& seg = (i < timeSegments_.size()) ? timeSegments_[i] : timeSegments_.back();
+
+            int segmentMoves = seg.movesToPlay;
+            int movesInThisSegment = segmentMoves ? std::min(remainingMoves, segmentMoves): remainingMoves;
+            whiteTotalTime += seg.baseTimeMs + static_cast<int64_t>(movesInThisSegment) * seg.incrementMs;
+            blackTotalTime += seg.baseTimeMs + static_cast<int64_t>(movesInThisSegment) * seg.incrementMs;
+            whiteIncrement = seg.incrementMs;
+            blackIncrement = seg.incrementMs;
+
+            if (!seg.movesToPlay) {
+                nextMovesToGo = 0;
+                break;
+            }
+
+            if (remainingMoves < segmentMoves) {
+                nextMovesToGo = segmentMoves - remainingMoves;
+                break;
+            }
+
+            remainingMoves -= segmentMoves;
+            ++i;
+        }
+
+        limits.wtimeMs = whiteTotalTime > whiteTimeUsedMs ? whiteTotalTime - whiteTimeUsedMs : 0;
+        limits.btimeMs = blackTotalTime > blackTimeUsedMs ? blackTotalTime - blackTimeUsedMs : 0;
+        limits.wincMs = whiteIncrement;
+        limits.bincMs = blackIncrement;
+        limits.movesToGo = nextMovesToGo;
 
         return limits;
     }
+
+
 
 private:
     std::optional<int64_t> movetimeMs_;

@@ -28,10 +28,7 @@
 #include <iostream>
 
 #include "engine-adapter.h"
-#include "engine-process.h"
 #include "uci-option.h"
-
-
 
  /**
   * @brief UCI protocol adapter implementing EngineAdapter.
@@ -59,8 +56,8 @@ public:
     void setPonder(bool enabled) override;
     void ticker() override;
 
-    void ponder(const GameState& game, GoLimits& limits) override;
-    int64_t computeMove(const GameState& game, const GoLimits& limits) override;
+    void ponder(const GameRecord& game, GoLimits& limits) override;
+    int64_t computeMove(const GameRecord& game, const GoLimits& limits) override;
 
     void stopCalc() override;
 
@@ -93,7 +90,7 @@ private:
 	std::vector<ProtocolError> protocolErrors_; // Stores protocol errors
 
 
-    void sendPosition(const GameState& game);   // Sends position + moves
+    void sendPosition(const GameRecord& game);   // Sends position + moves
 	void runUciHandshake();                     // Runs the UCI handshake
     void skipLines(std::chrono::milliseconds timeout);
 

@@ -143,10 +143,10 @@ bool EngineWorker::setOption(const std::string& name, const std::string& value) 
     return waitForReady(ReadyTimeoutOption);
 }
 
-void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
-    post([this, gameState, limits](EngineAdapter& adapter) {
+void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits) {
+    post([this, gameRecord, limits](EngineAdapter& adapter) {
         try {
-            int64_t sendTimestamp = adapter.computeMove(gameState, limits);
+            int64_t sendTimestamp = adapter.computeMove(gameRecord, limits);
             if (eventSink_) {
 				eventSink_(EngineEvent{ EngineEvent::Type::ComputeMoveSent, sendTimestamp });
             }

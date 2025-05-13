@@ -29,11 +29,11 @@ void GameRecord::addMove(const MoveRecord& move) {
     ++currentPly_;
 }
 
-size_t GameRecord::currentPly() const {
+uint32_t GameRecord::currentPly() const {
     return currentPly_;
 }
 
-void GameRecord::setPly(size_t ply) {
+void GameRecord::setPly(uint32_t ply) {
     if (ply <= moves_.size()) {
         currentPly_ = ply;
     }
@@ -51,14 +51,20 @@ void GameRecord::rewind() {
     }
 }
 
-uint64_t GameRecord::timeUsed(Side side) const {
-    uint64_t total = 0;
-    for (size_t i = 0; i < currentPly_; ++i) {
-        if (static_cast<Side>(i % 2) == side) {
-            total += moves_[i].timeMs;
+std::pair<uint64_t, uint64_t> GameRecord::timeUsed() const {
+    uint64_t whiteTime = 0;
+    uint64_t blackTime = 0;
+
+    for (size_t i = 0; i < currentPly_ && i < moves_.size(); ++i) {
+        if (i % 2 == 0) {
+            whiteTime += moves_[i].timeMs;
+        }
+        else {
+            blackTime += moves_[i].timeMs;
         }
     }
-    return total;
+
+    return { whiteTime, blackTime };
 }
 
 const std::vector<MoveRecord>& GameRecord::history() const {

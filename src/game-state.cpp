@@ -46,19 +46,23 @@ void GameState::setFen(bool startPos, const std::string fen) {
 	}
 	moveList_.clear();
 	boardState_.clear();
-	strMoves.clear();
 	hashList_.clear();
 	hashList_.push_back(position_.computeBoardHash());
 }
 
 std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
-	if (position_.isInCheck()) {
-		if (position_.isWhiteToMove()) { 
-			return { GameEndCause::Checkmate, GameResult::BlackWins }; 
+	QaplaBasics::MoveList moveList;
+	position_.genMovesOfMovingColor(moveList);
+	if (moveList.totalMoveAmount == 0) {
+		if (position_.isInCheck()) {
+			if (position_.isWhiteToMove()) {
+				return { GameEndCause::Checkmate, GameResult::BlackWins };
+			}
+			else {
+				return { GameEndCause::Checkmate, GameResult::WhiteWins };
+			}
 		}
-		else {
-			return { GameEndCause::Checkmate, GameResult::WhiteWins };
-		}
+		return { GameEndCause::Stalemate, GameResult::Draw };
 	}
 	if (position_.drawDueToMissingMaterial()) {
 		return { GameEndCause::DrawByInsufficientMaterial, GameResult::Draw };
@@ -66,11 +70,7 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 	if (position_.getHalfmovesWithoutPawnMoveOrCapture() >= 100) {
 		return { GameEndCause::DrawByFiftyMoveRule, GameResult::Draw };
 	}
-	QaplaBasics::MoveList moveList;
-	position_.genMovesOfMovingColor(moveList);
-	if (moveList.totalMoveAmount == 0) {
-		return { GameEndCause::Stalemate, GameResult::Draw };
-	}
+
 	if (isThreefoldRepetition()) {
 		return { GameEndCause::DrawByRepetition, GameResult::Draw };
 	}
@@ -97,13 +97,11 @@ bool GameState::isThreefoldRepetition() const {
 
 };
 
-
 void GameState::doMove(const QaplaBasics::Move& move) {
 	if (move.isEmpty()) return;
+	boardState_.push_back(position_.getBoardState());
 	position_.doMove(move);
 	moveList_.push_back(move);
-	strMoves.push_back(move.getLAN());
-	boardState_.push_back(position_.getBoardState());
 	hashList_.push_back(position_.computeBoardHash());
 }
 
@@ -113,7 +111,6 @@ void GameState::undoMove() {
 	position_.computeAttackMasksForBothColors();
 	moveList_.pop_back();
 	boardState_.pop_back();
-	strMoves.pop_back();
 	hashList_.pop_back();
 }
 
@@ -158,6 +155,10 @@ QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan)
 			}
 			foundMove = move;
 		}
+	}
+	if (foundMove.isEmpty()) {
+		position_.print();
+		moveList.print();
 	}
 	return foundMove;
 }

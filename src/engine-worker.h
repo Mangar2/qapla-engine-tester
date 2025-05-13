@@ -26,7 +26,7 @@
 #include <functional>
 #include <optional>
 #include <future>
-#include "game-state.h"
+#include "game-record.h"
 #include "engine-adapter.h"
 
 class EngineAdapter;
@@ -70,10 +70,10 @@ public:
 	/**
 	 * Requests the engine to compute the best move for the given game state and search limits.
 	 *
-	 * @param gameState The current game state (includes starting position and move history).
+	 * @param gameRecord The current game information (includes starting position and move history).
 	 * @param limits The constraints for the upcoming search (time, depth, nodes, etc.).
 	 */
-	void computeMove(const GameState& gameState, const GoLimits& limits);
+	void computeMove(const GameRecord& gameRecord, const GoLimits& limits);
 
 	/**
 	 * @brief Sends a command to the engine to prepare for a new game.

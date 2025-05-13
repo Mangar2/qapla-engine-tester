@@ -120,7 +120,6 @@ public:
 	 */
 	std::tuple<GameEndCause, GameResult> getGameResult();
 	
-	std::vector<std::string> strMoves;
 private:
     QaplaMoveGenerator::MoveGenerator position_;
 
