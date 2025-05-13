@@ -136,6 +136,7 @@
     <ClCompile Include="src\engine-process.cpp" />
     <ClCompile Include="src\engine-worker.cpp" />
     <ClCompile Include="src\game-manager.cpp" />
+    <ClCompile Include="src\game-record.cpp" />
     <ClCompile Include="src\game-state.cpp" />
     <ClCompile Include="src\hashconstants.cpp" />
     <ClCompile Include="src\magics.cpp" />
@@ -160,12 +161,14 @@
     <ClInclude Include="src\evalvalue.h" />
     <ClInclude Include="src\fenscanner.h" />
     <ClInclude Include="src\game-manager.h" />
+    <ClInclude Include="src\game-record.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\hashconstants.h" />
     <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\magics.h" />
     <ClInclude Include="src\materialbalance.h" />
+    <ClInclude Include="src\move-record.h" />
     <ClInclude Include="src\move.h" />
     <ClInclude Include="src\movegenerator.h" />
     <ClInclude Include="src\movelist.h" />

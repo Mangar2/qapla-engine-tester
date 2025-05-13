@@ -27,24 +27,14 @@
 #include <algorithm>
 #include <stdexcept>
 
-struct UciOption {
-    enum class Type { Check, Spin, Combo, Button, String, Unknown };
 
-    std::string name;
-    Type type = Type::Unknown;
-    std::string defaultValue;
-    std::optional<int> min;
-    std::optional<int> max;
-    std::vector<std::string> vars; // for combo
-};
-
-inline UciOption::Type parseOptionType(const std::string& typeStr) {
-    if (typeStr == "check") return UciOption::Type::Check;
-    if (typeStr == "spin") return UciOption::Type::Spin;
-    if (typeStr == "combo") return UciOption::Type::Combo;
-    if (typeStr == "button") return UciOption::Type::Button;
-    if (typeStr == "string") return UciOption::Type::String;
-    return UciOption::Type::Unknown;
+inline EngineOption::Type parseOptionType(const std::string& typeStr) {
+    if (typeStr == "check") return EngineOption::Type::Check;
+    if (typeStr == "spin") return EngineOption::Type::Spin;
+    if (typeStr == "combo") return EngineOption::Type::Combo;
+    if (typeStr == "button") return EngineOption::Type::Button;
+    if (typeStr == "string") return EngineOption::Type::String;
+    return EngineOption::Type::Unknown;
 }
 
 /**
@@ -52,7 +42,7 @@ inline UciOption::Type parseOptionType(const std::string& typeStr) {
  *        Throws std::runtime_error on malformed input.
  *        Example line: "option name Hash type spin default 128 min 1 max 4096"
  */
-inline UciOption parseUciOptionLine(const std::string& line) {
+inline EngineOption parseUciOptionLine(const std::string& line) {
     std::istringstream iss(line);
     std::string token;
     iss >> token;
@@ -60,7 +50,7 @@ inline UciOption parseUciOptionLine(const std::string& line) {
         throw std::runtime_error("Line does not start with 'option': " + line);
     }
 
-    UciOption opt;
+    EngineOption opt;
     std::string key;
     std::string valueBuffer;
 
@@ -107,25 +97,25 @@ inline UciOption parseUciOptionLine(const std::string& line) {
     if (opt.name.empty()) {
         throw std::runtime_error("Missing 'name' field in option line: " + line);
     }
-    if (opt.type == UciOption::Type::Unknown) {
+    if (opt.type == EngineOption::Type::Unknown) {
         throw std::runtime_error("Missing or unknown 'type' field in option line: " + line);
     }
 
     // Type-dependent structural validation
     switch (opt.type) {
-    case UciOption::Type::Spin:
+    case EngineOption::Type::Spin:
         if (!opt.min.has_value() || !opt.max.has_value()) {
             throw std::runtime_error("Spin option missing min or max: " + opt.name);
         }
         break;
-    case UciOption::Type::Combo:
+    case EngineOption::Type::Combo:
         if (opt.vars.empty()) {
             throw std::runtime_error("Combo option missing var entries: " + opt.name);
         }
         break;
-    case UciOption::Type::Button:
-    case UciOption::Type::Check:
-    case UciOption::Type::String:
+    case EngineOption::Type::Button:
+    case EngineOption::Type::Check:
+    case EngineOption::Type::String:
         if (opt.min || opt.max) {
             throw std::runtime_error("Option type '" + token + "' must not define min/max: " + opt.name);
         }

@@ -62,9 +62,10 @@ public:
 	/**
 	 * @brief Führt einmalig nach dem Start der Engine ein erweitertes isready/readyok durch.
 	 *        Timeout ist festgelegt intern.
+	 * @param timeout Zeitspanne, die maximal gewartet werden soll.
 	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).
 	 */
-	bool startupReady();
+	bool requestReady(std::chrono::milliseconds timeout = ReadyTimeoutStartup);
 
 	/**
 	 * Requests the engine to compute the best move for the given game state and search limits.
@@ -113,10 +114,28 @@ public:
 		return adapter_->getEngineMemoryUsage();
 	};
 
-	void setOption(const std::string& name, const std::string& value) {
-		post([this, name, value](EngineAdapter& adapter) {
-			adapter.setOption(name, value);
-			});
+	/**
+	 * @brief Sets the engine's option with the given name to the specified value.
+	 *
+	 * @param name The name of the option to set.
+	 * @param value The value to set for the option.
+	 */
+	bool setOption(const std::string& name, const std::string& value);
+
+	/**
+	 * @brief Gets a map of the supported options of the engine with the default values.
+	 *
+	 */
+	EngineOptions getSupportedOptions() {
+		return adapter_->getSupportedOptions();
+	}
+
+	/**
+	 * @brief Checks if the engine is currently running.
+	 * @return true if the engine is initialized and running.
+	 */
+	bool isRunning() {
+		return adapter_->isRunning();
 	}
 
 private:
@@ -148,6 +167,7 @@ private:
 	void readLoop();
 
 	static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
+	static constexpr std::chrono::milliseconds ReadyTimeoutOption{ 5000 };
 	static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
 
 	void threadLoop();

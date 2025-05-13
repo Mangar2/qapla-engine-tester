@@ -27,6 +27,8 @@
 #include "timer.h"
 #include "time-control.h"
 #include "game-state.h"
+#include "move-record.h"
+#include "game-record.h"
 
  /**
   * @brief Manages a single chess game between the application and an engine.
@@ -38,6 +40,13 @@ public:
      * @brief Constructs a GameManager with a ready-to-use EngineWorker instance.
      */
     GameManager(std::unique_ptr<EngineWorker> engine);
+	GameManager() = default;
+
+    /**
+     * @brief sets a new engine
+	 * @param engine The new engine to be set.
+     */
+    void setEngine(std::unique_ptr<EngineWorker> engine);
 
 	/**
 	 * @brief stops the engine if it is running.
@@ -83,6 +92,13 @@ public:
      */
     void computeMove(bool startPos, const std::string fen = "");
 
+	/**
+	 * Initiates asynchronous game computation using the current time control.
+	 *
+	 * @param startPos If true, the game starts from the initial position.
+	 * @param fen The FEN string representing the game state.
+	 */
+    void computeGame(bool startPos, const std::string fen = "");
 
     /**
      * @brief Returns a reference to the EngineWorker instance.
@@ -117,6 +133,14 @@ private:
      */
     void checkTime(const EngineEvent& event);
 
+	/**
+	 * @brief Checks if the game has ended.
+	 *
+	 * This function checks if the game has ended and handles the end of the game.
+	 * It returns true if the game has ended, false otherwise.
+	 */
+    bool checkForGameEnd();
+
     /**
      * @brief General check handling method.
 	 * @param name Checklist-Name of the topic.
@@ -150,4 +174,6 @@ private:
 	int64_t computeMoveStartTimestamp_ = 0;
     bool requireLan_ = true;
 	Tasks task_ = Tasks::None;
+    MoveRecord currentMove_;
+	GameRecord gameRecord_;
 };

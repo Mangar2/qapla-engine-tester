@@ -51,31 +51,31 @@ void GameState::setFen(bool startPos, const std::string fen) {
 	hashList_.push_back(position_.computeBoardHash());
 }
 
-std::tuple<GameResult, Side> GameState::getGameResult() {
+std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 	if (position_.isInCheck()) {
 		if (position_.isWhiteToMove()) { 
-			return { GameResult::Checkmate, Side::Black }; 
+			return { GameEndCause::Checkmate, GameResult::BlackWins }; 
 		}
 		else {
-			return { GameResult::Checkmate, Side::White };
+			return { GameEndCause::Checkmate, GameResult::WhiteWins };
 		}
 	}
 	if (position_.drawDueToMissingMaterial()) {
-		return { GameResult::DrawByInsufficientMaterial, Side::Draw };
+		return { GameEndCause::DrawByInsufficientMaterial, GameResult::Draw };
 	}
 	if (position_.getHalfmovesWithoutPawnMoveOrCapture() >= 100) {
-		return { GameResult::DrawByFiftyMoveRule, Side::Draw };
+		return { GameEndCause::DrawByFiftyMoveRule, GameResult::Draw };
 	}
 	QaplaBasics::MoveList moveList;
 	position_.genMovesOfMovingColor(moveList);
 	if (moveList.totalMoveAmount == 0) {
-		return { GameResult::Stalemate, Side::Draw };
+		return { GameEndCause::Stalemate, GameResult::Draw };
 	}
 	if (isThreefoldRepetition()) {
-		return { GameResult::DrawByRepetition, Side::Draw };
+		return { GameEndCause::DrawByRepetition, GameResult::Draw };
 	}
 
-	return { GameResult::Ongoing, Side::Undefined };
+	return { GameEndCause::Ongoing, GameResult::Unterminated };
 }
 
 bool GameState::isThreefoldRepetition() const {

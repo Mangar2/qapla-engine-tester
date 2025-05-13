@@ -31,7 +31,7 @@
 #include "engine-process.h"
 #include "uci-option.h"
 
-using UciOptions = std::unordered_map<std::string, UciOption>;
+
 
  /**
   * @brief UCI protocol adapter implementing EngineAdapter.
@@ -69,9 +69,6 @@ public:
      */
     void askForReady() override;
 
-    const OptionMap& getOptionMap() const override;
-    void setOptionMap(const OptionMap& list) override;
-
     /**
      * @brief Sends a UCI 'setoption' command to the engine with the given name and value.
      *
@@ -107,14 +104,7 @@ private:
 
     EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
 
-
-	UciOptions supportedOptions_;
-    OptionMap options_;
-    
-
 	std::string engineName_;
 	std::string engineAuthor_;
-
-
 
 };

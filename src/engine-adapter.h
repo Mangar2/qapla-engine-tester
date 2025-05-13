@@ -30,7 +30,18 @@
 #include "game-start-position.h"
 #include "game-state.h"
 
-using OptionMap = std::unordered_map<std::string, std::string>;
+struct EngineOption {
+    enum class Type { Check, Spin, Combo, Button, String, Unknown };
+
+    std::string name;
+    Type type = Type::Unknown;
+    std::string defaultValue;
+    std::optional<int> min;
+    std::optional<int> max;
+    std::vector<std::string> vars; // for combo
+};
+
+using EngineOptions = std::unordered_map<std::string, EngineOption>;
 
 /**
  * @brief limits for calculating a single move.
@@ -238,16 +249,6 @@ public:
     }
 
     /**
-     * @brief Returns the current engine option list.
-     */
-    virtual const OptionMap& getOptionMap() const = 0;
-
-    /**
-     * @brief Applies a new engine option list.
-     */
-    virtual void setOptionMap(const OptionMap& list) = 0;
-
-    /**
      * @brief Assigns a logger function to use for engine communication output.
      *        Typically called by the EngineWorker to inject context.
      */
@@ -260,7 +261,7 @@ public:
 	 * @return true if the engine is initialized and running.
 	 */
     bool isRunning() {
-		return state_ == EngineState::Initialized;
+		return (state_ == EngineState::Initialized) && process_.isRunning();
     }
 
     /**
@@ -281,7 +282,10 @@ public:
      */
     virtual void setOption(const std::string& name, const std::string& value = {}) = 0;
 
-
+    /**
+     * @brief Returns the current engine option list.
+     */
+    const EngineOptions& getSupportedOptions() const { return supportedOptions_; }
 protected:
     /**
      * @brief Emits a log message using the configured logger, if any.
@@ -296,6 +300,7 @@ protected:
 			logger_(message, false);
 		}
 	}
+    EngineOptions supportedOptions_;
     mutable std::function<void(std::string_view, bool)> logger_;
     std::atomic<EngineState> state_ = EngineState::Uninitialized;
     EngineProcess process_;

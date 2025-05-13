@@ -21,12 +21,15 @@
 #include "engine-checklist.h"
 #include <iostream>
 
-GameManager::GameManager(std::unique_ptr<EngineWorker> engine)
-    : engine_(std::move(engine)) {
+GameManager::GameManager(std::unique_ptr<EngineWorker> engine) {
+	setEngine(std::move(engine));
+}
 
+void GameManager::setEngine(std::unique_ptr<EngineWorker> engine) {
+    engine_ = std::move(engine);
     engine_->setEventSink([this](const EngineEvent& event) {
         handleState(event);
-     });
+        });
 }
 
 void GameManager::markFinished() {
@@ -51,6 +54,14 @@ void GameManager::handleState(const EngineEvent& event) {
         if (task_ == Tasks::ComputeMove) {
             finishedPromise_.set_value();
 			task_ = Tasks::None;
+        } 
+        else if (task_ == Tasks::PlayGame) {
+            if (checkForGameEnd()) {
+                finishedPromise_.set_value();
+			}
+            else {
+                computeMove();
+            }
         }
     }
     else if (event.type == EngineEvent::Type::Info) {
@@ -66,12 +77,16 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
 	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), *event.bestMove)) return;
     gameState_.doMove(move);
+	currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_);
+	gameRecord_.addMove(currentMove_);
     checkTime(event);
 }
 
 void GameManager::handleInfo(const EngineEvent& event) {
 	if (!event.searchInfo.has_value()) return;
     const auto& searchInfo = *event.searchInfo;
+
+    currentMove_.updateFromSearchInfo(searchInfo);
 
     // Prüfe currMove, falls vorhanden
     if (searchInfo.currMove) {
@@ -111,6 +126,16 @@ void GameManager::handleInfo(const EngineEvent& event) {
     }
 }
 
+bool GameManager::checkForGameEnd() {
+	auto [cause, result] = gameState_.getGameResult();
+    if (cause == GameEndCause::Ongoing) {
+        return false;
+    }
+	std::cout << "[Result: " << gameResultToPgnResult(result) << "]" << std::endl;
+	std::cout << "[Termination: " << gameEndCauseToPgnTermination(cause) << "]" << std::endl;
+
+    return true;
+}
 
 void GameManager::checkTime(const EngineEvent& event) {
 	const int64_t GRACE_MS = 5; // ms
@@ -155,6 +180,14 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
 void GameManager::computeMove() {
     GoLimits limits = timeControl_.createGoLimits();
     engine_->computeMove(gameState_, limits);
+}
+
+void GameManager::computeGame(bool startPos, const std::string fen) {
+    finishedPromise_ = std::promise<void>{};
+    finishedFuture_ = finishedPromise_.get_future();
+    gameState_.setFen(startPos, fen);
+    task_ = Tasks::PlayGame;
+    computeMove();
 }
 
 bool GameManager::isLegalMove(const std::string& moveText) {

@@ -51,6 +51,13 @@ private:
       */
     void createGameManager(std::filesystem::path enginePath, bool singleEngine = true);
 
+	/**
+	 * @brief Restarts the engine process.
+	 *
+	 * This method is used to restart the engine after a crash or when it is not responding.
+	 */
+    void startEngine();
+
     /**
      * @brief Runs all tests involving GoLimits-based move calculations.
      *
@@ -68,18 +75,33 @@ private:
     void runHashTableMemoryTest();
 
     /**
+     * Runs a set of generic tests to verify the engine's correct handling of option changes.
+     * This test assumes no knowledge of specific options beyond basic types and behaviors.
+     */
+    void runEngineOptionTests();
+    
+    /**
+	 * @brief Sets a specific option for the engine and checks if it runs without crashing.
+	 * @param name Name of the option to set.
+	 * @param value Value to set for the option.
+     */
+    void setOption(std::string name, std::string value);
+
+    /**
      * @brief General check handling method.
      * @param name Checklist-Name of the topic.
+	 * @param success Result of the check
      * @param detail Detailed error message to be logged
      */
-    bool handleCheck(std::string_view name, bool failed, std::string_view detail = "") {
-        EngineChecklist::report(name, !failed);
-        if (failed) {
+    bool handleCheck(std::string_view name, bool success, std::string_view detail = "") {
+        EngineChecklist::report(name, success);
+        if (!success) {
             std::cerr << "Error: " << name << ": " << detail << std::endl;
         }
-        return !failed;
+        return success;
     }
 
     std::unique_ptr<GameManager> gameManager_;
+    std::filesystem::path enginePath_;
 
 };

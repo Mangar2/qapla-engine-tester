@@ -72,7 +72,7 @@ void UciAdapter::runUciHandshake() {
         }
         else if (line->starts_with("option ")) {
             try {
-                UciOption opt = parseUciOptionLine(*line);
+                EngineOption opt = parseUciOptionLine(*line);
                 supportedOptions_[opt.name] = std::move(opt);
             }
             catch (const std::exception& e) {
@@ -171,19 +171,6 @@ int64_t UciAdapter::computeMove(const GameState& game, const GoLimits& limits) {
 
 void UciAdapter::stopCalc() {
     writeCommand("stop");
-}
-
-const OptionMap& UciAdapter::getOptionMap() const {
-    return options_;
-}
-
-void UciAdapter::setOptionMap(const OptionMap& list) {
-    options_ = list;
-    for (const auto& [key, value] : list) {
-        std::ostringstream oss;
-        oss << "setoption name " << key << " value " << value;
-        writeCommand(oss.str());
-    }
 }
 
 void UciAdapter::askForReady() {

@@ -128,11 +128,19 @@ bool EngineWorker::waitForReady(std::chrono::milliseconds timeout) {
     });
 }
 
-bool EngineWorker::startupReady() {
+bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
     post([](EngineAdapter& adapter) {
         adapter.askForReady();
         });
-    return waitForReady(ReadyTimeoutStartup);
+    return waitForReady(timeout);
+}
+
+bool EngineWorker::setOption(const std::string& name, const std::string& value) {
+    post([this, name, value](EngineAdapter& adapter) {
+        adapter.setOption(name, value);
+        adapter.askForReady();
+        });
+    return waitForReady(ReadyTimeoutOption);
 }
 
 void EngineWorker::computeMove(const GameState& gameState, const GoLimits& limits) {
