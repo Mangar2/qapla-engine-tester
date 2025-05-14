@@ -37,16 +37,16 @@ int main() {
     Logger::engineLogger().setLogFile("qapla-engine-trace");
     Logger::testLogger().setLogFile("qapla-engine-report");
 	Logger::testLogger().setTraceLevel(TraceLevel::commands);
-    Logger::testLogger().log("Qapla Engine Tester, Prerelease 0.1.0 (c) by Volker Boehm\n");
-    Logger::testLogger().log("The engine test log is available in " + Logger::testLogger().getFilename());
-	Logger::testLogger().log("The engine communication log is available in " + Logger::engineLogger().getFilename());
+    Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.1.0 (c) by Volker Boehm\n");
+    Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
+    Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
 	Logger::testLogger().log("All tests will start in 1 second(s)...\n");  
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     EngineTestController controller;
 	controller.runAllTests(enginePath);
     
-	EngineChecklist::print(std::cout);
+	EngineChecklist::log();
     return 0;
 }
 

@@ -39,6 +39,8 @@ private:
 
     void runStartStopTest(std::filesystem::path enginePath);
 
+	void runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines);
+
     void runPlaceholderTest();
 
     /**
@@ -86,8 +88,9 @@ private:
 	 * @brief Sets a specific option for the engine and checks if it runs without crashing.
 	 * @param name Name of the option to set.
 	 * @param value Value to set for the option.
+	 * @return True if the option was set successfully, false otherwise.
      */
-    void setOption(std::string name, std::string value);
+    bool setOption(std::string name, std::string value);
 
     /**
      * @brief General check handling method.
@@ -95,10 +98,10 @@ private:
 	 * @param success Result of the check
      * @param detail Detailed error message to be logged
      */
-    bool handleCheck(std::string_view name, bool success, std::string_view detail = "") {
+    bool handleCheck(std::string name, bool success, std::string detail = "") {
         EngineChecklist::report(name, success);
         if (!success) {
-            std::cerr << "Error: " << name << ": " << detail << std::endl;
+            Logger::testLogger().log("Error: " + name + ": " + detail, TraceLevel::error);
         }
         return success;
     }

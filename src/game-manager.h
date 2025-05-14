@@ -97,8 +97,9 @@ public:
 	 *
 	 * @param startPos If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
+     * @param logMoves true, then moves will be logged
 	 */
-    void computeGame(bool startPos, const std::string fen = "");
+    void computeGame(bool startPos, const std::string fen = "", bool logMoves = false);
 
     /**
      * @brief Returns a reference to the EngineWorker instance.
@@ -149,7 +150,7 @@ private:
     bool handleCheck(std::string_view name, bool success, std::string_view detail = "") {
         EngineChecklist::report(name, success);
         if (!success) {
-            std::cerr << "Error: " << name << ": " << detail << std::endl;
+			Logger::testLogger().log(std::string(name) + ": " + std::string(detail), TraceLevel::error);
         }
 		return success;
     }
@@ -177,4 +178,5 @@ private:
     MoveRecord currentMove_;
 	GameRecord gameRecord_;
     GoLimits currentGoLimits_;
+    bool logMoves_ = false;
 };

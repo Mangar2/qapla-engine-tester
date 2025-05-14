@@ -32,26 +32,20 @@ public:
         start_ = getCurrentTimeMs();
     }
 
-    void stop() {
-		end_ = getCurrentTimeMs();
-    }
-
 	int64_t elapsedMs(int64_t end) const {
 		return end - start_;
 	}
     int64_t elapsedMs() const {
-        return end_ - start_;
+        return getCurrentTimeMs() - start_;
     }
 
     void printElapsed(const char* label) {
-		int64_t cur = getCurrentTimeMs();
-		int64_t elapsed = cur - start_;
+		int64_t elapsed = elapsedMs();
         std::cout << "[Timer] " << label << ": elapsed = " << elapsed << " ms" << std::endl;
     }
 
 private:
 
     int64_t start_{};
-    int64_t end_{};
 };
 

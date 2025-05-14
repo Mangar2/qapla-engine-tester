@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include "logger.h"
 
 class EngineChecklist {
 public:
@@ -43,22 +44,46 @@ public:
         if (!passed) ++stat.failures;
     }
 
-    static void print(std::ostream& os) {
-        os << "== Engine Checklist Report ==\n";
-        for (const auto& [topic, stat] : stats_) {
+    /**
+	 * @brief Logs the results of all tests to the test logger.
+     */
+    static void log() {
+        Logger::testLogger().log("\n== Engine Report ==\n");
+
+        std::vector<std::pair<std::string, Stat>> sorted(stats_.begin(), stats_.end());
+        std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
+            const bool aFail = a.second.total > 0 && a.second.failures > 0;
+            const bool bFail = b.second.total > 0 && b.second.failures > 0;
+            return aFail > bFail; 
+            });
+
+        size_t maxTopicLength = 0;
+        for (const auto& [topic, _] : sorted) {
+            maxTopicLength = std::max(maxTopicLength, std::string(topic).size());
+        }
+
+        for (const auto& [topic, stat] : sorted) {
             const bool passed = stat.total > 0 && stat.failures == 0;
             const int percentFail = stat.total > 0
                 ? static_cast<int>((100 * stat.failures) / stat.total)
                 : 0;
+
+            std::ostringstream line;
+            line << (passed ? "PASS " : "FAIL ");
+            line << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << topic;
+
             if (passed) {
-                os << "PASS " << topic << " (" << stat.total << ")\n";
-			}
-            else {
-                os << "FAIL " << topic << ": " << stat.failures << " failed / "
-                    << stat.total << " total (" << percentFail << "% failure)\n";
+                line << "(" << stat.total << ")";
             }
+            else {
+                line << "(" << stat.failures << " failed / " << stat.total
+                    << " total, " << percentFail << "% failure)";
+            }
+
+            Logger::testLogger().log(line.str());
         }
     }
+
 
 private:
     struct Stat {

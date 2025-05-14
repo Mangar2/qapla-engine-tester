@@ -225,17 +225,27 @@ void readBoundedInt32(std::istringstream& iss,
 {
     int value;
     if (!(iss >> value)) {
-        errors.push_back({ "search info " + fieldName, "Expected integer after '" + fieldName + "'"});
+        errors.push_back({
+            "search info " + fieldName,
+            "Expected an integer after '" + fieldName + "'"
+            });
         iss.clear();
         return;
     }
+
     if (value < min || value > max) {
-        errors.push_back({ "search info " + fieldName, 
-            "Value out of range (" + std::to_string(min) + " to " + std::to_string(max) + "): " + std::to_string(value) });
+        errors.push_back({
+            "search info " + fieldName,
+            "Reported value " + std::to_string(value) +
+            " is outside the expected range [" +
+            std::to_string(min) + ", " + std::to_string(max) + "]"
+            });
         return;
     }
+
     target = value;
 }
+
 
 void readBoundedInt64(std::istringstream& iss,
     const std::string& fieldName,
@@ -244,17 +254,26 @@ void readBoundedInt64(std::istringstream& iss,
     std::optional<int64_t>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
-    int value;
+    int64_t value;
     if (!(iss >> value)) {
-        errors.push_back({ "search info " + fieldName, "Expected integer after '" + fieldName + "'" });
+        errors.push_back({
+            "search info " + fieldName,
+            "Expected an integer after '" + fieldName + "'"
+            });
         iss.clear();
         return;
     }
+
     if (value < min || value > max) {
-        errors.push_back({ "search info " + fieldName,
-            "Value out of range (" + std::to_string(min) + " to " + std::to_string(max) + "): " + std::to_string(value) });
+        errors.push_back({
+            "search info " + fieldName,
+            "Reported value " + std::to_string(value) +
+            " is outside the expected range [" +
+            std::to_string(min) + ", " + std::to_string(max) + "]"
+            });
         return;
     }
+
     target = value;
 }
 

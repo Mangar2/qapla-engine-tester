@@ -74,7 +74,7 @@ void GameManager::handleState(const EngineEvent& event) {
 
 void GameManager::handleBestMove(const EngineEvent& event) {
     if (!handleCheck("Computing a move returns a move check", event.bestMove.has_value())) return;
-    std::cout << *event.bestMove << " " << std::flush;
+    if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
 	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), 
         "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) return;
@@ -133,8 +133,9 @@ bool GameManager::checkForGameEnd() {
     if (cause == GameEndCause::Ongoing) {
         return false;
     }
-	std::cout << "[Result: " << gameResultToPgnResult(result) << "]" << std::endl;
-	std::cout << "[Termination: " << gameEndCauseToPgnTermination(cause) << "]" << std::endl;
+    if (logMoves_) std::cout << "\n";
+	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
+	Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
 
     return true;
 }
@@ -163,7 +164,8 @@ void GameManager::checkTime(const EngineEvent& event) {
 			std::to_string(moveElapsedMs) + " < " + std::to_string(*limits.movetimeMs));
         if (numLimits == 1) {
             handleCheck("movetime underrun check", moveElapsedMs > *limits.movetimeMs * 99 / 100,
-                std::to_string(moveElapsedMs) + " > " + std::to_string(*limits.movetimeMs));
+               "The engine should use EXACTLY " + std::to_string(*limits.movetimeMs) + 
+                " ms but took " + std::to_string(moveElapsedMs));
         }
 	}
 
@@ -201,6 +203,7 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
 	gameState_.setFen(startPos, fen);
     gameRecord_.newGame(startPos, fen);
 	task_ = Tasks::ComputeMove;
+    logMoves_ = false;
     computeMove();
 }
 
@@ -210,12 +213,13 @@ void GameManager::computeMove() {
     engine_->computeMove(gameRecord_, currentGoLimits_);
 }
 
-void GameManager::computeGame(bool startPos, const std::string fen) {
+void GameManager::computeGame(bool startPos, const std::string fen, bool logMoves) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
     gameState_.setFen(startPos, fen);
     gameRecord_.newGame(startPos, fen);
     task_ = Tasks::PlayGame;
+	logMoves_ = logMoves;
     computeMove();
 }
 
