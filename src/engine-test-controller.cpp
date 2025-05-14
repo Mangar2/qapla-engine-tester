@@ -41,6 +41,29 @@ void EngineTestController::startEngine() {
     }
 }
 
+EngineList EngineTestController::startEngines(uint32_t count) {
+    EngineWorkerFactory factory;
+    EngineList list = factory.createUci(enginePath_, std::nullopt, count);
+
+    std::vector<std::future<bool>> results;
+    for (auto& engine : list) {
+        results.push_back(std::async(std::launch::async, [&engine]() {
+            return engine->requestReady();
+            }));
+    }
+
+    bool allReady = std::all_of(results.begin(), results.end(), [](auto& f) {
+        return f.get();
+        });
+
+    handleCheck("Engines Started successfully", allReady, "  one or more engines did not respond to isReady in time");
+    if (!allReady) {
+        Logger::testLogger().log("Engines did not start successfully", TraceLevel::error);
+    }
+
+    return list;
+}
+
 std::string bytesToMB(int64_t bytes) {
 	std::ostringstream oss;
 	oss << std::fixed << std::setprecision(1) << (bytes / (1024.0 * 1024.0));
@@ -54,7 +77,8 @@ void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     runHashTableMemoryTest();
     runEngineOptionTests();
     runGoLimitsTests();
-    runComputeGameTest();
+    runMultipleGamesTest();
+    //runComputeGameTest();
     gameManager_->stop();
 
 }
@@ -172,7 +196,7 @@ void EngineTestController::runGoLimitsTests() {
 
         for (const auto& test : testCases) {
             gameManager_->newGame();
-            gameManager_->setTime(test.second);
+            gameManager_->setUniqueTimeControl(test.second);
             gameManager_->computeMove(true);
             gameManager_->getFinishedFuture().wait();
         }
@@ -357,18 +381,83 @@ void EngineTestController::runEngineOptionTests() {
 
 void EngineTestController::runComputeGameTest() {
 	Logger::testLogger().log("\nThe engine now plays against itself. I control all engine output, and check its validity while playing.");
+    EngineList engines = startEngines(2);
+    gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
     try {
         gameManager_->newGame();
-        TimeControl t; t.addTimeSegment({ 0, 30000, 500 });
-        gameManager_->setTime(t);
+        TimeControl t1; t1.addTimeSegment({ 0, 30000, 500 });
+        TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
+        gameManager_->setTimeControls(t1, t2);
         gameManager_->computeGame(true, "", true);
         gameManager_->getFinishedFuture().wait();
     }
     catch (const std::exception& e) {
-        std::cerr << "Exception during compute games test: " << e.what() << "\n";
+		Logger::testLogger().log("Exception during compute games test: " + std::string(e.what()), TraceLevel::error);
     }
     catch (...) {
-        std::cerr << "Unknown exception during compute games test.\n";
+		Logger::testLogger().log("Unknown exception during compute games test.", TraceLevel::error);
+    }
+}
+
+std::pair<TimeControl, TimeControl> createTestTimeControls(int index) {
+    TimeControl white;
+    white.addTimeSegment({ 0, 30000, 500 });
+
+    TimeControl black;
+    black.addTimeSegment({ 0, 10000, 100 });
+
+    return { white, black };
+}
+
+struct TaskSource {
+    int current = 0;
+    const int max;
+
+    explicit TaskSource(int total) : max(total) {}
+
+    std::optional<int> nextIndex() {
+        if (current < max) {
+            return current++;
+        }
+        return std::nullopt;
+    }
+};
+
+void EngineTestController::runMultipleGamesTest() {
+    constexpr int totalGames = 100;
+    constexpr int parallelGames = 20;
+
+    Logger::testLogger().log("\nTesting different time controls by playing multiple games in parallel.");
+
+    EngineWorkerFactory factory;
+    EngineList engines = factory.createUci(enginePath_, std::nullopt, parallelGames * 2);
+
+    TournamentManager tournament(totalGames);
+
+    std::vector<std::unique_ptr<GameManager>> managers;
+    try {
+        for (int i = 0; i < parallelGames; ++i) {
+            auto manager = std::make_unique<GameManager>();
+            manager->setEngines(std::move(engines[i * 2]), std::move(engines[i * 2 + 1]));
+
+            manager->computeGames([&tournament]() {
+                return tournament.nextTask();
+                });
+
+            managers.push_back(std::move(manager));
+        }
+
+        for (auto& m : managers) {
+            m->getFinishedFuture().wait();
+        }
+
+        Logger::testLogger().log("All games completed.");
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during compute games test: " + std::string(e.what()), TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during compute games test.", TraceLevel::error);
     }
 }
 

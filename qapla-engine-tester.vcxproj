@@ -167,6 +167,7 @@
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\hashconstants.h" />
+    <ClInclude Include="src\heart-beat.h" />
     <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\magics.h" />
     <ClInclude Include="src\materialbalance.h" />
@@ -179,6 +180,7 @@
     <ClInclude Include="src\pst.h" />
     <ClInclude Include="src\time-control.h" />
     <ClInclude Include="src\timer.h" />
+    <ClInclude Include="src\tournament-manager.h" />
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\uci-adapter.h" />
     <ClInclude Include="src\uci-option.h" />

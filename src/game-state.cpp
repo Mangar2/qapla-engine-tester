@@ -48,9 +48,11 @@ void GameState::setFen(bool startPos, const std::string fen) {
 	boardState_.clear();
 	hashList_.clear();
 	hashList_.push_back(position_.computeBoardHash());
+	gameEndCause_ = GameEndCause::Ongoing;
+	gameResult_ = GameResult::Unterminated;
 }
 
-std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
+std::tuple<GameEndCause, GameResult> GameState::computeGameResult() {
 	QaplaBasics::MoveList moveList;
 	position_.genMovesOfMovingColor(moveList);
 	if (moveList.totalMoveAmount == 0) {
@@ -76,6 +78,17 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 	}
 
 	return { GameEndCause::Ongoing, GameResult::Unterminated };
+}
+
+
+std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
+	if (gameResult_ != GameResult::Unterminated) {
+		return { gameEndCause_, gameResult_ };
+	}
+	auto [cause, result] = computeGameResult();
+	gameEndCause_ = cause;
+	gameResult_ = result;
+	return { gameEndCause_, gameResult_ };
 }
 
 bool GameState::isThreefoldRepetition() const {

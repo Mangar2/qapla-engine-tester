@@ -88,7 +88,8 @@ struct EngineEvent {
         PonderHit,
         Error,
         Unknown,
-        NoData
+        NoData,
+        KeepAlive
     };
 
     struct ParseError {

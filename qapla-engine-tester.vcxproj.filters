@@ -170,5 +170,11 @@
     <ClInclude Include="src\engine-event.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\tournament-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\heart-beat.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

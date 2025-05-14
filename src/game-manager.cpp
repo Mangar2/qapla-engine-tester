@@ -21,6 +21,14 @@
 #include "engine-checklist.h"
 #include <iostream>
 
+GameManager::GameManager() {
+    heartBeat_ = std::make_unique<HeartBeat>([this]() {
+        EngineEvent event;
+        event.type = EngineEvent::Type::KeepAlive;
+        event.timestampMs = Timer::getCurrentTimeMs();
+        handleState(event);
+        });
+}
 
 void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
     whiteEngine_ = engine;
@@ -48,6 +56,7 @@ void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_pt
 
 void GameManager::switchSide() {
     std::swap(whiteEngine_, blackEngine_);
+	std::swap(whiteTimeControl_, blackTimeControl_);
 }
 
 void GameManager::markFinished() {
@@ -64,10 +73,13 @@ void GameManager::markFinished() {
 }
 
 void GameManager::handleState(const EngineEvent& event) {
+    std::lock_guard<std::mutex> lock(eventMutex_);
     for (auto& error: event.errors) {
         handleCheck(error.name, false, error.detail);
     }
-    if (event.type == EngineEvent::Type::BestMove) {
+    if (event.type == EngineEvent::Type::KeepAlive) {
+    }
+    else if (event.type == EngineEvent::Type::BestMove) {
         handleBestMove(event);
         if (task_ == Tasks::ComputeMove) {
             finishedPromise_.set_value();
@@ -80,26 +92,43 @@ void GameManager::handleState(const EngineEvent& event) {
             else {
                 computeMove();
             }
+        } 
+        else if (task_ == Tasks::ParticipateInTournament) {
+            if (checkForGameEnd()) {
+                computeNextGame();
+            }
+			else {
+				computeMove();
+			}
         }
     }
     else if (event.type == EngineEvent::Type::Info) {
         handleInfo(event);
     }
     else if (event.type == EngineEvent::Type::ComputeMoveSent) {
+        // We get the start calculating move timestamp directly from the EngineProcess after sending the compute move string
+		// to the engine. This prevents loosing time for own synchronization tasks on the engines clock.
 		computeMoveStartTimestamp_ = event.timestampMs;
     }
+}
+
+void GameManager::handleHeartBeat() {
+
 }
 
 void GameManager::handleBestMove(const EngineEvent& event) {
     if (!handleCheck("Computing a move returns a move check", event.bestMove.has_value())) return;
     if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
-	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), 
-        "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) return;
+    if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(),
+        "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) {
+		gameState_.setGameResult(GameEndCause::IllegalMove, gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
+        return;
+    }
+    checkTime(event);
     gameState_.doMove(move);
 	currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_);
 	gameRecord_.addMove(currentMove_);
-    checkTime(event);
 }
 
 void GameManager::handleInfo(const EngineEvent& event) {
@@ -148,12 +177,12 @@ void GameManager::handleInfo(const EngineEvent& event) {
 
 bool GameManager::checkForGameEnd() {
 	auto [cause, result] = gameState_.getGameResult();
-    if (cause == GameEndCause::Ongoing) {
+    if (result == GameResult::Unterminated) {
         return false;
     }
     if (logMoves_) std::cout << "\n";
-	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
-	Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
+	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::commands);
+	Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::commands);
 
     return true;
 }
@@ -173,8 +202,10 @@ void GameManager::checkTime(const EngineEvent& event) {
 		limits.depth.has_value() + limits.nodes.has_value();
 
     if (timeLeft > 0) {
-		handleCheck("wtime/btime overrun check", moveElapsedMs <= timeLeft,
-            std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft));
+        if (!handleCheck("wtime/btime overrun check", moveElapsedMs <= timeLeft,
+            std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft))) {
+			gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
+        }
     }
 
 	if (limits.movetimeMs.has_value()) {
@@ -227,7 +258,8 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
 
 void GameManager::computeMove() {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
-    currentGoLimits_ = timeControl_.createGoLimits(gameRecord_.currentPly(), whiteTime, blackTime);
+    currentGoLimits_ = createGoLimits(
+        whiteTimeControl_, blackTimeControl_, gameRecord_.currentPly(), whiteTime, blackTime, gameState_.isWhiteToMove());
 	if (gameState_.isWhiteToMove()) {
 		whiteEngine_->computeMove(gameRecord_, currentGoLimits_);
     }
@@ -244,6 +276,28 @@ void GameManager::computeGame(bool startPos, const std::string fen, bool logMove
     task_ = Tasks::PlayGame;
 	logMoves_ = logMoves;
     computeMove();
+}
+
+void GameManager::computeNextGame() {
+    auto newTask = taskProvider_();
+	if (!newTask.has_value()) {
+		finishedPromise_.set_value();
+		return;
+	}
+	auto task = *newTask;
+	gameState_.setFen(task.useStartPosition, task.fen);
+	gameRecord_.newGame(task.useStartPosition, task.fen);
+	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
+    computeMove();
+}
+
+void GameManager::computeGames(std::function<std::optional<GameTask>()> taskProvider) {
+    finishedPromise_ = std::promise<void>{};
+    finishedFuture_ = finishedPromise_.get_future();
+    task_ = Tasks::ParticipateInTournament;
+	taskProvider_ = std::move(taskProvider);
+    logMoves_ = false;
+    computeNextGame();
 }
 
 bool GameManager::isLegalMove(const std::string& moveText) {

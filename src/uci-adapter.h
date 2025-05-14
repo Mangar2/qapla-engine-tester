@@ -79,7 +79,7 @@ public:
 
 private:
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
-    static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 500 };
+    static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 3000 };
     static constexpr std::chrono::milliseconds engineQuitTimeout{ 10000 };
     static constexpr std::chrono::milliseconds readTimeout{ 1000 };
 

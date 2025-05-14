@@ -53,6 +53,8 @@ struct TimeSegment {
     int64_t incrementMs = 0;        ///< Increment per move in milliseconds
 };
 
+
+
 /**
  * @brief User-facing representation of a test time control.
  */
@@ -73,71 +75,7 @@ public:
     std::optional<int> nodes() const { return nodes_; }
 	std::optional<int> mateIn() const { return mateIn_; }
     bool infinite() const { return infinite_.value_or(false); }
-
-    /**
-     * @brief Creates a GoLimits instance based on current time control settings.
-     *
-     * @param playedMoves Number of full moves already played.
-     * @param whiteTimeUsedMs Time consumed by white so far, in milliseconds.
-     * @param blackTimeUsedMs Time consumed by black so far, in milliseconds.
-     * @return GoLimits filled according to the currently active time control.
-     */
-    GoLimits createGoLimits(int playedMoves = 0, int64_t whiteTimeUsedMs = 0, int64_t blackTimeUsedMs = 0) const {
-        GoLimits limits;
-
-        if (movetimeMs_) {
-            limits.movetimeMs = movetimeMs_;
-        }
-
-        limits.depth = depth_;
-        limits.nodes = nodes_;
-        limits.mateIn = mateIn_;
-        limits.infinite = infinite_.value_or(false);
-
-        if (timeSegments_.empty() || movetimeMs_) {
-            return limits;
-        }
-
-        int remainingMoves = playedMoves;
-        int64_t whiteTotalTime = 0;
-        int64_t blackTotalTime = 0;
-        int64_t whiteIncrement = 0;
-        int64_t blackIncrement = 0;
-        int nextMovesToGo = 0;
-
-        size_t i = 0;
-        while (true) {
-            const TimeSegment& seg = (i < timeSegments_.size()) ? timeSegments_[i] : timeSegments_.back();
-
-            int segmentMoves = seg.movesToPlay;
-            int movesInThisSegment = segmentMoves ? std::min(remainingMoves, segmentMoves): remainingMoves;
-            whiteTotalTime += seg.baseTimeMs + static_cast<int64_t>(movesInThisSegment) * seg.incrementMs;
-            blackTotalTime += seg.baseTimeMs + static_cast<int64_t>(movesInThisSegment) * seg.incrementMs;
-            whiteIncrement = seg.incrementMs;
-            blackIncrement = seg.incrementMs;
-
-            if (!seg.movesToPlay) {
-                nextMovesToGo = 0;
-                break;
-            }
-
-            if (remainingMoves < segmentMoves) {
-                nextMovesToGo = segmentMoves - remainingMoves;
-                break;
-            }
-
-            remainingMoves -= segmentMoves;
-            ++i;
-        }
-
-        limits.wtimeMs = whiteTotalTime > whiteTimeUsedMs ? whiteTotalTime - whiteTimeUsedMs : 0;
-        limits.btimeMs = blackTotalTime > blackTimeUsedMs ? blackTotalTime - blackTimeUsedMs : 0;
-        limits.wincMs = whiteIncrement;
-        limits.bincMs = blackIncrement;
-        limits.movesToGo = nextMovesToGo;
-
-        return limits;
-    }
+	std::vector<TimeSegment> timeSegments() const { return timeSegments_; }
 
     std::string toPgnTimeControlString() const {
         std::ostringstream oss;
@@ -188,3 +126,77 @@ private:
     std::optional<bool> infinite_;
     std::vector<TimeSegment> timeSegments_;
 };
+
+/**
+ * @brief Creates GoLimits from two time control definitions.
+ *
+ * This function evaluates time usage and time control structure separately for white and black.
+ * It then computes the respective remaining time, increment, and movesToGo. The result is
+ * populated into a GoLimits struct for UCI communication.
+ *
+ * @param white TimeControl settings for the white side.
+ * @param black TimeControl settings for the black side.
+ * @param playedMoves Number of full moves already played in the game.
+ * @param whiteTimeUsedMs Time used by white so far, in milliseconds.
+ * @param blackTimeUsedMs Time used by black so far, in milliseconds.
+ * @param whiteToMove Whether white is to move next.
+ * @return GoLimits containing time data for both sides.
+ */
+inline GoLimits createGoLimits(
+    const TimeControl& white,
+    const TimeControl& black,
+    int playedMoves,
+    int64_t whiteTimeUsedMs,
+    int64_t blackTimeUsedMs,
+    bool whiteToMove
+) {
+    GoLimits limits;
+
+    limits.movetimeMs = white.moveTimeMs();
+    limits.depth = white.depth();
+    limits.nodes = white.nodes();
+    limits.mateIn = white.mateIn();
+    limits.infinite = white.infinite();
+
+    if (limits.movetimeMs || limits.depth || limits.nodes || limits.infinite) {
+        return limits;
+    }
+
+    int64_t wTotal = 0, bTotal = 0;
+    int64_t wInc = 0, bInc = 0;
+    int wMovesToGo = 0, bMovesToGo = 0;
+
+    auto compute = [&](const TimeControl& tc, int64_t timeUsedMs, int64_t& totalTime, int64_t& increment, int& movesToGo) {
+        int rem = playedMoves;
+        size_t i = 0;
+        while (true) {
+            const auto& segments = tc.timeSegments();
+            const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
+            int moves = seg.movesToPlay;
+            int segMoves = moves ? std::min(rem, moves) : rem;
+            totalTime += seg.baseTimeMs + int64_t(segMoves) * seg.incrementMs;
+            increment = seg.incrementMs;
+
+            if (!seg.movesToPlay) {
+                movesToGo = 0;
+                break;
+            }
+
+            if (rem < moves) {
+                movesToGo = moves - rem;
+                break;
+            }
+
+            rem -= moves;
+            ++i;
+        }
+
+        totalTime = totalTime > timeUsedMs ? totalTime - timeUsedMs : 0;
+        };
+
+    compute(white, whiteTimeUsedMs, limits.wtimeMs, limits.wincMs, wMovesToGo);
+    compute(black, blackTimeUsedMs, limits.btimeMs, limits.bincMs, bMovesToGo);
+    limits.movesToGo = whiteToMove ? wMovesToGo : bMovesToGo;
+
+    return limits;
+}

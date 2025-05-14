@@ -158,9 +158,9 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 
 void EngineWorker::readLoop() {
     while (running_) {
-        EngineEvent event = adapter_->readEvent(); // blockierender Aufruf
+        // Blocking call
+        EngineEvent event = adapter_->readEvent(); 
 
-        // Synchronisationslogik für readyok
         if (event.type == EngineEvent::Type::ReadyOk) {
             {
                 std::scoped_lock lock(readyMutex_);
@@ -169,7 +169,6 @@ void EngineWorker::readLoop() {
             readyCv_.notify_all();
         }
 
-        // Weiterleitung an übergeordnete Spielsteuerung
         if (eventSink_) {
             eventSink_(event);
         }

@@ -119,8 +119,23 @@ public:
 	 * @return The result of the game and the winner side.
 	 */
 	std::tuple<GameEndCause, GameResult> getGameResult();
+
+	/**
+	 * @brief Sets the game result and the cause of the game end.
+	 * @param cause The cause of the game end.
+	 * @param result The result of the game.
+	 */
+	void setGameResult(GameEndCause cause, GameResult result) {
+		gameEndCause_ = cause;
+		gameResult_ = result;
+	}
 	
 private:
+	/**
+	 * @brief Computes if the game is over and returns the result based on the chess board.
+	 * @return The result of the game and the winner side.
+	 */
+	std::tuple<GameEndCause, GameResult> computeGameResult();
     QaplaMoveGenerator::MoveGenerator position_;
 
 	bool isThreefoldRepetition() const;
@@ -128,4 +143,6 @@ private:
 	std::vector<QaplaBasics::Move> moveList_;  // list of moves played so far
 	std::vector<QaplaBasics::BoardState> boardState_; // list of board states
 	std::vector<uint64_t> hashList_; // list of hash values
+	GameEndCause gameEndCause_; // cause of game end
+	GameResult gameResult_; // result of the game
 };

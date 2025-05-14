@@ -23,6 +23,7 @@
 #include <string>
 #include <filesystem>
 #include "game-manager.h"
+#include "engine-worker-factory.h"
 
 /**
  * @brief Controls the execution flow of chess engine tests.
@@ -54,11 +55,16 @@ private:
     void createGameManager(std::filesystem::path enginePath, bool singleEngine = true);
 
 	/**
-	 * @brief Restarts the engine process.
+	 * @brief Starts an engine instance and sets it as unique engine to the GameManager
 	 *
-	 * This method is used to restart the engine after a crash or when it is not responding.
 	 */
     void startEngine();
+
+	/**
+	 * @brief Starts several engines 
+	 *
+	 */
+    EngineList startEngines(uint32_t count);
 
     /**
      * @brief Runs all tests involving GoLimits-based move calculations.
@@ -83,6 +89,13 @@ private:
     void runEngineOptionTests();
 
     void runComputeGameTest();
+
+	/**
+	 * @brief Tests the engine's ability to compute moves in a game.
+	 *
+	 * This test runs multipe games with different time controls in parallel.
+	 */
+    void runMultipleGamesTest();
     
     /**
 	 * @brief Sets a specific option for the engine and checks if it runs without crashing.

@@ -29,6 +29,8 @@
 #include "game-state.h"
 #include "move-record.h"
 #include "game-record.h"
+#include "tournament-manager.h"
+#include "heart-beat.h"
 
  /**
   * @brief Manages a single chess game between the application and an engine.
@@ -36,7 +38,7 @@
   */
 class GameManager {
 public:
-	GameManager() = default;
+	GameManager();
 
     /**
      * @brief sets a new engine to play both sides
@@ -75,12 +77,21 @@ public:
     }
 
 	/**
-	 * @brief Sets the time control for the game.
+	 * @brief Sets the same time control for both sides.
 	 *
 	 * @param timeControl The time control to be set.
 	 */
-	void setTime(const TimeControl& timeControl) {
-		timeControl_ = timeControl;
+	void setUniqueTimeControl(const TimeControl& timeControl) {
+		whiteTimeControl_ = timeControl;
+		blackTimeControl_ = timeControl;
+	}
+
+    /**
+	 * @brief Sets the time control for both sides.
+     */
+	void setTimeControls(const TimeControl& white, const TimeControl& black) {
+		whiteTimeControl_ = white;
+		blackTimeControl_ = black;
 	}
 
     /**
@@ -112,6 +123,16 @@ public:
     void computeGame(bool startPos, const std::string fen = "", bool logMoves = false);
 
     /**
+     * @brief Starts and manages multiple consecutive games using a task callback.
+     *
+     * Each game is initiated asynchronously after the previous one finishes. The taskProvider
+     * callback must return a valid GameTask or std::nullopt to signal completion.
+     *
+     * @param taskProvider Function that returns the next GameTask or std::nullopt if done.
+     */
+    void computeGames(std::function<std::optional<GameTask>()> taskProvider);
+
+    /**
      * @brief Returns a reference to the EngineWorker instance.
      *
      * @return A reference to the EngineWorker.
@@ -124,11 +145,13 @@ private:
 	enum class Tasks {
         None,
 		ComputeMove,
-        PlayGame
+        PlayGame,
+        ParticipateInTournament
 	};
     void handleState(const EngineEvent& event);
 	void handleBestMove(const EngineEvent& event);
 	void handleInfo(const EngineEvent& event);
+    void handleHeartBeat();
 
     bool isLegalMove(const std::string& moveText);
 
@@ -190,12 +213,22 @@ private:
     std::future<void> finishedFuture_;
 
     /**
+     * Callback to get new tasks
+     */
+    std::function<std::optional<GameTask>()> taskProvider_;
+    /**
+	 * Computes the next game in the tournament.
+     */
+	void computeNextGame();
+
+    /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
      */
     bool finishedPromiseValid_ = false;
 
     Timer timer_;
-	TimeControl timeControl_;
+    TimeControl whiteTimeControl_;
+    TimeControl blackTimeControl_;
 	GameState gameState_;
 	int64_t computeMoveStartTimestamp_ = 0;
     bool requireLan_ = true;
@@ -204,4 +237,9 @@ private:
 	GameRecord gameRecord_;
     GoLimits currentGoLimits_;
     bool logMoves_ = false;
+
+	// Mutex to protect access to the event queue and state
+    std::mutex eventMutex_;
+	// Heartbeat to dismiss hanging situations
+    std::unique_ptr<HeartBeat> heartBeat_;
 };
