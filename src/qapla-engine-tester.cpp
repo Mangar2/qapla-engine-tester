@@ -28,42 +28,23 @@
 #include "game-manager.h"
 #include "engine-checklist.h"
 #include "engine-test-controller.h"
+#include "logger.h"
 
 int main() {
-    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.1-win-x86.exe";
+    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.2-win-x86.exe";
 	const std::filesystem::path stockfish = "C:\\Chess\\Engines\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe";
     const std::size_t engineCount = 1;
-
-    std::cout << "[Startup] Waiting 3 seconds before test begins...\n";
+    Logger::engineLogger().setLogFile("qapla-engine-trace");
+    Logger::testLogger().setLogFile("qapla-engine-report");
+	Logger::testLogger().setTraceLevel(TraceLevel::commands);
+    Logger::testLogger().log("Qapla Engine Tester, Prerelease 0.1.0 (c) by Volker Boehm\n");
+    Logger::testLogger().log("The engine test log is available in " + Logger::testLogger().getFilename());
+	Logger::testLogger().log("The engine communication log is available in " + Logger::engineLogger().getFilename());
+	Logger::testLogger().log("All tests will start in 1 second(s)...\n");  
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    std::cout << "[Startup] Starting test now.\n";
 
     EngineTestController controller;
 	controller.runAllTests(enginePath);
-    /*
-    EngineWorkerFactory factory;
-    std::cout << "Starting engines...\n";
-    EngineGroup group(factory.createUci(stockfish, std::nullopt, engineCount));
-
-    std::vector<std::unique_ptr<GameManager>> games;
-    std::vector<std::future<void>> futures;
-
-    for (auto& engine : group.engines_) {
-        auto manager = std::make_unique<GameManager>(std::move(engine));
-        manager->run(); // startet computeMove()
-        futures.push_back(manager->getFinishedFuture());
-        games.push_back(std::move(manager));
-    }
-
-    // Auf Abschluss aller Spiele warten
-    for (auto& f : futures) {
-        f.get();
-    }
-
-    for (auto& gm : games) {
-        gm->stop();  
-    }
-    */
     
 	EngineChecklist::print(std::cout);
     return 0;

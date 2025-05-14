@@ -32,8 +32,8 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
         throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
     }
 
-    adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput) {
-        Logger::instance().log(id, message, isOutput);
+    adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
+        Logger::engineLogger().log(id, message, isOutput, traceLevel);
         });
     running_ = true;
     workThread_ = std::thread(&EngineWorker::threadLoop, this);
@@ -64,7 +64,6 @@ EngineWorker::~EngineWorker() {
 void EngineWorker::stop() {
     post([](EngineAdapter& adapter) {
         try {
-			std::cout << "[EngineWorker] Stopping engine..." << std::endl;
             adapter.terminateEngine(); 
         }
         catch (...) {

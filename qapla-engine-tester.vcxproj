@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClCompile Include="src\bitboardmasks.cpp" />
     <ClCompile Include="src\board.cpp" />
+    <ClCompile Include="src\engine-adapter.cpp" />
     <ClCompile Include="src\engine-test-controller.cpp" />
     <ClCompile Include="src\engine-worker-factory.cpp" />
     <ClCompile Include="src\engine-process.cpp" />

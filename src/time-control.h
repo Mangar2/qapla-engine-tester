@@ -22,6 +22,8 @@
 #include <vector>
 #include <optional>
 #include <cstdint>
+#include <string>
+#include <sstream>
 
 
  /**
@@ -137,7 +139,46 @@ public:
         return limits;
     }
 
+    std::string toPgnTimeControlString() const {
+        std::ostringstream oss;
+        for (size_t i = 0; i < timeSegments_.size(); ++i) {
+            const auto& segment = timeSegments_[i];
+            if (i > 0) {
+                oss << ":";
+            }
+            if (segment.movesToPlay > 0) {
+                oss << segment.movesToPlay << "/";
+            }
+            oss << segment.baseTimeMs / 1000;
+            if (segment.incrementMs > 0) {
+                oss << "+" << segment.incrementMs / 1000;
+            }
+        }
+        return oss.str();
+    }
 
+    void fromPgnTimeControlString(const std::string& pgnString) {
+        timeSegments_.clear();
+        std::istringstream iss(pgnString);
+        std::string segmentStr;
+        while (std::getline(iss, segmentStr, ':')) {
+            TimeSegment segment;
+            size_t slashPos = segmentStr.find('/');
+            size_t plusPos = segmentStr.find('+');
+            if (slashPos != std::string::npos) {
+                segment.movesToPlay = std::stoi(segmentStr.substr(0, slashPos));
+                segmentStr = segmentStr.substr(slashPos + 1);
+            }
+            if (plusPos != std::string::npos) {
+                segment.baseTimeMs = std::stoll(segmentStr.substr(0, plusPos)) * 1000;
+                segment.incrementMs = std::stoll(segmentStr.substr(plusPos + 1)) * 1000;
+            }
+            else {
+                segment.baseTimeMs = std::stoll(segmentStr) * 1000;
+            }
+            timeSegments_.push_back(segment);
+        }
+    }
 
 private:
     std::optional<int64_t> movetimeMs_;

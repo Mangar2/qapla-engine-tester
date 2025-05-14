@@ -365,7 +365,6 @@ void EngineProcess::terminate() {
     if (GetExitCodeProcess(childProcess_, &exitCode)) {
         if (exitCode != STILL_ACTIVE) {
             closeAllHandles();
-			std::cout << "[terminate] Engine process exited successfully" << std::endl;
             return; // Process already exited
         }
 

@@ -92,7 +92,6 @@ private:
 
     void sendPosition(const GameRecord& game);   // Sends position + moves
 	void runUciHandshake();                     // Runs the UCI handshake
-    void skipLines(std::chrono::milliseconds timeout);
 
     void reportProtocolError(std::string_view context, std::string_view message) {
         protocolErrors_.emplace_back(std::string(context), std::string(message));
@@ -100,8 +99,5 @@ private:
     }
 
     EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
-
-	std::string engineName_;
-	std::string engineAuthor_;
 
 };

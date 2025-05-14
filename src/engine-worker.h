@@ -138,6 +138,28 @@ public:
 		return adapter_->isRunning();
 	}
 
+	/**
+	 * @brief Returns the name of the engine.
+	 */
+	std::string getEngineName() const {
+		return adapter_->getEngineName();
+	}
+
+	/**
+	 * @brief Returns the author of the engine.
+	 */
+	std::string getEngineAuthor() const {
+		return adapter_->getEngineAuthor();
+	}
+
+	/**
+	 * @brief Returns the welcome message of the engine.
+	 */
+	std::string getWelcomeMessage() const {
+		return adapter_->getWelcomeMessage();
+	}
+
+
 private:
 
 	/**

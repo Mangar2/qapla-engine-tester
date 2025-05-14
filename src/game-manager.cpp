@@ -74,6 +74,7 @@ void GameManager::handleState(const EngineEvent& event) {
 
 void GameManager::handleBestMove(const EngineEvent& event) {
     if (!handleCheck("Computing a move returns a move check", event.bestMove.has_value())) return;
+    std::cout << *event.bestMove << " " << std::flush;
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
 	if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(), 
         "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) return;

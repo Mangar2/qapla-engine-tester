@@ -27,6 +27,7 @@
 
 #include "uci-adapter.h"
 #include "engine-process.h"
+#include "logger.h"
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory)
@@ -38,30 +39,32 @@ UciAdapter::~UciAdapter() {
     terminateEngine();
 }
 
-void UciAdapter::skipLines(std::chrono::milliseconds timeout) {
-    const auto deadline = std::chrono::steady_clock::now() + timeout;
-
-    while (std::chrono::steady_clock::now() < deadline) {
-        auto line = process_.readLine(timeout);
-        if (!line) continue;
-		logFromEngine(*line);
-    }
-}
-
 void UciAdapter::runUciHandshake() {
     writeCommand("uci");
-
+    bool headerParsed = false;
+    std::string spacer = "";
     while (true) {
         auto line = process_.readLine(uciHandshakeTimeout);
         if (!line) {
-			reportProtocolError("initialization", "Timeout waiting for uciok");
+            reportProtocolError("initialization", "Timeout waiting for uciok");
             throw std::runtime_error("Engine is not an uci engine");
-            break; 
         }
-        logFromEngine(*line);
+
+        logFromEngine(*line, TraceLevel::handshake);
 
         if (*line == "uciok") {
             break;
+        }
+
+        if (!headerParsed) {
+            if (line->starts_with("id ") || line->starts_with("option ")) {
+                headerParsed = true;
+            }
+            else {
+                _welcomeMessage += spacer + *line;
+				spacer = "\n";
+                continue;
+            }
         }
 
         if (line->starts_with("id name ")) {
@@ -78,16 +81,16 @@ void UciAdapter::runUciHandshake() {
             catch (const std::exception& e) {
                 reportProtocolError("initialization", *line + " (" + e.what() + ")");
             }
-        } 
+        }
         else {
             reportProtocolError("initialization", "Unexpected line during UCI handshake: " + *line);
         }
     }
 }
 
+
 void UciAdapter::runEngine() {
     try {
-        skipLines(engineIntroScanDuration);
         runUciHandshake();
 		state_ = EngineState::Initialized;
     }
@@ -359,12 +362,12 @@ EngineEvent UciAdapter::readEvent() {
 	const std::string& line = engineLine.content;
 
     if (line == "readyok") {
-        if (traceLevel_ >= TraceLevel::handshake) logFromEngine(line);
+        logFromEngine(line, TraceLevel::handshake);
         return EngineEvent(EngineEvent::Type::ReadyOk, engineLine.timestampMs, line);
     }
 
     if (line.rfind("bestmove ", 0) == 0) {
-        if (traceLevel_ >= TraceLevel::commands) logFromEngine(line);
+        logFromEngine(line, TraceLevel::commands);
         std::istringstream iss(line);
         std::string token, best, ponder;
         iss >> token >> best;
@@ -377,18 +380,18 @@ EngineEvent UciAdapter::readEvent() {
     }
 
     if (line.rfind("info ", 0) == 0) {
-        if (traceLevel_ >= TraceLevel::info) logFromEngine(line);
+        logFromEngine(line, TraceLevel::info);
         EngineEvent event = parseSearchInfo(line, engineLine.timestampMs);
         return event;
     }
 
     if (line == "ponderhit") {
-        if (traceLevel_ >= TraceLevel::commands) logFromEngine(line);
+        logFromEngine(line, TraceLevel::commands);
         return EngineEvent(EngineEvent::Type::PonderHit, engineLine.timestampMs, line);
     }
 
     // Unbekanntes Format
-    if (traceLevel_ >= TraceLevel::error) logFromEngine(line);
+    logFromEngine(line, TraceLevel::error);
     return EngineEvent(EngineEvent::Type::Unknown, engineLine.timestampMs, line);
 }
 

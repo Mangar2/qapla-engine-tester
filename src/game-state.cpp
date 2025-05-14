@@ -86,7 +86,7 @@ bool GameState::isThreefoldRepetition() const {
 	const auto currentHash = hashList_.back(); // == position_.getZobristHash();
 	int repetitions = 1;
 
-	for (uint32_t i = 2; i <= positionsToCheck; i += 2) {
+	for (uint32_t i = 3; i <= positionsToCheck; i += 2) {
 		if (hashList_[hashList_.size() - i] == currentHash) {
 			++repetitions;
 			if (repetitions >= 3) return true;

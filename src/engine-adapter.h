@@ -25,13 +25,13 @@
 #include <optional>
 #include <functional>
 #include <mutex>
-#include <ostream>
 
 #include "time-control.h"
 #include "engine-process.h"
 #include "game-start-position.h"
 #include "game-record.h"
 #include "engine-event.h"
+#include "logger.h"
 
 struct EngineOption {
     enum class Type { Check, Spin, Combo, Button, String, Unknown };
@@ -54,14 +54,6 @@ enum class EngineState {
     Terminating      // Quitting
 };
 
-enum class TraceLevel: int {
-	error,
-    commands,
-    handshake,
-    info,
-    none
-};
-
  /**
   * @brief Abstract interface for communicating with and controlling a chess engine,
   *        independent of the underlying protocol (e.g. UCI, XBoard).
@@ -69,9 +61,7 @@ enum class TraceLevel: int {
 class EngineAdapter {
 public:
     EngineAdapter(std::filesystem::path enginePath,
-        const std::optional<std::filesystem::path>& workingDirectory)
-        : process_(enginePath, workingDirectory) {
-    }
+        const std::optional<std::filesystem::path>& workingDirectory);
     virtual ~EngineAdapter() = default;
 
     /**
@@ -144,17 +134,13 @@ public:
 	 * @brief Sends a command to the engine's stdin.
 	 * @param command Command to send (without newline).
 	 */
-    int64_t writeCommand(const std::string& command) {
-        std::lock_guard<std::mutex> lock(commandMutex_);
-        logToEngine(command);
-        return process_.writeLine(command);
-    }
+    int64_t writeCommand(const std::string& command);
 
     /**
      * @brief Assigns a logger function to use for engine communication output.
      *        Typically called by the EngineWorker to inject context.
      */
-    void setLogger(std::function<void(std::string_view, bool)> logger) {
+    void setLogger(std::function<void(std::string_view, bool, TraceLevel)> logger) {
         logger_ = std::move(logger);
     }
 
@@ -189,40 +175,49 @@ public:
      */
     const EngineOptions& getSupportedOptions() const { return supportedOptions_; }
 
+	/**
+	 * @brief Returns the name of the engine.
+	 */
+	std::string getEngineName() const {
+		return engineName_;
+	}
 
-    /**
-     * Sets the protocol output file for logging communication.
-     *
-     * @param filename Path to the file to append protocol lines.
-     */
-    void setProtocolFile(const std::string& filename);
+	/**
+	 * @brief Returns the author of the engine.
+	 */
+	std::string getEngineAuthor() const {
+		return engineAuthor_;
+	}
 
-    /**
-     * Writes a single protocol line to the configured file.
-     *
-     * @param line Text line to be appended and flushed immediately.
-     */
-    void writeProtocolLine(const std::string& line);
+	/**
+	 * @brief Returns the welcome message of the engine.
+	 */
+	std::string getWelcomeMessage() const {
+		return _welcomeMessage;
+	}
+
 protected:
     /**
      * @brief Emits a log message using the configured logger, if any.
      */
-    void logFromEngine(std::string_view message) const {
+    void logFromEngine(std::string_view message, TraceLevel level) const {
         if (logger_) {
-            logger_(message, true);
+            logger_(message, true, level);
         }
     }
-	void logToEngine(std::string_view message) const {
+	void logToEngine(std::string_view message, TraceLevel level) const {
 		if (logger_) {
-			logger_(message, false);
+			logger_(message, false, level);
 		}
 	}
     EngineOptions supportedOptions_;
-    mutable std::function<void(std::string_view, bool)> logger_;
+    mutable std::function<void(std::string_view, bool, TraceLevel)> logger_;
     std::atomic<EngineState> state_ = EngineState::Uninitialized;
     EngineProcess process_;
     std::mutex commandMutex_;
-	TraceLevel traceLevel_ = TraceLevel::handshake;
-    std::ofstream protocolStream_;
+    
+    std::string engineName_;
+    std::string engineAuthor_;
+    std::string _welcomeMessage;
 
 };

@@ -30,7 +30,6 @@ void EngineTestController::createGameManager(std::filesystem::path enginePath, b
 }
 
 void EngineTestController::startEngine() {
-	std::cout << "Starting engine..." << std::endl;
     EngineWorkerFactory factory;
     auto list = factory.createUci(enginePath_, std::nullopt, 1);
 	gameManager_->setEngine(std::move(list[0])); 
@@ -44,21 +43,32 @@ void EngineTestController::startEngine() {
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     runStartStopTest(enginePath);
     createGameManager(enginePath, true);
-    runComputeGameTest();
     runEngineOptionTests();
     runHashTableMemoryTest();
     runGoLimitsTests();
+    runComputeGameTest();
     gameManager_->stop();
 
 }
 
 void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
-    std::cout << "Running test: Starting and stopping the engine...\n";
     try {
         EngineWorkerFactory factory;
+        Timer timer;
+        timer.start();
         auto list = factory.createUci(enginePath, std::nullopt, 1);
-        list[0]->stop();
+        auto startTime = timer.elapsedMs();
+		auto engine = list[0].get();
+        engine->stop();
         startStopSucceeded = true;
+		Logger::testLogger().log("Testing the engine, welcome message, name, author: ");
+		if (!engine->getWelcomeMessage().empty()) {
+			Logger::testLogger().log(engine->getWelcomeMessage());
+		}
+        if (!engine->getEngineName().empty()) {
+            Logger::testLogger().log(engine->getEngineName() + " from " + engine->getEngineAuthor());
+        }
+
     }
     catch (const std::exception& e) {
         std::cerr << "Exception during start/stop test: " << e.what() << "\n";
@@ -208,7 +218,7 @@ std::vector<std::string> generateStringValues() {
 void EngineTestController::setOption(std::string name, std::string value) {
     auto engine = gameManager_->getEngine();
     bool success = engine->setOption(name, value);
-    if (handleCheck("Engine Options works safely", success, "  option '" + name + "' with value '" + value + "\n runs into timeout ")) {
+    if (handleCheck("Engine Options works safely", success, "  option '" + name + "' with value '" + value + "'\nruns into timeout ")) {
         return;
     }
     bool alive = engine->isRunning();
@@ -294,7 +304,7 @@ void EngineTestController::runEngineOptionTests() {
 }
 
 void EngineTestController::runComputeGameTest() {
-    std::cout << "Running test: Computing games test...\n";
+    std::cout << "Engine playes a game against itself, time control 30s + 0.5s increment, please wait\n";
     try {
         gameManager_->newGame();
         TimeControl t; t.addTimeSegment({ 0, 30000, 500 });
