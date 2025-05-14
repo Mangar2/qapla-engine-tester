@@ -21,15 +21,33 @@
 #include "engine-checklist.h"
 #include <iostream>
 
-GameManager::GameManager(std::unique_ptr<EngineWorker> engine) {
-	setEngine(std::move(engine));
-}
 
-void GameManager::setEngine(std::unique_ptr<EngineWorker> engine) {
-    engine_ = std::move(engine);
-    engine_->setEventSink([this](const EngineEvent& event) {
+void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
+    whiteEngine_ = engine;
+    blackEngine_ = engine;
+
+    engine->setEventSink([this](const EngineEvent& event) {
         handleState(event);
         });
+}
+
+void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
+    whiteEngine_ = std::move(white);
+    blackEngine_ = std::move(black);
+
+    whiteEngine_->setEventSink([this](const EngineEvent& event) {
+        handleState(event);
+        });
+
+    if (blackEngine_ != whiteEngine_) {
+        blackEngine_->setEventSink([this](const EngineEvent& event) {
+            handleState(event);
+            });
+    }
+}
+
+void GameManager::switchSide() {
+    std::swap(whiteEngine_, blackEngine_);
 }
 
 void GameManager::markFinished() {
@@ -210,7 +228,12 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
 void GameManager::computeMove() {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     currentGoLimits_ = timeControl_.createGoLimits(gameRecord_.currentPly(), whiteTime, blackTime);
-    engine_->computeMove(gameRecord_, currentGoLimits_);
+	if (gameState_.isWhiteToMove()) {
+		whiteEngine_->computeMove(gameRecord_, currentGoLimits_);
+    }
+    else {
+		blackEngine_->computeMove(gameRecord_, currentGoLimits_);
+    }
 }
 
 void GameManager::computeGame(bool startPos, const std::string fen, bool logMoves) {

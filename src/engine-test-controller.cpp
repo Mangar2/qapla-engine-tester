@@ -33,7 +33,7 @@ void EngineTestController::createGameManager(std::filesystem::path enginePath, b
 void EngineTestController::startEngine() {
     EngineWorkerFactory factory;
     auto list = factory.createUci(enginePath_, std::nullopt, 1);
-	gameManager_->setEngine(std::move(list[0])); 
+	gameManager_->setUniqueEngine(std::move(list[0])); 
     bool success = gameManager_->getEngine()->requestReady();
     handleCheck("Engine Started successfully", success, "  engine did not respond to isReady after startup in time");
     if (!success) {

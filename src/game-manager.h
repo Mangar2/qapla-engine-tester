@@ -36,32 +36,42 @@
   */
 class GameManager {
 public:
-    /**
-     * @brief Constructs a GameManager with a ready-to-use EngineWorker instance.
-     */
-    GameManager(std::unique_ptr<EngineWorker> engine);
 	GameManager() = default;
 
     /**
-     * @brief sets a new engine
+     * @brief sets a new engine to play both sides
 	 * @param engine The new engine to be set.
      */
-    void setEngine(std::unique_ptr<EngineWorker> engine);
+    void setUniqueEngine(std::shared_ptr<EngineWorker> engine);
+
+    /**
+	 * @brief sets two engines to play against each other
+	 * @param white The engine to play as white.
+	 * @param black The engine to play as black.
+     */
+    void setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black);
+
+    /**
+     * @brief Switches the engines side to play
+     */
+    void switchSide();
 
 	/**
 	 * @brief stops the engine if it is running.
 	 */
 	void stop() {
-		if (engine_ ) {
-			engine_->stop();
-		}
+		forEachUniqueEngine([](EngineWorker& engine) {
+			engine.stop();
+			});
 	}
 
     /**
 	 * Sends a new game command to the engine(s).
      */
     void newGame() {
-        engine_->newGame();
+		forEachUniqueEngine([](EngineWorker& engine) {
+			engine.newGame();
+			});
     }
 
 	/**
@@ -106,10 +116,11 @@ public:
      *
      * @return A reference to the EngineWorker.
      */
-    EngineWorker* getEngine() {
-       return engine_.get();
-}
+    EngineWorker* getEngine(bool white = true) {
+        return white ? whiteEngine_.get() : blackEngine_.get();
+    }
 private:
+
 	enum class Tasks {
         None,
 		ComputeMove,
@@ -122,6 +133,19 @@ private:
     bool isLegalMove(const std::string& moveText);
 
     void computeMove();
+
+    /**
+	 * @brief template executing a function for both white and black engine, if they are not identical
+     */
+    template<typename Func>
+    void forEachUniqueEngine(Func&& func) {
+        if (whiteEngine_) {
+            func(*whiteEngine_);
+        }
+        if (blackEngine_ && blackEngine_ != whiteEngine_) {
+            func(*blackEngine_);
+        }
+    }
 
     /**
      * @brief Evaluates whether the engine respected the time constraints defined in GoLimits.
@@ -160,7 +184,8 @@ private:
      */
     void markFinished();
 
-    std::unique_ptr<EngineWorker> engine_;
+    std::shared_ptr<EngineWorker> whiteEngine_;
+    std::shared_ptr<EngineWorker> blackEngine_;
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
 
