@@ -59,8 +59,6 @@ public:
     void ponder(const GameRecord& game, GoLimits& limits) override;
     int64_t computeMove(const GameRecord& game, const GoLimits& limits) override;
 
-    void stopCalc() override;
-
     /**
      * @brief Sends a are you ready command to the engine.
      */

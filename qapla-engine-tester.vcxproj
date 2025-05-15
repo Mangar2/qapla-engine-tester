@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClCompile Include="src\bitboardmasks.cpp" />
     <ClCompile Include="src\board.cpp" />
+    <ClCompile Include="src\cli-settings-manager.cpp" />
     <ClCompile Include="src\engine-adapter.cpp" />
     <ClCompile Include="src\engine-test-controller.cpp" />
     <ClCompile Include="src\engine-worker-factory.cpp" />
@@ -152,6 +153,7 @@
     <ClInclude Include="src\bits.h" />
     <ClInclude Include="src\board.h" />
     <ClInclude Include="src\boardstate.h" />
+    <ClInclude Include="src\cli-settings-manager.h" />
     <ClInclude Include="src\engine-checklist.h" />
     <ClInclude Include="src\engine-event.h" />
     <ClInclude Include="src\engine-test-controller.h" />
@@ -164,6 +166,7 @@
     <ClInclude Include="src\fenscanner.h" />
     <ClInclude Include="src\game-manager.h" />
     <ClInclude Include="src\game-record.h" />
+    <ClInclude Include="src\game-result.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\hashconstants.h" />

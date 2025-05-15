@@ -21,7 +21,7 @@
 #include "engine-checklist.h"
 #include <iostream>
 
-GameManager::GameManager() {
+GameManager::GameManager(): taskProvider_(nullptr) {
     heartBeat_ = std::make_unique<HeartBeat>([this]() {
         EngineEvent event;
         event.type = EngineEvent::Type::KeepAlive;
@@ -60,13 +60,12 @@ void GameManager::switchSide() {
 }
 
 void GameManager::markFinished() {
-    // Verhindert Ausnahme bei mehrfacher set_value()
     if (finishedPromiseValid_) {
         try {
             finishedPromise_.set_value();
         }
         catch (const std::future_error&) {
-            // already satisfied – ignorieren oder loggen
+            // already satisfied – ignore or log
         }
         finishedPromiseValid_ = false;
     }
@@ -90,7 +89,7 @@ void GameManager::handleState(const EngineEvent& event) {
                 finishedPromise_.set_value();
 			}
             else {
-                computeMove();
+                computeNextMove();
             }
         } 
         else if (task_ == Tasks::ParticipateInTournament) {
@@ -98,7 +97,7 @@ void GameManager::handleState(const EngineEvent& event) {
                 computeNextGame();
             }
 			else {
-				computeMove();
+				computeNextMove();
 			}
         }
     }
@@ -180,9 +179,10 @@ bool GameManager::checkForGameEnd() {
     if (result == GameResult::Unterminated) {
         return false;
     }
+	gameRecord_.setGameEnd(cause, result);
     if (logMoves_) std::cout << "\n";
-	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::commands);
-	Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::commands);
+	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
+	Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
 
     return true;
 }
@@ -246,6 +246,15 @@ void GameManager::checkTime(const EngineEvent& event) {
 
 }
 
+void GameManager::moveNow() {
+    if (gameState_.isWhiteToMove()) {
+        whiteEngine_->moveNow();
+    }
+    else {
+        blackEngine_->moveNow();
+    }
+}
+
 void GameManager::computeMove(bool startPos, const std::string fen) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
@@ -253,10 +262,10 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
     gameRecord_.newGame(startPos, fen);
 	task_ = Tasks::ComputeMove;
     logMoves_ = false;
-    computeMove();
+    computeNextMove();
 }
 
-void GameManager::computeMove() {
+void GameManager::computeNextMove() {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     currentGoLimits_ = createGoLimits(
         whiteTimeControl_, blackTimeControl_, gameRecord_.currentPly(), whiteTime, blackTime, gameState_.isWhiteToMove());
@@ -275,23 +284,31 @@ void GameManager::computeGame(bool startPos, const std::string fen, bool logMove
     gameRecord_.newGame(startPos, fen);
     task_ = Tasks::PlayGame;
 	logMoves_ = logMoves;
-    computeMove();
+    computeNextMove();
 }
 
 void GameManager::computeNextGame() {
-    auto newTask = taskProvider_();
-	if (!newTask.has_value()) {
+	if (!taskProvider_) {
+		finishedPromise_.set_value();
+		return;
+	}
+    if (gameRecord_.currentPly() > 0) {
+        taskProvider_->setGameRecord(gameRecord_);
+    }
+    auto newTask = taskProvider_->nextTask();
+	if (!newTask) {
 		finishedPromise_.set_value();
 		return;
 	}
 	auto task = *newTask;
 	gameState_.setFen(task.useStartPosition, task.fen);
 	gameRecord_.newGame(task.useStartPosition, task.fen);
+	gameRecord_.setTimeControl(task.whiteTimeControl, task.blackTimeControl);
 	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
-    computeMove();
+    computeNextMove();
 }
 
-void GameManager::computeGames(std::function<std::optional<GameTask>()> taskProvider) {
+void GameManager::computeGames(GameTaskProvider* taskProvider) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
     task_ = Tasks::ParticipateInTournament;

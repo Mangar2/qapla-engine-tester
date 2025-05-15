@@ -23,16 +23,23 @@
 #include <utility>
 #include <iostream>
 
-#include "engine-worker-factory.h"
-#include "engine-group.h"
-#include "game-manager.h"
 #include "engine-checklist.h"
 #include "engine-test-controller.h"
 #include "logger.h"
+#include "cli-settings-manager.h"
 
-int main() {
-    const std::filesystem::path enginePath = "C:\\Development\\qapla-engine-tester\\Qapla0.3.2-win-x86.exe";
-	const std::filesystem::path stockfish = "C:\\Chess\\Engines\\stockfish-windows-x86-64-avx2\\stockfish\\stockfish-windows-x86-64-avx2.exe";
+int main(int argc, char** argv) {
+    CliSettingsManager::registerSetting("max-parallel-engines", "Maximal number of in parallel running engines", true, 20,
+        CliSettingsManager::ValueType::Int);
+    CliSettingsManager::registerSetting("engine", "Path to engine executable", false, 
+        "C:\\Development\\qapla-engine-tester\\Qapla0.3.2-win-x86.exe", CliSettingsManager::ValueType::PathExists);
+    CliSettingsManager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
+        CliSettingsManager::ValueType::PathExists);
+
+    CliSettingsManager::parseCommandLine(argc, argv);
+
+    std::string enginePath = CliSettingsManager::get<std::string>("engine");
+
     const std::size_t engineCount = 1;
     Logger::engineLogger().setLogFile("qapla-engine-trace");
     Logger::testLogger().setLogFile("qapla-engine-report");

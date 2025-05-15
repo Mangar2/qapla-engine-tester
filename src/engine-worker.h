@@ -85,6 +85,15 @@ public:
 	}
 
 	/**
+	 * @brief Sends a command to the engine to stop the current move calculation and send the best move.
+	 */
+	void moveNow() {
+		post([this](EngineAdapter& adapter) {
+			adapter.moveNow();
+			});
+	}
+
+	/**
 	 * @brief Sets the event sink for engine events.
 	 *
 	 * The event sink is a callback function that will be called with engine events.

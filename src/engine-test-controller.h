@@ -88,6 +88,14 @@ private:
      */
     void runEngineOptionTests();
 
+    /**
+	 * @brief Tests the engine's ability to analyze a position.
+     */
+    void runAnalyzeTest();
+
+	/**
+	 * @brief Tests the engine's ability to compute moves in a game.
+	 */
     void runComputeGameTest();
 
 	/**

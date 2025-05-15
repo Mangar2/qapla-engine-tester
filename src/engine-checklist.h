@@ -28,6 +28,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <unordered_map>
+#include <algorithm>
 #include "logger.h"
 
 class EngineChecklist {
@@ -38,10 +40,19 @@ public:
      * @param topic Logical topic name (e.g., "Move legality")
      * @param passed True if the check passed; false if it failed.
      */
-    static void report(std::string_view topic, bool passed) {
-        auto& stat = stats_[std::string(topic)];
+    static void report(const std::string topic, bool passed) {
+        auto& stat = stats_[topic];
         ++stat.total;
         if (!passed) ++stat.failures;
+    }
+
+    /**
+	 * @brief Returns the number of errors for a given topic.
+	 * @param topic The topic to check.
+     */
+    static int getNumErrors(const std::string& topic) {
+		auto& stat = stats_[topic];
+		return stat.failures;
     }
 
     /**
@@ -61,25 +72,23 @@ public:
         for (const auto& [topic, _] : sorted) {
             maxTopicLength = std::max(maxTopicLength, std::string(topic).size());
         }
-
+        bool lastWasFail = false;
         for (const auto& [topic, stat] : sorted) {
             const bool passed = stat.total > 0 && stat.failures == 0;
             const int percentFail = stat.total > 0
                 ? static_cast<int>((100 * stat.failures) / stat.total)
                 : 0;
-
+			if (passed && lastWasFail) {
+				Logger::testLogger().log("");
+			}
             std::ostringstream line;
             line << (passed ? "PASS " : "FAIL ");
             line << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << topic;
-
-            if (passed) {
-                line << "(" << stat.total << ")";
-            }
-            else {
-                line << "(" << stat.failures << " failed / " << stat.total
-                    << " total, " << percentFail << "% failure)";
+            if (!passed) {
+                line << "(" << stat.failures << " failed)";
             }
 
+            lastWasFail = !passed;
             Logger::testLogger().log(line.str());
         }
     }

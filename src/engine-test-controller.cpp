@@ -20,9 +20,11 @@
 #include <memory>
 #include <chrono>
 #include <sstream>
+#include <string>
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
 #include "engine-checklist.h"
+#include "cli-settings-manager.h"
 
 void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
 	enginePath_ = enginePath;
@@ -71,14 +73,15 @@ std::string bytesToMB(int64_t bytes) {
 }
 
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
+    createGameManager(enginePath, true);
+    runAnalyzeTest();
     runStartStopTest(enginePath);
 	runMultipleStartStopTest(enginePath, 20);
-    createGameManager(enginePath, true);
     runHashTableMemoryTest();
     runEngineOptionTests();
     runGoLimitsTests();
+    runComputeGameTest();
     runMultipleGamesTest();
-    //runComputeGameTest();
     gameManager_->stop();
 
 }
@@ -379,6 +382,74 @@ void EngineTestController::runEngineOptionTests() {
     }
 }
 
+void EngineTestController::runAnalyzeTest() {
+    static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(200);
+    static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
+    static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
+    try {
+		if (!gameManager_) {
+			throw std::runtime_error("GameManager not initialized");
+		}
+        Logger::testLogger().log("\nTesting infinite search also with immediate consecutive start and stop commands.", TraceLevel::commands);
+		gameManager_->newGame();
+        TimeControl t; 
+        t.setInfinite();
+		gameManager_->setUniqueTimeControl(t);
+        gameManager_->computeMove(false, "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - -");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        gameManager_->moveNow();
+        bool finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!handleCheck("Engine reacts on stop", finishedAfterStop, "timeout after stop command, " +
+            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
+            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!finishedAfterExtendedWait) {
+                // Start Engine replaces the current engine leading to a destructor of the current engine sending the quit command
+                // And if not successful kills the process.
+                startEngine();
+            }
+        }
+        gameManager_->computeMove(false, "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - -");
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        gameManager_->moveNow();
+        finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!handleCheck("Engine reacts on stop", finishedAfterStop, "timeout after stop command, " +
+            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
+            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!finishedAfterExtendedWait) {
+                startEngine();
+            }
+        }
+        gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - ");
+        gameManager_->moveNow();
+        finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!handleCheck("Engine reacts on stop", finishedAfterStop, "timeout after stop command, " +
+            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
+            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!finishedAfterExtendedWait) {
+                startEngine();
+            }
+        }
+        Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::commands);
+        gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
+        bool returnedBeforeStop = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
+        if (!handleCheck("Engine does not exit infinite mode on trivial solution", !returnedBeforeStop, "returnd on fast mate position in infinite mode, " +
+            std::to_string(NO_BESTMOVE_TIMEOUT.count()) + " ms exceeded")) {
+        }
+        gameManager_->moveNow();
+        bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+        if (!handleCheck("Engine reacts on stop", finishedAfterExtendedWait, "timeout after stop command in fast mate position, " +
+            std::to_string(LONGER_TIMEOUT.count()) + " ms exceeded")) {
+        }
+        gameManager_->getFinishedFuture().wait();
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during analyze test: " + std::string(e.what()), TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during analyze test.", TraceLevel::error);
+    }
+}
+
 void EngineTestController::runComputeGameTest() {
 	Logger::testLogger().log("\nThe engine now plays against itself. I control all engine output, and check its validity while playing.");
     EngineList engines = startEngines(2);
@@ -425,9 +496,9 @@ struct TaskSource {
 
 void EngineTestController::runMultipleGamesTest() {
     constexpr int totalGames = 100;
-    constexpr int parallelGames = 20;
+    int parallelGames = CliSettingsManager::get<int>("max-parallel-engines");
 
-    Logger::testLogger().log("\nTesting different time controls by playing multiple games in parallel.");
+    Logger::testLogger().log("\nTesting different time controls by playing " + std::to_string(parallelGames) + " games in parallel.");
 
     EngineWorkerFactory factory;
     EngineList engines = factory.createUci(enginePath_, std::nullopt, parallelGames * 2);
@@ -440,9 +511,7 @@ void EngineTestController::runMultipleGamesTest() {
             auto manager = std::make_unique<GameManager>();
             manager->setEngines(std::move(engines[i * 2]), std::move(engines[i * 2 + 1]));
 
-            manager->computeGames([&tournament]() {
-                return tournament.nextTask();
-                });
+            manager->computeGames(&tournament);
 
             managers.push_back(std::move(manager));
         }
@@ -462,14 +531,13 @@ void EngineTestController::runMultipleGamesTest() {
 }
 
 void EngineTestController::runPlaceholderTest() {
-    std::cout << "Running test: Placeholder for additional tests...\n";
     try {
         // No-op test for demonstration
     }
     catch (const std::exception& e) {
-        std::cerr << "Exception during placeholder test: " << e.what() << "\n";
+		Logger::testLogger().log("Exception during placeholder test: " + std::string(e.what()), TraceLevel::error);
     }
     catch (...) {
-        std::cerr << "Unknown exception during placeholder test.\n";
+		Logger::testLogger().log("Unknown exception during placeholder test.", TraceLevel::error);
     }
 }

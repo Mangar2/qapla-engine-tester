@@ -23,9 +23,11 @@
 #include <vector>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "move-record.h"
 #include "time-control.h"
+#include "game-result.h"
 
 /**
  * Stores a list of moves and manages current game state pointer.
@@ -38,6 +40,8 @@ public:
 		currentPly_ = 0;
 		startPos_ = startPos;
 		startFen_ = startFen;
+		gameEndCause_ = GameEndCause::Ongoing;
+		gameResult_ = GameResult::Unterminated;
     }
     /** Adds a move at the current ply position, overwriting any future moves. */
     void addMove(const MoveRecord& move);
@@ -67,9 +71,51 @@ public:
 	bool getStartPos() const { return startPos_; }
 	std::string getStartFen() const { return startFen_; }
 
+    /** 
+	 * @brief Sets the game end cause and result.
+	 * @param cause The cause of the game end.
+	 * @param result The result of the game.
+     */
+	void setGameEnd(GameEndCause cause, GameResult result) {
+		gameEndCause_ = cause;
+		gameResult_ = result;
+	}
+	/**
+	 * @brief Returns the game end cause and result.
+	 * @return A pair of GameEndCause and GameResult.
+	 */
+	std::tuple<GameEndCause, GameResult> getGameResult() const {
+		return { gameEndCause_, gameResult_ };
+	}
+    /**
+	 * @brief Sets the time control for the game.
+     */
+    void setTimeControl(const TimeControl& whiteTimeControl, const TimeControl& blackTimeControl) {
+        whiteTimeControl_ = whiteTimeControl;
+		blackTimeControl_ = blackTimeControl;
+    }
+    /**
+     * @brief Returns the white side's time control.
+     */
+    const TimeControl& getWhiteTimeControl() const {
+        return whiteTimeControl_;
+    }
+
+    /**
+     * @brief Returns the black side's time control.
+     */
+    const TimeControl& getBlackTimeControl() const {
+        return blackTimeControl_;
+    }
+    
+
 private:
     bool startPos_ = true;
     std::string startFen_;
     std::vector<MoveRecord> moves_;
     uint32_t currentPly_ = 0;
+    GameEndCause gameEndCause_;
+	GameResult gameResult_;
+    TimeControl whiteTimeControl_;
+    TimeControl blackTimeControl_;
 };

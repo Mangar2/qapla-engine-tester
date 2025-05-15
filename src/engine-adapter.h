@@ -125,11 +125,6 @@ public:
      */
     virtual int64_t computeMove(const GameRecord& game, const GoLimits& limits) = 0;
 
-    /**
-     * @brief Instructs the engine to stop calculation.
-     */
-    virtual void stopCalc() = 0;
-
 	/**
 	 * @brief Sends a command to the engine's stdin.
 	 * @param command Command to send (without newline).

@@ -171,11 +171,6 @@ int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits) 
     return writeCommand(oss.str());
 }
 
-
-void UciAdapter::stopCalc() {
-    writeCommand("stop");
-}
-
 void UciAdapter::askForReady() {
 	writeCommand("isready");
 }
@@ -242,7 +237,6 @@ void readBoundedInt32(std::istringstream& iss,
             });
         return;
     }
-
     target = value;
 }
 

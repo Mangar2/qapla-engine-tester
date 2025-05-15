@@ -102,8 +102,8 @@ public:
     /**
      * @brief Returns a future that becomes ready when the game is complete.
      */
-    std::future<void> getFinishedFuture() {
-        return std::move(finishedFuture_);
+    const std::future<void>& getFinishedFuture() const {
+        return finishedFuture_;
     }
 
     /**
@@ -112,6 +112,11 @@ public:
      * @param game The game state to compute the move for.
      */
     void computeMove(bool startPos, const std::string fen = "");
+
+	/**
+	 * @brief Tells the engine to stop the current move calculation and sends the best move
+	 */
+    void moveNow();
 
 	/**
 	 * Initiates asynchronous game computation using the current time control.
@@ -130,7 +135,7 @@ public:
      *
      * @param taskProvider Function that returns the next GameTask or std::nullopt if done.
      */
-    void computeGames(std::function<std::optional<GameTask>()> taskProvider);
+    void computeGames(GameTaskProvider* taskProvider);
 
     /**
      * @brief Returns a reference to the EngineWorker instance.
@@ -155,7 +160,7 @@ private:
 
     bool isLegalMove(const std::string& moveText);
 
-    void computeMove();
+    void computeNextMove();
 
     /**
 	 * @brief template executing a function for both white and black engine, if they are not identical
@@ -194,10 +199,15 @@ private:
 	 * @param name Checklist-Name of the topic.
 	 * @param detail Detailed error message to be logged
      */
-    bool handleCheck(std::string_view name, bool success, std::string_view detail = "") {
+    bool handleCheck(const std::string name, bool success, std::string_view detail = "") {
         EngineChecklist::report(name, success);
         if (!success) {
-			Logger::testLogger().log(std::string(name) + ": " + std::string(detail), TraceLevel::error);
+            auto numErrors = EngineChecklist::getNumErrors(name);
+			Logger::testLogger().log(std::string(name) + ": " + std::string(detail), 
+                EngineChecklist::getNumErrors(name) > 5 ? TraceLevel::info : TraceLevel::error);
+            if (numErrors == 5) {
+                Logger::testLogger().log("Further errors of this type will be suppressed. See log for full details.");
+            }
         }
 		return success;
     }
@@ -215,7 +225,7 @@ private:
     /**
      * Callback to get new tasks
      */
-    std::function<std::optional<GameTask>()> taskProvider_;
+    GameTaskProvider* taskProvider_;
     /**
 	 * Computes the next game in the tournament.
      */
