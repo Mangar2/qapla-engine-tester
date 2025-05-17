@@ -24,6 +24,8 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <condition_variable>
+#include <mutex>
 
 class HeartBeat {
 public:
@@ -32,15 +34,22 @@ public:
     explicit HeartBeat(Callback callback, std::chrono::milliseconds interval = std::chrono::seconds(1))
         : callback_(std::move(callback)), stop_(false) {
         thread_ = std::thread([this, interval]() {
+            std::unique_lock lock(mutex_);
             while (!stop_) {
-                std::this_thread::sleep_for(interval);
+                if (cv_.wait_for(lock, interval, [this]() { return stop_; })) {
+                    break;
+                }
                 callback_();
             }
             });
     }
 
     ~HeartBeat() {
-        stop_ = true;
+        {
+            std::scoped_lock lock(mutex_);
+            stop_ = true;
+        }
+        cv_.notify_one();
         if (thread_.joinable()) {
             thread_.join();
         }
@@ -48,6 +57,11 @@ public:
 
 private:
     Callback callback_;
-    std::atomic<bool> stop_;
+    bool stop_;
     std::thread thread_;
+    std::condition_variable cv_;
+    std::mutex mutex_;
 };
+
+
+

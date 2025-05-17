@@ -122,7 +122,7 @@ private:
     bool handleCheck(std::string name, bool success, std::string detail = "") {
         EngineChecklist::report(name, success);
         if (!success) {
-            Logger::testLogger().log("Error: " + name + ": " + detail, TraceLevel::error);
+            Logger::testLogger().log("Report: " + name + ": " + detail, TraceLevel::error);
         }
         return success;
     }

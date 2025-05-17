@@ -60,6 +60,13 @@ public:
     EngineProcess(const EngineProcess&) = delete;
     EngineProcess& operator=(const EngineProcess&) = delete;
 
+
+	/**
+	 * @brief Restarts the engine process.
+	 * @throws std::runtime_error if the process cannot be restarted.
+	 */
+    void restart();
+
     /**
 	 * @brief Closes the engine process handles and releases resources.
      */
@@ -134,7 +141,16 @@ public:
 
 private:
 
+    /**
+     * @brief Starts the engine process.
+     * @throws std::runtime_error if the process cannot be started.
+     */
+    void start();
+
+
     mutable std::string stdoutBuffer_;
+    std::filesystem::path executablePath_;
+    std::optional<std::filesystem::path> workingDirectory_;
 
     /**
      * Appends a line or line fragment to the line queue with timestamp.

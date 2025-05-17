@@ -135,6 +135,10 @@ void UciAdapter::moveNow() {
 }
 
 void UciAdapter::setPonder(bool enabled) {
+	EngineAdapter::setPonder(enabled);
+	if (supportedOptions_.find("Ponder") == supportedOptions_.end()) {
+		return; // Ponder option not supported
+	}
     writeCommand(std::string("setoption name Ponder value ") + (enabled ? "true" : "false"));
 }
 
@@ -143,7 +147,7 @@ void UciAdapter::ticker() {
 }
 
 void UciAdapter::ponder(const GameRecord& game, GoLimits& limits) {
-    // Pondering handled like normal search in UCI
+    
 
 }
 
@@ -151,8 +155,14 @@ int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits) 
     sendPosition(game);
 
     std::ostringstream oss;
-    oss << "go";
+    oss << "go" << computeGoOptions(limits);
 
+    // TODO: Add searchmoves
+    return writeCommand(oss.str());
+}
+
+std::string UciAdapter::computeGoOptions(const GoLimits& limits) const {
+    std::ostringstream oss;
     if (limits.infinite) oss << " infinite";
     if (limits.movetimeMs) oss << " movetime " << *limits.movetimeMs;
     if (limits.depth) oss << " depth " << *limits.depth;
@@ -165,10 +175,7 @@ int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits) 
     if (limits.bincMs > 0)  oss << " binc " << limits.bincMs;
 
     if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
-
-    // TODO: Add searchmoves
-
-    return writeCommand(oss.str());
+	return oss.str();
 }
 
 void UciAdapter::askForReady() {
@@ -280,6 +287,9 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
 
     while (iss >> token) {
         try {
+            if (token == "string") {
+                break;
+            }
             if (token == "depth") {
                 readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
             }
@@ -403,8 +413,45 @@ EngineEvent UciAdapter::readEvent() {
         return EngineEvent(EngineEvent::Type::PonderHit, engineLine.timestampMs, line);
     }
 
-    // Unbekanntes Format
-    logFromEngine(line, TraceLevel::error);
+    if (line.rfind("option", 0) == 0) {
+        if (numOptionError_ <= 5) {
+            logFromEngine(line + " Report: option command outside uci/uciok: ", TraceLevel::error);
+            logFromEngine(line, TraceLevel::commands);
+            if (numOptionError_ == 5) {
+				logFromEngine("Report: too many option errors, stopping further checks", TraceLevel::error);
+            }
+            numOptionError_++;
+        }
+	}
+	if (line.rfind("id", 0) == 0) {
+		if (numIdError_ <= 5) {
+			logFromEngine(line + " Report: id name command outside uci/uciok: ", TraceLevel::error);
+			logFromEngine(line, TraceLevel::commands);
+			if (numIdError_ == 5) {
+				logFromEngine("Report: too many id name errors, stopping further checks", TraceLevel::error);
+			}
+			numIdError_++;
+		}
+	}
+	if (line.rfind("name", 0) == 0) {
+		if (numNameError_ <= 5) {
+			logFromEngine(line + " Report: name command outside uci/uciok: ", TraceLevel::error);
+			logFromEngine(line, TraceLevel::commands);
+			if (numNameError_ == 5) {
+				logFromEngine("Report: too many name errors, stopping further checks", TraceLevel::error);
+			}
+			numNameError_++;
+		}
+	}
+
+	if (numUnknownCommandError_ <= 5) {
+		logFromEngine(line + " Report: unknown command: ", TraceLevel::error);
+		logFromEngine(line, TraceLevel::commands);
+		if (numUnknownCommandError_ == 5) {
+			logFromEngine("Report: too many unknown command errors, stopping further checks", TraceLevel::error);
+		}
+		numUnknownCommandError_++;
+	}
     return EngineEvent(EngineEvent::Type::Unknown, engineLine.timestampMs, line);
 }
 

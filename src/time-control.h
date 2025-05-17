@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 
  /**
@@ -89,7 +90,7 @@ public:
             }
             oss << segment.baseTimeMs / 1000;
             if (segment.incrementMs > 0) {
-                oss << "+" << segment.incrementMs / 1000;
+                oss << "+" << std::fixed << std::setprecision(2) << segment.incrementMs / 1000.0;
             }
         }
         return oss.str();

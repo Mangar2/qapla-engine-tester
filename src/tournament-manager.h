@@ -22,9 +22,11 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <utility>
 #include "time-control.h"
 #include "game-record.h"
 #include "game-result.h"
+#include "engine-checklist.h"
 
 struct GameTask {
     bool useStartPosition;
@@ -53,28 +55,12 @@ class TournamentManager : public GameTaskProvider {
 public:
     explicit TournamentManager(int totalGames)
         : maxGames_(totalGames), current_(0) {
-        int usesPerPair = maxGames_ / 20;
-        usageCount_.resize(20, 0);
         timePairs_ = {
             {{0, 200000, 500}, {0, 100000, 100}},
-            {{0, 180000, 500}, {0,  90000, 100}},
-            {{0, 160000, 500}, {0,  80000, 100}},
-            {{0, 140000, 500}, {0,  70000, 100}},
-            {{0, 120000, 500}, {0,  60000, 100}},
             {{0, 100000, 500}, {0,  50000, 100}},
-            {{0,  80000, 500}, {0,  40000, 100}},
-            {{0,  60000, 500}, {0,  30000, 100}},
-            {{0,  40000, 500}, {0,  20000, 100}},
             {{0,  20000, 500}, {0,  10000, 100}},
             {{0, 200000, 500}, {0, 100000,   0}},
-            {{0, 180000, 200}, {0,  90000,   0}},
-            {{0, 160000, 200}, {0,  80000,   0}},
-            {{0, 140000, 200}, {0,  70000,   0}},
-            {{0, 120000, 200}, {0,  60000,   0}},
             {{0, 100000, 200}, {0,  50000,   0}},
-            {{0,  80000, 200}, {0,  40000,   0}},
-            {{0,  60000, 200}, {0,  30000,   0}},
-            {{0,  40000, 200}, {0,  20000,   0}},
             {{0,  20000, 200}, {0,  10000,   0}}
         };
     }
@@ -83,20 +69,17 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         if (current_ >= maxGames_) return std::nullopt;
 
-        for (size_t i = 0; i < 20; ++i) {
-            if (usageCount_[i] < maxGames_ / 20) {
-                GameTask task;
-                task.useStartPosition = true;
-                task.fen = "";
-                task.whiteTimeControl.addTimeSegment(timePairs_[i].first);
-                task.blackTimeControl.addTimeSegment(timePairs_[i].second);
-                ++usageCount_[i];
-                ++current_;
-                return task;
-            }
-        }
+		size_t numPairs = timePairs_.size();
+		size_t divisor = (maxGames_ + numPairs - 1) / numPairs;
+        size_t idx = current_ / divisor;
+        ++current_;
 
-        return std::nullopt;
+        GameTask task;
+        task.useStartPosition = true;
+        task.fen = "";
+        task.whiteTimeControl.addTimeSegment(timePairs_[idx].first);
+        task.blackTimeControl.addTimeSegment(timePairs_[idx].second);
+        return task;
     }
 
     void setGameRecord(const GameRecord& record) override {
@@ -104,11 +87,106 @@ public:
             std::lock_guard<std::mutex> lock(mutex_);
             gameRecords_.push_back(record);
         }
+		checkTimeManagement(record);
         logStatus();
     }
 
+    void checkTimeManagement(const GameRecord& record) {
+        const auto [cause, result] = record.getGameResult();
+        bool success = (cause != GameEndCause::Timeout);
+		std::string whiteTimeControl = record.getWhiteTimeControl().toPgnTimeControlString();
+		std::string blackTimeControl = record.getBlackTimeControl().toPgnTimeControlString();
+
+        EngineChecklist::logCheck("No loss on time", success, " looses on time with time control " +
+            (result == GameResult::WhiteWins ? blackTimeControl : whiteTimeControl) );
+
+        timeUsageReasonable(record.timeUsed().first,
+            record.getWhiteTimeControl(),
+            record.history().size());
+        timeUsageReasonable(record.timeUsed().second,
+            record.getBlackTimeControl(),
+            record.history().size());
+        
+    }
+
+    /**
+     * Calculates the expected range of used time ratio at the end of a game based on move count.
+     * The ratio refers to (usedTime / availableTime), and acceptable bounds are interpolated
+     * from predefined ranges to reflect sensible engine time consumption.
+     *
+     * @param moveCount The total number of moves in the game.
+     * @return A pair of (minUsageRatio, maxUsageRatio), both in the range [0.0, 1.0].
+     */
+    std::pair<double, double> expectedUsageRatioRange(size_t moveCount) {
+        struct UsageProfile {
+            size_t moveThreshold;
+            double minRatio;
+            double maxRatio;
+        };
+
+        constexpr UsageProfile usageTable[] = {
+            {0,   0.00, 0.20},
+            {40,  0.30, 0.60},
+            {80,  0.55, 0.90},
+            {160, 0.75, 1.00},
+            {320, 0.90, 1.00},
+        };
+
+        for (size_t i = 1; i < std::size(usageTable); ++i) {
+            if (moveCount < usageTable[i].moveThreshold) {
+                const auto& low = usageTable[i - 1];
+                const auto& high = usageTable[i];
+                double factor = static_cast<double>(moveCount - low.moveThreshold) /
+                    (high.moveThreshold - low.moveThreshold);
+                double minRatio = low.minRatio + factor * (high.minRatio - low.minRatio);
+                double maxRatio = low.maxRatio + factor * (high.maxRatio - low.maxRatio);
+                return { minRatio, maxRatio };
+            }
+        }
+
+        const auto& last = usageTable[std::size(usageTable) - 1];
+        return { last.minRatio, last.maxRatio };
+    }
+
+    void timeUsageReasonable(uint64_t usedTimeMs, const TimeControl& tc, size_t moveCount) {
+        if (moveCount < 30) return;
+
+        auto segments = tc.timeSegments();
+        if (segments.empty()) return;
+
+        const auto& seg = segments.front();
+        uint64_t availableTime = seg.baseTimeMs + moveCount * seg.incrementMs;
+        if (availableTime == 0) return;
+
+        double usageRatio = static_cast<double>(usedTimeMs) / static_cast<double>(availableTime);
+        auto [minRatio, maxRatio] = expectedUsageRatioRange(moveCount);
+        minRatio += (1.0 - minRatio) * std::min(1.0, seg.incrementMs * 20.0 / (seg.baseTimeMs + 1));
+        maxRatio += (1.0 - maxRatio) * std::min(1.0, seg.incrementMs * 100.0 / (seg.baseTimeMs + 1));
+
+        uint64_t timeLeft = availableTime - usedTimeMs;
+
+        bool inMinRange = usageRatio >= minRatio;
+        bool inMaxRange = usageRatio <= maxRatio;
+
+        std::string detail = "time control " + tc.toPgnTimeControlString()
+            + " used " + std::to_string(usedTimeMs) + "ms, ratio: "
+            + std::to_string(usageRatio) + ", expected [" + std::to_string(minRatio)
+            + ", " + std::to_string(maxRatio) + "], move count " + std::to_string(moveCount)
+            + " time left: " + std::to_string(timeLeft) + "ms";
+
+        EngineChecklist::logCheck("Uses enough time from time control", inMinRange, detail);
+        EngineChecklist::logCheck("Keeps reserve time", inMaxRange, detail);
+        EngineChecklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000, 
+            " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
+    }
+
+
     void logStatus() {
         std::lock_guard<std::mutex> lock(mutex_);
+		auto lastWhiteTimeControl = gameRecords_.back().getWhiteTimeControl();
+		auto lastBlackTimeControl = gameRecords_.back().getBlackTimeControl();
+		std::string whiteTimeControl = lastWhiteTimeControl.toPgnTimeControlString();
+		std::string blackTimeControl = lastBlackTimeControl.toPgnTimeControlString();
 
         int whiteWins = 0, blackWins = 0, draws = 0;
         std::map<GameEndCause, int> causeCounts;
@@ -131,7 +209,7 @@ public:
             << " D:" << std::setw(3) << draws
             << " B:" << std::setw(3) << blackWins
             << " | ";
-
+		oss << whiteTimeControl << " vs. " << blackTimeControl << " | ";
         for (const auto& [cause, count] : causeCounts)
             oss << to_string(cause) << ":" << count << " ";
 

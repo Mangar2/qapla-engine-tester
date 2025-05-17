@@ -87,6 +87,11 @@ private:
     };
 	std::vector<ProtocolError> protocolErrors_; // Stores protocol errors
 
+    /**
+     * @brief Compute the time setting options required for the go command
+     */
+	std::string computeGoOptions(const GoLimits& limits) const;
+
 
     void sendPosition(const GameRecord& game);   // Sends position + moves
 	void runUciHandshake();                     // Runs the UCI handshake
@@ -97,5 +102,10 @@ private:
     }
 
     EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
+
+	static inline int numOptionError_ = 0; 
+    static inline int numIdError_ = 0;
+    static inline int numNameError_ = 0;
+	static inline int numUnknownCommandError_ = 0;
 
 };

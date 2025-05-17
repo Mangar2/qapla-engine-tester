@@ -31,11 +31,18 @@
 int main(int argc, char** argv) {
     CliSettingsManager::registerSetting("max-parallel-engines", "Maximal number of in parallel running engines", true, 20,
         CliSettingsManager::ValueType::Int);
-    CliSettingsManager::registerSetting("engine", "Path to engine executable", false, 
-        "C:\\Development\\qapla-engine-tester\\Qapla0.3.2-win-x86.exe", CliSettingsManager::ValueType::PathExists);
+    CliSettingsManager::registerSetting("games-number", "Number of games to play", false, 20,
+        CliSettingsManager::ValueType::Int);
+	CliSettingsManager::registerSetting("engine", "Path to engine executable", true, 
+        "",
+        //"C:\\Chess\\cutechess-cli\\qapla0.3\\stockfish-windows-x86-64-avx2.exe",
+        //"C:\\Chess\\cutechess-cli\\qapla0.3\\viridithas3.0.0-avx2.exe",
+        //"C:\\Development\\qapla-engine-tester\\Qapla0.3.2-win-x86.exe",
+        CliSettingsManager::ValueType::PathExists);
     CliSettingsManager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
         CliSettingsManager::ValueType::PathExists);
-
+	CliSettingsManager::registerSetting("testlevel", "Test level (0=all, 1=basic, 2=advanced)", false, 0,
+		CliSettingsManager::ValueType::Int);
     CliSettingsManager::parseCommandLine(argc, argv);
 
     std::string enginePath = CliSettingsManager::get<std::string>("engine");
@@ -54,6 +61,8 @@ int main(int argc, char** argv) {
 	controller.runAllTests(enginePath);
     
 	EngineChecklist::log();
+    std::cout << "Press Enter to quit...";
+    std::cin.get();
     return 0;
 }
 

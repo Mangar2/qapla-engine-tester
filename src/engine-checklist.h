@@ -55,6 +55,20 @@ public:
 		return stat.failures;
     }
 
+	/**
+	 * @brief Logs the result of a test and its details.
+	 * @param name The name of the test.
+	 * @param success True if the test passed; false if it failed.
+	 * @param detail Additional details about the test that is logged on fail.
+     */ 
+    static bool logCheck(std::string name, bool success, std::string detail = "") {
+        report(name, success);
+        if (!success) {
+            Logger::testLogger().log(name + ": " + detail, TraceLevel::error);
+        }
+        return success;
+    }
+
     /**
 	 * @brief Logs the results of all tests to the test logger.
      */

@@ -102,7 +102,7 @@ public:
     /**
      * @brief Enables or disables ponder mode.
      */
-    virtual void setPonder(bool enabled) = 0;
+    virtual void setPonder(bool enabled) { ponderMode_ = enabled; }
 
     /**
      * @brief Called once per second. Useful for time-based monitoring or updates.
@@ -214,5 +214,7 @@ protected:
     std::string engineName_;
     std::string engineAuthor_;
     std::string _welcomeMessage;
+
+	bool ponderMode_ = false;
 
 };

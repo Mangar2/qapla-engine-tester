@@ -41,7 +41,21 @@
 #include "timer.h"
 
 EngineProcess::EngineProcess(const std::filesystem::path& path,
-    const std::optional<std::filesystem::path>& workingDir) {
+    const std::optional<std::filesystem::path>& workingDir)
+    : executablePath_(path), workingDirectory_(workingDir) {
+	if (!std::filesystem::exists(path)) {
+		throw std::runtime_error("Engine executable not found: " + path.string());
+	}
+	if (!std::filesystem::is_regular_file(path)) {
+		throw std::runtime_error("Engine path is not a regular file: " + path.string());
+	}
+	if (workingDir && !std::filesystem::exists(*workingDir)) {
+		throw std::runtime_error("Working directory does not exist: " + workingDir->string());
+	}
+	start();
+}
+
+void EngineProcess::start() {
 #ifdef _WIN32
     SECURITY_ATTRIBUTES saAttr{};
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -73,7 +87,7 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
     siStartInfo.hStdError = stderrWriteTmp;
     siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
-    std::string cmd = path.string();
+    std::string cmd = executablePath_.string();
 
     BOOL success = CreateProcessA(
         nullptr,
@@ -83,7 +97,7 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
         TRUE,
         0,
         nullptr,
-        workingDir ? workingDir->string().c_str() : nullptr,
+        workingDirectory_ ? workingDirectory_->string().c_str() : nullptr,
         &siStartInfo,
         &piProcInfo);
 
@@ -109,7 +123,7 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
     }
 
     if (childPid_ == 0) {
-        if (workingDir) chdir(workingDir->c_str());
+        if (workingDirectory_) chdir(workingDirectory_->c_str());
 
         dup2(inPipe[0], STDIN_FILENO);
         dup2(outPipe[1], STDOUT_FILENO);
@@ -117,7 +131,7 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
 
         close(inPipe[1]); close(outPipe[0]); close(errPipe[0]);
 
-        execl(path.c_str(), path.c_str(), nullptr);
+        execl(executablePath_.c_str(), path.c_str(), nullptr);
         _exit(1);
     }
 
@@ -241,6 +255,9 @@ EngineLine EngineProcess::readLineBlocking() {
         if (!lineQueue_.empty() && lineQueue_.front().complete) {
             EngineLine line = std::move(lineQueue_.front());
             lineQueue_.pop_front();
+            if (std::all_of(line.content.begin(), line.content.end(), isspace)) {
+                continue;
+            }
             return line;
         }
 #ifdef _WIN32
@@ -281,12 +298,18 @@ std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::mill
         ssize_t r = read(fd, &ch, 1);
         if (r <= 0) break;
 #endif
-        if (ch == '\n') break;
+		if (ch == '\r') {
+			continue; // Ignore carriage return
+		}
+        else if (ch == '\n') {
+            if (std::all_of(line.begin(), line.end(), isspace)) {
+                line.clear();
+                continue;
+            }
+            break;
+        }
         line += ch;
     }
-	if (line.back() == '\r') {
-		line.pop_back();
-	}
     return line;
 }
 
@@ -398,6 +421,11 @@ void EngineProcess::terminate() {
 #endif
     closeAllHandles();
     throw std::runtime_error("Engine did not end by itself");
+}
+
+void EngineProcess::restart() {
+	terminate();
+	start();
 }
 
 bool EngineProcess::isRunning() const {

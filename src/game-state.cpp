@@ -169,10 +169,7 @@ QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan)
 			foundMove = move;
 		}
 	}
-	if (foundMove.isEmpty()) {
-		position_.print();
-		moveList.print();
-	}
+
 	return foundMove;
 }
 	

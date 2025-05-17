@@ -28,8 +28,8 @@
   */
 class CliSettingsManager {
 public:
-    enum class ValueType { String, Int, PathExists };
-    using Value = std::variant<std::string, int>;
+    enum class ValueType { String, Int, Bool, PathExists };
+    using Value = std::variant<std::string, int, bool>;
 
     /**
      * @brief Registers a setting with its metadata.
