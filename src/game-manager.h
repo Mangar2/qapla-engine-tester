@@ -22,7 +22,7 @@
 #include <future>
 #include <mutex>
 
-#include "engine-checklist.h"
+#include "checklist.h"
 #include "engine-worker.h"
 #include "timer.h"
 #include "time-control.h"
@@ -31,6 +31,7 @@
 #include "game-record.h"
 #include "tournament-manager.h"
 #include "heart-beat.h"
+#include "player-context.h"
 
  /**
   * @brief Manages a single chess game between the application and an engine.
@@ -82,16 +83,16 @@ public:
 	 * @param timeControl The time control to be set.
 	 */
 	void setUniqueTimeControl(const TimeControl& timeControl) {
-		whiteTimeControl_ = timeControl;
-		blackTimeControl_ = timeControl;
+		whitePlayer_.setTimeControl(timeControl);
+		blackPlayer_.setTimeControl(timeControl);
 	}
 
     /**
 	 * @brief Sets the time control for both sides.
      */
 	void setTimeControls(const TimeControl& white, const TimeControl& black) {
-		whiteTimeControl_ = white;
-		blackTimeControl_ = black;
+		whitePlayer_.setTimeControl(white);
+		blackPlayer_.setTimeControl(black);
 	}
 
     /**
@@ -143,7 +144,7 @@ public:
      * @return A reference to the EngineWorker.
      */
     EngineWorker* getEngine(bool white = true) {
-        return white ? whiteEngine_.get() : blackEngine_.get();
+        return white ? whitePlayer_.getEngine() : blackPlayer_.getEngine();
     }
 private:
 
@@ -167,11 +168,13 @@ private:
      */
     template<typename Func>
     void forEachUniqueEngine(Func&& func) {
-        if (whiteEngine_) {
-            func(*whiteEngine_);
+		auto whiteEngine = whitePlayer_.getEngine();
+		auto blackEngine = blackPlayer_.getEngine();
+        if (whiteEngine) {
+            func(*whiteEngine);
         }
-        if (blackEngine_ && blackEngine_ != whiteEngine_) {
-            func(*blackEngine_);
+        if (blackEngine && blackEngine != whiteEngine) {
+            func(*blackEngine);
         }
     }
 
@@ -195,30 +198,13 @@ private:
     bool checkForGameEnd();
 
     /**
-     * @brief General check handling method.
-	 * @param name Checklist-Name of the topic.
-	 * @param detail Detailed error message to be logged
-     */
-    bool handleCheck(const std::string name, bool success, std::string_view detail = "") {
-        EngineChecklist::report(name, success);
-        if (!success) {
-            auto numErrors = EngineChecklist::getNumErrors(name);
-			Logger::testLogger().log(std::string(name) + ": " + std::string(detail), 
-                EngineChecklist::getNumErrors(name) > 5 ? TraceLevel::info : TraceLevel::error);
-            if (numErrors == 5) {
-                Logger::testLogger().log("Further errors of this type will be suppressed. See log for full details.");
-            }
-        }
-		return success;
-    }
-
-    /**
      * @brief Signals that a computation has completed. Call once per compute cycle.
      */
     void markFinished();
 
-    std::shared_ptr<EngineWorker> whiteEngine_;
-    std::shared_ptr<EngineWorker> blackEngine_;
+    PlayerContext whitePlayer_;
+    PlayerContext blackPlayer_;
+
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
 
@@ -237,8 +223,6 @@ private:
     bool finishedPromiseValid_ = false;
 
     Timer timer_;
-    TimeControl whiteTimeControl_;
-    TimeControl blackTimeControl_;
 	GameState gameState_;
 	int64_t computeMoveStartTimestamp_ = 0;
     bool requireLan_ = true;

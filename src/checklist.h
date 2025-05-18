@@ -26,13 +26,10 @@
 #pragma once
 
 #include <string>
-#include <vector>
-#include <iostream>
 #include <unordered_map>
-#include <algorithm>
 #include "logger.h"
 
-class EngineChecklist {
+class Checklist {
 public:
     /**
      * Reports the result of a single evaluation point for a topic.
@@ -61,10 +58,15 @@ public:
 	 * @param success True if the test passed; false if it failed.
 	 * @param detail Additional details about the test that is logged on fail.
      */ 
-    static bool logCheck(std::string name, bool success, std::string detail = "") {
+    static bool logCheck(const std::string name, bool success, std::string_view detail = "") {
         report(name, success);
         if (!success) {
-            Logger::testLogger().log(name + ": " + detail, TraceLevel::error);
+            auto numErrors = getNumErrors(name);
+            Logger::testLogger().log("[Report] " + std::string(name) + ": " + std::string(detail),
+                numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : TraceLevel::error);
+            if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
+                Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.");
+            }
         }
         return success;
     }
@@ -72,43 +74,11 @@ public:
     /**
 	 * @brief Logs the results of all tests to the test logger.
      */
-    static void log() {
-        Logger::testLogger().log("\n== Engine Report ==\n");
-
-        std::vector<std::pair<std::string, Stat>> sorted(stats_.begin(), stats_.end());
-        std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
-            const bool aFail = a.second.total > 0 && a.second.failures > 0;
-            const bool bFail = b.second.total > 0 && b.second.failures > 0;
-            return aFail > bFail; 
-            });
-
-        size_t maxTopicLength = 0;
-        for (const auto& [topic, _] : sorted) {
-            maxTopicLength = std::max(maxTopicLength, std::string(topic).size());
-        }
-        bool lastWasFail = false;
-        for (const auto& [topic, stat] : sorted) {
-            const bool passed = stat.total > 0 && stat.failures == 0;
-            const int percentFail = stat.total > 0
-                ? static_cast<int>((100 * stat.failures) / stat.total)
-                : 0;
-			if (passed && lastWasFail) {
-				Logger::testLogger().log("");
-			}
-            std::ostringstream line;
-            line << (passed ? "PASS " : "FAIL ");
-            line << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << topic;
-            if (!passed) {
-                line << "(" << stat.failures << " failed)";
-            }
-
-            lastWasFail = !passed;
-            Logger::testLogger().log(line.str());
-        }
-    }
+    static void log();
 
 
 private:
+    static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;
     struct Stat {
         int total = 0;
         int failures = 0;

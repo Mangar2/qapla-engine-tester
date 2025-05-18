@@ -26,7 +26,7 @@
 #include "time-control.h"
 #include "game-record.h"
 #include "game-result.h"
-#include "engine-checklist.h"
+#include "checklist.h"
 
 struct GameTask {
     bool useStartPosition;
@@ -97,7 +97,7 @@ public:
 		std::string whiteTimeControl = record.getWhiteTimeControl().toPgnTimeControlString();
 		std::string blackTimeControl = record.getBlackTimeControl().toPgnTimeControlString();
 
-        EngineChecklist::logCheck("No loss on time", success, " looses on time with time control " +
+        Checklist::logCheck("No loss on time", success, " looses on time with time control " +
             (result == GameResult::WhiteWins ? blackTimeControl : whiteTimeControl) );
 
         timeUsageReasonable(record.timeUsed().first,
@@ -174,9 +174,9 @@ public:
             + ", " + std::to_string(maxRatio) + "], move count " + std::to_string(moveCount)
             + " time left: " + std::to_string(timeLeft) + "ms";
 
-        EngineChecklist::logCheck("Uses enough time from time control", inMinRange, detail);
-        EngineChecklist::logCheck("Keeps reserve time", inMaxRange, detail);
-        EngineChecklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000, 
+        Checklist::logCheck("Uses enough time from time control", inMinRange, detail);
+        Checklist::logCheck("Keeps reserve time", inMaxRange, detail);
+        Checklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000,
             " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
     }
 

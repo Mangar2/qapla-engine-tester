@@ -132,6 +132,7 @@
   <ItemGroup>
     <ClCompile Include="src\bitboardmasks.cpp" />
     <ClCompile Include="src\board.cpp" />
+    <ClCompile Include="src\checklist.cpp" />
     <ClCompile Include="src\cli-settings-manager.cpp" />
     <ClCompile Include="src\engine-adapter.cpp" />
     <ClCompile Include="src\engine-test-controller.cpp" />
@@ -145,6 +146,7 @@
     <ClCompile Include="src\magics.cpp" />
     <ClCompile Include="src\movegenerator.cpp" />
     <ClCompile Include="src\piecesignature.cpp" />
+    <ClCompile Include="src\player-context.cpp" />
     <ClCompile Include="src\pst.cpp" />
     <ClCompile Include="src\qapla-engine-tester.cpp" />
     <ClCompile Include="src\uci-adpater.cpp" />
@@ -155,7 +157,7 @@
     <ClInclude Include="src\board.h" />
     <ClInclude Include="src\boardstate.h" />
     <ClInclude Include="src\cli-settings-manager.h" />
-    <ClInclude Include="src\engine-checklist.h" />
+    <ClInclude Include="src\checklist.h" />
     <ClInclude Include="src\engine-event.h" />
     <ClInclude Include="src\engine-test-controller.h" />
     <ClInclude Include="src\engine-worker-factory.h" />
@@ -181,6 +183,7 @@
     <ClInclude Include="src\movelist.h" />
     <ClInclude Include="src\movescanner.h" />
     <ClInclude Include="src\piecesignature.h" />
+    <ClInclude Include="src\player-context.h" />
     <ClInclude Include="src\pst.h" />
     <ClInclude Include="src\time-control.h" />
     <ClInclude Include="src\timer.h" />

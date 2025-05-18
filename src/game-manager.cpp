@@ -18,7 +18,7 @@
  */
 
 #include "game-manager.h"
-#include "engine-checklist.h"
+#include "checklist.h"
 #include <iostream>
 
 GameManager::GameManager(): taskProvider_(nullptr) {
@@ -31,8 +31,8 @@ GameManager::GameManager(): taskProvider_(nullptr) {
 }
 
 void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
-    whiteEngine_ = engine;
-    blackEngine_ = engine;
+    whitePlayer_.setEngine(engine, requireLan_);
+	blackPlayer_.setEngine(engine, requireLan_);
 
     engine->setEventSink([this](const EngineEvent& event) {
         handleState(event);
@@ -40,23 +40,22 @@ void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
 }
 
 void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
-    whiteEngine_ = std::move(white);
-    blackEngine_ = std::move(black);
 
-    whiteEngine_->setEventSink([this](const EngineEvent& event) {
+    white->setEventSink([this](const EngineEvent& event) {
         handleState(event);
         });
 
-    if (blackEngine_ != whiteEngine_) {
-        blackEngine_->setEventSink([this](const EngineEvent& event) {
+    if (black != white) {
+        black->setEventSink([this](const EngineEvent& event) {
             handleState(event);
             });
     }
+    whitePlayer_.setEngine(white, requireLan_);
+    blackPlayer_.setEngine(black, requireLan_);
 }
 
 void GameManager::switchSide() {
-    std::swap(whiteEngine_, blackEngine_);
-	std::swap(whiteTimeControl_, blackTimeControl_);
+    std::swap(whitePlayer_, blackPlayer_);
 }
 
 void GameManager::markFinished() {
@@ -74,7 +73,7 @@ void GameManager::markFinished() {
 void GameManager::handleState(const EngineEvent& event) {
     std::lock_guard<std::mutex> lock(eventMutex_);
     for (auto& error: event.errors) {
-        handleCheck(error.name, false, error.detail);
+        Checklist::logCheck(error.name, false, error.detail);
     }
     if (event.type == EngineEvent::Type::KeepAlive) {
     }
@@ -116,10 +115,10 @@ void GameManager::handleHeartBeat() {
 }
 
 void GameManager::handleBestMove(const EngineEvent& event) {
-    if (!handleCheck("Computing a move returns a move check", event.bestMove.has_value())) return;
+    if (!Checklist::logCheck("Computing a move returns a legal move", event.bestMove.has_value())) return;
     if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
 	const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
-    if (!handleCheck("Computing a move returns a legal move check", !move.isEmpty(),
+    if (!Checklist::logCheck("Computing a move returns a legal move", !move.isEmpty(),
         "Encountered illegal move " + *event.bestMove + " in currMove, raw info line " + event.rawLine)) {
 		gameState_.setGameResult(GameEndCause::IllegalMove, gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         return;
@@ -139,7 +138,7 @@ void GameManager::handleInfo(const EngineEvent& event) {
     // Prüfe currMove, falls vorhanden
     if (searchInfo.currMove) {
         const auto move = gameState_.stringToMove(*searchInfo.currMove, requireLan_);
-        handleCheck("currmove check", !move.isEmpty(),
+        Checklist::logCheck("currmove check", !move.isEmpty(),
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line " + event.rawLine);
     }
 
@@ -157,7 +156,7 @@ void GameManager::handleInfo(const EngineEvent& event) {
                 for (const auto& m : searchInfo.pv)
                     fullPv += m + " ";
                 if (!fullPv.empty()) fullPv.pop_back(); // letztes Leerzeichen entfernen
-                handleCheck("PV check", true,
+                Checklist::logCheck("PV check", true,
                     "Encountered illegal move " + moveStr + " in pv " + fullPv);
                 valid = false;
                 break;
@@ -170,7 +169,7 @@ void GameManager::handleInfo(const EngineEvent& event) {
             gameState_.undoMove();
 
         if (valid)
-            handleCheck("PV check", true); 
+            Checklist::logCheck("PV check", true); 
     }
 }
 
@@ -202,17 +201,17 @@ void GameManager::checkTime(const EngineEvent& event) {
 		limits.depth.has_value() + limits.nodes.has_value();
 
     if (timeLeft > 0) {
-        if (!handleCheck("wtime/btime overrun check", moveElapsedMs <= timeLeft,
+        if (!Checklist::logCheck("loss on time", moveElapsedMs <= timeLeft,
             std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft))) {
 			gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
         }
     }
 
 	if (limits.movetimeMs.has_value()) {
-		handleCheck("movetime overrun check", moveElapsedMs < *limits.movetimeMs + GRACE_MS,
-			std::to_string(moveElapsedMs) + " < " + std::to_string(*limits.movetimeMs));
+		Checklist::logCheck("movetime overrun", moveElapsedMs < *limits.movetimeMs + GRACE_MS,
+            std::to_string(moveElapsedMs) + " > " + std::to_string(*limits.movetimeMs));
         if (numLimits == 1) {
-            handleCheck("movetime underrun check", moveElapsedMs > *limits.movetimeMs * 99 / 100,
+            Checklist::logCheck("movetime underrun", moveElapsedMs > *limits.movetimeMs * 99 / 100,
                "The engine should use EXACTLY " + std::to_string(*limits.movetimeMs) + 
                 " ms but took " + std::to_string(moveElapsedMs));
         }
@@ -220,26 +219,26 @@ void GameManager::checkTime(const EngineEvent& event) {
 
 	if (!event.searchInfo.has_value()) return;
 
-    if (handleCheck("Engine provides search depth info", event.searchInfo->depth.has_value())) {
+    if (Checklist::logCheck("Engine provides search depth info", event.searchInfo->depth.has_value())) {
         if (limits.depth.has_value()) {
             int depth = *event.searchInfo->depth;
-            handleCheck("depth overrun check", depth <= *limits.depth,
+            Checklist::logCheck("depth overrun", depth <= *limits.depth,
                 std::to_string(depth) + " > " + std::to_string(*limits.depth));
             if (numLimits == 1) {
-                handleCheck("depth underrun check", depth >= *limits.depth,
-                    std::to_string(depth) + " > " + std::to_string(*limits.depth));
+                Checklist::logCheck("depth underrun", depth >= *limits.depth,
+                    std::to_string(depth) + " < " + std::to_string(*limits.depth));
             }
         }
     }
 
-    if (handleCheck("Engine provides nodes info", event.searchInfo->nodes.has_value())) {
+    if (Checklist::logCheck("Engine provides nodes info", event.searchInfo->nodes.has_value())) {
         if (limits.nodes.has_value()) {
 			int64_t nodes = *event.searchInfo->nodes;
-            handleCheck("nodes overrun check", nodes <= *limits.nodes + GRACE_NODES,
+            Checklist::logCheck("nodes overrun", nodes <= *limits.nodes + GRACE_NODES,
                 std::to_string(nodes) + " > " + std::to_string(*limits.nodes));
             if (numLimits == 1) {
-                handleCheck("nodes underrun check", nodes > *limits.nodes * 9 / 10,
-                    std::to_string(nodes) + " > " + std::to_string(*limits.nodes));
+                Checklist::logCheck("nodes underrun", nodes > *limits.nodes * 9 / 10,
+                    std::to_string(nodes) + " < " + std::to_string(*limits.nodes));
             }
         }
     }
@@ -248,10 +247,10 @@ void GameManager::checkTime(const EngineEvent& event) {
 
 void GameManager::moveNow() {
     if (gameState_.isWhiteToMove()) {
-        whiteEngine_->moveNow();
+		whitePlayer_.getEngine()->moveNow();
     }
     else {
-        blackEngine_->moveNow();
+		blackPlayer_.getEngine()->moveNow();
     }
 }
 
@@ -268,12 +267,13 @@ void GameManager::computeMove(bool startPos, const std::string fen) {
 void GameManager::computeNextMove() {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     currentGoLimits_ = createGoLimits(
-        whiteTimeControl_, blackTimeControl_, gameRecord_.currentPly(), whiteTime, blackTime, gameState_.isWhiteToMove());
+		whitePlayer_.getTimeControl(), blackPlayer_.getTimeControl(),
+        gameRecord_.currentPly(), whiteTime, blackTime, gameState_.isWhiteToMove());
 	if (gameState_.isWhiteToMove()) {
-		whiteEngine_->computeMove(gameRecord_, currentGoLimits_);
+		whitePlayer_.getEngine()->computeMove(gameRecord_, currentGoLimits_);
     }
     else {
-		blackEngine_->computeMove(gameRecord_, currentGoLimits_);
+		blackPlayer_.getEngine()->computeMove(gameRecord_, currentGoLimits_);
     }
 }
 

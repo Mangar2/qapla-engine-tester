@@ -38,6 +38,13 @@ public:
 private:
     bool startStopSucceeded = false;
 
+    /**
+     * Runs a standardized test sequence including pre-checks, initialization, and error handling.
+     * @param testName A descriptive name of the test.
+     * @param testCallback A callable returning std::pair<bool, std::string> indicating success and optional error message.
+     */
+    void runTest(const std::string& testName, const std::function<std::pair<bool, std::string>()>& testCallback);
+
     void runStartStopTest(std::filesystem::path enginePath);
 
 	void runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines);
@@ -111,21 +118,7 @@ private:
 	 * @param value Value to set for the option.
 	 * @return True if the option was set successfully, false otherwise.
      */
-    bool setOption(std::string name, std::string value);
-
-    /**
-     * @brief General check handling method.
-     * @param name Checklist-Name of the topic.
-	 * @param success Result of the check
-     * @param detail Detailed error message to be logged
-     */
-    bool handleCheck(std::string name, bool success, std::string detail = "") {
-        EngineChecklist::report(name, success);
-        if (!success) {
-            Logger::testLogger().log("Report: " + name + ": " + detail, TraceLevel::error);
-        }
-        return success;
-    }
+    std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
     std::unique_ptr<GameManager> gameManager_;
     std::filesystem::path enginePath_;

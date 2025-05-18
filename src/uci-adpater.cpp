@@ -339,7 +339,7 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
                 readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
             }
             else if (token == "cpuload") {
-                readBoundedInt32(iss, token, 0, 100, info.cpuload, event.errors);
+                readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
             }
             else if (token == "currmove") {
                 std::string move;
@@ -360,7 +360,7 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
                 break; // PV ends the line
             }
             else {
-                event.errors.push_back({ "search info unknown-token", "Unrecognized token: '" + token + "'" });
+                event.errors.push_back({ "search info unknown-token", "Unrecognized or misplaced token: '" + token + "' (raw line: " + line + ")"});
             }
         }
         catch (const std::exception& e) {

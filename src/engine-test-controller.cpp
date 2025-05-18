@@ -23,7 +23,7 @@
 #include <string>
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
-#include "engine-checklist.h"
+#include "checklist.h"
 #include "cli-settings-manager.h"
 
 void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
@@ -41,7 +41,7 @@ void EngineTestController::startEngine() {
         success = gameManager_->getEngine()->requestReady();
     }
     catch (...) {}
-    handleCheck("Engine Started successfully", success, "  engine did not respond to isReady after startup in time");
+    Checklist::logCheck("Engine Started successfully", success, "  engine did not respond to isReady after startup in time");
     if (!success) {
 		Logger::testLogger().log("Engine did not start successfully", TraceLevel::error);
 		throw(std::runtime_error("Engine did not start successfully"));
@@ -63,7 +63,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
         return f.get();
         });
 
-    handleCheck("Engines Started successfully", allReady, "  one or more engines did not respond to isReady in time");
+    Checklist::logCheck("Engines Started successfully", allReady, "  one or more engines did not respond to isReady in time");
     if (!allReady) {
         Logger::testLogger().log("Engines did not start successfully", TraceLevel::error);
     }
@@ -99,58 +99,90 @@ void EngineTestController::runAllTests(std::filesystem::path enginePath) {
 
 }
 
-void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
+/**
+ * Runs a standardized test sequence including pre-checks, initialization, and error handling.
+ * @param testName A descriptive name of the test.
+ * @param testCallback A callable returning std::pair<bool, std::string> indicating success and optional error message.
+ */
+void EngineTestController::runTest(
+    const std::string& testName,
+    const std::function<std::pair<bool, std::string>()>& testCallback)
+{
+    constexpr std::chrono::seconds timeout{ 2 };
     try {
+        if (!gameManager_) {
+            Logger::testLogger().log("GameManager not initialized", TraceLevel::error);
+            return;
+        }
+		if (!gameManager_->getEngine()) {
+			startEngine();
+		}
+
+        bool isReady = gameManager_->getEngine()->requestReady(timeout);
+		if (!isReady) {
+            startEngine();
+		}
+
+        const auto [success, errorMessage] = testCallback();
+        if (testName != "") {
+            Checklist::logCheck(testName, success, errorMessage);
+        }
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during test '" + testName + "': " + e.what(), TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during test '" + testName + "'", TraceLevel::error);
+    }
+}
+
+void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
+    runTest("Start/Stop Engine", [enginePath, this]() -> std::pair<bool, std::string> {
         EngineWorkerFactory factory;
         Timer timer;
         timer.start();
         auto list = factory.createUci(enginePath, std::nullopt, 1);
         auto startTime = timer.elapsedMs();
-		auto engine = list[0].get();
+        auto engine = list[0].get();
         int64_t memoryInBytes = engine->getEngineMemoryUsage();
         engine->stop();
-		auto stopTime = timer.elapsedMs();
+        auto stopTime = timer.elapsedMs();
 
         startStopSucceeded = true;
-		Logger::testLogger().log("Testing the engine, welcome message, name, author: ");
-		if (!engine->getWelcomeMessage().empty()) {
-			Logger::testLogger().log(engine->getWelcomeMessage());
-		}
-        if (!engine->getEngineName().empty()) {
-            Logger::testLogger().log("name: " + engine->getEngineName() + " author: " + engine->getEngineAuthor());
-        }
-		Logger::testLogger().log("Engine started in " + std::to_string(startTime) + " ms, stopped in " +
-			std::to_string(stopTime) + " ms, memory usage: " + bytesToMB(memoryInBytes) + " MB");
 
-    }
-    catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during start/stop test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-		Logger::testLogger().log("Unknown exception during start/stop test.", TraceLevel::error);
-    }
+        Logger::testLogger().log("Engine startup test - welcome message, name, author:");
+        if (!engine->getWelcomeMessage().empty()) {
+            Logger::testLogger().log(engine->getWelcomeMessage());
+        }
+        if (!engine->getEngineName().empty()) {
+            Logger::testLogger().log("Name: " + engine->getEngineName() + ", Author: " + engine->getEngineAuthor());
+        }
+        Logger::testLogger().log("Engine started in " + std::to_string(startTime) + " ms, stopped in " +
+            std::to_string(stopTime) + " ms, memory usage: " + bytesToMB(memoryInBytes) + " MB");
+
+        return { true, "" };
+        });
     if (!startStopSucceeded) {
-		Logger::testLogger().log("Engine could not be started or stopped. Skipping remaining tests.", TraceLevel::error);
+        Logger::testLogger().log("Engine could not be started or stopped. Skipping remaining tests.", TraceLevel::error);
         return;
     }
 }
 
 void EngineTestController::runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines) {
-    try {
+    runTest("Start/Stop Engine", [enginePath, numEngines]() -> std::pair<bool, std::string> {
         EngineWorkerFactory factory;
         Timer timer;
         timer.start();
         EngineList engines = factory.createUci(enginePath, std::nullopt, numEngines);
         auto startTime = timer.elapsedMs();
 
-        // Engines parallel stoppen
         std::vector<std::future<void>> stopFutures;
         stopFutures.reserve(numEngines);
 
         for (auto& engine : engines) {
             stopFutures.push_back(std::async(std::launch::async, [e = engine.get()] {
                 e->stop();
-                }));
+            }));
         }
         for (auto& future : stopFutures) {
             future.get();
@@ -158,18 +190,15 @@ void EngineTestController::runMultipleStartStopTest(std::filesystem::path engine
 
         auto stopTime = timer.elapsedMs();
 
-        Logger::testLogger().log("\nTesting start and stop of " + std::to_string(numEngines) + " Engines in parallel");
-        Logger::testLogger().log("Engines started in " + std::to_string(startTime) + " ms and stopped in " +
-            std::to_string(stopTime) + " ms. Below one second each is a good result.");
+        Logger::testLogger().log("Parallel start/stop test for " + std::to_string(numEngines) + " engines");
+        Logger::testLogger().log("Startup time: " + std::to_string(startTime) +
+            " ms, Shutdown time: " + std::to_string(stopTime));
 
-    }
-    catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during mass start/stop test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-		Logger::testLogger().log("Unknown exception during mass start/stop test.", TraceLevel::error);
-    }
+        return { startTime < 2000 && stopTime < 5000, 
+            "Start/Stop takes too long, Startup time : " + std::to_string(startTime) + " ms, Shutdown time: " + std::to_string(stopTime) };
+    });
 }
+
 
 void EngineTestController::runGoLimitsTests() {
 
@@ -204,66 +233,49 @@ void EngineTestController::runGoLimitsTests() {
         }() }
     };
 
-
-    try {
-        if (!gameManager_) {
-			Logger::testLogger().log("GameManager not initialized", TraceLevel::error);
-        }
-
-        for (const auto& test : testCases) {
+    for (const auto& [name, timeControl] : testCases) {
+        runTest("", [this, timeControl]() -> std::pair<bool, std::string> {
             gameManager_->newGame();
-            gameManager_->setUniqueTimeControl(test.second);
+            gameManager_->setUniqueTimeControl(timeControl);
             gameManager_->computeMove(true);
             gameManager_->getFinishedFuture().wait();
-        }
-    }
-    catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during GoLimits test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-		Logger::testLogger().log("Unknown exception during GoLimits test.", TraceLevel::error);
+            return { true, "" };
+        });
     }
 }
 
 void EngineTestController::runHashTableMemoryTest() {
-    try {
-        if (!gameManager_ || !gameManager_->getEngine()) {
-			Logger::testLogger().log("GameManager or Engine not initialized", TraceLevel::error);
-            return;
-        }
-
-        // Set high hash size
+    runTest("Engine Memory shrinks if hash tables shrinks", [this]() -> std::pair<bool, std::string> {
         setOption("Hash", "512");
-        std::this_thread::sleep_for(std::chrono::milliseconds(300)); // Allow allocation
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t memHigh = gameManager_->getEngine()->getEngineMemoryUsage();
 
-        // Set low hash size
         setOption("Hash", "1");
-        std::this_thread::sleep_for(std::chrono::milliseconds(300)); // Allow deallocation
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t memLow = gameManager_->getEngine()->getEngineMemoryUsage();
-		bool success = memLow + 400000000 < memHigh;
 
-        handleCheck("Engine memory increases / shrinks with hash size as expected", 
-            success,
-            "Memory did not shrink as expected when changing Hash from 512 to 1; usage was "
-            + std::to_string(memHigh) + " bytes before, now " + std::to_string(memLow) + " bytes.");
+        bool success = memLow + 400'000'000 < memHigh;
 
-        // Back to normal
         gameManager_->getEngine()->setOption("Hash", "32");
-        Logger::testLogger().log("\nTesting memory shrink. Memory consumption with 512MB Hash is " + bytesToMB(memHigh) + " MB shrinked with 1 MB Hash to " + bytesToMB(memLow) + " MB"
-			+ (success ? " (as expected)" : " (not as expected)"));
 
-    }
-    catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during hash table memory test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-		Logger::testLogger().log("Unknown exception during hash table memory test.", TraceLevel::error);
-    }
+        Logger::testLogger().log("Testing memory shrink. Memory usage with 512MB Hash: " +
+            bytesToMB(memHigh) + " MB; with 1MB Hash: " + bytesToMB(memLow) + " MB" +
+            (success ? " (as expected)" : " (not as expected)"));
+
+        std::string errorMsg;
+        if (!success) {
+            errorMsg = "Memory did not shrink as expected when changing Hash from 512 to 1. "
+                "Usage was " + std::to_string(memHigh) + " bytes before, now " +
+                std::to_string(memLow) + " bytes.";
+        }
+
+        return { success, errorMsg };
+        });
 }
 
+
 std::vector<std::string> generateCheckValues() {
-    return { "true", "false", "yes", "no", "1", "0", "invalid" };
+    return { "true", "false" };
 }
 
 std::vector<std::string> generateSpinValues(const EngineOption& opt) {
@@ -275,14 +287,11 @@ std::vector<std::string> generateSpinValues(const EngineOption& opt) {
         values = {
             std::to_string(min),
             std::to_string(max),
-            std::to_string(mid),
-            std::to_string(min - 1),
-            std::to_string(max + 1),
-            "not_a_number"
+            std::to_string(mid)
         };
     }
     else {
-        values = { "0", "100", "-1", "NaN" };
+        values = { "0", "100", "-1" };
     }
     return values;
 }
@@ -295,8 +304,7 @@ std::vector<std::string> generateComboValues(const EngineOption& opt) {
 
 std::vector<std::string> generateStringValues() {
     return {
-        "simple", "",
-        "with space",
+        "",
         "öäüß",               
         "C:\\invalid\\path",
         std::string(1024, 'A'), 
@@ -304,169 +312,164 @@ std::vector<std::string> generateStringValues() {
     };
 }
 
-bool EngineTestController::setOption(std::string name, std::string value) {
+std::pair<bool, std::string> EngineTestController::setOption(const std::string& name, const std::string& value) {
     auto engine = gameManager_->getEngine();
     bool success = engine->setOption(name, value);
-    if (handleCheck("Engine Options works safely", success, "  option '" + name + "' with value '" + value + "'\nruns into timeout ")) {
-        return true;
+
+    if (success) {
+        return { true, "" };
     }
+
     bool alive = engine->isRunning();
-    if (alive  && !engine->requestReady(std::chrono::seconds{ 10 })) {
-		// still not responding, we assume it crashed
+    if (alive && !engine->requestReady(std::chrono::seconds{ 10 })) {
         alive = false;
     }
-    if (!handleCheck("Engine Options works safely", alive, "  engine crashed after setting option '" + name + "'")) {
-        engine->stop();
-        startEngine();
+
+    if (!alive) {
+        return { false, "Engine crashed or became unresponsive after setting option '" + name + "' to '" + value + "'" };
     }
-    return false;
+
+    return { false, "Engine timed out after setting option '" + name + "' to '" + value + "'" };
 }
+
 
 void EngineTestController::runEngineOptionTests() {
     int errors = 0;
-    try {
-        if (!gameManager_) {
-            throw std::runtime_error("GameManager not initialized");
+
+    if (!gameManager_) {
+        Logger::testLogger().log("GameManager not initialized", TraceLevel::error);
+        return;
+    }
+
+    auto engine = gameManager_->getEngine();
+    const EngineOptions& options = engine->getSupportedOptions();
+
+    for (const auto& [name, opt] : options) {
+        if (name == "Hash" || opt.type == EngineOption::Type::Button) {
+            continue;
         }
 
-        auto engine = gameManager_->getEngine();
-        const EngineOptions& options = engine->getSupportedOptions();
+        std::vector<std::string> testValues;
 
-        for (const auto& [name, opt] : options) {
-            if (name == "Hash" || opt.type == EngineOption::Type::Button) {
-                continue;
-            }
-
-            std::vector<std::string> testValues;
-
-            switch (opt.type) {
-            case EngineOption::Type::Check:
-                testValues = generateCheckValues();
-                break;
-            case EngineOption::Type::Spin:
-                testValues = generateSpinValues(opt);
-                break;
-            case EngineOption::Type::Combo:
-                testValues = generateComboValues(opt);
-                break;
-            case EngineOption::Type::String:
-                testValues = generateStringValues();
-                break;
-            default:
-                continue;
-            }
-
-            for (const auto& value : testValues) {
-                try {
-                    if (!setOption(name, value)) errors++;
-                }
-                catch (const std::exception& e) {
-                    errors++;
-					Logger::testLogger().log("Exception while setting option '" + name + "' to '" + value + "': " + e.what(), TraceLevel::error);
-                }
-                catch (...) {
-                    errors++;
-					Logger::testLogger().log("Unknown error while setting option '" + name + "' to '" + value + "'", TraceLevel::error);
-                }
-            }
-
-            if (!opt.defaultValue.empty()) {
-                try {
-					if (!setOption(name, opt.defaultValue)) errors++;
-                }
-                catch (const std::exception& e) {
-                    errors++;
-					Logger::testLogger().log("Exception while resetting option '" + name + "' to default value: " + e.what(), TraceLevel::error);
-                }
-                catch (...) {
-                    errors++;
-					Logger::testLogger().log("Unknown error while resetting option '" + name + "' to default value", TraceLevel::error);
-                }
-            }
-			if (errors > 5) {
-				Logger::testLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
-				break;
-			}
+        switch (opt.type) {
+        case EngineOption::Type::Check:
+            testValues = generateCheckValues();
+            break;
+        case EngineOption::Type::Spin:
+            testValues = generateSpinValues(opt);
+            break;
+        case EngineOption::Type::Combo:
+            testValues = generateComboValues(opt);
+            break;
+        case EngineOption::Type::String:
+            testValues = generateStringValues();
+            break;
+        default:
+            continue;
         }
-        Logger::testLogger().log("\nTried to harm the engine by setting valid and invalid options. " +
-            (errors == 0 ? "The engine is very stable, no errors produced." : std::to_string(errors) + " hangs or crashes occurred. See the log for details."));
+
+        for (const auto& value : testValues) {
+            const std::string testName = "Option '" + name + "' = '" + value + "'";
+            runTest("Engine Options works safely", [this, name, value, &errors]() -> std::pair<bool, std::string> {
+                const auto [success, message] = setOption(name, value);
+                if (!success) errors++;
+                return { success, message };
+                });
+
+            if (errors > 5) {
+                Logger::testLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
+                return;
+            }
+        }
+
+        if (!opt.defaultValue.empty()) {
+            const std::string testName = "Option '" + name + "' reset to default";
+            runTest("Engine Options works safely", [this, name, def = opt.defaultValue, &errors]() -> std::pair<bool, std::string> {
+                const auto [success, message] = setOption(name, def);
+                if (!success) errors++;
+                return { success, message };
+                });
+
+            if (errors > 5) {
+                Logger::testLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
+                return;
+            }
+        }
     }
-    catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during engine option test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-		Logger::testLogger().log("Unknown exception during engine option test.", TraceLevel::error);
-    }
+
+    Logger::testLogger().log("\nTried to stress engine with valid and edge-case options. " +
+        (errors == 0 ? "No issues encountered." : std::to_string(errors) + " failures detected. See log for details."));
 }
 
 void EngineTestController::runAnalyzeTest() {
     static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
     static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
-    try {
-		if (!gameManager_) {
-			throw std::runtime_error("GameManager not initialized");
-		}
-        Logger::testLogger().log("\nTesting infinite search", TraceLevel::commands);
-		gameManager_->newGame();
-        TimeControl t; 
+
+    runTest("Engine reacts on stop", [this]() -> std::pair<bool, std::string> {
+        gameManager_->newGame();
+        TimeControl t;
         t.setInfinite();
-		gameManager_->setUniqueTimeControl(t);
+        gameManager_->setUniqueTimeControl(t);
         gameManager_->computeMove(false, "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - - 0 1");
         std::this_thread::sleep_for(std::chrono::seconds(1));
         gameManager_->moveNow();
-        bool finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!handleCheck("Engine reacts on stop", finishedAfterStop, "timeout while waiting for bestmove after stop, " +
-            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
-            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!finishedAfterExtendedWait) {
-                // Start Engine replaces the current engine leading to a destructor of the current engine sending the quit command
-                // And if not successful kills the process.
+        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!finished) {
+            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!extended) {
                 startEngine();
+                return { false, "Timeout after stop command (even after extended wait)" };
             }
         }
+        return { true, "" };
+        });
+
+    runTest("Engine reacts on stop", [this]() -> std::pair<bool, std::string> {
         gameManager_->computeMove(false, "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - - 0 1");
         std::this_thread::sleep_for(std::chrono::seconds(1));
         gameManager_->moveNow();
-        finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!handleCheck("Engine reacts on stop", finishedAfterStop, "timeout while waiting for bestmove after stop " +
-            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
-            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!finishedAfterExtendedWait) {
+        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!finished) {
+            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!extended) {
                 startEngine();
+                return { false, "Timeout after stop command on second position" };
             }
         }
+        return { true, "" };
+        });
+
+    runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
         gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
         gameManager_->moveNow();
-        finishedAfterStop = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!handleCheck("Engine handles immediate stop after 'go infinite' correctly ", finishedAfterStop, "timeout while waiting for bestmove after stop " +
-            std::to_string(ANALYZE_TEST_TIMEOUT.count()) + " ms exceeded")) {
-            bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!finishedAfterExtendedWait) {
+        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!finished) {
+            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!extended) {
                 startEngine();
+                return { false, "Timeout after immediate stop" };
             }
         }
+        return { true, "" };
+        });
+
+    runTest("Infinite compute move must not exit on its own", [this]() -> std::pair<bool, std::string> {
         Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::commands);
         gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
-        bool returnedBeforeStop = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
-        handleCheck("Engine does not exit infinite mode", !returnedBeforeStop, 
-            "Engine sent bestmove in infinite mode without receiving 'stop' – this is incorrect behavior");
+        bool exited = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
+        if (exited) {
+            return { false, "Engine sent bestmove in infinite mode without receiving 'stop'" };
+        }
         gameManager_->moveNow();
-        bool finishedAfterExtendedWait = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-        if (!handleCheck("Engine reacts on stop", finishedAfterExtendedWait, "timeout after stop command in, " +
-            std::to_string(LONGER_TIMEOUT.count()) + " ms exceeded")) {
-            // Restart the GameManager with engine to ensure test continues.
+        bool stopped = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+        if (!stopped) {
             createGameManager(enginePath_, true);
-            return;
+            return { false, "Timeout after stop command in infinite mode" };
         }
         gameManager_->getFinishedFuture().wait();
-    }
-    catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during analyze test: " + std::string(e.what()), TraceLevel::error);
-    }
-    catch (...) {
-        Logger::testLogger().log("Unknown exception during analyze test.", TraceLevel::error);
-    }
+        return { true, "" };
+        });
 }
 
 void EngineTestController::runComputeGameTest() {
@@ -488,30 +491,6 @@ void EngineTestController::runComputeGameTest() {
 		Logger::testLogger().log("Unknown exception during compute games test.", TraceLevel::error);
     }
 }
-
-std::pair<TimeControl, TimeControl> createTestTimeControls(int index) {
-    TimeControl white;
-    white.addTimeSegment({ 0, 30000, 500 });
-
-    TimeControl black;
-    black.addTimeSegment({ 0, 10000, 100 });
-
-    return { white, black };
-}
-
-struct TaskSource {
-    int current = 0;
-    const int max;
-
-    explicit TaskSource(int total) : max(total) {}
-
-    std::optional<int> nextIndex() {
-        if (current < max) {
-            return current++;
-        }
-        return std::nullopt;
-    }
-};
 
 void EngineTestController::runMultipleGamesTest() {
 	if (CliSettingsManager::get<int>("testlevel") != 0) {

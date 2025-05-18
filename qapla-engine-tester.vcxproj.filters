@@ -69,6 +69,12 @@
     <ClCompile Include="src\cli-settings-manager.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\player-context.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\checklist.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -146,7 +152,7 @@
     <ClInclude Include="src\game-manager.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\engine-checklist.h">
+    <ClInclude Include="src\checklist.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\timer.h">
@@ -183,6 +189,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\cli-settings-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\player-context.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

@@ -60,8 +60,7 @@ public:
 	void stop();
 
 	/**
-	 * @brief Führt einmalig nach dem Start der Engine ein erweitertes isready/readyok durch.
-	 *        Timeout ist festgelegt intern.
+	 * @brief Führt isready/readyok durch. 
 	 * @param timeout Zeitspanne, die maximal gewartet werden soll.
 	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).
 	 */
