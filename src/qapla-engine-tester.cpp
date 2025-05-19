@@ -34,10 +34,9 @@ int main(int argc, char** argv) {
     CliSettingsManager::registerSetting("games-number", "Number of games to play", false, 20,
         CliSettingsManager::ValueType::Int);
 	CliSettingsManager::registerSetting("engine", "Path to engine executable", true, 
-        //"",
-        //"C:\\Chess\\cutechess-cli\\qapla0.3\\stockfish-windows-x86-64-avx2.exe",
+        "",
         //"C:\\Chess\\cutechess-cli\\qapla0.3\\viridithas3.0.0-avx2.exe",
-        "C:\\chess\\delivery\\Qapla0.3.2\\Qapla0.3.2-win-x86.exe",
+        //"C:\\chess\\delivery\\Qapla0.3.2\\Qapla0.3.2-win-x86.exe",
         CliSettingsManager::ValueType::PathExists);
     CliSettingsManager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
         CliSettingsManager::ValueType::PathExists);
@@ -61,8 +60,10 @@ int main(int argc, char** argv) {
 	controller.runAllTests(enginePath);
     
 	Checklist::log();
-    std::cout << "Press Enter to quit...";
-    std::cin.get();
+    if (argc == 1) {
+        std::cout << "Press Enter to quit...";
+        std::cin.get();
+    }
     return 0;
 }
 

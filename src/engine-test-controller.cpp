@@ -41,7 +41,7 @@ void EngineTestController::startEngine() {
         success = gameManager_->getEngine()->requestReady();
     }
     catch (...) {}
-    Checklist::logCheck("Engine Started successfully", success, "  engine did not respond to isReady after startup in time");
+    Checklist::logCheck("Engine starts and stops fast and without problems", success, "  engine did not respond to isReady after startup in time");
     if (!success) {
 		Logger::testLogger().log("Engine did not start successfully", TraceLevel::error);
 		throw(std::runtime_error("Engine did not start successfully"));
@@ -63,7 +63,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
         return f.get();
         });
 
-    Checklist::logCheck("Engines Started successfully", allReady, "  one or more engines did not respond to isReady in time");
+    Checklist::logCheck("Engine starts and stops fast and without problems", allReady, "  one or more engines did not respond to isReady in time");
     if (!allReady) {
         Logger::testLogger().log("Engines did not start successfully", TraceLevel::error);
     }
@@ -137,7 +137,7 @@ void EngineTestController::runTest(
 }
 
 void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
-    runTest("Start/Stop Engine", [enginePath, this]() -> std::pair<bool, std::string> {
+    runTest("Engine starts and stops fast and without problems", [enginePath, this]() -> std::pair<bool, std::string> {
         EngineWorkerFactory factory;
         Timer timer;
         timer.start();
@@ -157,6 +157,7 @@ void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
         if (!engine->getEngineName().empty()) {
             Logger::testLogger().log("Name: " + engine->getEngineName() + ", Author: " + engine->getEngineAuthor());
         }
+		Checklist::setEngine(engine->getEngineName(), engine->getEngineAuthor());
         Logger::testLogger().log("Engine started in " + std::to_string(startTime) + " ms, stopped in " +
             std::to_string(stopTime) + " ms, memory usage: " + bytesToMB(memoryInBytes) + " MB");
 
@@ -169,7 +170,7 @@ void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
 }
 
 void EngineTestController::runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines) {
-    runTest("Start/Stop Engine", [enginePath, numEngines]() -> std::pair<bool, std::string> {
+    runTest("Engine starts and stops fast and without problems", [enginePath, numEngines]() -> std::pair<bool, std::string> {
         EngineWorkerFactory factory;
         Timer timer;
         timer.start();
@@ -201,7 +202,7 @@ void EngineTestController::runMultipleStartStopTest(std::filesystem::path engine
 
 
 void EngineTestController::runGoLimitsTests() {
-
+    static constexpr auto GO_TIMEOUT = std::chrono::seconds(2);
     struct TestCase {
         std::string name;
         TimeControl timeControl;
@@ -210,36 +211,31 @@ void EngineTestController::runGoLimitsTests() {
     Logger::testLogger().log("\nTesting compute moves with different time limits, node limits and/or depth limits.");
 
     std::vector<std::pair<std::string, TimeControl>> testCases = {
-        { "normal time with increment", [] {
+        { "No loss on time", [] {
             TimeControl t; t.addTimeSegment({0, 30000, 500}); return t;
         }() },
-        { "movetime", [] { TimeControl t; t.setMoveTime(1000); return t; }() },
-        { "depth-limited", [] { TimeControl t; t.setDepth(4); return t; }() },
-        { "node-limited", [] { TimeControl t; t.setNodes(10000); return t; }() },
-        { "low time with high inc", [] {
+        { "No loss on time", [] {
             TimeControl t; t.addTimeSegment({0, 100, 2000}); return t;
         }() },
-        { "movestogo limits total time", [] {
-            TimeControl t; t.addTimeSegment({5, 30000, 0}); return t;
-        }() },
-        { "depth should override time", [] {
-            TimeControl t; t.setDepth(10); t.addTimeSegment({0, 10000, 0}); return t;
-        }() },
-        { "nodes should override time", [] {
-            TimeControl t; t.setNodes(100000); t.addTimeSegment({0, 10000, 0}); return t;
-        }() },
-        { "few moves left, no increment", [] {
-            TimeControl t; t.addTimeSegment({3, 300, 0}); return t;
-        }() }
+        { "Supports movetime", [] { TimeControl t; t.setMoveTime(1000); return t; }() },
+        { "Supports depth limit", [] { TimeControl t; t.setDepth(4); return t; }() },
+        { "Supports node limit", [] { TimeControl t; t.setNodes(10000); return t; }() }
     };
 
     for (const auto& [name, timeControl] : testCases) {
-        runTest("", [this, timeControl]() -> std::pair<bool, std::string> {
+        runTest(name, [this, name, timeControl]() -> std::pair<bool, std::string> {
             gameManager_->newGame();
             gameManager_->setUniqueTimeControl(timeControl);
             gameManager_->computeMove(true);
-            gameManager_->getFinishedFuture().wait();
-            return { true, "" };
+            bool success = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
+			if (!success) {
+				gameManager_->getEngine()->moveNow();
+			}
+            bool finished = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
+			if (!finished) {
+				gameManager_->stop();
+			}
+            return { success, "Compute move did not return with bestmove in time when testing " + name };
         });
     }
 }

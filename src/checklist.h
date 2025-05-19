@@ -76,6 +76,14 @@ public:
      */
     static void log();
 
+    /**
+	 * @brief Sets the engine name and author.
+     */ 
+	static void setEngine(const std::string& name, const std::string& author) {
+		name_ = name;
+		author_ = author;
+	}
+
 
 private:
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;
@@ -83,6 +91,9 @@ private:
         int total = 0;
         int failures = 0;
     };
+
+    static inline std::string name_;
+    static inline std::string author_;
 
     static inline std::unordered_map<std::string, Stat> stats_;
 };

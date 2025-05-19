@@ -31,10 +31,11 @@
 
 void Checklist::log() {
     Logger::testLogger().log("\n== Summary ==\n");
+	Logger::testLogger().log(name_ + " by " + author_ + "\n");
 
     enum class Section { Important, Missbehaviour, Notes };
     const std::unordered_map<std::string, Section> topicSections = {
-        { "Start/Stop Engine", Section::Important },
+        { "Engine starts and stops fast and without problems", Section::Important },
         { "Engine Options works safely", Section::Important },
         { "No loss on time", Section::Important },
         { "Engine reacts on stop", Section::Important },

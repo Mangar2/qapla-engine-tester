@@ -201,17 +201,17 @@ void GameManager::checkTime(const EngineEvent& event) {
 		limits.depth.has_value() + limits.nodes.has_value();
 
     if (timeLeft > 0) {
-        if (!Checklist::logCheck("loss on time", moveElapsedMs <= timeLeft,
+        if (!Checklist::logCheck("No loss on time", moveElapsedMs <= timeLeft,
             std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft))) {
 			gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
         }
     }
 
 	if (limits.movetimeMs.has_value()) {
-		Checklist::logCheck("movetime overrun", moveElapsedMs < *limits.movetimeMs + GRACE_MS,
+		Checklist::logCheck("No movetime overrun", moveElapsedMs < *limits.movetimeMs + GRACE_MS,
             std::to_string(moveElapsedMs) + " > " + std::to_string(*limits.movetimeMs));
         if (numLimits == 1) {
-            Checklist::logCheck("movetime underrun", moveElapsedMs > *limits.movetimeMs * 99 / 100,
+            Checklist::logCheck("No movetime underrun", moveElapsedMs > *limits.movetimeMs * 99 / 100,
                "The engine should use EXACTLY " + std::to_string(*limits.movetimeMs) + 
                 " ms but took " + std::to_string(moveElapsedMs));
         }
@@ -222,10 +222,10 @@ void GameManager::checkTime(const EngineEvent& event) {
     if (Checklist::logCheck("Engine provides search depth info", event.searchInfo->depth.has_value())) {
         if (limits.depth.has_value()) {
             int depth = *event.searchInfo->depth;
-            Checklist::logCheck("depth overrun", depth <= *limits.depth,
+            Checklist::logCheck("No depth overrun", depth <= *limits.depth,
                 std::to_string(depth) + " > " + std::to_string(*limits.depth));
             if (numLimits == 1) {
-                Checklist::logCheck("depth underrun", depth >= *limits.depth,
+                Checklist::logCheck("No depth underrun", depth >= *limits.depth,
                     std::to_string(depth) + " < " + std::to_string(*limits.depth));
             }
         }
@@ -234,10 +234,10 @@ void GameManager::checkTime(const EngineEvent& event) {
     if (Checklist::logCheck("Engine provides nodes info", event.searchInfo->nodes.has_value())) {
         if (limits.nodes.has_value()) {
 			int64_t nodes = *event.searchInfo->nodes;
-            Checklist::logCheck("nodes overrun", nodes <= *limits.nodes + GRACE_NODES,
+            Checklist::logCheck("No nodes overrun", nodes <= *limits.nodes + GRACE_NODES,
                 std::to_string(nodes) + " > " + std::to_string(*limits.nodes));
             if (numLimits == 1) {
-                Checklist::logCheck("nodes underrun", nodes > *limits.nodes * 9 / 10,
+                Checklist::logCheck("No nodes underrun", nodes > *limits.nodes * 9 / 10,
                     std::to_string(nodes) + " < " + std::to_string(*limits.nodes));
             }
         }
