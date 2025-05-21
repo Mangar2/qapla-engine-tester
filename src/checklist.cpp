@@ -29,6 +29,28 @@
 #include <algorithm>
 #include "checklist.h"
 
+void Checklist::addMissingTopicsAsFail() {
+    const std::vector<std::string> missingSearchInfoTopics = {
+        "Search info reports correct depth",
+        "Search info reports correct selective depth",
+        "Search info reports correct multipv",
+        "Search info reports correct score",
+        "Search info reports correct time",
+        "Search info reports correct nodes",
+        "Search info reports correct nps",
+        "Search info reports correct hashfull",
+        "Search info reports correct cpuload",
+        "Search info reports correct move number",
+        "Search info reports correct current move"
+    };
+
+    for (const auto& topic : missingSearchInfoTopics) {
+        if (!stats_.contains(topic)) {
+            report(topic, true);
+        }
+    }
+}
+
 void Checklist::log() {
     Logger::testLogger().log("\n== Summary ==\n");
 	Logger::testLogger().log(name_ + " by " + author_ + "\n");
@@ -39,22 +61,16 @@ void Checklist::log() {
         { "Engine Options works safely", Section::Important },
         { "No loss on time", Section::Important },
         { "Engine reacts on stop", Section::Important },
-        { "wtime/btime overrun check", Section::Important },
         { "Computing a move returns a legal move", Section::Important },
 
         { "Infinite compute move must not exit on its own", Section::Missbehaviour },
-        { "movetime overrun check", Section::Missbehaviour },
+        { "No movetime overrun", Section::Missbehaviour },
         { "PV check", Section::Missbehaviour },
-		{ "currmove check", Section::Missbehaviour },
-        { "Correct bestmove after immediate stop", Section::Missbehaviour },
-
-        { "Hash Table Memory Adjustment", Section::Notes },
-        { "movetime underrun check", Section::Notes },
-        { "Uses enough time from time control", Section::Notes },
-        { "Keeps reserve time", Section::Notes },
-        { "Does not drop below 1s clock time", Section::Notes },
-        { "search info unknown-token", Section::Notes }
+		{ "Search info reports correct current move", Section::Missbehaviour },
+        { "Correct bestmove after immediate stop", Section::Missbehaviour }
     };
+
+	addMissingTopicsAsFail();
 
     std::map<Section, std::vector<std::pair<std::string, Stat>>> grouped;
     for (const auto& [topic, stat] : stats_) {

@@ -62,7 +62,7 @@ public:
         report(name, success);
         if (!success) {
             auto numErrors = getNumErrors(name);
-            Logger::testLogger().log("[Report] " + std::string(name) + ": " + std::string(detail),
+            Logger::testLogger().log("[Report for topic \"" + std::string(name) + "\"] " + std::string(detail),
                 numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : TraceLevel::error);
             if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
                 Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.");
@@ -91,6 +91,8 @@ private:
         int total = 0;
         int failures = 0;
     };
+
+    static void addMissingTopicsAsFail();
 
     static inline std::string name_;
     static inline std::string author_;

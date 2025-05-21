@@ -30,8 +30,9 @@
 #include "logger.h"
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory)
-	: EngineAdapter(enginePath, workingDirectory)
+    const std::optional<std::filesystem::path>& workingDirectory,
+    const std::string& identifier)
+	: EngineAdapter(enginePath, workingDirectory, identifier)
 {
 }
 
@@ -61,7 +62,7 @@ void UciAdapter::runUciHandshake() {
                 headerParsed = true;
             }
             else {
-                _welcomeMessage += spacer + *line;
+                welcomeMessage_ += spacer + *line;
 				spacer = "\n";
                 continue;
             }
@@ -228,7 +229,7 @@ void readBoundedInt32(std::istringstream& iss,
     int value;
     if (!(iss >> value)) {
         errors.push_back({
-            "search info " + fieldName,
+            "Search info reports correct  " + fieldName,
             "Expected an integer after '" + fieldName + "'"
             });
         iss.clear();
@@ -237,7 +238,7 @@ void readBoundedInt32(std::istringstream& iss,
 
     if (value < min || value > max) {
         errors.push_back({
-            "search info " + fieldName,
+            "Search info reports correct  " + fieldName,
             "Reported value " + std::to_string(value) +
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
@@ -258,7 +259,7 @@ void readBoundedInt64(std::istringstream& iss,
     int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
-            "search info " + fieldName,
+            "Search info reports correct  " + fieldName,
             "Expected an integer after '" + fieldName + "'"
             });
         iss.clear();
@@ -267,7 +268,7 @@ void readBoundedInt64(std::istringstream& iss,
 
     if (value < min || value > max) {
         errors.push_back({
-            "search info " + fieldName,
+            "Search info reports correct " + fieldName,
             "Reported value " + std::to_string(value) +
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
@@ -280,7 +281,7 @@ void readBoundedInt64(std::istringstream& iss,
 
 EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timestamp) {
     SearchInfo info;
-    EngineEvent event(EngineEvent::Type::Info, timestamp, line);
+    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, line);
     std::istringstream iss(line);
     std::string token;
     iss >> token; // "info"
@@ -302,7 +303,7 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
             else if (token == "score") {
                 std::string type;
                 if (!(iss >> type)) {
-                    event.errors.push_back({ "search info score", "Missing score type after 'score'" });
+                    event.errors.push_back({ "Search info reports correct score", "Missing score type after 'score'" });
                     continue;
                 }
                 if (type == "cp") {
@@ -312,7 +313,7 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
                     readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
                 }
                 else {
-                    event.errors.push_back({ "search info score unknown type", "Unknown score type: '" + type + "'" });
+                    event.errors.push_back({ "search info reports only specified fields", "Unknown score type: '" + type + "'" });
                     continue;
                 }
 
@@ -379,79 +380,86 @@ const std::string testLine =
 EngineEvent UciAdapter::readEvent() {
     EngineLine engineLine = process_.readLineBlocking();
     if (engineLine.content == "") {
-        return EngineEvent{ EngineEvent::Type::NoData, engineLine.timestampMs, "" };
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
-	const std::string& line = engineLine.content;
+    const std::string& line = engineLine.content;
+    std::istringstream iss(line);
+    std::string command;
+    iss >> command;
 
-    if (line == "readyok") {
+    if (command == "readyok") {
         logFromEngine(line, TraceLevel::handshake);
-        return EngineEvent(EngineEvent::Type::ReadyOk, engineLine.timestampMs, line);
+        return EngineEvent::createReadyOk(identifier_, engineLine.timestampMs, line);
     }
 
-    if (line.rfind("bestmove ", 0) == 0) {
+    if (command == "bestmove") {
         logFromEngine(line, TraceLevel::commands);
-        std::istringstream iss(line);
-        std::string token, best, ponder;
-        iss >> token >> best;
-        EngineEvent event(EngineEvent::Type::BestMove, engineLine.timestampMs, line);
-        event.bestMove = best;
-        if (iss >> token >> ponder && token == "ponder") {
-            event.ponderMove = ponder;
+        std::string best, token, ponder, err;
+        iss >> best;
+        iss >> token;
+        if (token == "ponder") {
+            iss >> ponder;
         }
-        return event;
+        else {
+            ponder = "";
+        }
+        EngineEvent e = EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, best, ponder);
+        if (token != "ponder" && token != "") {
+            err = "Expected 'ponder' or nothing after bestmove, got '" + token + "'";
+            e.errors.push_back({ "bestmove", err });
+        }
+        return e;
     }
 
-    if (line.rfind("info ", 0) == 0) {
+    if (command == "info") {
         logFromEngine(line, TraceLevel::info);
-        EngineEvent event = parseSearchInfo(line, engineLine.timestampMs);
-        return event;
+        return parseSearchInfo(line, engineLine.timestampMs);
     }
 
-    if (line == "ponderhit") {
+    if (command == "ponderhit") {
         logFromEngine(line, TraceLevel::commands);
-        return EngineEvent(EngineEvent::Type::PonderHit, engineLine.timestampMs, line);
+        return EngineEvent::createPonderHit(identifier_, engineLine.timestampMs, line);
     }
 
-    if (line.rfind("option", 0) == 0) {
+    if (command == "option") {
         if (numOptionError_ <= 5) {
             logFromEngine(line + " Report: option command outside uci/uciok: ", TraceLevel::error);
             logFromEngine(line, TraceLevel::commands);
             if (numOptionError_ == 5) {
-				logFromEngine("Report: too many option errors, stopping further checks", TraceLevel::error);
+                logFromEngine("Report: too many option errors, stopping further checks", TraceLevel::error);
             }
             numOptionError_++;
         }
-	}
-	if (line.rfind("id", 0) == 0) {
-		if (numIdError_ <= 5) {
-			logFromEngine(line + " Report: id name command outside uci/uciok: ", TraceLevel::error);
-			logFromEngine(line, TraceLevel::commands);
-			if (numIdError_ == 5) {
-				logFromEngine("Report: too many id name errors, stopping further checks", TraceLevel::error);
-			}
-			numIdError_++;
-		}
-	}
-	if (line.rfind("name", 0) == 0) {
-		if (numNameError_ <= 5) {
-			logFromEngine(line + " Report: name command outside uci/uciok: ", TraceLevel::error);
-			logFromEngine(line, TraceLevel::commands);
-			if (numNameError_ == 5) {
-				logFromEngine("Report: too many name errors, stopping further checks", TraceLevel::error);
-			}
-			numNameError_++;
-		}
-	}
+    }
+    else if (command == "id") {
+        if (numIdError_ <= 5) {
+            logFromEngine(line + " Report: id name command outside uci/uciok: ", TraceLevel::error);
+            logFromEngine(line, TraceLevel::commands);
+            if (numIdError_ == 5) {
+                logFromEngine("Report: too many id name errors, stopping further checks", TraceLevel::error);
+            }
+            numIdError_++;
+        }
+    }
+    else if (command == "name") {
+        if (numNameError_ <= 5) {
+            logFromEngine(line + " Report: name command outside uci/uciok: ", TraceLevel::error);
+            logFromEngine(line, TraceLevel::commands);
+            if (numNameError_ == 5) {
+                logFromEngine("Report: too many name errors, stopping further checks", TraceLevel::error);
+            }
+            numNameError_++;
+        }
+    }
 
-	if (numUnknownCommandError_ <= 5) {
-		logFromEngine(line + " Report: unknown command: ", TraceLevel::error);
-		logFromEngine(line, TraceLevel::commands);
-		if (numUnknownCommandError_ == 5) {
-			logFromEngine("Report: too many unknown command errors, stopping further checks", TraceLevel::error);
-		}
-		numUnknownCommandError_++;
-	}
-    return EngineEvent(EngineEvent::Type::Unknown, engineLine.timestampMs, line);
+    if (numUnknownCommandError_ <= 5) {
+        logFromEngine(line + " Report: unknown command: ", TraceLevel::error);
+        logFromEngine(line, TraceLevel::commands);
+        if (numUnknownCommandError_ == 5) {
+            logFromEngine("Report: too many unknown command errors, stopping further checks", TraceLevel::error);
+        }
+        numUnknownCommandError_++;
+    }
+    return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
 }
-

@@ -147,7 +147,7 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
         try {
             int64_t sendTimestamp = adapter.computeMove(gameRecord, limits);
             if (eventSink_) {
-				eventSink_(EngineEvent{ EngineEvent::Type::ComputeMoveSent, sendTimestamp });
+				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
             }
         }
         catch (...) {

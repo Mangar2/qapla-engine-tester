@@ -110,9 +110,10 @@ public:
     /**
      * Initiates asynchronous move computation using the current time control.
      *
-     * @param game The game state to compute the move for.
+	 * @param useStartPosition If true, the game starts from the initial position.
+	 * @param fen The FEN string representing the game state.
      */
-    void computeMove(bool startPos, const std::string fen = "");
+    void computeMove(bool useStartPosition, const std::string fen = "");
 
 	/**
 	 * @brief Tells the engine to stop the current move calculation and sends the best move
@@ -122,11 +123,11 @@ public:
 	/**
 	 * Initiates asynchronous game computation using the current time control.
 	 *
-	 * @param startPos If true, the game starts from the initial position.
+	 * @param useStartPosition If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
      * @param logMoves true, then moves will be logged
 	 */
-    void computeGame(bool startPos, const std::string fen = "", bool logMoves = false);
+    void computeGame(bool useStartPosition, const std::string fen = "", bool logMoves = false);
 
     /**
      * @brief Starts and manages multiple consecutive games using a task callback.
@@ -159,8 +160,6 @@ private:
 	void handleInfo(const EngineEvent& event);
     void handleHeartBeat();
 
-    bool isLegalMove(const std::string& moveText);
-
     void computeNextMove();
 
     /**
@@ -178,16 +177,19 @@ private:
         }
     }
 
-    /**
-     * @brief Evaluates whether the engine respected the time constraints defined in GoLimits.
-     *
-     * This function considers all active time limits (e.g. movetime, wtime, btime, movesToGo)
-     * and verifies that the engine stopped within the strictest constraint.
-     * If no limits are set, it ensures that the engine used a non-trivial amount of time.
-     *
-     * @param event The EngineEvent containing the bestmove timestamp for timing analysis.
-     */
-    void checkTime(const EngineEvent& event);
+	/**
+	 * @brief Initiates a new game, setting the FEN string for both players and informing the gameRecord.
+	 *
+	 * @param useStartPosition If true, the game starts from the initial position.
+	 * @param fen The FEN string representing the game state.
+	 */
+	void newGame(bool useStartPosition, const std::string& fen) {
+        whitePlayer_.setFen(useStartPosition, fen);
+		if (whitePlayer_.getEngine() != blackPlayer_.getEngine()) {
+			blackPlayer_.setFen(useStartPosition, fen);
+		}
+        gameRecord_.newGame(useStartPosition, fen, whitePlayer_.isWhiteToMove());
+	}
 
 	/**
 	 * @brief Checks if the game has ended.
@@ -222,14 +224,9 @@ private:
      */
     bool finishedPromiseValid_ = false;
 
-    Timer timer_;
-	GameState gameState_;
-	int64_t computeMoveStartTimestamp_ = 0;
     bool requireLan_ = true;
 	Tasks task_ = Tasks::None;
-    MoveRecord currentMove_;
 	GameRecord gameRecord_;
-    GoLimits currentGoLimits_;
     bool logMoves_ = false;
 
 	// Mutex to protect access to the event queue and state

@@ -37,7 +37,8 @@
 class UciAdapter : public EngineAdapter {
 public:
     explicit UciAdapter(std::filesystem::path enginePath,
-        const std::optional<std::filesystem::path>& workingDirectory = std::nullopt);
+        const std::optional<std::filesystem::path>& workingDirectory,
+        const std::string& identifier);
     ~UciAdapter();
 
     void runEngine() override;

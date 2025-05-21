@@ -165,6 +165,7 @@
     <ClInclude Include="src\engine-group.h" />
     <ClInclude Include="src\engine-process.h" />
     <ClInclude Include="src\engine-worker.h" />
+    <ClInclude Include="src\epd-manager.h" />
     <ClInclude Include="src\evalvalue.h" />
     <ClInclude Include="src\fenscanner.h" />
     <ClInclude Include="src\game-manager.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="src\game-result.h" />
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
+    <ClInclude Include="src\game-task.h" />
     <ClInclude Include="src\hashconstants.h" />
     <ClInclude Include="src\heart-beat.h" />
     <ClInclude Include="src\logger.h" />

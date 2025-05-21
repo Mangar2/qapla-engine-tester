@@ -45,4 +45,6 @@ public:
         createUci(const std::filesystem::path& executablePath,
             std::optional<std::filesystem::path> workingDirectory = std::nullopt,
             std::size_t count = 1) const;
+private:
+    static inline uint32_t identifier_ = 0;
 };

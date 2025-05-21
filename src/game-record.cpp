@@ -27,6 +27,7 @@ void GameRecord::addMove(const MoveRecord& move) {
     }
     moves_.push_back(move);
     ++currentPly_;
+	isWhiteToMove_ = !isWhiteToMove_;
 }
 
 uint32_t GameRecord::currentPly() const {

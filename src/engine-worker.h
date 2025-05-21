@@ -57,6 +57,13 @@ public:
 	EngineWorker& operator=(const EngineWorker&) = delete;
 
 
+	const std::string& getIdentifier() const {
+		return identifier_;
+	}
+
+	/**
+	 * @brief Terminates the engine process and stops the worker thread.
+	 */
 	void stop();
 
 	/**

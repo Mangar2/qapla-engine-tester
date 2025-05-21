@@ -27,29 +27,7 @@
 #include "game-record.h"
 #include "game-result.h"
 #include "checklist.h"
-
-struct GameTask {
-    bool useStartPosition;
-    std::string fen;
-    TimeControl whiteTimeControl;
-    TimeControl blackTimeControl;
-};
-
-class GameTaskProvider {
-public:
-	GameTaskProvider() = default;
-	virtual ~GameTaskProvider() = default;
-	/**
-	 * @brief Provides the next game task.
-	 * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
-	 */
-	virtual std::optional<GameTask> nextTask() = 0;
-    /**
-	 * @brief Sets the game state for the task.
-	 * @param state The game state to set.
-     */
-    virtual void setGameRecord(const GameRecord& record) = 0;
-};
+#include "game-task.h"
 
 class TournamentManager : public GameTaskProvider {
 public:

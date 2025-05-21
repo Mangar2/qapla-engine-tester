@@ -35,8 +35,9 @@
  */
 class GameRecord {
 public:
-    void newGame(bool startPos, std::string startFen) {
+    void newGame(bool startPos, std::string startFen, bool isWhiteToMove) {
 		moves_.clear();
+		isWhiteToMove_ = isWhiteToMove;
 		currentPly_ = 0;
 		startPos_ = startPos;
 		startFen_ = startFen;
@@ -107,6 +108,13 @@ public:
     const TimeControl& getBlackTimeControl() const {
         return blackTimeControl_;
     }
+
+	/**
+	 * @brief Returns the current side to move.
+	 */
+	const bool isWhiteToMove() const {
+		return isWhiteToMove_;
+	}
     
 
 private:
@@ -118,4 +126,5 @@ private:
 	GameResult gameResult_;
     TimeControl whiteTimeControl_;
     TimeControl blackTimeControl_;
+	bool isWhiteToMove_ = true;
 };

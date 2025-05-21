@@ -194,6 +194,12 @@
     <ClInclude Include="src\player-context.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\game-task.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\epd-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

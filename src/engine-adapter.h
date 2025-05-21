@@ -61,7 +61,8 @@ enum class EngineState {
 class EngineAdapter {
 public:
     EngineAdapter(std::filesystem::path enginePath,
-        const std::optional<std::filesystem::path>& workingDirectory);
+        const std::optional<std::filesystem::path>& workingDirectory,
+        const std::string& identifier);
     virtual ~EngineAdapter() = default;
 
     /**
@@ -188,7 +189,7 @@ public:
 	 * @brief Returns the welcome message of the engine.
 	 */
 	std::string getWelcomeMessage() const {
-		return _welcomeMessage;
+		return welcomeMessage_;
 	}
 
 protected:
@@ -213,7 +214,9 @@ protected:
     
     std::string engineName_;
     std::string engineAuthor_;
-    std::string _welcomeMessage;
+    std::string welcomeMessage_;
+
+    std::string identifier_;
 
 	bool ponderMode_ = false;
 

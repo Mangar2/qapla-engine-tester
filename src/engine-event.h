@@ -78,8 +78,8 @@ inline std::ostream& operator<<(std::ostream& os, const SearchInfo& info) {
     return os;
 }
 
-
 struct EngineEvent {
+
     enum class Type {
         ComputeMoveSent,
         ReadyOk,
@@ -91,6 +91,33 @@ struct EngineEvent {
         NoData,
         KeepAlive
     };
+    static EngineEvent create(Type type, const std::string& id, int64_t ts, const std::string& rawLine = "") {
+        EngineEvent e; 
+        e.type = type;
+        e.engineIdentifier = id;
+        e.timestampMs = ts;
+        e.rawLine = rawLine;
+        return e;
+    }
+	static EngineEvent createNoData(const std::string& id, int64_t ts) {
+		return create(Type::NoData, id, ts);
+	}
+	static EngineEvent createReadyOk(const std::string& id, int64_t ts, const std::string& rawLine) {
+		return create(Type::ReadyOk, id, ts, rawLine);
+	}
+    static EngineEvent createPonderHit(const std::string& id, int64_t ts, const std::string& rawLine) {
+		return create(Type::PonderHit, id, ts, rawLine);
+	}
+	static EngineEvent createUnknown(const std::string& id, int64_t ts, const std::string& rawLine) {
+		return create(Type::Unknown, id, ts, rawLine);
+	}
+	static EngineEvent createBestMove(const std::string& id, int64_t ts, const std::string& rawLine, 
+        const std::string& bestMove, const std::string& ponderMove) {
+		EngineEvent e = create(Type::BestMove, id, ts, rawLine);
+		e.bestMove = bestMove;
+		e.ponderMove = ponderMove;
+		return e;
+	}
 
     struct ParseError {
         std::string name;
@@ -106,5 +133,8 @@ struct EngineEvent {
 
     std::optional<SearchInfo> searchInfo;
     std::vector<ParseError> errors;
+    std::string engineIdentifier;
+private:
+	EngineEvent() = default;
 };
 

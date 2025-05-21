@@ -21,6 +21,7 @@
 #include "engine-worker.h"
 #include "time-control.h"
 #include "game-state.h"
+#include "game-record.h"
 
 class PlayerContext {
 public:
@@ -55,12 +56,45 @@ public:
     }
 
     /**
+	 * @brief Tells the engine to compute a new move
+     */
+    void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits);
+
+	/**
+	 * @brief returns player to move
+	 */
+	bool isWhiteToMove() const {
+		return gameState_.isWhiteToMove();
+	}
+
+	/**
+	 * @brief Returns the current move record.
+	 */
+	const MoveRecord& getCurrentMove() const {
+		return currentMove_;
+	}
+
+	/**
+	 * @brief Returns the current game state.
+     * @return The result of the game and the winner side.
+     */
+	auto getGameResult() {
+		return gameState_.getGameResult();
+	}
+
+    /**
      * @brief Sets the timestamp when the engine started computing a move.
-     *
+     * We will never reduce the start timestamp. If a new timestamp is lower than the last one
+     * we obviously have a race condition and thus ignore the too-old timestamp.
      * @param timestamp Milliseconds since epoch.
      */
     void setComputeMoveStartTimestamp(int64_t timestamp) {
-        computeMoveStartTimestamp_ = timestamp;
+        if (timestamp > computeMoveStartTimestamp_) {
+            computeMoveStartTimestamp_ = timestamp;
+        }
+        // I expect this to never happen. Let us see in debug mode. If this happens this should be a race condition.
+        // But it still make sense to check, if this is a bug in the code
+        assert(timestamp >= computeMoveStartTimestamp_);
     }
 
     /**
@@ -83,8 +117,9 @@ public:
      * @brief Handles a best move event from the engine.
      *
      * @param event The EngineEvent containing the best move.
+	 * @return The best move as a QaplaBasics::Move object.
      */
-    void handleBestMove(const EngineEvent& event);
+    QaplaBasics::Move handleBestMove(const EngineEvent& event);
 
     /**
      * @brief Evaluates whether the engine respected the time constraints.
@@ -98,11 +133,28 @@ public:
     void checkTime(const EngineEvent& event);
 
     /**
-     * @brief Sets the move text and updates game state.
+	 * @brief Plays a move in the game.
      *
      * @param moveText The move in algebraic notation.
      */
-    void setMove(const std::string& moveText);
+    void doMove(const std::string& moveText);
+    
+    /**
+	 * @brief Plays a move in the game.
+     */
+	void doMove(QaplaBasics::Move move) {
+		gameState_.doMove(move);
+	}
+
+	/**
+	 * @brief Sets the game state to a new position.
+	 *
+	 * @param startPosition If true, sets the game to the starting position.
+	 * @param fen The FEN string representing the new position.
+	 */
+	void setFen(bool startPosition, const std::string& fen) {
+		gameState_.setFen(startPosition, fen);
+	}
 
 	const TimeControl& getTimeControl() const {
 		return timeControl_;

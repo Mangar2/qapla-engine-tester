@@ -30,10 +30,11 @@ EngineList EngineWorkerFactory::createUci(
     engines.reserve(count);
 
     for (std::size_t i = 0; i < count; ++i) {
-        auto identifier = "#" + std::to_string(i);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory);
-        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifier);
+        auto identifierStr = "#" + std::to_string(identifier_);
+        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr);
         engines.push_back(std::move(worker));
+        identifier_++;
     }
     std::vector<std::future<void>> futures;
     futures.reserve(count);
