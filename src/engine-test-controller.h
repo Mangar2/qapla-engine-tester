@@ -100,6 +100,11 @@ private:
      */
     void runAnalyzeTest();
 
+    /**
+     * @brief computes a list of moves for epd test positions
+     */
+	void runEpdTests();
+
 	/**
 	 * @brief Tests the engine's ability to compute moves in a game.
 	 */

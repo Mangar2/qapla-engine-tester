@@ -17,10 +17,12 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include <iostream>
+#include <chrono>
 #include "player-context.h"
 #include "checklist.h"
 #include "timer.h"
-#include <iostream>
+#include "engine-worker-factory.h"
 
 void PlayerContext::handleInfo(const EngineEvent& event) {
     if (!event.searchInfo.has_value()) return;
@@ -75,6 +77,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 }
 
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
+    computingMove_ = false;
     if (!Checklist::logCheck("Computing a move returns a legal move", event.bestMove.has_value())) {
         gameState_.setGameResult(GameEndCause::IllegalMove, gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
 		currentMove_ = MoveRecord{};
@@ -114,7 +117,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (goLimits_.movetimeMs.has_value()) {
         Checklist::logCheck("No movetime overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
-            std::to_string(moveElapsedMs) + " < " + std::to_string(*goLimits_.movetimeMs));
+            "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms");
         if (numLimits == 1) {
             Checklist::logCheck("No movetime underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +
@@ -149,6 +152,56 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 }
 
+bool PlayerContext::checkEngineTimeout() {
+    if (!computingMove_) return false;
+	const int64_t GRACE_MS = 2000;
+    const int64_t OVERRUN_TIMEOUT = 5000;
+
+    const int64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_ - GRACE_MS;
+    const bool white = gameState_.isWhiteToMove();
+    bool restarted = false;
+
+    const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
+    int64_t overrun = 0;
+	if (timeLeft != 0) {
+        overrun = moveElapsedMs > timeLeft;
+        if (moveElapsedMs > timeLeft) {
+			engine_->moveNow();
+			restarted = restartIfNotReady();
+            gameState_.setGameResult(GameEndCause::Disconnected, white ? GameResult::BlackWins : GameResult::WhiteWins);
+		}
+	}
+    else if ((goLimits_.movetimeMs.has_value() && *goLimits_.movetimeMs < moveElapsedMs)) {
+        overrun = moveElapsedMs > *goLimits_.movetimeMs;
+        engine_->moveNow();
+        restarted = restartIfNotReady();
+
+    }
+	if (overrun) {
+        // We are here, if the engine responded with isready but still does not play a move
+        restart();
+        restarted = true;
+	}
+    if (restarted) {
+        Checklist::logCheck("No disconnect", restarted, "Engine not reacting to isready ");
+    }
+    return restarted;
+}
+
+void PlayerContext::restart() {
+    auto list = EngineWorkerFactory::createUci(engine_->getExecutablePath(), std::nullopt, 1);
+    engine_ = std::move(list[0]);
+}
+
+bool PlayerContext::restartIfNotReady() {
+    std::chrono::seconds WAIT_READY{ 1 };
+	if (engine_ && !engine_->requestReady(WAIT_READY)) {
+        restart();
+		return true;
+	}
+    return false;
+}
+
 void PlayerContext::doMove(const std::string& moveText) {
     const auto move = gameState_.stringToMove(moveText, requireLan_);
     if (!move.isEmpty()) {
@@ -163,6 +216,7 @@ bool PlayerContext::isLegalMove(const std::string& moveText) {
 
 void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits) {
     goLimits_ = goLimits;
+    computingMove_ = true;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
     // the compute move string to the engine. As it is asynchronous, we might get a bestmove event before receiving the
     // sent compute move event. In this case we use this timestamp here

@@ -113,6 +113,12 @@ public:
      */
     void handleInfo(const EngineEvent& event);
 
+	/**
+	 * @brief Keep alive tick - check for a timout or non active engine
+     * @return true, if we restarted the engine and the task must be stopped
+	 */
+    bool checkEngineTimeout();
+
     /**
      * @brief Handles a best move event from the engine.
      *
@@ -169,11 +175,15 @@ private:
      */
     bool isLegalMove(const std::string& moveText);
 
+    bool restartIfNotReady();
+    void restart();
+
     std::shared_ptr<EngineWorker> engine_;
     TimeControl timeControl_;
     GameState gameState_;
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
+    bool computingMove_;
     MoveRecord currentMove_;
 };

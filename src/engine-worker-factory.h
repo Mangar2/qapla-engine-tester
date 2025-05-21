@@ -41,10 +41,10 @@ public:
      * @param count Number of engine workers to create.
      * @return A vector of fully initialized EngineWorker instances.
      */
-    EngineList
+    static EngineList
         createUci(const std::filesystem::path& executablePath,
             std::optional<std::filesystem::path> workingDirectory = std::nullopt,
-            std::size_t count = 1) const;
+            std::size_t count = 1);
 private:
     static inline uint32_t identifier_ = 0;
 };

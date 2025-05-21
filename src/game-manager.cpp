@@ -73,6 +73,12 @@ void GameManager::handleState(const EngineEvent& event) {
         Checklist::logCheck(error.name, false, error.detail);
     }
     if (event.type == EngineEvent::Type::KeepAlive) {
+		if (gameRecord_.isWhiteToMove()) {
+			if (whitePlayer_.checkEngineTimeout()) computeNextTask();
+		}
+		else {
+			if (blackPlayer_.checkEngineTimeout()) computeNextTask();
+		}
         return;
     }
 	if (event.engineIdentifier != whitePlayer_.getEngine()->getIdentifier() &&
@@ -83,26 +89,17 @@ void GameManager::handleState(const EngineEvent& event) {
 	}
     if (event.type == EngineEvent::Type::BestMove) {
         handleBestMove(event);
-        if (task_ == Tasks::ComputeMove) {
-            finishedPromise_.set_value();
-			task_ = Tasks::None;
+        if (taskType_ == GameTask::Type::ComputeMove) {
+			computeNextTask();
         } 
-        else if (task_ == Tasks::PlayGame) {
+        else if (taskType_ == GameTask::Type::PlayGame) {
             if (checkForGameEnd()) {
-                finishedPromise_.set_value();
+				computeNextTask();
 			}
             else {
                 computeNextMove();
             }
         } 
-        else if (task_ == Tasks::ParticipateInTournament) {
-            if (checkForGameEnd()) {
-                computeNextGame();
-            }
-			else {
-				computeNextMove();
-			}
-        }
     }
     else if (event.type == EngineEvent::Type::Info) {
         handleInfo(event);
@@ -183,9 +180,10 @@ void GameManager::moveNow() {
 void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
+	taskProvider_ = nullptr;
 	newGame(useStartPosition, fen);
 	gameRecord_.setTimeControl(whitePlayer_.getTimeControl(), blackPlayer_.getTimeControl());
-	task_ = Tasks::ComputeMove;
+	taskType_ = GameTask::Type::ComputeMove;
     logMoves_ = false;
     computeNextMove();
 }
@@ -206,17 +204,20 @@ void GameManager::computeNextMove() {
 void GameManager::computeGame(bool useStartPosition, const std::string fen, bool logMoves) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
+	taskProvider_ = nullptr;
 	newGame(useStartPosition, fen);
-    task_ = Tasks::PlayGame;
+    taskType_ = GameTask::Type::PlayGame;
 	logMoves_ = logMoves;
     computeNextMove();
 }
 
-void GameManager::computeNextGame() {
+void GameManager::computeNextTask() {
 	if (!taskProvider_) {
 		finishedPromise_.set_value();
+		taskType_ = GameTask::Type::None;
 		return;
 	}
+
     if (gameRecord_.currentPly() > 0) {
         taskProvider_->setGameRecord(gameRecord_);
     }
@@ -229,16 +230,17 @@ void GameManager::computeNextGame() {
 	newGame(task.useStartPosition, task.fen);
 	gameRecord_.setTimeControl(task.whiteTimeControl, task.blackTimeControl);
 	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
+    taskType_ = task.taskType;
+
     computeNextMove();
 }
 
-void GameManager::computeGames(GameTaskProvider* taskProvider) {
+void GameManager::computeTasks(GameTaskProvider* taskProvider) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
-    task_ = Tasks::ParticipateInTournament;
 	taskProvider_ = std::move(taskProvider);
     logMoves_ = false;
-    computeNextGame();
+    computeNextTask();
 }
 
 void GameManager::run() {

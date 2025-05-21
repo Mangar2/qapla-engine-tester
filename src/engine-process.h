@@ -139,6 +139,14 @@ public:
      */
     std::size_t getMemoryUsage() const;
 
+	/**
+	 * @brief Returns the path to the engine executable.
+	 * @return Path to the engine executable.
+	 */
+	std::string getExecutablePath() const {
+		return executablePath_.string();
+	}
+
 private:
 
     /**

@@ -28,19 +28,20 @@
  * for engine testing or protocol-level termination.
  */
 enum class GameEndCause {
-	Ongoing,               ///< The game is still in progress
-	Checkmate,             ///< One player is checkmated
-	Stalemate,             ///< The game ended in stalemate
-	DrawByRepetition,      ///< Draw due to threefold repetition
-	DrawByFiftyMoveRule,   ///< Draw due to the 50-move rule
-	DrawByInsufficientMaterial, ///< Draw due to insufficient mating material
-	DrawByAgreement,       ///< Draw by mutual agreement (PGN result: ½–½)
-	Resignation,           ///< One side resigns
-	Timeout,               ///< One side ran out of time
-	IllegalMove,           ///< A player made an illegal move (e.g. engine bug)
-	Adjudication,          ///< Tester or supervisor declared a result externally
-	Forfeit,               ///< Forfeit due to rule violation or technical fault
-	TerminatedByTester     ///< Game was aborted or terminated by the test system
+	Ongoing,               // The game is still in progress
+	Checkmate,             // One player is checkmated
+	Stalemate,             // The game ended in stalemate
+	DrawByRepetition,      // Draw due to threefold repetition
+	DrawByFiftyMoveRule,   // Draw due to the 50-move rule
+	DrawByInsufficientMaterial, // Draw due to insufficient mating material
+	DrawByAgreement,       // Draw by mutual agreement (PGN result: ½–½)
+	Resignation,           // One side resigns
+	Timeout,               // One side ran out of time
+	IllegalMove,           // A player made an illegal move (e.g. engine bug)
+	Adjudication,          // Tester or supervisor declared a result externally
+	Forfeit,               // Forfeit due to rule violation or technical fault
+	TerminatedByTester,    // Game was aborted or terminated by the test system
+	Disconnected		   // Game was aborted due to engine not responding
 };
 
 enum class GameResult { WhiteWins, BlackWins, Draw, Unterminated };

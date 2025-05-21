@@ -24,7 +24,7 @@
 EngineList EngineWorkerFactory::createUci(
     const std::filesystem::path& executablePath,
     std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count) const
+    std::size_t count)
 {
     std::vector<std::unique_ptr<EngineWorker>> engines;
     engines.reserve(count);

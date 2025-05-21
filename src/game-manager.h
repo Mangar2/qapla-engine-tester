@@ -130,14 +130,14 @@ public:
     void computeGame(bool useStartPosition, const std::string fen = "", bool logMoves = false);
 
     /**
-     * @brief Starts and manages multiple consecutive games using a task callback.
+     * @brief Starts and manages multiple consecutive tasks such as games or compute move using a task callback.
      *
-     * Each game is initiated asynchronously after the previous one finishes. The taskProvider
+     * Each task is initiated asynchronously after the previous one finishes. The taskProvider
      * callback must return a valid GameTask or std::nullopt to signal completion.
      *
-     * @param taskProvider Function that returns the next GameTask or std::nullopt if done.
+     * @param taskProvider Function that returns the next Task or std::nullopt if done.
      */
-    void computeGames(GameTaskProvider* taskProvider);
+    void computeTasks(GameTaskProvider* taskProvider);
 
     /**
      * @brief Returns a reference to the EngineWorker instance.
@@ -149,12 +149,6 @@ public:
     }
 private:
 
-	enum class Tasks {
-        None,
-		ComputeMove,
-        PlayGame,
-        ParticipateInTournament
-	};
     void handleState(const EngineEvent& event);
 	void handleBestMove(const EngineEvent& event);
 	void handleInfo(const EngineEvent& event);
@@ -215,9 +209,9 @@ private:
      */
     GameTaskProvider* taskProvider_;
     /**
-	 * Computes the next game in the tournament.
+	 * Computes the next task from the task provider
      */
-	void computeNextGame();
+	void computeNextTask();
 
     /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
@@ -225,7 +219,7 @@ private:
     bool finishedPromiseValid_ = false;
 
     bool requireLan_ = true;
-	Tasks task_ = Tasks::None;
+	GameTask::Type taskType_ = GameTask::Type::None;
 	GameRecord gameRecord_;
     bool logMoves_ = false;
 

@@ -172,6 +172,13 @@ public:
     const EngineOptions& getSupportedOptions() const { return supportedOptions_; }
 
 	/**
+	 * @brief Returns the engine's executable path.
+	 */
+	std::string getExecutablePath() const {
+		return process_.getExecutablePath();
+	}
+
+	/**
 	 * @brief Returns the name of the engine.
 	 */
 	std::string getEngineName() const {

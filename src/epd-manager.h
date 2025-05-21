@@ -29,6 +29,7 @@
 struct EpdTest {
     std::string fen;
     std::string expectedMove;
+    std::string topic;
     bool whiteToPlay;
 };
 
@@ -44,10 +45,12 @@ class EpdManager : public GameTaskProvider {
 public:
     EpdManager() {
         tests_ = {
-            { "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", "d2d4", true },
-            { "rnbqkbnr/ppp2ppp/8/3pp3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3", "e5d4", false },
-            { "r1bq1rk1/pp1n1ppp/2pbpn2/8/2PNP3/2N1B3/PP3PPP/R2QKB1R w KQ - 0 9", "f1e2", true },
-            // Weitere Tests können hier hinzugefügt werden
+            { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
+            { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
+            { "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - -", "d6d1", "mate", false },
+            { "8/8/8/1k6/4K3/2R5/8/8 w - - 0 1", "e4d5", "KRK", false },
+            { "8/8/1k6/8/4K3/2N5/2B5/8 w - - 0 1", "e4d5", "KBNK", false },
+            { "6r1/1p3k2/pPp4R/K1P1p1p1/1P2Pp1p/5P1P/6P1/8 w - - 0 1", "h6c6", "passed pawn", true }
         };
     }
 
@@ -57,8 +60,8 @@ public:
      * @param expectedMove The expected best move in LAN notation.
      * @param whiteToPlay True if it is white to move, false for black.
      */
-    void addTest(const std::string& fen, const std::string& expectedMove, bool whiteToPlay) {
-        tests_.push_back({ fen, expectedMove, whiteToPlay });
+    void addTest(const std::string& fen, const std::string& expectedMove, const std::string& topic, bool whiteToPlay) {
+        tests_.push_back({ fen, expectedMove, topic, whiteToPlay });
     }
 
     /**
@@ -75,10 +78,13 @@ public:
         task.taskType = GameTask::Type::ComputeMove;
         task.useStartPosition = false;
         task.fen = test.fen;
-        task.whiteTimeControl = { 10000, 100, 10000 };
-        task.blackTimeControl = { 10000, 100, 10000 };
-
+        TimeControl t;
+		t.setMoveTime(5000);
+        task.whiteTimeControl = t;
+        task.blackTimeControl = t;
+        Logger::testLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
         ++currentIndex_;
+
         return task;
     }
 
@@ -97,14 +103,14 @@ public:
         if (!history.empty()) {
             const auto& lastMove = history.back();
             bool success = (lastMove.lan == test.expectedMove);
-            std::string result = success ? "SUCCESS" : "FAILURE";
             std::ostringstream oss;
-            oss << "EPD Test " << (currentIndex_) << ": " << result
+            oss << test.fen << " topic " << test.topic  
                 << " | Expected: " << test.expectedMove
                 << ", Got: " << lastMove.lan
                 << ", Depth: " << lastMove.depth
                 << ", Time: " << lastMove.timeMs << "ms\n";
-            Logger::testLogger().log(oss.str(), TraceLevel::commands);
+            
+            Checklist::logCheck("Simple EPD tests, expected moves found", success, oss.str());
         }
     }
 

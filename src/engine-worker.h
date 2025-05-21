@@ -154,6 +154,13 @@ public:
 	}
 
 	/**
+	 * @brief returns the engine's executable path.
+	 */
+	std::string getExecutablePath() const {
+		return adapter_->getExecutablePath();
+	}
+
+	/**
 	 * @brief Returns the name of the engine.
 	 */
 	std::string getEngineName() const {

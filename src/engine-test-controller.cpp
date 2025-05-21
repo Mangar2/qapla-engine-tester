@@ -25,6 +25,7 @@
 #include "engine-worker-factory.h"
 #include "checklist.h"
 #include "cli-settings-manager.h"
+#include "epd-manager.h"
 
 void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
 	enginePath_ = enginePath;
@@ -49,8 +50,7 @@ void EngineTestController::startEngine() {
 }
 
 EngineList EngineTestController::startEngines(uint32_t count) {
-    EngineWorkerFactory factory;
-    EngineList list = factory.createUci(enginePath_, std::nullopt, count);
+    EngineList list = EngineWorkerFactory::createUci(enginePath_, std::nullopt, count);
 
     std::vector<std::future<bool>> results;
     for (auto& engine : list) {
@@ -86,6 +86,7 @@ void EngineTestController::runAllTests(std::filesystem::path enginePath) {
         runEngineOptionTests();
         runAnalyzeTest();
         runGoLimitsTests();
+        runEpdTests();
         runComputeGameTest();
         runMultipleGamesTest();
         gameManager_->stop();
@@ -468,6 +469,25 @@ void EngineTestController::runAnalyzeTest() {
         });
 }
 
+void EngineTestController::runEpdTests() {
+	Logger::testLogger().log("\nTesting simple EPD positions.");
+    try {
+        EngineList engines = startEngines(1);
+        gameManager_->setUniqueEngine(std::move(engines[0]));
+        EpdManager epdManager;
+        gameManager_->computeTasks(&epdManager);
+		gameManager_->getFinishedFuture().wait();
+
+        Logger::testLogger().log("All epd computed.");
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during compute epd test: " + std::string(e.what()), TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during compute epd test.", TraceLevel::error);
+    }
+}
+
 void EngineTestController::runComputeGameTest() {
 	Logger::testLogger().log("\nThe engine now plays against itself. I control all engine output, and check its validity while playing.");
     EngineList engines = startEngines(2);
@@ -512,7 +532,7 @@ void EngineTestController::runMultipleGamesTest() {
             auto manager = std::make_unique<GameManager>();
             manager->setEngines(std::move(engines[i * 2]), std::move(engines[i * 2 + 1]));
 
-            manager->computeGames(&tournament);
+            manager->computeTasks(&tournament);
 
             managers.push_back(std::move(manager));
         }
