@@ -41,8 +41,9 @@
 #include "timer.h"
 
 EngineProcess::EngineProcess(const std::filesystem::path& path,
-    const std::optional<std::filesystem::path>& workingDir)
-    : executablePath_(path), workingDirectory_(workingDir) {
+    const std::optional<std::filesystem::path>& workingDir,
+    std::string identifier)
+    : executablePath_(path), workingDirectory_(workingDir), identifier_(identifier) {
 	if (!std::filesystem::exists(path)) {
 		throw std::runtime_error("Engine executable not found: " + path.string());
 	}
@@ -282,6 +283,7 @@ void EngineProcess::readFromPipe(uint32_t timeoutInMs) {
 }
 
 EngineLine EngineProcess::readLineTimeout(std::chrono::milliseconds timeoutInMs) {
+    bool read = false;
     while (true) {
 
         if (!lineQueue_.empty() && lineQueue_.front().complete) {
@@ -293,11 +295,12 @@ EngineLine EngineProcess::readLineTimeout(std::chrono::milliseconds timeoutInMs)
             return line;
         }
 #ifdef _WIN32
-        if (stdoutRead_ == 0) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
+        if (stdoutRead_ == 0 || read) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
 #else
-        if (stdoutRead_ < 0) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
+        if (stdoutRead_ < 0 || read) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
 #endif
         readFromPipe(static_cast<DWORD>(timeoutInMs.count()));
+        read = true;
     }
 }
 

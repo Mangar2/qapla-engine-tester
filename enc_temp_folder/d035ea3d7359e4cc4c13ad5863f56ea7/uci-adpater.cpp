@@ -47,6 +47,7 @@ void UciAdapter::runUciHandshake() {
     while (true) {
         auto engineLine = process_.readLineTimeout(uciHandshakeTimeout);
         auto line = engineLine.content;
+        std::cout << engineLine.complete << " content: " << engineLine.content << std::endl;
         if (!engineLine.complete) {
             reportProtocolError("initialization", "Timeout waiting for uciok");
             throw std::runtime_error("Engine is not an uci engine");

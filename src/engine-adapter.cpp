@@ -22,7 +22,7 @@
 
 EngineAdapter::EngineAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory, const std::string& identifier)
-    : process_(enginePath, workingDirectory), identifier_(identifier) {
+    : process_(enginePath, workingDirectory, identifier), identifier_(identifier) {
 }
 
 int64_t EngineAdapter::writeCommand(const std::string& command) {

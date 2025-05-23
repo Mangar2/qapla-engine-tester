@@ -50,7 +50,8 @@ public:
      * @throws std::runtime_error if the process cannot be started.
      */
     EngineProcess(const std::filesystem::path& executablePath,
-        const std::optional<std::filesystem::path>& workingDirectory = std::nullopt);
+        const std::optional<std::filesystem::path>& workingDirectory,
+        std::string identifier);
 
     /**
      * @brief Destructor ensures the process is safely terminated.
@@ -143,6 +144,7 @@ private:
     mutable std::string stdoutBuffer_;
     std::filesystem::path executablePath_;
     std::optional<std::filesystem::path> workingDirectory_;
+    std::string identifier_;
 
     /**
      * Appends a line or line fragment to the line queue with timestamp.
