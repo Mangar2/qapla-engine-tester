@@ -88,7 +88,7 @@ public:
             if (segment.movesToPlay > 0) {
                 oss << segment.movesToPlay << "/";
             }
-            oss << segment.baseTimeMs / 1000;
+            oss << std::fixed << std::setprecision(1) << segment.baseTimeMs / 1000.0;
             if (segment.incrementMs > 0) {
                 oss << "+" << std::fixed << std::setprecision(2) << segment.incrementMs / 1000.0;
             }

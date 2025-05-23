@@ -81,31 +81,15 @@ public:
     int64_t writeLine(const std::string& line);
 
     /**
-     * @brief Reads a single line from stdout with a timeout.
-     * @param timeout Duration to wait before giving up.
-     * @return Line from stdout, or std::nullopt on timeout.
-     * @throws std::runtime_error if reading fails.
-     */
-    std::optional<std::string> readLine(std::chrono::milliseconds timeout);
-
-    /**
-     * Blocks until a complete line from the engine has been read and returns it with timestamp.
+     * Blocks until a complete line from the engine has been read or a timeout occurs and returns it with timestamp.
      *
      * If no complete line is currently available, the method continues reading from the pipe
      * until one is. Lines are read and timestamped in readFromPipe().
      *
+	 * @param timeoutInMs Timeout in milliseconds to wait for a read call.
      * @return An EngineLine containing the line content, timestamp, and completeness flag.
      */
-    EngineLine readLineBlocking();
-
-    /**
-     * @brief Attempts to read a single line from stdout without blocking.
-     * @return Line from stdout if available immediately, or std::nullopt if no data is ready.
-     * @throws std::runtime_error if reading fails.
-     */
-    inline std::optional<std::string> tryReadLine() {
-        return readLine(std::chrono::milliseconds(0));
-    }
+    EngineLine readLineTimeout(std::chrono::milliseconds timeout);
 
     /**
      * @brief Reads a single line from stderr with a timeout.
@@ -178,7 +162,7 @@ private:
      * The last partial line, if any, is also stored but marked as incomplete.
      * This method does not block if data is not immediately available.
      */
-    void readFromPipe();
+    void readFromPipe(uint32_t timoutInMs = 5000);
     std::deque<EngineLine> lineQueue_;
 
     std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);

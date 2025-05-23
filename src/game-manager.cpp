@@ -22,9 +22,6 @@
 #include <iostream>
 
 GameManager::GameManager(): taskProvider_(nullptr) {
-    heartBeat_ = std::make_unique<HeartBeat>([this]() {
-        handleState(EngineEvent::create(EngineEvent::Type::KeepAlive, "", Timer::getCurrentTimeMs()));
-        });
 }
 
 void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
@@ -69,55 +66,60 @@ void GameManager::markFinished() {
 
 void GameManager::handleState(const EngineEvent& event) {
     std::lock_guard<std::mutex> lock(eventMutex_);
-    for (auto& error: event.errors) {
-        Checklist::logCheck(error.name, false, error.detail);
-    }
-    if (event.type == EngineEvent::Type::KeepAlive) {
-		if (gameRecord_.isWhiteToMove()) {
-			if (whitePlayer_.checkEngineTimeout()) computeNextTask();
-		}
-		else {
-			if (blackPlayer_.checkEngineTimeout()) computeNextTask();
-		}
-        return;
-    }
-	if (event.engineIdentifier != whitePlayer_.getEngine()->getIdentifier() &&
-		event.engineIdentifier != blackPlayer_.getEngine()->getIdentifier()) {
-        // Usally from an engine in termination process. E.g. we stop an engine not reacting and already
-        // Started new engines but the old engine still sends data.
-        return;
-	}
-    if (event.type == EngineEvent::Type::BestMove) {
-        handleBestMove(event);
-        if (taskType_ == GameTask::Type::ComputeMove) {
-			computeNextTask();
-        } 
-        else if (taskType_ == GameTask::Type::PlayGame) {
-            if (checkForGameEnd()) {
-				computeNextTask();
-			}
-            else {
-                computeNextMove();
+    try {
+        for (auto& error : event.errors) {
+            Checklist::logCheck(error.name, false, error.detail);
+        }
+		bool isWhitePlayer = event.engineIdentifier == whitePlayer_.getEngine()->getIdentifier();
+		bool isBlackPlayer = event.engineIdentifier == blackPlayer_.getEngine()->getIdentifier();
+        if (!isWhitePlayer && !isBlackPlayer) {
+            // Usally from an engine in termination process. E.g. we stop an engine not reacting and already
+            // Started new engines but the old engine still sends data.
+            return;
+        }
+        PlayerContext* player = isWhitePlayer ? &whitePlayer_ : &blackPlayer_;
+
+        if (event.type == EngineEvent::Type::ComputeMoveSent) {
+            // We get the start calculating move timestamp directly from the EngineProcess after sending the compute move string
+            // to the engine. This prevents loosing time for own synchronization tasks on the engines clock.
+            player->setComputeMoveStartTimestamp(event.timestampMs);
+            return;
+        }
+
+        if (event.type == EngineEvent::Type::BestMove) {
+            handleBestMove(event);
+            if (taskType_ == GameTask::Type::ComputeMove) {
+                computeNextTask();
+                return;
             }
-        } 
-    }
-    else if (event.type == EngineEvent::Type::Info) {
-        handleInfo(event);
-    }
-    else if (event.type == EngineEvent::Type::ComputeMoveSent) {
-        // We get the start calculating move timestamp directly from the EngineProcess after sending the compute move string
-		// to the engine. This prevents loosing time for own synchronization tasks on the engines clock.
-		if (event.engineIdentifier == whitePlayer_.getEngine()->getIdentifier()) {
-			whitePlayer_.setComputeMoveStartTimestamp(event.timestampMs);
-		}
-		else if (event.engineIdentifier == blackPlayer_.getEngine()->getIdentifier()) {
-			blackPlayer_.setComputeMoveStartTimestamp(event.timestampMs);
-		}
-    }
-}
+        }
 
-void GameManager::handleHeartBeat() {
+        if (event.type == EngineEvent::Type::NoData) {
+			player->checkEngineTimeout(event);
+        }
 
+        if (event.type == EngineEvent::Type::Info) {
+            player->handleInfo(event);
+        }
+
+        if (taskType_ == GameTask::Type::PlayGame) {
+            if (checkForGameEnd()) {
+                computeNextTask();
+                return;
+            }
+            if (event.type == EngineEvent::Type::BestMove) {
+                computeNextMove();
+                return;
+            }
+        }
+
+    }
+	catch (const std::exception& e) {
+		Logger::testLogger().log("Exception in GameManager::handleState " + std::string(e.what()), TraceLevel::error);
+	}
+	catch (...) {
+		Logger::testLogger().log("Unknown exception in GameManager::handleState", TraceLevel::error);
+	}
 }
 
 void GameManager::handleBestMove(const EngineEvent& event) {
@@ -142,16 +144,6 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 		}
 	}
 
-}
-
-void GameManager::handleInfo(const EngineEvent& event) {
-	if (!event.searchInfo.has_value()) return;
-	if (whitePlayer_.getEngine()->getIdentifier() == event.engineIdentifier) {
-        whitePlayer_.handleInfo(event);
-	}
-	else if (blackPlayer_.getEngine()->getIdentifier() == event.engineIdentifier) {
-		blackPlayer_.handleInfo(event);
-	}
 }
 
 bool GameManager::checkForGameEnd() {

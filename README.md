@@ -38,10 +38,15 @@ You can run the tester with or without command-line arguments. If required param
 
 ## Command-line Options
 
+**Important!**: a "=" sign is required between the option and its value. For example, `--engine=/path/to/engine` is correct, while `--engine /path/to/engine` is not.
+
+You can call it without any parameters. In this case, the program will prompt you for the required parameters. Enter accepts the default value. 
+
 | Option                  | Description                                                   | Required | Default |
 |-------------------------|---------------------------------------------------------------|----------|---------|
+| `--help`                | Shows help and exits                                          | -        | —       |
 | `--engine`              | Path to the engine executable                                 | Yes      | —       |
-| `--max-parallel-engines`| Maximum number of engines running in parallel                 | Yes      | 20      |
+| `--concurrency`         | Maximum number of engines running in parallel                 | Yes      | 20      |
 | `--games-number`        | Number of games to play                                       | No       | 20      |
 | `--logpath`             | Path to directory for logs                                    | No       | `.`     |
 | `--testlevel`           | Test level (0 = all, 1 = basic, 2 = advanced)                 | No       | 0       |
@@ -49,4 +54,4 @@ You can run the tester with or without command-line arguments. If required param
 ## Example Usage
 
 ```bash
-QaplaTester --engine /path/to/engine
+QaplaTester --engine=/path/to/engine --concurrency=10

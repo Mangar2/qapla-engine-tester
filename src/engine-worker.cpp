@@ -83,6 +83,10 @@ void EngineWorker::stop() {
 	}
 }
 
+void EngineWorker::restart() {
+	adapter_->restartEngine();
+}
+
 /**
  * @brief Main execution loop for the worker thread.
  */
@@ -105,8 +109,14 @@ void EngineWorker::threadLoop() {
         try {
             (*task)(*adapter_);
         }
+        
+        catch (const std::exception& e) {
+            Logger::testLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
+                + std::string(e.what()), TraceLevel::error);
+        }
         catch (...) {
-            // optional: Logging
+            Logger::testLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 
+                TraceLevel::error);
         }
     }
 }
@@ -159,18 +169,28 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 void EngineWorker::readLoop() {
     while (running_) {
         // Blocking call
-        EngineEvent event = adapter_->readEvent(); 
+        try {
+            EngineEvent event = adapter_->readEvent();
 
-        if (event.type == EngineEvent::Type::ReadyOk) {
-            {
-                std::scoped_lock lock(readyMutex_);
-                readyReceived_ = true;
+            if (event.type == EngineEvent::Type::ReadyOk) {
+                {
+                    std::scoped_lock lock(readyMutex_);
+                    readyReceived_ = true;
+                }
+                readyCv_.notify_all();
             }
-            readyCv_.notify_all();
-        }
 
-        if (eventSink_) {
-            eventSink_(event);
+            if (eventSink_) {
+                eventSink_(event);
+            }
         }
+		catch (const std::exception& e) {
+			Logger::testLogger().log("Exception in readLoop, id " + getIdentifier() + " "
+				+ std::string(e.what()), TraceLevel::error);
+		}
+		catch (...) {
+			Logger::testLogger().log("Unknown exception in readLoop, id " + getIdentifier(),
+				TraceLevel::error);
+		}
     }
 }

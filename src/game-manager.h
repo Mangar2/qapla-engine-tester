@@ -30,7 +30,6 @@
 #include "move-record.h"
 #include "game-record.h"
 #include "tournament-manager.h"
-#include "heart-beat.h"
 #include "player-context.h"
 
  /**
@@ -151,8 +150,6 @@ private:
 
     void handleState(const EngineEvent& event);
 	void handleBestMove(const EngineEvent& event);
-	void handleInfo(const EngineEvent& event);
-    void handleHeartBeat();
 
     void computeNextMove();
 
@@ -225,6 +222,4 @@ private:
 
 	// Mutex to protect access to the event queue and state
     std::mutex eventMutex_;
-	// Heartbeat to dismiss hanging situations
-    std::unique_ptr<HeartBeat> heartBeat_;
 };

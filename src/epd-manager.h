@@ -47,7 +47,7 @@ public:
         tests_ = {
             { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
             { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
-            { "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - -", "d6d1", "mate", false },
+            { "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1", "d6d1", "mate", false },
             { "8/8/8/1k6/4K3/2R5/8/8 w - - 0 1", "e4d5", "KRK", false },
             { "8/8/1k6/8/4K3/2N5/2B5/8 w - - 0 1", "e4d5", "KBNK", false },
             { "6r1/1p3k2/pPp4R/K1P1p1p1/1P2Pp1p/5P1P/6P1/8 w - - 0 1", "h6c6", "passed pawn", true }

@@ -63,8 +63,7 @@ public:
         std::string key = normalize(name);
         auto it = values.find(key);
         if (it == values.end()) {
-            std::cerr << "Missing required setting: " << name << std::endl;
-            std::exit(1);
+			throw std::runtime_error("Missing required setting: " + name);
         }
         return std::get<T>(it->second);
     }

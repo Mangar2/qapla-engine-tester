@@ -74,6 +74,14 @@ void EngineProcess::start() {
         throw std::runtime_error("Failed to create stdout pipe");
     }
 
+    DWORD flags = GetFileType(stdoutRead_) == FILE_TYPE_PIPE ? PIPE_READMODE_BYTE | FILE_FLAG_OVERLAPPED : FILE_FLAG_OVERLAPPED;
+    HANDLE tmp;
+    if (!DuplicateHandle(GetCurrentProcess(), stdoutRead_, GetCurrentProcess(), &tmp, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
+        throw std::runtime_error("Failed to duplicate stdoutRead_ handle");
+    }
+    CloseHandle(stdoutRead_);
+    stdoutRead_ = tmp;
+
     if (!CreatePipe(&stderrRead_, &stderrWriteTmp, &saAttr, 0) ||
         !SetHandleInformation(stderrRead_, HANDLE_FLAG_INHERIT, 0)) {
         throw std::runtime_error("Failed to create stderr pipe");
@@ -131,7 +139,7 @@ void EngineProcess::start() {
 
         close(inPipe[1]); close(outPipe[0]); close(errPipe[0]);
 
-        execl(executablePath_.c_str(), path.c_str(), nullptr);
+        execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
         _exit(1);
     }
 
@@ -141,6 +149,7 @@ void EngineProcess::start() {
     stderrRead_ = errPipe[0];
 #endif
 }
+
 
 EngineProcess::~EngineProcess() {
     terminate();
@@ -213,20 +222,43 @@ void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminat
     lineQueue_.emplace_back(EngineLine{ text, lineTerminated, now });
 }
 
-void EngineProcess::readFromPipe() {
+void EngineProcess::readFromPipe(uint32_t timeoutInMs) {
     char temp[1024];
-    int64_t now = Timer::getCurrentTimeMs();
     if (stdoutRead_ == 0) {
         return;
     }
 
 #ifdef _WIN32
+    OVERLAPPED overlapped{};
+    overlapped.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     DWORD bytesRead = 0;
-    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
+    BOOL readResult = ReadFile(stdoutRead_, temp, sizeof(temp), nullptr, &overlapped);
+
+    if (!readResult && GetLastError() == ERROR_IO_PENDING) {
+        DWORD waitResult = WaitForSingleObject(overlapped.hEvent, timeoutInMs);
+        if (waitResult != WAIT_OBJECT_0 || !GetOverlappedResult(stdoutRead_, &overlapped, &bytesRead, FALSE)) {
+            CloseHandle(overlapped.hEvent);
+            return;
+        }
+    }
+    else if (!readResult) {
+        CloseHandle(overlapped.hEvent);
         return;
     }
+    else {
+        GetOverlappedResult(stdoutRead_, &overlapped, &bytesRead, TRUE);
+    }
+    CloseHandle(overlapped.hEvent);
+
+    if (bytesRead == 0) return;
     std::string incoming(temp, bytesRead);
 #else
+    struct pollfd pfd;
+    pfd.fd = stdoutRead_;
+    pfd.events = POLLIN;
+    int ret = poll(&pfd, 1, timeoutInMs);
+    if (ret <= 0 || !(pfd.revents & POLLIN)) return;
+
     ssize_t r = read(stdoutRead_, temp, sizeof(temp));
     if (r <= 0) return;
     std::string incoming(temp, r);
@@ -239,17 +271,17 @@ void EngineProcess::readFromPipe() {
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
-		appendToLineQueue(line, true);
+        appendToLineQueue(line, true);
         start = newline + 1;
     }
 
     if (start < incoming.size()) {
         std::string fragment = incoming.substr(start);
-		appendToLineQueue(fragment, false);
+        appendToLineQueue(fragment, false);
     }
 }
 
-EngineLine EngineProcess::readLineBlocking() {
+EngineLine EngineProcess::readLineTimeout(std::chrono::milliseconds timeoutInMs) {
     while (true) {
 
         if (!lineQueue_.empty() && lineQueue_.front().complete) {
@@ -265,7 +297,7 @@ EngineLine EngineProcess::readLineBlocking() {
 #else
         if (stdoutRead_ < 0) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
 #endif
-        readFromPipe();
+        readFromPipe(static_cast<DWORD>(timeoutInMs.count()));
     }
 }
 
@@ -311,16 +343,6 @@ std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::mill
         line += ch;
     }
     return line;
-}
-
-std::optional<std::string> EngineProcess::readLine(std::chrono::milliseconds timeout) {
-    return readLineImpl(
-#ifdef _WIN32
-        _open_osfhandle(reinterpret_cast<intptr_t>(stdoutRead_), 0),
-#else
-        stdoutRead_,
-#endif
-        timeout);
 }
 
 std::optional<std::string> EngineProcess::readErrorLine(std::chrono::milliseconds timeout) {
@@ -424,7 +446,13 @@ void EngineProcess::terminate() {
 }
 
 void EngineProcess::restart() {
-	terminate();
+    try {
+        terminate();
+    }
+	catch (...) {
+		// We can ignore the error "Engine did not end by itself" error 
+        // as the restart is already reported as an error
+	}
 	start();
 }
 

@@ -236,7 +236,11 @@ void EngineTestController::runGoLimitsTests() {
 			if (!finished) {
 				gameManager_->stop();
 			}
-            return { success, "Compute move did not return with bestmove in time when testing " + name };
+            auto timeStr = timeControl.toPgnTimeControlString();
+			if (timeStr != "") {
+				timeStr = " Time control: " + timeStr + "";
+			}
+            return { success, "Compute move did not return with bestmove in time when testing " + name + timeStr};
         });
     }
 }
@@ -513,7 +517,7 @@ void EngineTestController::runMultipleGamesTest() {
 		return;
 	}
     int totalGames = CliSettingsManager::get<int>("games-number");
-    int parallelGames = CliSettingsManager::get<int>("max-parallel-engines");
+    int parallelGames = CliSettingsManager::get<int>("concurrency");
 
     Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(totalGames) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");

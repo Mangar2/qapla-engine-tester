@@ -44,6 +44,12 @@ public:
     void runEngine() override;
 
     /**
+     * @brief Restarts the engine process and reinitializes communication.
+     * @return true if the engine was restarted successfully.
+     */
+    void restartEngine() override;
+
+    /**
      * Attempts to gracefully terminate the UCI engine. If the engine is already
      * terminated or unreachable, this is treated as a normal condition.
      * If forced termination fails, the adapter reports a critical error.

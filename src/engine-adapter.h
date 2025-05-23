@@ -71,6 +71,12 @@ public:
      */
     virtual void runEngine() = 0;
 
+	/**
+	 * @brief Restarts the engine process and reinitializes communication.
+	 * @return true if the engine was restarted successfully.
+	 */ 
+    virtual void restartEngine() = 0;
+
     /**
      * @brief Forcefully terminates the engine process and performs cleanup.
      */

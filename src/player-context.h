@@ -117,7 +117,7 @@ public:
 	 * @brief Keep alive tick - check for a timout or non active engine
      * @return true, if we restarted the engine and the task must be stopped
 	 */
-    bool checkEngineTimeout();
+    bool checkEngineTimeout(const EngineEvent& event);
 
     /**
      * @brief Handles a best move event from the engine.
@@ -184,6 +184,6 @@ private:
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
-    bool computingMove_;
+    bool computingMove_ = false;
     MoveRecord currentMove_;
 };

@@ -45,46 +45,48 @@ void UciAdapter::runUciHandshake() {
     bool headerParsed = false;
     std::string spacer = "";
     while (true) {
-        auto line = process_.readLine(uciHandshakeTimeout);
-        if (!line) {
+        auto engineLine = process_.readLineTimeout(uciHandshakeTimeout);
+        auto line = engineLine.content;
+        std::cout << engineLine.complete << " content: " << engineLine.content << std::endl;
+        if (!engineLine.complete) {
             reportProtocolError("initialization", "Timeout waiting for uciok");
             throw std::runtime_error("Engine is not an uci engine");
         }
 
-        logFromEngine(*line, TraceLevel::handshake);
+        logFromEngine(line, TraceLevel::handshake);
 
-        if (*line == "uciok") {
+        if (line == "uciok") {
             break;
         }
 
         if (!headerParsed) {
-            if (line->starts_with("id ") || line->starts_with("option ")) {
+            if (line.starts_with("id ") || line.starts_with("option ")) {
                 headerParsed = true;
             }
             else {
-                welcomeMessage_ += spacer + *line;
+                welcomeMessage_ += spacer + line;
 				spacer = "\n";
                 continue;
             }
         }
 
-        if (line->starts_with("id name ")) {
-            engineName_ = line->substr(strlen("id name "));
+        if (line.starts_with("id name ")) {
+            engineName_ = line.substr(strlen("id name "));
         }
-        else if (line->starts_with("id author ")) {
-            engineAuthor_ = line->substr(strlen("id author "));
+        else if (line.starts_with("id author ")) {
+            engineAuthor_ = line.substr(strlen("id author "));
         }
-        else if (line->starts_with("option ")) {
+        else if (line.starts_with("option ")) {
             try {
-                EngineOption opt = parseUciOptionLine(*line);
+                EngineOption opt = parseUciOptionLine(line);
                 supportedOptions_[opt.name] = std::move(opt);
             }
             catch (const std::exception& e) {
-                reportProtocolError("initialization", *line + " (" + e.what() + ")");
+                reportProtocolError("initialization", line + " (" + e.what() + ")");
             }
         }
         else {
-            reportProtocolError("initialization", "Unexpected line during UCI handshake: " + *line);
+            reportProtocolError("initialization", "Unexpected line during UCI handshake: " + line);
         }
     }
 }
@@ -98,6 +100,11 @@ void UciAdapter::runEngine() {
     catch (const std::exception& e) {
         reportProtocolError("initialization", std::string("Failed to start UCI engine:  ") + e.what());
     }
+}
+
+void UciAdapter::restartEngine() {
+    process_.restart();
+    runEngine();
 }
 
 void UciAdapter::terminateEngine() {
@@ -378,8 +385,9 @@ const std::string testLine =
 "hashfull 2000 tbhits foo cpuload 150 currmove 1234 currmovenumber -42 refutation e2e4 e7e5 unknown_token pv e2e4 e7e5";
 
 EngineEvent UciAdapter::readEvent() {
-    EngineLine engineLine = process_.readLineBlocking();
-    if (engineLine.content == "") {
+    const auto timeout = std::chrono::seconds{ 1 };
+    EngineLine engineLine = process_.readLineTimeout(timeout);
+    if (!engineLine.complete) {
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 

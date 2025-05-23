@@ -25,6 +25,7 @@
 #include "engine-worker-factory.h"
 
 void PlayerContext::handleInfo(const EngineEvent& event) {
+    checkEngineTimeout(event);
     if (!event.searchInfo.has_value()) return;
     const auto& searchInfo = *event.searchInfo;
 
@@ -109,8 +110,10 @@ void PlayerContext::checkTime(const EngineEvent& event) {
         goLimits_.depth.has_value() + goLimits_.nodes.has_value();
 
     if (timeLeft > 0) {
-        if (!Checklist::logCheck("No loss in time", moveElapsedMs <= timeLeft,
-            std::to_string(moveElapsedMs) + " > " + std::to_string(timeLeft))) {
+		timeControl_.toPgnTimeControlString();
+        if (!Checklist::logCheck("No loss on time", moveElapsedMs <= timeLeft,
+            "Timecontrol: " + timeControl_.toPgnTimeControlString() + " Used time: " + 
+            std::to_string(moveElapsedMs) + " ms. Available Time: " + std::to_string(timeLeft) + " ms")) {
             gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
         }
     }
@@ -152,7 +155,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 }
 
-bool PlayerContext::checkEngineTimeout() {
+bool PlayerContext::checkEngineTimeout(const EngineEvent& event) {
     if (!computingMove_) return false;
 	const int64_t GRACE_MS = 2000;
     const int64_t OVERRUN_TIMEOUT = 5000;
@@ -189,8 +192,7 @@ bool PlayerContext::checkEngineTimeout() {
 }
 
 void PlayerContext::restart() {
-    auto list = EngineWorkerFactory::createUci(engine_->getExecutablePath(), std::nullopt, 1);
-    engine_ = std::move(list[0]);
+    engine_->restart();
 }
 
 bool PlayerContext::restartIfNotReady() {

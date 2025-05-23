@@ -55,13 +55,12 @@ void CliSettingsManager::parseCommandLine(int argc, char** argv) {
                 values[key] = parseValue(value, defIt->second);
             }
             else {
-                cerr << "Unknown parameter: " << name << endl;
-                exit(1);
+				throw std::runtime_error("Unknown parameter: " + name);
             }
         }
         else {
-            cerr << "Invalid argument: " << arg << endl;
-            exit(1);
+			throw std::runtime_error("Invalid argument format: " + arg);
+
         }
     }
 
@@ -104,8 +103,7 @@ void CliSettingsManager::parseCommandLine(int argc, char** argv) {
         }
 
         // Fall 5: Optional ohne Default -> Fehler im Code
-        std::cerr << "Invalid setting: optional parameter '" << key << "' without default value.\n";
-        std::exit(1);
+		throw std::runtime_error("Invalid setting: optional parameter '" + key + "' without default value.");
     }
 }
 
@@ -140,15 +138,13 @@ CliSettingsManager::Value CliSettingsManager::parseValue(const string& input, co
             return stoi(input);
         }
         catch (...) {
-            cerr << "Invalid integer: " << input << endl;
-            exit(1);
+			throw std::runtime_error("Invalid integer: " + input);
         }
     }
 
     if (def.type == ValueType::PathExists) {
         if (!filesystem::exists(input)) {
-            cerr << "Path does not exist: " << input << endl;
-            exit(1);
+			throw std::runtime_error("Path does not exist: " + input);
         }
     }
 
