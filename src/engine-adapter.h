@@ -66,10 +66,9 @@ public:
     virtual ~EngineAdapter() = default;
 
     /**
-     * @brief Starts the engine process and initializes communication.
-     * @return true if the engine was started successfully.
+     * @brief Starts the engine protokoll.
      */
-    virtual void runEngine() = 0;
+    virtual void startProtocol() = 0;
 
 	/**
 	 * @brief Restarts the engine process and reinitializes communication.

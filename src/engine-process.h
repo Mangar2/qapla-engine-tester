@@ -87,10 +87,9 @@ public:
      * If no complete line is currently available, the method continues reading from the pipe
      * until one is. Lines are read and timestamped in readFromPipe().
      *
-	 * @param timeoutInMs Timeout in milliseconds to wait for a read call.
      * @return An EngineLine containing the line content, timestamp, and completeness flag.
      */
-    EngineLine readLineTimeout(std::chrono::milliseconds timeout);
+    EngineLine readLineBlocking();
 
     /**
      * @brief Reads a single line from stderr with a timeout.
@@ -164,7 +163,7 @@ private:
      * The last partial line, if any, is also stored but marked as incomplete.
      * This method does not block if data is not immediately available.
      */
-    void readFromPipe(uint32_t timoutInMs = 5000);
+    void readFromPipeBlocking();
     std::deque<EngineLine> lineQueue_;
 
     std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);

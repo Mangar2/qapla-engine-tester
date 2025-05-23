@@ -79,10 +79,12 @@ inline std::ostream& operator<<(std::ostream& os, const SearchInfo& info) {
 }
 
 struct EngineEvent {
-
+    EngineEvent() = default;
     enum class Type {
+        None,
         ComputeMoveSent,
         ReadyOk,
+        UciOk,
         BestMove,
         Info,
         PonderHit,
@@ -101,6 +103,9 @@ struct EngineEvent {
     }
 	static EngineEvent createNoData(const std::string& id, int64_t ts) {
 		return create(Type::NoData, id, ts);
+	}
+	static EngineEvent createUciOk(const std::string& id, int64_t ts, const std::string& rawLine) {
+		return create(Type::UciOk, id, ts, rawLine);
 	}
 	static EngineEvent createReadyOk(const std::string& id, int64_t ts, const std::string& rawLine) {
 		return create(Type::ReadyOk, id, ts, rawLine);
@@ -135,6 +140,6 @@ struct EngineEvent {
     std::vector<ParseError> errors;
     std::string engineIdentifier;
 private:
-	EngineEvent() = default;
+
 };
 

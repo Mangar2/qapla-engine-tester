@@ -40,70 +40,8 @@ UciAdapter::~UciAdapter() {
     terminateEngine();
 }
 
-void UciAdapter::runUciHandshake() {
-    writeCommand("uci");
-    bool headerParsed = false;
-    std::string spacer = "";
-    while (true) {
-        auto engineLine = process_.readLineTimeout(uciHandshakeTimeout);
-        auto line = engineLine.content;
-        if (!engineLine.complete) {
-            reportProtocolError("initialization", "Timeout waiting for uciok");
-            throw std::runtime_error("Engine is not an uci engine");
-        }
-
-        logFromEngine(line, TraceLevel::handshake);
-
-        if (line == "uciok") {
-           break;
-        }
-
-        if (!headerParsed) {
-            if (line.starts_with("id ") || line.starts_with("option ")) {
-                headerParsed = true;
-            }
-            else {
-                welcomeMessage_ += spacer + line;
-				spacer = "\n";
-                continue;
-            }
-        }
-
-        if (line.starts_with("id name ")) {
-            engineName_ = line.substr(strlen("id name "));
-        }
-        else if (line.starts_with("id author ")) {
-            engineAuthor_ = line.substr(strlen("id author "));
-        }
-        else if (line.starts_with("option ")) {
-            try {
-                EngineOption opt = parseUciOptionLine(line);
-                supportedOptions_[opt.name] = std::move(opt);
-            }
-            catch (const std::exception& e) {
-                reportProtocolError("initialization", line + " (" + e.what() + ")");
-            }
-        }
-        else {
-            reportProtocolError("initialization", "Unexpected line during UCI handshake: " + line);
-        }
-    }
-}
-
-
-void UciAdapter::runEngine() {
-    try {
-        runUciHandshake();
-		state_ = EngineState::Initialized;
-    }
-    catch (const std::exception& e) {
-        reportProtocolError("initialization", std::string("Failed to start UCI engine:  ") + e.what());
-    }
-}
-
 void UciAdapter::restartEngine() {
     process_.restart();
-    runEngine();
 }
 
 void UciAdapter::terminateEngine() {
@@ -128,9 +66,17 @@ void UciAdapter::terminateEngine() {
         process_.terminate();
     }
     catch (const std::exception& ex) {
-        reportProtocolError("termination", std::string("Termination error: ") + ex.what());
+		Logger::engineLogger().log(identifier_, "Failed to terminate engine: " + std::string(ex.what()), true, TraceLevel::error);
+	}
+	catch (...) {
+		Logger::engineLogger().log(identifier_, "Failed to terminate engine", true, TraceLevel::error);
     }
 
+}
+
+void UciAdapter::startProtocol() {
+	inUciHandshake_ = true;
+	writeCommand("uci");
 }
 
 void UciAdapter::newGame() {
@@ -379,16 +325,50 @@ EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timesta
     return event;
 }
 
-const std::string testLine =
-"info depth xx seldepth -5 multipv 0 score xyz 999999 bounder time -1 nodes abc nps 999999999999999999999 "
-"hashfull 2000 tbhits foo cpuload 150 currmove 1234 currmovenumber -42 refutation e2e4 e7e5 unknown_token pv e2e4 e7e5";
+EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
+    const std::string& line = engineLine.content;
+    if (line == "uciok") {
+        logFromEngine(line, TraceLevel::handshake);
+		inUciHandshake_ = false;
+        state_ = EngineState::Initialized;
+        return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
+    }
+
+    if (line.starts_with("id name ")) {
+        logFromEngine(line, TraceLevel::info);
+        engineName_ = line.substr(strlen("id name "));
+    }
+
+    if (line.starts_with("id author ")) {
+        logFromEngine(line, TraceLevel::info);
+        engineAuthor_ = line.substr(strlen("id author "));
+    }
+
+    if (line.starts_with("option ")) {
+        logFromEngine(line, TraceLevel::info);
+        try {
+            EngineOption opt = parseUciOptionLine(line);
+            supportedOptions_[opt.name] = std::move(opt);
+        }
+        catch (const std::exception& e) {
+			EngineEvent event = EngineEvent::create(EngineEvent::Type::Error, identifier_, engineLine.timestampMs, line);
+            std::string err = static_cast<std::string>("Bad uci option (") + e.what() + ")";
+            return event;
+        }
+    }
+
+    return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+}
 
 EngineEvent UciAdapter::readEvent() {
-    const auto timeout = std::chrono::seconds{ 1 };
-    EngineLine engineLine = process_.readLineTimeout(timeout);
+    EngineLine engineLine = process_.readLineBlocking();
     if (!engineLine.complete) {
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
+
+	if (inUciHandshake_) {
+		return readUciEvent(engineLine);
+	}
 
     const std::string& line = engineLine.content;
     std::istringstream iss(line);
@@ -399,6 +379,10 @@ EngineEvent UciAdapter::readEvent() {
         logFromEngine(line, TraceLevel::handshake);
         return EngineEvent::createReadyOk(identifier_, engineLine.timestampMs, line);
     }
+	if (command == "uciok") {
+		logFromEngine(line, TraceLevel::handshake);
+		return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
+	}
 
     if (command == "bestmove") {
         logFromEngine(line, TraceLevel::commands);

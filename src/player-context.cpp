@@ -25,7 +25,6 @@
 #include "engine-worker-factory.h"
 
 void PlayerContext::handleInfo(const EngineEvent& event) {
-    checkEngineTimeout(event);
     if (!event.searchInfo.has_value()) return;
     const auto& searchInfo = *event.searchInfo;
 
@@ -155,7 +154,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 }
 
-bool PlayerContext::checkEngineTimeout(const EngineEvent& event) {
+bool PlayerContext::checkEngineTimeout() {
     if (!computingMove_) return false;
 	const int64_t GRACE_MS = 2000;
     const int64_t OVERRUN_TIMEOUT = 5000;
@@ -192,6 +191,7 @@ bool PlayerContext::checkEngineTimeout(const EngineEvent& event) {
 }
 
 void PlayerContext::restart() {
+    computingMove_ = false;
     engine_->restart();
 }
 
@@ -218,11 +218,11 @@ bool PlayerContext::isLegalMove(const std::string& moveText) {
 
 void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits) {
     goLimits_ = goLimits;
-    computingMove_ = true;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
     // the compute move string to the engine. As it is asynchronous, we might get a bestmove event before receiving the
     // sent compute move event. In this case we use this timestamp here
     setComputeMoveStartTimestamp(Timer::getCurrentTimeMs());
+    computingMove_ = true;
     engine_->computeMove(gameRecord, goLimits);
 }
 

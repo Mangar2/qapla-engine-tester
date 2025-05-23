@@ -41,7 +41,10 @@ public:
         const std::string& identifier);
     ~UciAdapter();
 
-    void runEngine() override;
+    /**
+     * @brief Starts the engine protokoll.
+     */
+    void startProtocol() override;
 
     /**
      * @brief Restarts the engine process and reinitializes communication.
@@ -83,6 +86,17 @@ public:
     void setOption(const std::string& name, const std::string& value = {}) override;
 
 private:
+     /**
+      * Parses a line received during the UCI handshake phase.
+      * This function should be called only when waiting for the UCI handshake.
+      * It handles 'id', 'option', and 'uciok' lines specifically.
+      * Any unexpected input is reported as a protocol error.
+      *
+      * @param engineLine The full engine output line with timestamp and completeness status.
+      * @return Parsed EngineEvent for handshake processing.
+      */
+    EngineEvent readUciEvent(const EngineLine& engineLine);
+
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds uciHandshakeTimeout{ 3000 };
     static constexpr std::chrono::milliseconds engineQuitTimeout{ 10000 };
@@ -101,12 +115,6 @@ private:
 
 
     void sendPosition(const GameRecord& game);   // Sends position + moves
-	void runUciHandshake();                     // Runs the UCI handshake
-
-    void reportProtocolError(std::string_view context, std::string_view message) {
-        protocolErrors_.emplace_back(std::string(context), std::string(message));
-		std::cerr << "Protocol error in " << context << ": " << message << std::endl;
-    }
 
     EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
 
@@ -114,5 +122,6 @@ private:
     static inline int numIdError_ = 0;
     static inline int numNameError_ = 0;
 	static inline int numUnknownCommandError_ = 0;
+    bool inUciHandshake_ = false;
 
 };

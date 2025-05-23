@@ -75,14 +75,6 @@ void EngineProcess::start() {
         throw std::runtime_error("Failed to create stdout pipe");
     }
 
-    DWORD flags = GetFileType(stdoutRead_) == FILE_TYPE_PIPE ? PIPE_READMODE_BYTE | FILE_FLAG_OVERLAPPED : FILE_FLAG_OVERLAPPED;
-    HANDLE tmp;
-    if (!DuplicateHandle(GetCurrentProcess(), stdoutRead_, GetCurrentProcess(), &tmp, 0, FALSE, DUPLICATE_SAME_ACCESS)) {
-        throw std::runtime_error("Failed to duplicate stdoutRead_ handle");
-    }
-    CloseHandle(stdoutRead_);
-    stdoutRead_ = tmp;
-
     if (!CreatePipe(&stderrRead_, &stderrWriteTmp, &saAttr, 0) ||
         !SetHandleInformation(stderrRead_, HANDLE_FLAG_INHERIT, 0)) {
         throw std::runtime_error("Failed to create stderr pipe");
@@ -223,43 +215,20 @@ void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminat
     lineQueue_.emplace_back(EngineLine{ text, lineTerminated, now });
 }
 
-void EngineProcess::readFromPipe(uint32_t timeoutInMs) {
+void EngineProcess::readFromPipeBlocking() {
     char temp[1024];
+    int64_t now = Timer::getCurrentTimeMs();
     if (stdoutRead_ == 0) {
         return;
     }
 
 #ifdef _WIN32
-    OVERLAPPED overlapped{};
-    overlapped.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     DWORD bytesRead = 0;
-    BOOL readResult = ReadFile(stdoutRead_, temp, sizeof(temp), nullptr, &overlapped);
-
-    if (!readResult && GetLastError() == ERROR_IO_PENDING) {
-        DWORD waitResult = WaitForSingleObject(overlapped.hEvent, timeoutInMs);
-        if (waitResult != WAIT_OBJECT_0 || !GetOverlappedResult(stdoutRead_, &overlapped, &bytesRead, FALSE)) {
-            CloseHandle(overlapped.hEvent);
-            return;
-        }
-    }
-    else if (!readResult) {
-        CloseHandle(overlapped.hEvent);
+    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
         return;
     }
-    else {
-        GetOverlappedResult(stdoutRead_, &overlapped, &bytesRead, TRUE);
-    }
-    CloseHandle(overlapped.hEvent);
-
-    if (bytesRead == 0) return;
     std::string incoming(temp, bytesRead);
 #else
-    struct pollfd pfd;
-    pfd.fd = stdoutRead_;
-    pfd.events = POLLIN;
-    int ret = poll(&pfd, 1, timeoutInMs);
-    if (ret <= 0 || !(pfd.revents & POLLIN)) return;
-
     ssize_t r = read(stdoutRead_, temp, sizeof(temp));
     if (r <= 0) return;
     std::string incoming(temp, r);
@@ -282,7 +251,7 @@ void EngineProcess::readFromPipe(uint32_t timeoutInMs) {
     }
 }
 
-EngineLine EngineProcess::readLineTimeout(std::chrono::milliseconds timeoutInMs) {
+EngineLine EngineProcess::readLineBlocking() {
     bool read = false;
     while (true) {
 
@@ -299,7 +268,7 @@ EngineLine EngineProcess::readLineTimeout(std::chrono::milliseconds timeoutInMs)
 #else
         if (stdoutRead_ < 0 || read) return EngineLine{ "", false, Timer::getCurrentTimeMs() };
 #endif
-        readFromPipe(static_cast<DWORD>(timeoutInMs.count()));
+        readFromPipeBlocking();
         read = true;
     }
 }
@@ -361,7 +330,6 @@ std::optional<std::string> EngineProcess::readErrorLine(std::chrono::millisecond
 bool EngineProcess::waitForExit(std::chrono::milliseconds timeout) {
 #ifdef _WIN32
     if (!childProcess_) return true;
-
     DWORD waitResult = WaitForSingleObject(childProcess_, static_cast<DWORD>(timeout.count()));
     if (waitResult == WAIT_OBJECT_0) {
         return true; // Process has exited

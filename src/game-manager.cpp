@@ -22,6 +22,40 @@
 #include <iostream>
 
 GameManager::GameManager(): taskProvider_(nullptr) {
+    eventThread_ = std::thread(&GameManager::processQueue, this);
+}
+
+GameManager::~GameManager() {
+    stopThread_ = true;
+    queueCondition_.notify_all();
+    if (eventThread_.joinable()) {
+        eventThread_.join();
+    }
+}
+
+void GameManager::enqueueEvent(const EngineEvent& event) {
+    if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        eventQueue_.push(event);
+    }
+    queueCondition_.notify_one();
+}
+
+bool GameManager::processNextEvent() {
+    EngineEvent event;
+    {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        if (eventQueue_.empty()) {
+            return false;
+        }
+        event = eventQueue_.front();
+        eventQueue_.pop();
+    }
+    processEvent(event);
+    return true;
 }
 
 void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
@@ -29,19 +63,45 @@ void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
 	blackPlayer_.setEngine(engine, requireLan_);
 
     engine->setEventSink([this](const EngineEvent& event) {
-        handleState(event);
+        enqueueEvent(event);
         });
+}
+
+void GameManager::processQueue() {
+    constexpr std::chrono::seconds timeoutInterval(1);
+    auto nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+
+    while (!stopThread_) {
+        {
+            std::unique_lock<std::mutex> lock(queueMutex_);
+            queueCondition_.wait_until(lock, nextTimeoutCheck, [this] {
+                return !eventQueue_.empty() || stopThread_;
+                });
+        }
+
+        while (processNextEvent()) {
+            // Process all pending events
+        }
+
+        if (std::chrono::steady_clock::now() >= nextTimeoutCheck) {
+            whitePlayer_.checkEngineTimeout();
+            if (whitePlayer_.getEngine() != blackPlayer_.getEngine()) {
+                blackPlayer_.checkEngineTimeout();
+            }
+            nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+        }
+    }
 }
 
 void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
 
     white->setEventSink([this](const EngineEvent& event) {
-        handleState(event);
+        enqueueEvent(event);
         });
 
     if (black != white) {
         black->setEventSink([this](const EngineEvent& event) {
-            handleState(event);
+            enqueueEvent(event);
             });
     }
     whitePlayer_.setEngine(white, requireLan_);
@@ -64,9 +124,9 @@ void GameManager::markFinished() {
     }
 }
 
-void GameManager::handleState(const EngineEvent& event) {
-    std::lock_guard<std::mutex> lock(eventMutex_);
+void GameManager::processEvent(const EngineEvent& event) {
     try {
+
         for (auto& error : event.errors) {
             Checklist::logCheck(error.name, false, error.detail);
         }
@@ -92,10 +152,6 @@ void GameManager::handleState(const EngineEvent& event) {
                 computeNextTask();
                 return;
             }
-        }
-
-        if (event.type == EngineEvent::Type::NoData) {
-			player->checkEngineTimeout(event);
         }
 
         if (event.type == EngineEvent::Type::Info) {
@@ -215,6 +271,7 @@ void GameManager::computeNextTask() {
     }
     auto newTask = taskProvider_->nextTask();
 	if (!newTask) {
+        taskType_ = GameTask::Type::None;
 		finishedPromise_.set_value();
 		return;
 	}

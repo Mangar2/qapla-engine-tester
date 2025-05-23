@@ -205,17 +205,18 @@ private:
 	 *
 	 * It blocks until the engine is ready or the timeout is reached.
 	 *
-	 * @param timeout The maximum time to wait for the engine to be ready.
+	 * @param timeout The maximum time to wait for the engine to send the handshake (readyok, uciok).
 	 * @return true if the engine is ready, false if the timeout was reached.
 	 */
-	bool waitForReady(std::chrono::milliseconds timeout);
+	bool waitForHandshake(std::chrono::milliseconds timeout);
 
 	/**
 	 * @brief loop to get engine output.
 	 *
 	 */
 	void readLoop();
-
+	
+	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 2 };
 	static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
 	static constexpr std::chrono::milliseconds ReadyTimeoutOption{ 5000 };
 	static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
@@ -229,10 +230,11 @@ private:
 	std::promise<void> startupPromise_;
 	std::future<void> startupFuture_;
 
-	// Ready synchronization
-	std::mutex readyMutex_;
-	std::condition_variable readyCv_;
-	bool readyReceived_ = false;
+	// Handshake synchronization
+	std::mutex handshakeMutex_;
+	std::condition_variable handshakeCv_;
+	bool handshakeReceived_ = false;
+	EngineEvent::Type waitForHandshake_ = EngineEvent::Type::None;
 
 	// Read thread
 	std::thread readThread_;

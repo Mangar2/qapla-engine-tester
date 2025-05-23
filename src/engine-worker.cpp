@@ -21,6 +21,7 @@
 #include "engine-adapter.h"  
 #include "logger.h"
 #include "timer.h"
+#include "windows.h"
 
 #include <stdexcept>
 
@@ -41,14 +42,12 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
 
     post([this](EngineAdapter& adapter) {
         try {
-            adapter.runEngine();
             readThread_ = std::thread(&EngineWorker::readLoop, this);
-
-            adapter.askForReady();
-            if (!waitForReady(ReadyTimeoutStartup)) {
-                throw std::runtime_error("Engine failed startup readiness check");
-            }
-
+            waitForHandshake_ = EngineEvent::Type::UciOk;
+            adapter.startProtocol();
+			if (!waitForHandshake(ReadyTimeoutUciOk)) {
+				throw std::runtime_error("Engine failed UCI handshake");
+			}
             startupPromise_.set_value(); // Erfolg
         }
         catch (...) {
@@ -129,19 +128,20 @@ void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task)
     cv_.notify_one();
 }
 
-bool EngineWorker::waitForReady(std::chrono::milliseconds timeout) {
-    std::unique_lock lock(readyMutex_);
-    readyReceived_ = false;
-    return readyCv_.wait_for(lock, timeout, [this] {
-        return readyReceived_;
+bool EngineWorker::waitForHandshake(std::chrono::milliseconds timeout) {
+    std::unique_lock lock(handshakeMutex_);
+    handshakeReceived_ = false;
+    return handshakeCv_.wait_for(lock, timeout, [this] {
+        return handshakeReceived_;
     });
 }
 
 bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
-    post([](EngineAdapter& adapter) {
+    post([this](EngineAdapter& adapter) {
+        waitForHandshake_ = EngineEvent::Type::ReadyOk;
         adapter.askForReady();
         });
-    return waitForReady(timeout);
+    return waitForHandshake(timeout);
 }
 
 bool EngineWorker::setOption(const std::string& name, const std::string& value) {
@@ -149,7 +149,7 @@ bool EngineWorker::setOption(const std::string& name, const std::string& value) 
         adapter.setOption(name, value);
         adapter.askForReady();
         });
-    return waitForReady(ReadyTimeoutOption);
+    return waitForHandshake(ReadyTimeoutOption);
 }
 
 void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits) {
@@ -172,12 +172,12 @@ void EngineWorker::readLoop() {
         try {
             EngineEvent event = adapter_->readEvent();
 
-            if (event.type == EngineEvent::Type::ReadyOk) {
+            if (event.type == waitForHandshake_) {
                 {
-                    std::scoped_lock lock(readyMutex_);
-                    readyReceived_ = true;
+                    std::scoped_lock lock(handshakeMutex_);
+                    handshakeReceived_ = true;
                 }
-                readyCv_.notify_all();
+                handshakeCv_.notify_all();
             }
 
             if (eventSink_) {

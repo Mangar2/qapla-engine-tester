@@ -42,6 +42,7 @@ public:
      * @param engineWorker Shared pointer to the EngineWorker.
      */
     void setEngine(std::shared_ptr<EngineWorker> engineWorker, bool requireLan) {
+        computingMove_ = false;
         engine_ = std::move(engineWorker);
 		requireLan_ = requireLan;
     }
@@ -117,7 +118,7 @@ public:
 	 * @brief Keep alive tick - check for a timout or non active engine
      * @return true, if we restarted the engine and the task must be stopped
 	 */
-    bool checkEngineTimeout(const EngineEvent& event);
+    bool checkEngineTimeout();
 
     /**
      * @brief Handles a best move event from the engine.

@@ -39,6 +39,7 @@
 class GameManager {
 public:
 	GameManager();
+	~GameManager();
 
     /**
      * @brief sets a new engine to play both sides
@@ -147,8 +148,31 @@ public:
         return white ? whitePlayer_.getEngine() : blackPlayer_.getEngine();
     }
 private:
+    /**
+     * Adds a new engine event to the processing queue.
+     * This method is thread-safe and does not block.
+     */
+    void enqueueEvent(const EngineEvent& event);
+    /**
+     * Continuously processes events from the queue and performs periodic tasks.
+     * Intended to run in a dedicated thread.
+     */
+    void processQueue();
 
-    void handleState(const EngineEvent& event);
+    /**
+     * Retrieves the next event from the queue and processes it.
+     * Returns true if an event was processed, false if the queue was empty.
+     */
+    bool processNextEvent();
+
+    /**
+     * Processes a single engine event by applying the appropriate state transition logic.
+     * Called exclusively by the internal processing thread.
+     *
+     * @param event The engine event to process.
+     */
+    void processEvent(const EngineEvent& event);
+
 	void handleBestMove(const EngineEvent& event);
 
     void computeNextMove();
@@ -222,4 +246,11 @@ private:
 
 	// Mutex to protect access to the event queue and state
     std::mutex eventMutex_;
+
+    // Queue management
+    std::thread eventThread_;
+    std::atomic<bool> stopThread_{ false };
+    std::mutex queueMutex_;
+    std::condition_variable queueCondition_;
+    std::queue<EngineEvent> eventQueue_;
 };
