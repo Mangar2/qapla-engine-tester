@@ -55,7 +55,7 @@ void UciAdapter::runUciHandshake() {
         logFromEngine(line, TraceLevel::handshake);
 
         if (line == "uciok") {
-           // break;
+           break;
         }
 
         if (!headerParsed) {
