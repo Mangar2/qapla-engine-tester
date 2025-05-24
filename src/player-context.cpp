@@ -156,7 +156,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
 bool PlayerContext::checkEngineTimeout() {
     if (!computingMove_) return false;
-	const int64_t GRACE_MS = 2000;
+	const int64_t GRACE_MS = 1000;
     const int64_t OVERRUN_TIMEOUT = 5000;
 
     const int64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_ - GRACE_MS;
@@ -166,7 +166,7 @@ bool PlayerContext::checkEngineTimeout() {
     const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
     int64_t overrun = 0;
 	if (timeLeft != 0) {
-        overrun = moveElapsedMs > timeLeft;
+        overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;
         if (moveElapsedMs > timeLeft) {
 			engine_->moveNow();
 			restarted = restartIfNotReady();
@@ -174,7 +174,7 @@ bool PlayerContext::checkEngineTimeout() {
 		}
 	}
     else if ((goLimits_.movetimeMs.has_value() && *goLimits_.movetimeMs < moveElapsedMs)) {
-        overrun = moveElapsedMs > *goLimits_.movetimeMs;
+        overrun = moveElapsedMs > *goLimits_.movetimeMs + OVERRUN_TIMEOUT;
         engine_->moveNow();
         restarted = restartIfNotReady();
 
@@ -185,14 +185,15 @@ bool PlayerContext::checkEngineTimeout() {
         restarted = true;
 	}
     if (restarted) {
-        Checklist::logCheck("No disconnect", restarted, "Engine not reacting to isready ");
+        Checklist::logCheck("No disconnect", !restarted, "Engine timeout and not reacting to isready, restarted ");
     }
     return restarted;
 }
 
 void PlayerContext::restart() {
     computingMove_ = false;
-    engine_->restart();
+    auto list = EngineWorkerFactory::createUci(engine_->getExecutablePath(), std::nullopt, 1);
+    engine_ = std::move(list[0]);
 }
 
 bool PlayerContext::restartIfNotReady() {

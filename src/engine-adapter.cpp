@@ -26,6 +26,10 @@ EngineAdapter::EngineAdapter(std::filesystem::path enginePath,
 }
 
 int64_t EngineAdapter::writeCommand(const std::string& command) {
+    if (state_ == EngineState::Terminating) {
+		// The engine is probably not running anymore, so we cannot write commands.
+        return 0; 
+    }
     std::lock_guard<std::mutex> lock(commandMutex_);
     logToEngine(command, TraceLevel::commands);
     return process_.writeLine(command);

@@ -48,10 +48,11 @@ void UciAdapter::terminateEngine() {
 	if (state_ == EngineState::Terminating) {
 		return; // Already terminating
 	}
-    state_ = EngineState::Terminating;
 
     try {
         writeCommand("quit");
+		// Once Terminating is set, writing to the engine is not allowed anymore
+        state_ = EngineState::Terminating;
     }
     catch (...) {
         // Engine might already be gone; nothing to do

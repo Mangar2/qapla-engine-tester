@@ -60,6 +60,7 @@ inline std::string gameEndCauseToPgnTermination(GameEndCause cause) {
 	case GameEndCause::Adjudication: return "adjudication";
 	case GameEndCause::Forfeit: return "forfeit";
 	case GameEndCause::TerminatedByTester: return "terminated";
+	case GameEndCause::Disconnected: return "disconnected";
 	default: return "unknown";
 	}
 }

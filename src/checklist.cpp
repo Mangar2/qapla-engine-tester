@@ -60,6 +60,7 @@ void Checklist::log() {
         { "Engine starts and stops fast and without problems", Section::Important },
         { "Engine Options works safely", Section::Important },
         { "No loss on time", Section::Important },
+        { "No disconnect", Section::Important },
         { "Engine reacts on stop", Section::Important },
         { "Computing a move returns a legal move", Section::Important },
 

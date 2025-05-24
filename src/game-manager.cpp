@@ -34,6 +34,10 @@ GameManager::~GameManager() {
 }
 
 void GameManager::enqueueEvent(const EngineEvent& event) {
+	if (taskType_ == GameTask::Type::None) {
+		// No task to process, ignore the event
+		return;
+	}
     if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {
         return;
     }
@@ -45,6 +49,9 @@ void GameManager::enqueueEvent(const EngineEvent& event) {
 }
 
 bool GameManager::processNextEvent() {
+	if (taskType_ == GameTask::Type::None) {
+		return false; // No task to process
+	}
     EngineEvent event;
     {
         std::lock_guard<std::mutex> lock(queueMutex_);
@@ -84,11 +91,19 @@ void GameManager::processQueue() {
         }
 
         if (std::chrono::steady_clock::now() >= nextTimeoutCheck) {
+            nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+
+            if (taskType_ != GameTask::Type::ComputeMove && taskType_ != GameTask::Type::PlayGame) {
+                continue;
+            }
+
             whitePlayer_.checkEngineTimeout();
             if (whitePlayer_.getEngine() != blackPlayer_.getEngine()) {
                 blackPlayer_.checkEngineTimeout();
             }
-            nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+            if (checkForGameEnd()) {
+                computeNextTask();
+            }
         }
     }
 }
@@ -202,12 +217,34 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 
 }
 
+std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
+    auto [wcause, wresult] = whitePlayer_.getGameResult();
+    auto [bcause, bresult] = blackPlayer_.getGameResult();
+    
+    // Timeout or Disconneced is only detected by the loosing player
+    if (wcause == GameEndCause::Timeout || wcause == GameEndCause::Disconnected) {
+		return { wcause, wresult };
+    }
+    else if (bcause == GameEndCause::Timeout || bcause == GameEndCause::Disconnected) {
+        return { bcause, bresult };
+    }
+    // We take the result from the player doing the last move (thus not at move)
+    if (gameRecord_.isWhiteToMove()) {
+		return { bcause, bresult };
+	}
+    else {
+        return { wcause, wresult };
+    }
+}
+
 bool GameManager::checkForGameEnd() {
     // Both player should have the right result but the player not to move is still passive
-	auto [cause, result] = gameRecord_.isWhiteToMove() ? blackPlayer_.getGameResult() : whitePlayer_.getGameResult();
+    auto [cause, result] = getGameResult();
+
     if (result == GameResult::Unterminated) {
         return false;
     }
+
 	gameRecord_.setGameEnd(cause, result);
     if (logMoves_) std::cout << "\n";
 	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
@@ -260,9 +297,13 @@ void GameManager::computeGame(bool useStartPosition, const std::string fen, bool
 }
 
 void GameManager::computeNextTask() {
+    if (taskType_ == GameTask::Type::None) {
+        // Already processed to end
+        return;
+    }
 	if (!taskProvider_) {
-		finishedPromise_.set_value();
-		taskType_ = GameTask::Type::None;
+        taskType_ = GameTask::Type::None;
+        finishedPromise_.set_value();
 		return;
 	}
 
@@ -289,6 +330,7 @@ void GameManager::computeTasks(GameTaskProvider* taskProvider) {
     finishedFuture_ = finishedPromise_.get_future();
 	taskProvider_ = std::move(taskProvider);
     logMoves_ = false;
+	taskType_ = GameTask::Type::FetchNextTask;
     computeNextTask();
 }
 

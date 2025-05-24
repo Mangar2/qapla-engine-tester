@@ -213,6 +213,7 @@ private:
 	 * It returns true if the game has ended, false otherwise.
 	 */
     bool checkForGameEnd();
+    std::tuple<GameEndCause, GameResult> getGameResult();
 
     /**
      * @brief Signals that a computation has completed. Call once per compute cycle.

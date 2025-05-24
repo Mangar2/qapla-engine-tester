@@ -110,8 +110,10 @@ void EngineWorker::threadLoop() {
         }
         
         catch (const std::exception& e) {
+            // Usually the engine disconnected this is reported as error elswhere
+            // Thus we log it with TraceLevel:info only
             Logger::testLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
-                + std::string(e.what()), TraceLevel::error);
+                + std::string(e.what()), TraceLevel::info);
         }
         catch (...) {
             Logger::testLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 

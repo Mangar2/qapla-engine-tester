@@ -25,6 +25,7 @@
 struct GameTask {
     enum class Type {
         None,
+        FetchNextTask,
         ComputeMove,
         PlayGame
     };
