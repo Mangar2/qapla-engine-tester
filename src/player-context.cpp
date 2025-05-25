@@ -190,9 +190,17 @@ bool PlayerContext::checkEngineTimeout() {
     return restarted;
 }
 
+void PlayerContext::handleDisconnect(bool isWhitePlayer) {
+    gameState_.setGameResult(GameEndCause::Disconnected, isWhitePlayer ? GameResult::BlackWins : GameResult::WhiteWins);
+    Checklist::logCheck("No disconnect", false, "Engine disconnected unexpectedly.");
+    restart();
+}
+
 void PlayerContext::restart() {
     computingMove_ = false;
+    // Create a fully initialized new engine instance (incl. UCI handshake)
     auto list = EngineWorkerFactory::createUci(engine_->getExecutablePath(), std::nullopt, 1);
+    // Replace the old engine with the new one; triggers cleanup of old engine (threads, handles)
     engine_ = std::move(list[0]);
 }
 

@@ -89,9 +89,10 @@ struct EngineEvent {
         Info,
         PonderHit,
         Error,
+        EngineDisconnected,
         Unknown,
         NoData,
-        KeepAlive
+        KeepAlive,
     };
     static EngineEvent create(Type type, const std::string& id, int64_t ts, const std::string& rawLine = "") {
         EngineEvent e; 
@@ -101,6 +102,11 @@ struct EngineEvent {
         e.rawLine = rawLine;
         return e;
     }
+	static EngineEvent createEngineDisconnected(const std::string& id, int64_t ts, const std::string& errorMessage) {
+        EngineEvent e = create(Type::EngineDisconnected, id, ts, "");
+		e.errors.push_back({ "I/O Error", errorMessage });
+		return e;
+	}
 	static EngineEvent createNoData(const std::string& id, int64_t ts) {
 		return create(Type::NoData, id, ts);
 	}

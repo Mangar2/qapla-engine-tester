@@ -29,7 +29,7 @@
 #include "game-state.h"
 #include "move-record.h"
 #include "game-record.h"
-#include "tournament-manager.h"
+#include "test-tournament.h"
 #include "player-context.h"
 
  /**
@@ -83,16 +83,19 @@ public:
 	 * @param timeControl The time control to be set.
 	 */
 	void setUniqueTimeControl(const TimeControl& timeControl) {
-		whitePlayer_.setTimeControl(timeControl);
-		blackPlayer_.setTimeControl(timeControl);
+		whitePlayer_->setTimeControl(timeControl);
+        if (blackPlayer_ != whitePlayer_) {
+            blackPlayer_->setTimeControl(timeControl);
+        }
 	}
 
     /**
 	 * @brief Sets the time control for both sides.
      */
 	void setTimeControls(const TimeControl& white, const TimeControl& black) {
-		whitePlayer_.setTimeControl(white);
-		blackPlayer_.setTimeControl(black);
+		assert(whitePlayer_ != nullptr && blackPlayer_ != nullptr && whitePlayer_ != blackPlayer_);
+		whitePlayer_->setTimeControl(white);
+		blackPlayer_->setTimeControl(black);
 	}
 
     /**
@@ -145,7 +148,7 @@ public:
      * @return A reference to the EngineWorker.
      */
     EngineWorker* getEngine(bool white = true) {
-        return white ? whitePlayer_.getEngine() : blackPlayer_.getEngine();
+        return white ? whitePlayer_->getEngine() : blackPlayer_->getEngine();
     }
 private:
     /**
@@ -182,8 +185,8 @@ private:
      */
     template<typename Func>
     void forEachUniqueEngine(Func&& func) {
-		auto whiteEngine = whitePlayer_.getEngine();
-		auto blackEngine = blackPlayer_.getEngine();
+		auto whiteEngine = whitePlayer_->getEngine();
+		auto blackEngine = blackPlayer_->getEngine();
         if (whiteEngine) {
             func(*whiteEngine);
         }
@@ -199,11 +202,11 @@ private:
 	 * @param fen The FEN string representing the game state.
 	 */
 	void newGame(bool useStartPosition, const std::string& fen) {
-        whitePlayer_.setFen(useStartPosition, fen);
-		if (whitePlayer_.getEngine() != blackPlayer_.getEngine()) {
-			blackPlayer_.setFen(useStartPosition, fen);
+        whitePlayer_->setFen(useStartPosition, fen);
+		if (whitePlayer_ != blackPlayer_) {
+			blackPlayer_->setFen(useStartPosition, fen);
 		}
-        gameRecord_.newGame(useStartPosition, fen, whitePlayer_.isWhiteToMove());
+        gameRecord_.newGame(useStartPosition, fen, whitePlayer_->isWhiteToMove());
 	}
 
 	/**
@@ -220,8 +223,10 @@ private:
      */
     void markFinished();
 
-    PlayerContext whitePlayer_;
-    PlayerContext blackPlayer_;
+    PlayerContext* whitePlayer_;
+    PlayerContext* blackPlayer_;
+    PlayerContext player1_;
+    PlayerContext player2_;
 
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
@@ -241,7 +246,7 @@ private:
     bool finishedPromiseValid_ = false;
 
     bool requireLan_ = true;
-	GameTask::Type taskType_ = GameTask::Type::None;
+	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
 	GameRecord gameRecord_;
     bool logMoves_ = false;
 

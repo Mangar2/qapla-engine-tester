@@ -528,7 +528,7 @@ void EngineTestController::runMultipleGamesTest() {
     EngineWorkerFactory factory;
     EngineList engines = factory.createUci(enginePath_, std::nullopt, parallelGames * 2);
 
-    TournamentManager tournament(totalGames);
+    TestTournament tournament(totalGames);
 
     std::vector<std::unique_ptr<GameManager>> managers;
     try {

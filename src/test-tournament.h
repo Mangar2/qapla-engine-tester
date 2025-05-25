@@ -29,17 +29,17 @@
 #include "checklist.h"
 #include "game-task.h"
 
-class TournamentManager : public GameTaskProvider {
+class TestTournament : public GameTaskProvider {
 public:
-    explicit TournamentManager(int totalGames)
+    explicit TestTournament(int totalGames)
         : maxGames_(totalGames), current_(0) {
         timePairs_ = {
-            {{0, 200000, 500}, {0, 100000, 100}},
-            {{0, 100000, 500}, {0,  50000, 100}},
-            {{0,  20000, 500}, {0,  10000, 100}},
-            {{0, 200000, 500}, {0, 100000,   0}},
-            {{0, 100000, 200}, {0,  50000,   0}},
-            {{0,  20000, 200}, {0,  10000,   0}}
+            {{0, 2000, 500}, {0, 1000, 100}},
+            {{0, 1000, 500}, {0,  500, 100}},
+            {{0,  200, 500}, {0,  100, 100}},
+            {{0, 2000, 500}, {0, 1000,   0}},
+            {{0, 1000, 200}, {0,  500,   0}},
+            {{0,  200, 200}, {0,  100,   0}}
         };
     }
 

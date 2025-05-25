@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 #pragma once
-
+#include <atomic>
 #include "engine-worker.h"
 #include "time-control.h"
 #include "game-state.h"
@@ -60,6 +60,21 @@ public:
 	 * @brief Tells the engine to compute a new move
      */
     void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits);
+
+	/**
+	 * @brief Cancels the current move computation.
+	 *
+	 * This function requests the engine to cancel computing the current move.
+	 * If the engine responds with a move, it will be ignored.
+	 */
+    void cancelCompute() {
+        constexpr auto readyTimeout = std::chrono::seconds{ 1 };
+        if (computingMove_) {
+            computingMove_ = false; // Ignores the move
+            engine_->moveNow();
+        }
+        engine_->requestReady(readyTimeout);
+    }
 
 	/**
 	 * @brief returns player to move
@@ -128,6 +143,16 @@ public:
      */
     QaplaBasics::Move handleBestMove(const EngineEvent& event);
 
+	/**
+	 * @brief Handles a disconnect event.
+	 *
+	 * This function is called when the engine unexpectedly disconnects.
+	 * It sets the game result to indicate a disconnection and restarts the engine.
+	 *
+	 * @param isWhitePlayer True if this player is the white player, false if black.
+	 */
+    void handleDisconnect(bool isWhitePlayer);
+
     /**
      * @brief Evaluates whether the engine respected the time constraints.
      *
@@ -185,6 +210,6 @@ private:
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
-    bool computingMove_ = false;
+    std::atomic<bool> computingMove_ = false;
     MoveRecord currentMove_;
 };

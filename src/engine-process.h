@@ -30,9 +30,15 @@
 #endif
 
 struct EngineLine {
+    enum class Error {
+        NoError,
+        EngineTerminated,
+        IncompleteLine
+    };
     std::string content;
     bool complete;
     int64_t timestampMs; 
+    Error error;
 };
 
  /**
@@ -155,6 +161,16 @@ private:
      * @param lineTerminated True if the text ends with a line break (complete line).
      */
     void appendToLineQueue(const std::string& text, bool lineTerminated);
+
+	/**
+	 * Appends an error line to the line queue with timestamp.
+	 *
+	 * If the last entry is incomplete, it is marked as complete and a new entry is created.
+	 *
+	 * @param error The error type to append.
+	 * @param text The text of the error message.
+	 */
+    void appendErrorToLineQueue(EngineLine::Error error, const std::string& text);
 
     /**
      * Reads a block of raw bytes from the engine's stdout pipe and splits them into lines.

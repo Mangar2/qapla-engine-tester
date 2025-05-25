@@ -363,15 +363,24 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
 
 EngineEvent UciAdapter::readEvent() {
     EngineLine engineLine = process_.readLineBlocking();
-    if (!engineLine.complete) {
+    const std::string& line = engineLine.content;
+
+    if (!engineLine.complete || engineLine.error == EngineLine::Error::IncompleteLine) {
+        logFromEngine(line, TraceLevel::info);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
+
+ 	if (engineLine.error == EngineLine::Error::EngineTerminated) {
+		if (state_ == EngineState::Terminating) {
+			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+		}
+		return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);
+	}
 
 	if (inUciHandshake_) {
 		return readUciEvent(engineLine);
 	}
 
-    const std::string& line = engineLine.content;
     std::istringstream iss(line);
     std::string command;
     iss >> command;

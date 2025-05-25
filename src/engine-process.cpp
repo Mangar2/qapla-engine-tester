@@ -24,6 +24,7 @@
 #include <cstring>
 #include <chrono>
 #include <thread>
+#include <assert.h>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -203,6 +204,20 @@ std::size_t EngineProcess::getMemoryUsage() const {
 #endif
 }
 
+void EngineProcess::appendErrorToLineQueue(EngineLine::Error error, const std::string& text) {
+    int64_t now = Timer::getCurrentTimeMs();
+	if (error == EngineLine::Error::NoError) {
+        assert(error != EngineLine::Error::NoError && "appendErrorToLineQueue called with NoError");
+		return; 
+	}
+
+    if (!lineQueue_.empty() && !lineQueue_.back().complete) {
+		lineQueue_.back().complete = true; 
+        lineQueue_.back().error = EngineLine::Error::IncompleteLine;
+    }
+    lineQueue_.emplace_back(EngineLine{ text, true, now, error });
+}
+
 void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminated) {
     int64_t now = Timer::getCurrentTimeMs();
 
@@ -212,7 +227,7 @@ void EngineProcess::appendToLineQueue(const std::string& text, bool lineTerminat
         return;
     }
 
-    lineQueue_.emplace_back(EngineLine{ text, lineTerminated, now });
+    lineQueue_.emplace_back(EngineLine{ text, lineTerminated, now, EngineLine::Error::NoError });
 }
 
 void EngineProcess::readFromPipeBlocking() {
@@ -225,12 +240,39 @@ void EngineProcess::readFromPipeBlocking() {
 #ifdef _WIN32
     DWORD bytesRead = 0;
     if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
+        DWORD lastError = GetLastError();
+        switch (lastError) {
+        case ERROR_BROKEN_PIPE:
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Broken pipe - engine terminated or closed");
+            break;
+        case ERROR_NO_DATA:
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: No data - end of file");
+            break;
+        case ERROR_INVALID_HANDLE:
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Invalid handle");
+            break;
+        default:
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Unknown error code " + std::to_string(lastError));
+            break;
+        }
         return;
     }
     std::string incoming(temp, bytesRead);
 #else
     ssize_t r = read(stdoutRead_, temp, sizeof(temp));
-    if (r <= 0) return;
+    if (r == 0) {
+        appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: EOF - engine closed pipe");
+        return;
+    }
+    if (r < 0) {
+        if (errno == EBADF) {
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: Invalid file descriptor");
+        }
+        else {
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, std::string("read: error ") + strerror(errno));
+        }
+        return;
+    }
     std::string incoming(temp, r);
 #endif
 

@@ -205,6 +205,7 @@ public:
 	}
 
 protected:
+    
     /**
      * @brief Emits a log message using the configured logger, if any.
      */

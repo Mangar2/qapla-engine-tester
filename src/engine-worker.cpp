@@ -185,6 +185,10 @@ void EngineWorker::readLoop() {
             if (eventSink_) {
                 eventSink_(event);
             }
+			if (event.type == EngineEvent::Type::EngineDisconnected) {
+				// disconnected engines would lead to endless looping so we need to terminate the read thread
+				running_ = false;
+			}
         }
 		catch (const std::exception& e) {
 			Logger::testLogger().log("Exception in readLoop, id " + getIdentifier() + " "

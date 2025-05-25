@@ -23,6 +23,8 @@
 
 GameManager::GameManager(): taskProvider_(nullptr) {
     eventThread_ = std::thread(&GameManager::processQueue, this);
+    whitePlayer_ = &player1_;
+    blackPlayer_ = &player2_;
 }
 
 GameManager::~GameManager() {
@@ -66,12 +68,28 @@ bool GameManager::processNextEvent() {
 }
 
 void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
-    whitePlayer_.setEngine(engine, requireLan_);
-	blackPlayer_.setEngine(engine, requireLan_);
+	whitePlayer_ = &player1_;
+    blackPlayer_ = &player1_;
+    whitePlayer_->setEngine(engine, requireLan_);
 
     engine->setEventSink([this](const EngineEvent& event) {
         enqueueEvent(event);
         });
+}
+
+void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
+    whitePlayer_ = &player1_;
+    blackPlayer_ = &player2_;
+	whitePlayer_->setEngine(white, requireLan_);
+    blackPlayer_->setEngine(black, requireLan_);
+
+    white->setEventSink([this](const EngineEvent& event) {
+        enqueueEvent(event);
+        });
+
+    black->setEventSink([this](const EngineEvent& event) {
+         enqueueEvent(event);
+         });
 }
 
 void GameManager::processQueue() {
@@ -97,9 +115,17 @@ void GameManager::processQueue() {
                 continue;
             }
 
-            whitePlayer_.checkEngineTimeout();
-            if (whitePlayer_.getEngine() != blackPlayer_.getEngine()) {
-                blackPlayer_.checkEngineTimeout();
+            if (whitePlayer_->checkEngineTimeout()) {
+                whitePlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
+                    enqueueEvent(event);
+                    });;
+            }
+            if (whitePlayer_ != blackPlayer_) {
+                if (blackPlayer_->checkEngineTimeout()) {
+                    blackPlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
+                        enqueueEvent(event);
+                        });;
+                }
             }
             if (checkForGameEnd()) {
                 computeNextTask();
@@ -108,20 +134,7 @@ void GameManager::processQueue() {
     }
 }
 
-void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
 
-    white->setEventSink([this](const EngineEvent& event) {
-        enqueueEvent(event);
-        });
-
-    if (black != white) {
-        black->setEventSink([this](const EngineEvent& event) {
-            enqueueEvent(event);
-            });
-    }
-    whitePlayer_.setEngine(white, requireLan_);
-    blackPlayer_.setEngine(black, requireLan_);
-}
 
 void GameManager::switchSide() {
     std::swap(whitePlayer_, blackPlayer_);
@@ -145,14 +158,25 @@ void GameManager::processEvent(const EngineEvent& event) {
         for (auto& error : event.errors) {
             Checklist::logCheck(error.name, false, error.detail);
         }
-		bool isWhitePlayer = event.engineIdentifier == whitePlayer_.getEngine()->getIdentifier();
-		bool isBlackPlayer = event.engineIdentifier == blackPlayer_.getEngine()->getIdentifier();
+		bool isWhitePlayer = event.engineIdentifier == whitePlayer_->getEngine()->getIdentifier();
+		bool isBlackPlayer = event.engineIdentifier == blackPlayer_->getEngine()->getIdentifier();
         if (!isWhitePlayer && !isBlackPlayer) {
             // Usally from an engine in termination process. E.g. we stop an engine not reacting and already
             // Started new engines but the old engine still sends data.
             return;
         }
-        PlayerContext* player = isWhitePlayer ? &whitePlayer_ : &blackPlayer_;
+        PlayerContext* player = isWhitePlayer ? whitePlayer_ : blackPlayer_;
+
+        if (event.type == EngineEvent::Type::EngineDisconnected) {
+            player->handleDisconnect(isWhitePlayer);
+            player->getEngine()->setEventSink([this](const EngineEvent& event) {
+                enqueueEvent(event);
+                });
+            if (taskType_ != GameTask::Type::PlayGame) {
+                computeNextTask();
+                return;
+            }
+		}
 
         if (event.type == EngineEvent::Type::ComputeMoveSent) {
             // We get the start calculating move timestamp directly from the EngineProcess after sending the compute move string
@@ -197,20 +221,23 @@ void GameManager::handleBestMove(const EngineEvent& event) {
     QaplaBasics::Move move;
 	MoveRecord moveRecord;
 	PlayerContext* playerToInform = nullptr;
+    PlayerContext* player = nullptr;
     if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
-	if (whitePlayer_.getEngine()->getIdentifier() == event.engineIdentifier) {
-        move = whitePlayer_.handleBestMove(event);
-		moveRecord = whitePlayer_.getCurrentMove();
-        playerToInform = &blackPlayer_;
+	if (whitePlayer_->getEngine()->getIdentifier() == event.engineIdentifier) {
+		player = whitePlayer_;
+        playerToInform = blackPlayer_;
 	}
-	else if (blackPlayer_.getEngine()->getIdentifier() == event.engineIdentifier) {
-		move = blackPlayer_.handleBestMove(event);
-		moveRecord = blackPlayer_.getCurrentMove();
-        playerToInform = &whitePlayer_;
+	else if (blackPlayer_->getEngine()->getIdentifier() == event.engineIdentifier) {
+		player = blackPlayer_;
+        playerToInform = whitePlayer_;
 	}
+    if (player) {
+        move = player->handleBestMove(event);
+        moveRecord = player->getCurrentMove();
+    }
 	if (move != QaplaBasics::Move::EMPTY_MOVE) {
 		gameRecord_.addMove(moveRecord);
-		if (playerToInform->getEngine()->getIdentifier() != event.engineIdentifier) {
+		if (player != playerToInform) {
             playerToInform->doMove(move);
 		}
 	}
@@ -218,8 +245,8 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 }
 
 std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
-    auto [wcause, wresult] = whitePlayer_.getGameResult();
-    auto [bcause, bresult] = blackPlayer_.getGameResult();
+    auto [wcause, wresult] = whitePlayer_->getGameResult();
+    auto [bcause, bresult] = blackPlayer_->getGameResult();
     
     // Timeout or Disconneced is only detected by the loosing player
     if (wcause == GameEndCause::Timeout || wcause == GameEndCause::Disconnected) {
@@ -255,10 +282,10 @@ bool GameManager::checkForGameEnd() {
 
 void GameManager::moveNow() {
     if (gameRecord_.isWhiteToMove()) {
-		whitePlayer_.getEngine()->moveNow();
+		whitePlayer_->getEngine()->moveNow();
     }
     else {
-		blackPlayer_.getEngine()->moveNow();
+		blackPlayer_->getEngine()->moveNow();
     }
 }
 
@@ -267,7 +294,7 @@ void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     finishedFuture_ = finishedPromise_.get_future();
 	taskProvider_ = nullptr;
 	newGame(useStartPosition, fen);
-	gameRecord_.setTimeControl(whitePlayer_.getTimeControl(), blackPlayer_.getTimeControl());
+	gameRecord_.setTimeControl(whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl());
 	taskType_ = GameTask::Type::ComputeMove;
     logMoves_ = false;
     computeNextMove();
@@ -276,13 +303,13 @@ void GameManager::computeMove(bool useStartPosition, const std::string fen) {
 void GameManager::computeNextMove() {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     GoLimits goLimits = createGoLimits(
-		whitePlayer_.getTimeControl(), blackPlayer_.getTimeControl(),
+		whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl(),
         gameRecord_.currentPly(), whiteTime, blackTime, gameRecord_.isWhiteToMove());
 	if (gameRecord_.isWhiteToMove()) {
-        whitePlayer_.computeMove(gameRecord_, goLimits);
+        whitePlayer_->computeMove(gameRecord_, goLimits);
     }
     else {
-		blackPlayer_.computeMove(gameRecord_, goLimits);
+		blackPlayer_->computeMove(gameRecord_, goLimits);
     }
 }
 
@@ -301,8 +328,17 @@ void GameManager::computeNextTask() {
         // Already processed to end
         return;
     }
+    taskType_ = GameTask::Type::None;
+
+    whitePlayer_->cancelCompute();
+    if (blackPlayer_ != whitePlayer_) {
+        blackPlayer_->cancelCompute();
+    }
+    while (!eventQueue_.empty()) {
+        eventQueue_.pop();
+    }
+
 	if (!taskProvider_) {
-        taskType_ = GameTask::Type::None;
         finishedPromise_.set_value();
 		return;
 	}

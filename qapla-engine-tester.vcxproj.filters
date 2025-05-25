@@ -179,7 +179,7 @@
     <ClInclude Include="src\engine-event.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\tournament-manager.h">
+    <ClInclude Include="src\test-tournament.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\heart-beat.h">
