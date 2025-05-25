@@ -67,10 +67,10 @@ void UciAdapter::terminateEngine() {
         process_.terminate();
     }
     catch (const std::exception& ex) {
-		Logger::engineLogger().log(identifier_, "Failed to terminate engine: " + std::string(ex.what()), true, TraceLevel::error);
+		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): " + std::string(ex.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::engineLogger().log(identifier_, "Failed to terminate engine", true, TraceLevel::error);
+		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): ", TraceLevel::error);
     }
 
 }
@@ -381,6 +381,8 @@ EngineEvent UciAdapter::readEvent() {
 		return readUciEvent(engineLine);
 	}
 
+	// std::cout << identifier_ << "-> " << line << std::endl; // Debug output
+
     std::istringstream iss(line);
     std::string command;
     iss >> command;
@@ -442,6 +444,7 @@ EngineEvent UciAdapter::readEvent() {
             }
             numIdError_++;
         }
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
     else if (command == "name") {
         if (numNameError_ <= 5) {

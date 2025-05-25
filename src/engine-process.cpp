@@ -58,6 +58,8 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
 }
 
 void EngineProcess::start() {
+    constexpr bool useStdErr = false;
+	constexpr DWORD READ_PUFFER_SIZE = 64 * 1024; 
 #ifdef _WIN32
     SECURITY_ATTRIBUTES saAttr{};
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -65,20 +67,29 @@ void EngineProcess::start() {
     saAttr.lpSecurityDescriptor = nullptr;
 
     HANDLE stdinReadTmp, stdoutWriteTmp, stderrWriteTmp;
+    HANDLE nulHandle = nullptr;
 
     if (!CreatePipe(&stdinReadTmp, &stdinWrite_, &saAttr, 0) ||
         !SetHandleInformation(stdinWrite_, HANDLE_FLAG_INHERIT, 0)) {
         throw std::runtime_error("Failed to create stdin pipe");
     }
 
-    if (!CreatePipe(&stdoutRead_, &stdoutWriteTmp, &saAttr, 0) ||
+    if (!CreatePipe(&stdoutRead_, &stdoutWriteTmp, &saAttr, READ_PUFFER_SIZE) ||
         !SetHandleInformation(stdoutRead_, HANDLE_FLAG_INHERIT, 0)) {
         throw std::runtime_error("Failed to create stdout pipe");
     }
 
-    if (!CreatePipe(&stderrRead_, &stderrWriteTmp, &saAttr, 0) ||
-        !SetHandleInformation(stderrRead_, HANDLE_FLAG_INHERIT, 0)) {
-        throw std::runtime_error("Failed to create stderr pipe");
+    if (useStdErr) {
+        if (!CreatePipe(&stderrRead_, &stderrWriteTmp, &saAttr, 0) ||
+            !SetHandleInformation(stderrRead_, HANDLE_FLAG_INHERIT, 0)) {
+            throw std::runtime_error("Failed to create stderr pipe");
+        }
+    }
+    else {
+        nulHandle = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (nulHandle == INVALID_HANDLE_VALUE) {
+            throw std::runtime_error("Failed to open NUL device for stderr redirection");
+        }
     }
 
     PROCESS_INFORMATION piProcInfo{};
@@ -86,7 +97,7 @@ void EngineProcess::start() {
     siStartInfo.cb = sizeof(STARTUPINFOA);
     siStartInfo.hStdInput = stdinReadTmp;
     siStartInfo.hStdOutput = stdoutWriteTmp;
-    siStartInfo.hStdError = stderrWriteTmp;
+    siStartInfo.hStdError = useStdErr ? stderrWriteTmp : nulHandle;
     siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
     std::string cmd = executablePath_.string();
@@ -105,7 +116,12 @@ void EngineProcess::start() {
 
     CloseHandle(stdinReadTmp);
     CloseHandle(stdoutWriteTmp);
-    CloseHandle(stderrWriteTmp);
+    if (useStdErr) {
+        CloseHandle(stderrWriteTmp);
+    }
+    else {
+        CloseHandle(nulHandle);
+    }
 
     if (!success) {
         throw std::runtime_error("Failed to create process");
@@ -115,8 +131,13 @@ void EngineProcess::start() {
     CloseHandle(piProcInfo.hThread);
 #else
     int inPipe[2], outPipe[2], errPipe[2];
-    if (pipe(inPipe) || pipe(outPipe) || pipe(errPipe)) {
+    if (pipe(inPipe) || pipe(outPipe)) {
         throw std::runtime_error("Failed to create pipes");
+    }
+    if (useStdErr) {
+        if (pipe(errPipe)) {
+            throw std::runtime_error("Failed to create stderr pipe");
+        }
     }
 
     childPid_ = fork();
@@ -129,18 +150,31 @@ void EngineProcess::start() {
 
         dup2(inPipe[0], STDIN_FILENO);
         dup2(outPipe[1], STDOUT_FILENO);
-        dup2(errPipe[1], STDERR_FILENO);
+        if (useStdErr) {
+            dup2(errPipe[1], STDERR_FILENO);
+            close(errPipe[0]);
+        }
+        else {
+            int nulFd = open("/dev/null", O_WRONLY);
+            if (nulFd != -1) {
+                dup2(nulFd, STDERR_FILENO);
+                close(nulFd);
+            }
+        }
 
-        close(inPipe[1]); close(outPipe[0]); close(errPipe[0]);
+        close(inPipe[1]); close(outPipe[0]);
 
         execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
         _exit(1);
     }
 
-    close(inPipe[0]); close(outPipe[1]); close(errPipe[1]);
+    close(inPipe[0]); close(outPipe[1]);
     stdinWrite_ = inPipe[1];
     stdoutRead_ = outPipe[0];
-    stderrRead_ = errPipe[0];
+    if (useStdErr) {
+        close(errPipe[1]);
+        stderrRead_ = errPipe[0];
+    }
 #endif
 }
 
@@ -241,6 +275,7 @@ void EngineProcess::readFromPipeBlocking() {
     DWORD bytesRead = 0;
     if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
         DWORD lastError = GetLastError();
+        // std::cout << "[" << now << "] " << "lastError: " << lastError << " bytesRead: " << bytesRead << std::endl;
         switch (lastError) {
         case ERROR_BROKEN_PIPE:
             appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Broken pipe - engine terminated or closed");
@@ -258,6 +293,7 @@ void EngineProcess::readFromPipeBlocking() {
         return;
     }
     std::string incoming(temp, bytesRead);
+    //std::cout << "[" << now << "] " << incoming << std::endl;
 #else
     ssize_t r = read(stdoutRead_, temp, sizeof(temp));
     if (r == 0) {

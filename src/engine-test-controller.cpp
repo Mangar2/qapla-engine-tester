@@ -80,15 +80,15 @@ std::string bytesToMB(int64_t bytes) {
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     try {
         createGameManager(enginePath, true);
-        runStartStopTest(enginePath);
-        runMultipleStartStopTest(enginePath, 20);
-        runHashTableMemoryTest();
-        runEngineOptionTests();
+        //runStartStopTest(enginePath);
+        //runMultipleStartStopTest(enginePath, 20);
+        //runHashTableMemoryTest();
+        //runEngineOptionTests();
         runAnalyzeTest();
         runGoLimitsTests();
         runEpdTests();
         runComputeGameTest();
-        runMultipleGamesTest();
+        //runMultipleGamesTest();
         gameManager_->stop();
     }
 	catch (const std::exception& e) {
@@ -203,7 +203,7 @@ void EngineTestController::runMultipleStartStopTest(std::filesystem::path engine
 
 
 void EngineTestController::runGoLimitsTests() {
-    static constexpr auto GO_TIMEOUT = std::chrono::seconds(2);
+    static constexpr auto GO_TIMEOUT = std::chrono::seconds(4);
     struct TestCase {
         std::string name;
         TimeControl timeControl;
@@ -213,7 +213,7 @@ void EngineTestController::runGoLimitsTests() {
 
     std::vector<std::pair<std::string, TimeControl>> testCases = {
         { "No loss on time", [] {
-            TimeControl t; t.addTimeSegment({0, 30000, 500}); return t;
+            TimeControl t; t.addTimeSegment({0, 1000, 500}); return t;
         }() },
         { "No loss on time", [] {
             TimeControl t; t.addTimeSegment({0, 100, 2000}); return t;

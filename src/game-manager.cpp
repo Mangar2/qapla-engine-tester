@@ -114,20 +114,22 @@ void GameManager::processQueue() {
             if (taskType_ != GameTask::Type::ComputeMove && taskType_ != GameTask::Type::PlayGame) {
                 continue;
             }
-
+            bool restarted = false;
             if (whitePlayer_->checkEngineTimeout()) {
+                restarted = true;
                 whitePlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
                     enqueueEvent(event);
                     });;
             }
             if (whitePlayer_ != blackPlayer_) {
                 if (blackPlayer_->checkEngineTimeout()) {
+					restarted = true;
                     blackPlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
                         enqueueEvent(event);
                         });;
                 }
             }
-            if (checkForGameEnd()) {
+            if (checkForGameEnd() || (restarted && taskType_ != GameTask::Type::PlayGame)) {
                 computeNextTask();
             }
         }
