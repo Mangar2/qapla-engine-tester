@@ -35,7 +35,7 @@
  */
 class GameRecord {
 public:
-    void newGame(bool startPos, std::string startFen, bool isWhiteToMove) {
+    void setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove) {
 		moves_.clear();
 		isWhiteToMove_ = isWhiteToMove;
 		currentPly_ = 0;

@@ -521,9 +521,9 @@ void EngineTestController::runMultipleGamesTest() {
 
     Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(totalGames) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");
-	Logger::testLogger().log("You can alter the number of games playe with --games-number option and the number of parallel games with --max-parallel-engines option. ");
-    Logger::testLogger().log("White has always the longer time control so we expect white to win most games. Time controls gets shorter and shorter.");
-    Logger::testLogger().log("Please wait a few minutes before first game results occur.");
+	Logger::testLogger().log("You can alter the number of games played with --games-number option and the number of parallel games with --max-parallel-engines option. ");
+    Logger::testLogger().log("White has always the longer time control so we expect white to win most games. ");
+    Logger::testLogger().log("Please wait a moment before first game results occur.");
 
     EngineWorkerFactory factory;
     EngineList engines = factory.createUci(enginePath_, std::nullopt, parallelGames * 2);

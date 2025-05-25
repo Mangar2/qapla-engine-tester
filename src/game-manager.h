@@ -93,7 +93,8 @@ public:
 	 * @brief Sets the time control for both sides.
      */
 	void setTimeControls(const TimeControl& white, const TimeControl& black) {
-		assert(whitePlayer_ != nullptr && blackPlayer_ != nullptr && whitePlayer_ != blackPlayer_);
+		assert(whitePlayer_ != nullptr && blackPlayer_ != nullptr);
+        assert(whitePlayer_ != blackPlayer_ || &white != &black);
 		whitePlayer_->setTimeControl(white);
 		blackPlayer_->setTimeControl(black);
 	}
@@ -201,12 +202,12 @@ private:
 	 * @param useStartPosition If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
 	 */
-	void newGame(bool useStartPosition, const std::string& fen) {
+	void setStartPosition(bool useStartPosition, const std::string& fen) {
         whitePlayer_->setFen(useStartPosition, fen);
 		if (whitePlayer_ != blackPlayer_) {
 			blackPlayer_->setFen(useStartPosition, fen);
 		}
-        gameRecord_.newGame(useStartPosition, fen, whitePlayer_->isWhiteToMove());
+        gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove());
 	}
 
 	/**

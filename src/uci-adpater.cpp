@@ -366,7 +366,7 @@ EngineEvent UciAdapter::readEvent() {
     const std::string& line = engineLine.content;
 
     if (!engineLine.complete || engineLine.error == EngineLine::Error::IncompleteLine) {
-        logFromEngine(line, TraceLevel::info);
+        if (engineLine.complete) logFromEngine(line, TraceLevel::info);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 

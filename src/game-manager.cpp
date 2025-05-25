@@ -293,7 +293,7 @@ void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
 	taskProvider_ = nullptr;
-	newGame(useStartPosition, fen);
+	setStartPosition(useStartPosition, fen);
 	gameRecord_.setTimeControl(whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl());
 	taskType_ = GameTask::Type::ComputeMove;
     logMoves_ = false;
@@ -317,7 +317,7 @@ void GameManager::computeGame(bool useStartPosition, const std::string fen, bool
     finishedPromise_ = std::promise<void>{};
     finishedFuture_ = finishedPromise_.get_future();
 	taskProvider_ = nullptr;
-	newGame(useStartPosition, fen);
+	setStartPosition(useStartPosition, fen);
     taskType_ = GameTask::Type::PlayGame;
 	logMoves_ = logMoves;
     computeNextMove();
@@ -353,7 +353,7 @@ void GameManager::computeNextTask() {
 		return;
 	}
 	auto task = *newTask;
-	newGame(task.useStartPosition, task.fen);
+	setStartPosition(task.useStartPosition, task.fen);
 	gameRecord_.setTimeControl(task.whiteTimeControl, task.blackTimeControl);
 	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
     taskType_ = task.taskType;
