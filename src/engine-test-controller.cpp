@@ -80,15 +80,15 @@ std::string bytesToMB(int64_t bytes) {
 void EngineTestController::runAllTests(std::filesystem::path enginePath) {
     try {
         createGameManager(enginePath, true);
-        //runStartStopTest(enginePath);
-        //runMultipleStartStopTest(enginePath, 20);
-        //runHashTableMemoryTest();
-        //runEngineOptionTests();
+        runStartStopTest(enginePath);
+        runMultipleStartStopTest(enginePath, 20);
+        runHashTableMemoryTest();
+        runEngineOptionTests();
         runAnalyzeTest();
         runGoLimitsTests();
         runEpdTests();
         runComputeGameTest();
-        //runMultipleGamesTest();
+        runMultipleGamesTest();
         gameManager_->stop();
     }
 	catch (const std::exception& e) {
