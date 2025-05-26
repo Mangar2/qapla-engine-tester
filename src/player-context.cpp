@@ -39,8 +39,6 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
     if (!searchInfo.pv.empty()) {
         std::vector<QaplaBasics::Move> pvMoves;
         pvMoves.reserve(searchInfo.pv.size());
-
-        bool valid = true;
         for (const auto& moveStr : searchInfo.pv) {
             const auto move = gameState_.stringToMove(moveStr, requireLan_);
             if (move.isEmpty()) {
@@ -48,9 +46,8 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
                 for (const auto& m : searchInfo.pv)
                     fullPv += m + " ";
                 if (!fullPv.empty()) fullPv.pop_back();
-                Checklist::logCheck("PV check", true,
+                Checklist::logCheck("Search info reports correct PV", false,
                     "Encountered illegal move " + moveStr + " in pv " + fullPv);
-                valid = false;
                 break;
             }
             gameState_.doMove(move);
@@ -60,8 +57,6 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
         for (size_t i = 0; i < pvMoves.size(); ++i)
             gameState_.undoMove();
 
-        if (valid)
-            Checklist::logCheck("PV check", true);
     }
 
     if (searchInfo.depth) Checklist::logCheck("Search info reports correct depth", true);

@@ -183,7 +183,7 @@ void EngineWorker::readLoop() {
             }
 
             if (eventSink_) {
-                eventSink_(event);
+                eventSink_(std::move(event));
             }
 			if (event.type == EngineEvent::Type::EngineDisconnected) {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread

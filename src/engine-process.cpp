@@ -270,12 +270,13 @@ void EngineProcess::readFromPipeBlocking() {
     if (stdoutRead_ == 0) {
         return;
     }
+    size_t bytesRead = 0;
 
 #ifdef _WIN32
-    DWORD bytesRead = 0;
-    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &bytesRead, nullptr) || bytesRead == 0) {
+    DWORD winBytesRead = 0;
+    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &winBytesRead, nullptr) || winBytesRead == 0) {
         DWORD lastError = GetLastError();
-        // std::cout << "[" << now << "] " << "lastError: " << lastError << " bytesRead: " << bytesRead << std::endl;
+        // std::cout << "[" << now << "] " << "lastError: " << lastError << " winBytesRead: " << winBytesRead << std::endl;
         switch (lastError) {
         case ERROR_BROKEN_PIPE:
             appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Broken pipe - engine terminated or closed");
@@ -292,15 +293,15 @@ void EngineProcess::readFromPipeBlocking() {
         }
         return;
     }
-    std::string incoming(temp, bytesRead);
+    bytesRead = static_cast<size_t>(winBytesRead);
     //std::cout << "[" << now << "] " << incoming << std::endl;
 #else
-    ssize_t r = read(stdoutRead_, temp, sizeof(temp));
-    if (r == 0) {
+    ssize_t linuxBytesRead = read(stdoutRead_, temp, sizeof(temp));
+    if (linuxBytesRead == 0) {
         appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: EOF - engine closed pipe");
         return;
     }
-    if (r < 0) {
+    if (linuxBytesRead < 0) {
         if (errno == EBADF) {
             appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: Invalid file descriptor");
         }
@@ -309,22 +310,24 @@ void EngineProcess::readFromPipeBlocking() {
         }
         return;
     }
-    std::string incoming(temp, r);
+	bytesRead = static_cast<size_t>(linuxBytesRead);
 #endif
 
     size_t start = 0;
-    size_t newline;
-    while ((newline = incoming.find('\n', start)) != std::string::npos) {
-        std::string line = incoming.substr(start, newline - start);
-        if (!line.empty() && line.back() == '\r') {
-            line.pop_back();
+    for (size_t i = 0; i < bytesRead; ++i) {
+        if (temp[i] == '\n') {
+            size_t len = i - start;
+            if (len > 0 && temp[i - 1] == '\r') {
+                --len;
+            }
+            std::string line(temp + start, len);
+            appendToLineQueue(line, true);
+            start = i + 1;
         }
-        appendToLineQueue(line, true);
-        start = newline + 1;
     }
 
-    if (start < incoming.size()) {
-        std::string fragment = incoming.substr(start);
+    if (start < bytesRead) {
+        std::string fragment(temp + start, bytesRead - start);
         appendToLineQueue(fragment, false);
     }
 }
@@ -334,9 +337,9 @@ EngineLine EngineProcess::readLineBlocking() {
     while (true) {
 
         if (!lineQueue_.empty() && lineQueue_.front().complete) {
-            EngineLine line = std::move(lineQueue_.front());
+            auto line = std::move(lineQueue_.front());
             lineQueue_.pop_front();
-            if (std::all_of(line.content.begin(), line.content.end(), isspace)) {
+            if (std::find_if_not(line.content.begin(), line.content.end(), isspace) == line.content.end()) {
                 continue;
             }
             return line;

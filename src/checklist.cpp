@@ -41,7 +41,8 @@ void Checklist::addMissingTopicsAsFail() {
         "Search info reports correct hashfull",
         "Search info reports correct cpuload",
         "Search info reports correct move number",
-        "Search info reports correct current move"
+        "Search info reports correct current move",
+        "Search info reports correct PV"
     };
 
     for (const auto& topic : missingSearchInfoTopics) {
@@ -66,7 +67,7 @@ void Checklist::log() {
 
         { "Infinite compute move must not exit on its own", Section::Missbehaviour },
         { "No movetime overrun", Section::Missbehaviour },
-        { "PV check", Section::Missbehaviour },
+        { "Search info reports correct PV", Section::Missbehaviour },
 		{ "Search info reports correct current move", Section::Missbehaviour },
         { "Correct bestmove after immediate stop", Section::Missbehaviour }
     };

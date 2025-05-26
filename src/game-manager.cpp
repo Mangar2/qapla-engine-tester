@@ -72,8 +72,8 @@ void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
     blackPlayer_ = &player1_;
     whitePlayer_->setEngine(engine, requireLan_);
 
-    engine->setEventSink([this](const EngineEvent& event) {
-        enqueueEvent(event);
+    engine->setEventSink([this](EngineEvent&& event) {
+        enqueueEvent(std::move(event));
         });
 }
 
@@ -83,12 +83,12 @@ void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_pt
 	whitePlayer_->setEngine(white, requireLan_);
     blackPlayer_->setEngine(black, requireLan_);
 
-    white->setEventSink([this](const EngineEvent& event) {
-        enqueueEvent(event);
+    white->setEventSink([this](EngineEvent&& event) {
+        enqueueEvent(std::move(event));
         });
 
-    black->setEventSink([this](const EngineEvent& event) {
-         enqueueEvent(event);
+    black->setEventSink([this](EngineEvent&& event) {
+         enqueueEvent(std::move(event));
          });
 }
 
@@ -117,15 +117,15 @@ void GameManager::processQueue() {
             bool restarted = false;
             if (whitePlayer_->checkEngineTimeout()) {
                 restarted = true;
-                whitePlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
-                    enqueueEvent(event);
+                whitePlayer_->getEngine()->setEventSink([this](EngineEvent&& event) {
+                    enqueueEvent(std::move(event));
                     });;
             }
             if (whitePlayer_ != blackPlayer_) {
                 if (blackPlayer_->checkEngineTimeout()) {
 					restarted = true;
-                    blackPlayer_->getEngine()->setEventSink([this](const EngineEvent& event) {
-                        enqueueEvent(event);
+                    blackPlayer_->getEngine()->setEventSink([this](EngineEvent&& event) {
+                        enqueueEvent(std::move(event));
                         });;
                 }
             }
@@ -171,8 +171,8 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {
             player->handleDisconnect(isWhitePlayer);
-            player->getEngine()->setEventSink([this](const EngineEvent& event) {
-                enqueueEvent(event);
+            player->getEngine()->setEventSink([this](EngineEvent&& event) {
+                enqueueEvent(std::move(event));
                 });
             if (taskType_ != GameTask::Type::PlayGame) {
                 computeNextTask();

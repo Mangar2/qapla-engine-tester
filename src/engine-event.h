@@ -35,11 +35,14 @@ struct SearchInfo {
     std::optional<int64_t> nps;
     std::optional<int> hashFull;
     std::optional<int> tbhits;
+    std::optional<int> sbhits;
     std::optional<int> cpuload;
     std::optional<int> currMoveNumber;
     std::optional<std::string> currMove;
     std::optional<int> refutationIndex;
     std::vector<std::string> pv;
+	std::vector<std::string> refutation;
+    std::vector<std::string> currline; 
     std::vector<std::string> errors;  // für Parsing-Fehler oder unklare Angaben
 };
 
@@ -145,6 +148,7 @@ struct EngineEvent {
     std::optional<SearchInfo> searchInfo;
     std::vector<ParseError> errors;
     std::string engineIdentifier;
+	std::optional<std::string> stringInfo;
 private:
 
 };

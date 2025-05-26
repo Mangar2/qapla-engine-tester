@@ -23,6 +23,7 @@
 #include <chrono>
 #include <sstream>
 #include <limits>
+#include <unordered_set>
 #include "timer.h"
 
 #include "uci-adapter.h"
@@ -198,6 +199,10 @@ void readBoundedInt32(std::istringstream& iss,
             });
         return;
     }
+    if (target.has_value()) {
+        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
+        return;
+    }
     target = value;
 }
 
@@ -228,103 +233,106 @@ void readBoundedInt64(std::istringstream& iss,
             });
         return;
     }
+    if (target.has_value()) {
+        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
+        return;
+    }
 
     target = value;
 }
 
-EngineEvent UciAdapter::parseSearchInfo(const std::string& line, int64_t timestamp) {
-    SearchInfo info;
-    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, line);
-    std::istringstream iss(line);
-    std::string token;
-    iss >> token; // "info"
+bool isLanMoveToken(const std::string& token) {
+	// A valid LAN move token is a string of 4 or 5 characters, starting with a letter
+	// and followed by 3 or 4 digits (e.g., "e2e4", "g1f3", "d7d5").
+	if (token.size() < 4 || token.size() > 5) return false;
+	if (token[0] < 'a' || token[0] > 'h') return false; // First character must be a letter a-h
+	if (token[1] < '1' || token[1] > '8') return false; // Second character must be a digit 1-8
+	if (token[2] < 'a' || token[2] > 'h') return false; // Third character must be a letter a-h
+	if (token[3] < '1' || token[3] > '8') return false; // Fourth character must be a digit 1-8
+	return true;
+}
 
+EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& rawLine) {
+    SearchInfo info;
+    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, rawLine);
+    std::string token;
+    std::string parent;
+
+    auto checkDuplicateField = [&](bool check, const std::string& fieldName) {
+        if (check) {
+            event.errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
+        };
+        return check;
+        };
+    // Checks and reports duplicate field usage
+    // Fields that require sub-tokens (e.g., score, pv) are tracked via 'parent'
+    //
+    // Special handling:
+    // - score accepts cp|mate [lowerbound|upperbound]
+    // - tokens after score are parsed until a non-score token is found
+    // - tokens after pv/refutation/currline/currmove are captured based on parent state
+    //
+    // Remaining tokens are matched against known keywords or reported as errors
     while (iss >> token) {
         try {
+            if (parent == "score") {
+                if (token == "cp") readBoundedInt32(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
+                else if (token == "mate") readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
+                else if (token == "lowerbound") info.scoreLowerbound = true;
+                else if (token == "upperbound") info.scoreUpperbound = true;
+                else parent = ""; // terminate score parsing, allow re-processing of current token
+                if (parent == "score") continue;
+            }
+            if (isLanMoveToken(token)) {
+                if (parent == "currmove") {
+                    info.currMove = token;
+                    parent = "";
+                }
+                else if (parent == "pv") { info.pv.push_back(token); }
+                else if (parent == "refutation") { info.refutation.push_back(token); continue; }
+                else if (parent == "currline") { info.currline.push_back(token); continue; }
+				else {
+					// If we encounter a move token without a parent, it is an error
+					event.errors.push_back({ "unexpected-move-token", "Unexpected move token '" + token + "' without context" });
+				}
+                continue;
+            }
             if (token == "string") {
-                break;
+                std::string restOfLine;
+                std::getline(iss >> std::ws, restOfLine);
+                event.stringInfo = restOfLine;
             }
-            if (token == "depth") {
-                readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
-            }
-            else if (token == "seldepth") {
-                readBoundedInt32(iss, token, 0, 1000, info.selDepth, event.errors);
-            }
-            else if (token == "multipv") {
-                readBoundedInt32(iss, token, 1, 220, info.multipv, event.errors);
-            }
-            else if (token == "score") {
-                std::string type;
-                if (!(iss >> type)) {
-                    event.errors.push_back({ "Search info reports correct score", "Missing score type after 'score'" });
-                    continue;
-                }
-                if (type == "cp") {
-                    readBoundedInt32(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
-                }
-                else if (type == "mate") {
-                    readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
-                }
-                else {
-                    event.errors.push_back({ "search info reports only specified fields", "Unknown score type: '" + type + "'" });
-                    continue;
-                }
-
-                std::string bound;
-                if (iss >> bound) {
-                    if (bound == "lowerbound") info.scoreLowerbound = true;
-                    else if (bound == "upperbound") info.scoreUpperbound = true;
-                    else iss.seekg(-static_cast<int>(bound.size()), std::ios_base::cur);
-                }
-            }
-            else if (token == "time") {
-                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
-            }
-            else if (token == "nodes") {
-                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
-            }
-            else if (token == "nps") {
-                readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
-            }
-            else if (token == "hashfull") {
-                readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
-            }
-            else if (token == "tbhits") {
-                readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
-            }
-            else if (token == "cpuload") {
-                readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
-            }
-            else if (token == "currmove") {
-                std::string move;
-                if (iss >> move) info.currMove = move;
-                else event.errors.push_back({ "search info currmove", "Expected move string after 'currmove'" });
-            }
-            else if (token == "currmovenumber") {
-                readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
-            }
-            else if (token == "refutation") {
-                event.errors.push_back({ "search info refutation", "Refutation parsing not yet supported" });
-            }
-            else if (token == "pv") {
-                std::string move;
-                while (iss >> move) {
-                    info.pv.push_back(move);
-                }
-                break; // PV ends the line
-            }
+            else if (token == "score") {}
+            else if (token == "currmove") checkDuplicateField(info.currMove.has_value(), token);
+            else if (token == "pv") checkDuplicateField(info.pv.size() > 0, token);
+			else if (token == "refutation") checkDuplicateField(info.refutation.size() > 0, token);
+			else if (token == "currline") checkDuplicateField(info.currline.size() > 0, token);
+            // ReadBoundInt checks for duplicate field. 
+            else if (token == "depth") readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
+            else if (token == "seldepth") readBoundedInt32(iss, token, 0, 1000, info.selDepth, event.errors);
+            else if (token == "multipv") readBoundedInt32(iss, token, 1, 220, info.multipv, event.errors);
+            else if (token == "time") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
+            else if (token == "nodes") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
+            else if (token == "nps") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
+            else if (token == "hashfull") readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
+            else if (token == "tbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
+            else if (token == "sbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
+            else if (token == "cpuload") readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
+            else if (token == "currmovenumber") readBoundedInt32(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
             else {
-                event.errors.push_back({ "search info unknown-token", "Unrecognized or misplaced token: '" + token + "' (raw line: " + line + ")"});
+                event.errors.push_back({ "Wrong token in info line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
             }
+            parent = token;
         }
         catch (const std::exception& e) {
-            event.errors.push_back({ "search info exception", "Exception during parsing: " + std::string(e.what()) });
+            event.errors.push_back({ "parsing-exception", e.what() });
         }
     }
 
-    event.searchInfo = info;
+    event.searchInfo = std::move(info);
     return event;
 }
+
 
 EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
     const std::string& line = engineLine.content;
@@ -417,7 +425,7 @@ EngineEvent UciAdapter::readEvent() {
 
     if (command == "info") {
         logFromEngine(line, TraceLevel::info);
-        return parseSearchInfo(line, engineLine.timestampMs);
+        return parseSearchInfo(iss, engineLine.timestampMs, line);
     }
 
     if (command == "ponderhit") {

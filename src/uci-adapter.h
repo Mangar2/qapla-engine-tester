@@ -116,7 +116,7 @@ private:
 
     void sendPosition(const GameRecord& game);   // Sends position + moves
 
-    EngineEvent parseSearchInfo(const std::string& line, int64_t timestamp);
+    EngineEvent parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& originalLine);
 
 	static inline int numOptionError_ = 0; 
     static inline int numIdError_ = 0;

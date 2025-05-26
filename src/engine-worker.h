@@ -113,7 +113,7 @@ public:
 	 *
 	 * @param sink The event sink function.
 	 */
-	void setEventSink(std::function<void(const EngineEvent&)> sink) {
+	void setEventSink(std::function<void(EngineEvent&&)> sink) {
 		eventSink_ = std::move(sink);
 	}
 
@@ -216,10 +216,10 @@ private:
 	 */
 	void readLoop();
 	
-	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 2 };
-	static constexpr std::chrono::milliseconds ReadyTimeoutNormal{ 2000 };
-	static constexpr std::chrono::milliseconds ReadyTimeoutOption{ 5000 };
-	static constexpr std::chrono::milliseconds ReadyTimeoutStartup{ 10000 };
+	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
+	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
+	static constexpr std::chrono::seconds ReadyTimeoutOption{ 5 };
+	static constexpr std::chrono::seconds ReadyTimeoutStartup{ 10 };
 
 	void threadLoop();
 
@@ -248,5 +248,5 @@ private:
 
 	// GameManager communication
 private:
-	std::function<void(const EngineEvent&)> eventSink_;
+	std::function<void(EngineEvent&&)> eventSink_;
 };
