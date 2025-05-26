@@ -60,7 +60,7 @@ bool GameManager::processNextEvent() {
         if (eventQueue_.empty()) {
             return false;
         }
-        event = eventQueue_.front();
+        event = std::move(eventQueue_.front());
         eventQueue_.pop();
     }
     processEvent(event);
