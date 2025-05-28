@@ -26,9 +26,6 @@
 
 using namespace std;
 
-unordered_map<string, CliSettingsManager::SettingDefinition> CliSettingsManager::definitions;
-unordered_map<string, CliSettingsManager::Value> CliSettingsManager::values;
-
 void CliSettingsManager::registerSetting(const string& name,
     const string& description,
     bool isRequired,
@@ -38,7 +35,20 @@ void CliSettingsManager::registerSetting(const string& name,
     definitions[key] = { description, isRequired, defaultValue, type };
 }
 
+void CliSettingsManager::registerGroup(const std::string& groupName,
+    const std::string& groupDescription,
+    const std::unordered_map<std::string, SettingDefinition>& keys) 
+{
+    std::string key = normalize(groupName);
+    groupDefs[key] = GroupDefinition{ groupDescription, keys };
+}
+
 void CliSettingsManager::parseCommandLine(int argc, char** argv) {
+    parseGlobalParameters(argc, argv);
+    parseGroupedParameters(argc, argv);
+}
+
+void CliSettingsManager::parseGlobalParameters(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
         if (arg == "--help") {
@@ -68,7 +78,7 @@ void CliSettingsManager::parseCommandLine(int argc, char** argv) {
         if (values.find(key) != values.end())
             continue;
 
-        // Fall 2: Required ohne Default -> Eingabe erzwingen
+		// Required without Default -> Input required
         if (def.isRequired && def.defaultValue.valueless_by_exception()) {
             std::string input;
             std::cout << key << " (required): ";
@@ -77,13 +87,13 @@ void CliSettingsManager::parseCommandLine(int argc, char** argv) {
             continue;
         }
 
-        // Fall 4: Optional mit Default -> direkt setzen, keine Eingabe
+		// Optional with Default -> set directly, no input needed
         if (!def.isRequired && !def.defaultValue.valueless_by_exception()) {
             values[key] = def.defaultValue;
             continue;
         }
 
-        // Fall 3: Required mit Default -> Eingabe mit Default-Vorschlag
+		// Required with Default -> Input with default suggestion
         if (def.isRequired && !def.defaultValue.valueless_by_exception()) {
             std::string inputPrompt = key + " (required, default: ";
             std::visit([&inputPrompt](auto&& v) {
@@ -102,10 +112,65 @@ void CliSettingsManager::parseCommandLine(int argc, char** argv) {
             continue;
         }
 
-        // Fall 5: Optional ohne Default -> Fehler im Code
 		throw std::runtime_error("Invalid setting: optional parameter '" + key + "' without default value.");
     }
 }
+
+void CliSettingsManager::parseGroupedParameters(int argc, char** argv) {
+    std::string currentGroup;
+    ValueMap currentValues;
+
+    auto flushGroup = [&]() {
+        if (currentGroup.empty()) return;
+        auto defIt = groupDefs.find(currentGroup);
+        if (defIt == groupDefs.end()) throw std::runtime_error("Unknown group: " + currentGroup);
+
+        const auto& groupMeta = defIt->second;
+
+        for (const auto& [key, def] : groupMeta.keys) {
+            if (currentValues.find(key) != currentValues.end()) continue;
+            if (def.isRequired) throw std::runtime_error("Missing required subparameter '" + key + "' in group '" + currentGroup + "'");
+            if (!def.defaultValue.valueless_by_exception())
+                currentValues[key] = def.defaultValue;
+        }
+
+        groupedValues[currentGroup].emplace_back(std::move(currentValues));
+        currentValues.clear();
+        };
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg.rfind("--", 0) != 0) continue;
+
+        std::string raw = arg.substr(2);
+        auto eqPos = raw.find('=');
+        std::string name = eqPos != std::string::npos ? raw.substr(0, eqPos) : raw;
+        std::string val = eqPos != std::string::npos ? raw.substr(eqPos + 1) : "";
+
+        std::string norm = normalize(name);
+
+        if (groupDefs.find(norm) != groupDefs.end()) {
+            flushGroup();
+            currentGroup = norm;
+            continue;
+        }
+
+        if (currentGroup.empty()) continue;
+
+        auto groupDefIt = groupDefs.find(currentGroup);
+        if (groupDefIt == groupDefs.end()) continue;
+
+        const auto& keys = groupDefIt->second.keys;
+        auto keyIt = keys.find(name);
+        if (keyIt == keys.end()) throw std::runtime_error("Unknown subparameter '" + name + "' in group '" + currentGroup + "'");
+
+        currentValues[name] = parseValue(val, keyIt->second);
+    }
+
+    flushGroup();
+}
+
+
 
 string CliSettingsManager::normalize(const string& name) {
     string lower = name;
@@ -114,23 +179,60 @@ string CliSettingsManager::normalize(const string& name) {
 }
 
 void CliSettingsManager::showHelp() {
-    cout << "Available options:\n";
+    constexpr int nameWidth = 24;
+
+    std::cout << "Available options:\n";
     for (const auto& [key, def] : definitions) {
-        cout << "  --" << key << "=";
-        if (def.type == ValueType::Int) cout << "<int>";
-        else cout << "<string>";
-        cout << "\t" << def.description;
-        if (def.isRequired) {
-            cout << " [required]";
-        }
+        std::ostringstream line;
+        line << "  --" << key << "=";
+
+        std::string typeStr = (def.type == ValueType::Int) ? "<int>" :
+            (def.type == ValueType::Bool) ? "<bool>" :
+            (def.type == ValueType::PathExists) ? "<path>" : "<string>";
+
+        line << typeStr;
+        std::cout << std::left << std::setw(nameWidth) << line.str();
+
+        std::cout << def.description;
+        if (def.isRequired) std::cout << " [required]";
         else {
-            cout << " (default: ";
-            visit([](auto&& v) { cout << v; }, def.defaultValue);
-            cout << ")";
+            std::cout << " (default: ";
+            std::visit([](auto&& v) { std::cout << v; }, def.defaultValue);
+            std::cout << ")";
         }
-        cout << "\n";
+        std::cout << "\n";
+    }
+
+    for (const auto& [group, def] : groupDefs) {
+        std::ostringstream header;
+        header << "  --" << group << " ...";
+
+        std::cout << "\n" << std::left << std::setw(nameWidth) << header.str();
+        std::cout << def.description << "\n";
+
+        for (const auto& [param, meta] : def.keys) {
+            std::ostringstream line;
+            line << "    " << param << "=";
+
+            std::string typeStr = (meta.type == ValueType::Int) ? "<int>" :
+                (meta.type == ValueType::Bool) ? "<bool>" :
+                (meta.type == ValueType::PathExists) ? "<path>" : "<string>";
+
+            line << typeStr;
+            std::cout << std::left << std::setw(nameWidth) << line.str();
+
+            std::cout << meta.description;
+            if (meta.isRequired) std::cout << " [required]";
+            else {
+                std::cout << " (default: ";
+                std::visit([](auto&& v) { std::cout << v; }, meta.defaultValue);
+                std::cout << ")";
+            }
+            std::cout << "\n";
+        }
     }
 }
+
 
 CliSettingsManager::Value CliSettingsManager::parseValue(const string& input, const SettingDefinition& def) {
     if (def.type == ValueType::Int) {

@@ -32,21 +32,7 @@
 #include "game-record.h"
 #include "engine-event.h"
 #include "logger.h"
-
-struct EngineOption {
-    enum class Type { Check, Spin, Combo, Button, String, Unknown };
-
-    std::string name;
-    Type type = Type::Unknown;
-    std::string defaultValue;
-    std::optional<int> min;
-    std::optional<int> max;
-    std::vector<std::string> vars; // for combo
-};
-
-using EngineOptions = std::unordered_map<std::string, EngineOption>;
-
-
+#include "engine-option.h"
 
 enum class EngineState {
     Uninitialized,

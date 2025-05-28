@@ -57,13 +57,15 @@ public:
 	 * @param name The name of the test.
 	 * @param success True if the test passed; false if it failed.
 	 * @param detail Additional details about the test that is logged on fail.
+	 * @param traceLevel The trace level for the log entry (default is error).
      */ 
-    static bool logCheck(const std::string name, bool success, std::string_view detail = "") {
+    static bool logCheck(const std::string name, bool success, std::string_view detail = "", 
+        TraceLevel traceLevel = TraceLevel::error) {
         report(name, success);
         if (!success) {
             auto numErrors = getNumErrors(name);
             Logger::testLogger().log("[Report for topic \"" + std::string(name) + "\"] " + std::string(detail),
-                numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : TraceLevel::error);
+                numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
             if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
                 Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.");
             }

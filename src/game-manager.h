@@ -178,6 +178,13 @@ private:
     void processEvent(const EngineEvent& event);
 
 	void handleBestMove(const EngineEvent& event);
+	/**
+	 * Informs the task provider about the event, allowing it to react to engine information.
+	 * This is called for events of type EngineEvent::Type::Info.
+	 *
+	 * @param event The engine event containing information to be processed.
+	 */
+    void informTask(const EngineEvent& event, const PlayerContext* player);
 
     void computeNextMove();
 

@@ -30,6 +30,12 @@ class CliSettingsManager {
 public:
     enum class ValueType { String, Int, Bool, PathExists };
     using Value = std::variant<std::string, int, bool>;
+    struct SettingDefinition {
+        std::string description;
+        bool isRequired;
+        Value defaultValue;
+        ValueType type;
+    };
 
     /**
      * @brief Registers a setting with its metadata.
@@ -44,6 +50,16 @@ public:
         bool isRequired,
         Value defaultValue,
         ValueType type = ValueType::String);
+
+    /**
+     * @brief Registers a grouped CLI block (e.g. --engine key=value...) with description and expected keys.
+     * @param groupName Name of the group (e.g. \"engine\").
+     * @param groupDescription Description shown in help output.
+     * @param keys Map of key names and their descriptions.
+     */
+    static void registerGroup(const std::string& groupName,
+        const std::string& groupDescription,
+        const std::unordered_map<std::string, SettingDefinition>& keys);
 
     /**
      * @brief Parses CLI arguments in the format --name=value.
@@ -69,15 +85,23 @@ public:
     }
 
 private:
-    struct SettingDefinition {
-        std::string description;
-        bool isRequired;
-        Value defaultValue;
-        ValueType type;
-    };
+    static void parseGlobalParameters(int argc, char** argv);
+	static void parseGroupedParameters(int argc, char** argv);
 
-    static std::unordered_map<std::string, SettingDefinition> definitions;
-    static std::unordered_map<std::string, Value> values;
+    struct GroupDefinition {
+        std::string description;
+        std::unordered_map<std::string, SettingDefinition> keys;
+    };
+	using ValueMap = std::unordered_map<std::string, Value>;
+
+    static inline std::unordered_map<std::string, SettingDefinition> definitions;
+    static inline ValueMap values;
+    static inline std::unordered_map<std::string, GroupDefinition> groupDefs;
+    /**
+     * @brief Stores grouped CLI values, organized by group name and ordered appearance.
+     *        Each group name maps to a list of key-value maps (i.e., multiple blocks per group).
+     */
+    static inline std::unordered_map<std::string, std::vector<ValueMap>> groupedValues;
 
     static std::string normalize(const std::string& name);
     static void showHelp();

@@ -25,7 +25,7 @@
 #include "engine-worker-factory.h"
 #include "checklist.h"
 #include "cli-settings-manager.h"
-#include "epd-manager.h"
+#include "epd-test-manager.h"
 
 void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
 	enginePath_ = enginePath;
@@ -478,7 +478,7 @@ void EngineTestController::runEpdTests() {
     try {
         EngineList engines = startEngines(1);
         gameManager_->setUniqueEngine(std::move(engines[0]));
-        EpdManager epdManager;
+        EpdTestManager epdManager;
         gameManager_->computeTasks(&epdManager);
 		gameManager_->getFinishedFuture().wait();
 

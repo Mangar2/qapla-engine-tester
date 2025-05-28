@@ -118,7 +118,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
         if (numLimits == 1) {
             Checklist::logCheck("No movetime underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +
-                " ms but took " + std::to_string(moveElapsedMs));
+                " ms but took " + std::to_string(moveElapsedMs), TraceLevel::info);
         }
     }
 

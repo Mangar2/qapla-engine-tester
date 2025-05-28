@@ -135,10 +135,14 @@
     <ClCompile Include="src\checklist.cpp" />
     <ClCompile Include="src\cli-settings-manager.cpp" />
     <ClCompile Include="src\engine-adapter.cpp" />
+    <ClCompile Include="src\engine-config-manager.cpp" />
+    <ClCompile Include="src\engine-config.cpp" />
     <ClCompile Include="src\engine-test-controller.cpp" />
     <ClCompile Include="src\engine-worker-factory.cpp" />
     <ClCompile Include="src\engine-process.cpp" />
     <ClCompile Include="src\engine-worker.cpp" />
+    <ClCompile Include="src\epd-manager.cpp" />
+    <ClCompile Include="src\epd-reader.cpp" />
     <ClCompile Include="src\game-manager.cpp" />
     <ClCompile Include="src\game-record.cpp" />
     <ClCompile Include="src\game-state.cpp" />
@@ -158,7 +162,10 @@
     <ClInclude Include="src\boardstate.h" />
     <ClInclude Include="src\cli-settings-manager.h" />
     <ClInclude Include="src\checklist.h" />
+    <ClInclude Include="src\engine-config-manager.h" />
     <ClInclude Include="src\engine-event.h" />
+    <ClInclude Include="src\engine-config.h" />
+    <ClInclude Include="src\engine-option.h" />
     <ClInclude Include="src\engine-test-controller.h" />
     <ClInclude Include="src\engine-worker-factory.h" />
     <ClInclude Include="src\engine-adapter.h" />
@@ -166,6 +173,8 @@
     <ClInclude Include="src\engine-process.h" />
     <ClInclude Include="src\engine-worker.h" />
     <ClInclude Include="src\epd-manager.h" />
+    <ClInclude Include="src\epd-test-manager.h" />
+    <ClInclude Include="src\epd-reader.h" />
     <ClInclude Include="src\evalvalue.h" />
     <ClInclude Include="src\fenscanner.h" />
     <ClInclude Include="src\game-manager.h" />

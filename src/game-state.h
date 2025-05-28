@@ -28,8 +28,6 @@
 using MoveStr = std::string;
 using MoveStrList = std::vector<MoveStr>;
 
-
-
  /**
   * @brief Represents the current state of a chess game for engine interaction,
   *        including starting setup and played moves.

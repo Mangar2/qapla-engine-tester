@@ -196,6 +196,7 @@ void GameManager::processEvent(const EngineEvent& event) {
         }
 
         if (event.type == EngineEvent::Type::Info) {
+            informTask(event, player);
             player->handleInfo(event);
         }
 
@@ -244,6 +245,23 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 		}
 	}
 
+}
+
+void GameManager::informTask(const EngineEvent& event, const PlayerContext* player) {
+	if (!taskProvider_) {
+		return; // No task provider set, nothing to inform
+	}
+	if (event.type != EngineEvent::Type::Info || !event.searchInfo) {
+		return; // Only interested in info events
+	}
+	auto pv = event.searchInfo->pv;
+	if (pv.empty()) {
+		return; // No principal variation to set
+	}
+    auto start = player->getComputeMoveStartTimestamp();
+	taskProvider_->setPV(event.engineIdentifier, pv, 
+        event.timestampMs < start ? 0 : event.timestampMs - start, 
+        event.searchInfo->depth, event.searchInfo->nodes, event.searchInfo->multipv);
 }
 
 std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
@@ -344,11 +362,12 @@ void GameManager::computeNextTask() {
         finishedPromise_.set_value();
 		return;
 	}
-
+	auto whiteId = whitePlayer_->getEngine()->getIdentifier();
+	auto blackId = blackPlayer_->getEngine()->getIdentifier();
     if (gameRecord_.currentPly() > 0) {
-        taskProvider_->setGameRecord(gameRecord_);
+        taskProvider_->setGameRecord(whiteId, blackId, gameRecord_);
     }
-    auto newTask = taskProvider_->nextTask();
+    auto newTask = taskProvider_->nextTask(whiteId, blackId);
 	if (!newTask) {
         taskType_ = GameTask::Type::None;
 		finishedPromise_.set_value();

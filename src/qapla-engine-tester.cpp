@@ -27,6 +27,7 @@
 #include "engine-test-controller.h"
 #include "logger.h"
 #include "cli-settings-manager.h"
+#include "epd-manager.h"
 
 int main(int argc, char** argv) {
     try {
@@ -44,14 +45,36 @@ int main(int argc, char** argv) {
             CliSettingsManager::ValueType::PathExists);
 	    CliSettingsManager::registerSetting("testlevel", "Test level (0=all, 1=basic, 2=advanced)", false, 0,
 		    CliSettingsManager::ValueType::Int);
+		CliSettingsManager::registerSetting("epd.file", "Path to EPD file for testing", true, "speelman Endgame.epd",
+			CliSettingsManager::ValueType::PathExists);
+		CliSettingsManager::registerSetting("epd.maxtime", "Maximum allowed time in seconds per move during EPD analysis.", false, 
+			20, CliSettingsManager::ValueType::Int);
+
+        CliSettingsManager::registerGroup("engine", "Defines an engine configuration", {
+            { "name",      { "Name of the engine", true, "", CliSettingsManager::ValueType::String } },
+            { "cmd",       { "Path to executable", true, "", CliSettingsManager::ValueType::PathExists } },
+            { "dir",       { "Working directory", false, ".", CliSettingsManager::ValueType::PathExists } },
+            { "proto",     { "Protocol (uci/xboard)", true, "", CliSettingsManager::ValueType::String } },
+            { "option.X",  { "UCI engine option", false, "", CliSettingsManager::ValueType::String } }
+            });
         CliSettingsManager::parseCommandLine(argc, argv);
 
         std::string enginePath = CliSettingsManager::get<std::string>("engine");
+		std::string epdPath = CliSettingsManager::get<std::string>("epd.file");
+        if (epdPath != "") {
+            Logger::testLogger().setTraceLevel(TraceLevel::error);
+			Logger::testLogger().log("EPD file specified: " + epdPath);
+			EpdManager epdManager;
+			epdManager.analyzeEpd(epdPath, enginePath, 
+                CliSettingsManager::get<int>("concurrency"),
+                CliSettingsManager::get<int>("epd.maxtime"));
+            epdManager.wait();
+			return 0; // Exit after EPD analysis
+        }
 
-        const std::size_t engineCount = 1;
+        Logger::testLogger().setTraceLevel(TraceLevel::commands);
         Logger::engineLogger().setLogFile("qapla-engine-trace");
         Logger::testLogger().setLogFile("qapla-engine-report");
-	    Logger::testLogger().setTraceLevel(TraceLevel::commands);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.1.0 (c) by Volker Boehm\n");
         Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
         Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());

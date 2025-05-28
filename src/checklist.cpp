@@ -23,8 +23,6 @@
  * are always ordered first
  */
 
-#pragma once
-
 #include <map>
 #include <algorithm>
 #include "checklist.h"

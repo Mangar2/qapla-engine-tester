@@ -75,6 +75,18 @@
     <ClCompile Include="src\checklist.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\epd-manager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\epd-reader.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\engine-config-manager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\engine-config.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -197,7 +209,22 @@
     <ClInclude Include="src\game-task.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\epd-test-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\epd-reader.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
     <ClInclude Include="src\epd-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\engine-config.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\engine-config-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\engine-option.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

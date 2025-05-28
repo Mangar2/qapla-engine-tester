@@ -16,105 +16,155 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2025 Volker Böhm
  */
+
 #pragma once
 
-#include <vector>
-#include <optional>
 #include <string>
-#include <sstream>
+#include <optional>
+#include <vector>
+#include <mutex>
+#include <iostream>
+#include <iomanip>
 #include "game-task.h"
-#include "game-record.h"
-#include "logger.h"
+#include "epd-reader.h"
 
-struct EpdTest {
+class GameManager;
+
+struct EpdTestCase {
+    std::string id;
     std::string fen;
-    std::string expectedMove;
-    std::string topic;
-    bool whiteToPlay;
+    std::vector<std::string> bestMoves; // from "bm"
+    EpdEntry original;
+
+    // Result fields
+    std::string engineId;
+    std::string playedMove;
+    bool correct = false;
+    int searchDepth = -1;
+    uint64_t timeMs = 0;
+    uint64_t nodeCount = 0;
+    int correctAtDepth = -1;
+    uint64_t correctAtNodeCount = 0;
+    uint64_t correctAtTimeInMs = 0;
 };
 
-/**
- * @class EpdManager
- * @brief Provides predefined EPD test positions for engine validation.
- *
- * Supplies tasks with specific FEN positions and expected best moves. Verifies
- * the engine's output against the expected move and logs the result, including
- * computation depth and time.
- */
+inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
+    auto formatTime = [](uint64_t ms) -> std::string {
+        if (ms == 0) return "-";
+        uint64_t minutes = ms / 60000;
+        uint64_t seconds = (ms / 1000) % 60;
+        uint64_t milliseconds = ms % 1000;
+        std::ostringstream timeStream;
+        timeStream << std::setfill('0') << std::setw(2) << minutes << ":"
+            << std::setw(2) << seconds << "."
+            << std::setw(3) << milliseconds;
+        return timeStream.str();
+        };
+
+    os << std::setw(20) << std::left << test.id
+        << " | " << std::setw(9) << std::right
+        << (test.correct ? formatTime(test.correctAtTimeInMs) : "-")
+        << " | D: " << std::setw(3) << std::right
+        << (test.correct ? std::to_string(test.correctAtDepth) : "-")
+        << " | M: " << std::setw(6) << std::left << test.playedMove
+        << " | BM: ";
+
+    for (const auto& bm : test.bestMoves) {
+        os << bm << " ";
+    }
+    return os;
+}
+
+ /**
+  * Manages the analysis of EPD test sets using multiple chess engines in parallel.
+  * Provides GameTasks for engine workers and collects their results.
+  */
 class EpdManager : public GameTaskProvider {
 public:
-    EpdManager() {
-        tests_ = {
-            { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
-            { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
-            { "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1", "d6d1", "mate", false },
-            { "8/8/8/1k6/4K3/2R5/8/8 w - - 0 1", "e4d5", "KRK", false },
-            { "8/8/1k6/8/4K3/2N5/2B5/8 w - - 0 1", "e4d5", "KBNK", false },
-            { "6r1/1p3k2/pPp4R/K1P1p1p1/1P2Pp1p/5P1P/6P1/8 w - - 0 1", "h6c6", "passed pawn", true }
-        };
-    }
+    EpdManager() = default;
 
     /**
-     * @brief Adds an EPD test case to the internal list.
-     * @param fen The FEN string representing the position.
-     * @param expectedMove The expected best move in LAN notation.
-     * @param whiteToPlay True if it is white to move, false for black.
+     * @brief Loads all EPD entries from the specified file and starts analysis with the given number of engines.
+     *        The method returns immediately; analysis runs asynchronously.
+     * @param filepath Path to the EPD file.
+     * @param enginepath Path to the Engine file.
+     * @param concurrency Number of engine instances to run in parallel.
+	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
      */
-    void addTest(const std::string& fen, const std::string& expectedMove, const std::string& topic, bool whiteToPlay) {
-        tests_.push_back({ fen, expectedMove, topic, whiteToPlay });
-    }
+    void analyzeEpd(const std::string& filepath, const std::string& enginePath, uint32_t concurrency, uint64_t maxTimeInS);
 
     /**
-     * @brief Returns the next task for the engine to process.
-     * @return Optional GameTask with position and time control, or std::nullopt if done.
+     * @brief Stops the analysis. Running tasks may still complete.
      */
-    std::optional<GameTask> nextTask() override {
-        if (currentIndex_ >= tests_.size()) {
-            return std::nullopt;
-        }
-
-        const auto& test = tests_[currentIndex_];
-        GameTask task;
-        task.taskType = GameTask::Type::ComputeMove;
-        task.useStartPosition = false;
-        task.fen = test.fen;
-        TimeControl t;
-		t.setMoveTime(5000);
-        task.whiteTimeControl = t;
-        task.blackTimeControl = t;
-        Logger::testLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
-        ++currentIndex_;
-
-        return task;
-    }
+    void stop();
 
     /**
-     * @brief Evaluates the result of a completed task.
-     * @param record The game record containing the engine's computed moves.
+     * @brief Waits for all engines to finish.
+     * @return true if all tasks completed successfully, false if the analysis was stopped prematurely.
      */
-    void setGameRecord(const GameRecord& record) override {
-        if (currentIndex_ == 0 || currentIndex_ > tests_.size()) {
-            return;
-        }
+    bool wait();
 
-        const auto& test = tests_[currentIndex_ - 1];
-        const auto& history = record.history();
+    /**
+     * @brief Dynamically adjusts the number of parallel engines.
+     *        New engines will be started or idle ones shut down after finishing their current task.
+     *        Does not interrupt active analysis.
+     * @param concurrency Desired number of concurrent engines.
+     */
+    void changeConcurrency(uint32_t concurrency) { throw "not yet implemented"; };
 
-        if (!history.empty()) {
-            const auto& lastMove = history.back();
-            bool success = (lastMove.lan == test.expectedMove);
-            std::ostringstream oss;
-            oss << test.fen << " topic " << test.topic  
-                << " | Expected: " << test.expectedMove
-                << ", Got: " << lastMove.lan
-                << ", Depth: " << lastMove.depth
-                << ", Time: " << lastMove.timeMs << "ms\n";
-            
-            Checklist::logCheck("Simple EPD tests, expected moves found", success, oss.str());
-        }
-    }
+    /**
+     * @brief Provides the next EPD position to analyze.
+     * @param whiteId The identifier for the white player.
+     * @param blackId The identifier for the black player.
+     * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
+     */
+    std::optional<GameTask> nextTask(const std::string& whiteId, const std::string& blackId) override;
+
+    /**
+     * @brief Processes the result of a completed analysis.
+     * @param whiteId The identifier for the white player.
+     * @param blackId The identifier for the black player.
+     * @param record The result containing the engine's move(s) and evaluation.
+     */
+    void setGameRecord(const std::string& whiteId, const std::string& blackId,
+        const GameRecord& record) override;
+
+    /**
+     * @brief Reports a principal variation (PV) found by the engine during search.
+     *        Allows the provider to track correct moves and optionally stop the search early.
+     *
+     * @param engineId      The id of the engine computing the result.
+     * @param pv            The principal variation as a list of LAN moves.
+     * @param timeInMs      Elapsed time in milliseconds.
+     * @param depth         Current search depth.
+     * @param nodes         Number of nodes searched.
+     * @param multipv       MultiPV index (1 = best line).
+     * @return true if the engine should stop searching, false to continue.
+     */
+    bool setPV(const std::string& engineId,
+        const std::vector<std::string>& pv,
+        uint64_t timeInMs,
+        std::optional<uint32_t> depth,
+        std::optional<uint64_t> nodes,
+        std::optional<uint32_t> multipv) override;
 
 private:
-    std::vector<EpdTest> tests_;
-    size_t currentIndex_ = 0;
+    bool isSameMove(const std::string& fen, const std::string& lanMove, const std::string& sanMove) const;
+    /**
+     * @brief Loads and transforms all EPD entries into test cases.
+     */
+    void initializeTestCases();
+    /**
+     * @brief Retrieves and transforms the next EPD entry into a test case.
+     * @return Optional EpdTestCase or std::nullopt if no more entries are available.
+     */
+    std::optional<EpdTestCase> nextTestCaseFromReader();
+    std::unique_ptr<EpdReader> reader_;
+    std::vector<std::unique_ptr<GameManager>> managers_;
+	std::vector<EpdTestCase> tests_; 
+    std::mutex taskMutex_;
+    int oldestIndexInUse_ = 0;
+    int currentIndex_ = 0;
+    TimeControl tc;
+
 };

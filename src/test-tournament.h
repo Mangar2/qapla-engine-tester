@@ -43,7 +43,10 @@ public:
         };
     }
 
-    std::optional<GameTask> nextTask() override {
+    std::optional<GameTask> nextTask(
+        [[maybe_unused]] const std::string & whiteId,
+        [[maybe_unused]] const std::string & blackId) override 
+    {
         std::lock_guard<std::mutex> lock(mutex_);
         if (current_ >= maxGames_) return std::nullopt;
 
@@ -61,7 +64,17 @@ public:
         return task;
     }
 
-    void setGameRecord(const GameRecord& record) override {
+    /**
+     * @brief Evaluates the result of a completed task.
+     * @param whiteId The identifier for the white player.
+     * @param blackId The identifier for the black player.
+     * @param record The game record containing the game with computed moves.
+     */
+    void setGameRecord(
+        [[maybe_unused]] const std::string & whiteId,
+        [[maybe_unused]] const std::string & blackId,
+        const GameRecord & record) override
+    {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             gameRecords_.push_back(record);
