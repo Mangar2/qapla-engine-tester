@@ -25,7 +25,7 @@
 #include <optional>
 #include "epd-reader.h"
 
-EpdReader::EpdReader(const std::string& filePath) {
+EpdReader::EpdReader(const std::string& filePath): filePath_(filePath) {
     std::ifstream file(filePath);
     if (!file) {
         throw std::runtime_error("Failed to open EPD file: " + filePath);
@@ -33,25 +33,25 @@ EpdReader::EpdReader(const std::string& filePath) {
     std::string line;
     while (std::getline(file, line)) {
         if (!line.empty()) {
-            entries.emplace_back(parseEpdLine(line));
+            entries_.emplace_back(parseEpdLine(line));
         }
     }
-    currentIndex = 0;
+    currentIndex_ = 0;
 }
 
 void EpdReader::reset() {
-    currentIndex = 0;
+    currentIndex_ = 0;
 }
 
 std::optional<EpdEntry> EpdReader::next() {
-    if (currentIndex < entries.size()) {
-        return entries[currentIndex++];
+    if (currentIndex_ < entries_.size()) {
+        return entries_[currentIndex_++];
     }
     return std::nullopt;
 }
 
 const std::vector<EpdEntry>& EpdReader::all() const {
-    return entries;
+    return entries_;
 }
 
 

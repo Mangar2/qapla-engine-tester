@@ -61,10 +61,14 @@ public:
      */
     const std::vector<EpdEntry>& all() const;
 
+	const std::string getFilePath() const {
+		return filePath_;
+	}
 
 private:
-    std::vector<EpdEntry> entries;
-    std::size_t currentIndex;
+    std::vector<EpdEntry> entries_;
+    std::size_t currentIndex_;
+    std::string filePath_;
 
     /**
      * Parses a single EPD line into FEN and opcode-operand pairs.

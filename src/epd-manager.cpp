@@ -68,25 +68,35 @@ void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPli
     }
 }
 
-void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engineName, 
+void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engineName,
     uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies)
 {
-	if (managers_.size() > 0) {
-		throw "reuse not supported yet";
-	}
-	reader_ = std::make_unique<EpdReader>(filepath);
+    bool sameFile = reader_ && reader_->getFilePath() == filepath;
+    if (!sameFile) {
+        reader_ = std::make_unique<EpdReader>(filepath);
+    }
+
     initializeTestCases(maxTimeInS, minTimeInS, seenPlies);
     currentIndex_ = 0;
     oldestIndexInUse_ = 0;
-	tc.setMoveTime(maxTimeInS * 1000); 
+    tc.setMoveTime(maxTimeInS * 1000);
 
-	auto engineList = EngineWorkerFactory::createEnginesByName(engineName, concurrency);
-	for (auto& engine : engineList) {
-		auto manager = std::make_unique<GameManager>();
-        manager->setUniqueEngine(std::move(engine));
-        manager->computeTasks(this);
-        managers_.push_back(std::move(manager));
-	}
+    auto engineList = EngineWorkerFactory::createEnginesByName(engineName, concurrency);
+
+    size_t managerCount = managers_.size();
+
+    for (size_t i = 0; i < concurrency; ++i) {
+        if (i < managerCount) {
+            managers_[i]->setUniqueEngine(std::move(engineList[i]));
+            managers_[i]->computeTasks(this);
+        }
+        else {
+            auto manager = std::make_unique<GameManager>();
+            manager->setUniqueEngine(std::move(engineList[i]));
+            manager->computeTasks(this);
+            managers_.push_back(std::move(manager));
+        }
+    }
 }
 
 void EpdManager::stop() {
