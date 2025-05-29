@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <iostream>
 
+
  /**
   * @brief Manages CLI parameters including types, validation, and interactive fallback.
   */
@@ -30,6 +31,8 @@ class CliSettingsManager {
 public:
     enum class ValueType { String, Int, Bool, PathExists };
     using Value = std::variant<std::string, int, bool>;
+    using ValueMap = std::unordered_map<std::string, Value>;
+
     struct SettingDefinition {
         std::string description;
         bool isRequired;
@@ -76,23 +79,63 @@ public:
      */
     template<typename T>
     static T get(const std::string& name) {
-        std::string key = normalize(name);
+        std::string key = toLowercase(name);
         auto it = values.find(key);
         if (it == values.end()) {
-			throw std::runtime_error("Missing required setting: " + name);
+			throw std::runtime_error("Access to undefined setting: " + name);
         }
         return std::get<T>(it->second);
     }
 
+    /**
+	 * @brief Get a configuration group by name.
+     * @param groupName Name of the group (e.g. "engine").
+     * @return Reference to the ValueMap group
+     * @throws std::runtime_error if the group is unknown or empty.
+     */
+    static const std::vector<ValueMap>& getGroup(const std::string& groupName);
+
 private:
-    static void parseGlobalParameters(int argc, char** argv);
-	static void parseGroupedParameters(int argc, char** argv);
 
     struct GroupDefinition {
         std::string description;
         std::unordered_map<std::string, SettingDefinition> keys;
     };
-	using ValueMap = std::unordered_map<std::string, Value>;
+
+    /**
+     * @brief Parses a single global parameter at the given position.
+     * @param index Current index in argv array.
+     * @param argc Total number of arguments.
+     * @param argv Argument vector.
+     * @return Index of the next unprocessed argument.
+     */
+    static int parseGlobalParameter(int index, int argc, char** argv);
+
+    /**
+     * @brief Parses an entire grouped parameter block starting at the given position.
+     * @param index Current index pointing to the group name (--engine etc.).
+     * @param argc Total number of arguments.
+     * @param argv Argument vector.
+     * @return Index of the next unprocessed argument after the group block.
+     */
+    static int parseGroupedParameter(int index, int argc, char** argv);
+
+    /**
+     * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
+     * @param group The group definition to search.
+     * @param name The key to resolve (e.g. option.Hash).
+     * @return Pointer to matching definition, or nullptr if not found.
+     */
+    static const SettingDefinition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
+
+    /**
+     * @brief Validates and finalizes all global parameters after parsing.
+     * Throws if required values are missing.
+     */
+    static void finalizeGlobalParameters();
+
+
+	
 
     static inline std::unordered_map<std::string, SettingDefinition> definitions;
     static inline ValueMap values;
@@ -103,7 +146,7 @@ private:
      */
     static inline std::unordered_map<std::string, std::vector<ValueMap>> groupedValues;
 
-    static std::string normalize(const std::string& name);
+    static std::string toLowercase(const std::string& name);
     static void showHelp();
     static Value parseValue(const std::string& input, const SettingDefinition& def);
 };

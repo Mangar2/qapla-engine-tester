@@ -26,6 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <variant>
 
 #include "engine-option.h"
 
@@ -36,6 +37,24 @@
 class EngineConfig {
 public:
     /**
+     * @brief Creates a fully initialized EngineConfig instance from a value map.
+     * @param values A map of parameters for an engine.
+     * @return Fully constructed and validated EngineConfig.
+     * @throws std::runtime_error if required fields are missing or invalid.
+     */
+    static EngineConfig createFromValueMap(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values) {
+		EngineConfig config;
+		config.setCommandLineOptions(values);
+		return config;
+    }
+    static EngineConfig createFromPath(const std::string executablePath) {
+		EngineConfig config;
+        config.setExecutablePath(executablePath);
+        config.finalizeSetOptions();
+		return config;
+    }
+    /**
+    * 
      * Sets the name of the engine.
      * @param engineName The name to assign.
      */
@@ -45,7 +64,9 @@ public:
      * Sets the path to the engine executable.
      * @param path The executable path.
      */
-    void setExecutablePath(const std::string& path) { executablePath = path; }
+    void setExecutablePath(const std::string& path) { 
+        executablePath = path; 
+    }
 
     /**
      * Sets the working directory for the engine.
@@ -105,20 +126,23 @@ public:
      */
     std::unordered_map<std::string, std::string> getOptions(const EngineOptions availableOptions) const;
 
-    /**
-	 * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
-	 * @param values A map of option names and their values.
-	 * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
-     */
-    void setCommandLineOptions(const std::unordered_map<std::string, std::string>& values);
-
-
     friend std::istream& operator>>(std::istream& in, EngineConfig& config);
 
     friend std::ostream& operator<<(std::ostream& out, const EngineConfig& config);
 
 
 private:
+
+    
+    void finalizeSetOptions();
+
+    /**
+     * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
+     * @param values A map of option names and their values.
+     * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
+     */
+    void setCommandLineOptions(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values);
+    std::string to_string(const std::variant<std::string, int, bool>& value);
     std::string name;
     std::string executablePath;
     std::string workingDirectory;

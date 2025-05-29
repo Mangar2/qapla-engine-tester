@@ -22,7 +22,7 @@
 #include "game-manager.h"
 #include "game-state.h"
 
-void EpdManager::initializeTestCases() {
+void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
     }
@@ -35,23 +35,26 @@ void EpdManager::initializeTestCases() {
         if (!testCase) {
             break;
         }
+		testCase->maxTimeInS = maxTimeInS;
+		testCase->minTimeInS = minTimeInS;
+		testCase->seenPlies = seenPlies;
         tests_.push_back(std::move(*testCase));
     }
 }
 
-void EpdManager::analyzeEpd(const std::string& filepath, const std::string& enginepath, 
-    uint32_t concurrency,
-    uint64_t maxTimeInS) {
+void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engineName, 
+    uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies)
+{
 	if (managers_.size() > 0) {
 		throw "reuse not supported yet";
 	}
 	reader_ = std::make_unique<EpdReader>(filepath);
-    initializeTestCases();
+    initializeTestCases(maxTimeInS, minTimeInS, seenPlies);
     currentIndex_ = 0;
     oldestIndexInUse_ = 0;
 	tc.setMoveTime(maxTimeInS * 1000); 
 
-    auto engineList = EngineWorkerFactory::createUci(enginepath, std::nullopt, concurrency);
+	auto engineList = EngineWorkerFactory::createEnginesByName(engineName, concurrency);
 	for (auto& engine : engineList) {
 		auto manager = std::make_unique<GameManager>();
         manager->setUniqueEngine(std::move(engine));
@@ -135,7 +138,12 @@ bool EpdManager::setPV(const std::string& engineId,
 			test.correctAtNodeCount = 0;
         }
 
-        return false;
+        bool earlyStop =
+			test.seenPlies >= 0 && test.correctAtDepth >= 0 && depth.has_value() &&
+            timeInMs >= test.minTimeInS * 1000 &&
+            *depth - test.correctAtDepth >= test.seenPlies;
+
+        return earlyStop;
     }
 
     return false;

@@ -31,7 +31,7 @@ void CliSettingsManager::registerSetting(const string& name,
     bool isRequired,
     Value defaultValue,
     ValueType type) {
-    string key = normalize(name);
+    string key = toLowercase(name);
     definitions[key] = { description, isRequired, defaultValue, type };
 }
 
@@ -39,140 +39,143 @@ void CliSettingsManager::registerGroup(const std::string& groupName,
     const std::string& groupDescription,
     const std::unordered_map<std::string, SettingDefinition>& keys) 
 {
-    std::string key = normalize(groupName);
+    std::string key = toLowercase(groupName);
     groupDefs[key] = GroupDefinition{ groupDescription, keys };
 }
 
-void CliSettingsManager::parseCommandLine(int argc, char** argv) {
-    parseGlobalParameters(argc, argv);
-    parseGroupedParameters(argc, argv);
+const std::vector<CliSettingsManager::ValueMap>& CliSettingsManager::getGroup(const std::string& groupName) {
+    std::string key = toLowercase(groupName);
+    auto it = groupedValues.find(key);
+    if (it == groupedValues.end() || it->second.empty()) {
+        throw std::runtime_error("Unknown or empty group: " + groupName);
+    }
+    return it->second; 
 }
 
-void CliSettingsManager::parseGlobalParameters(int argc, char** argv) {
-    for (int i = 1; i < argc; ++i) {
-        string arg = argv[i];
+void CliSettingsManager::parseCommandLine(int argc, char** argv) {
+    int index = 1;
+
+    while (index < argc) {
+        std::string arg = argv[index];
+
         if (arg == "--help") {
             showHelp();
             exit(0);
         }
-        auto eqPos = arg.find('=');
-        if (arg.rfind("--", 0) == 0 && eqPos != string::npos) {
-            string name = arg.substr(2, eqPos - 2);
-            string value = arg.substr(eqPos + 1);
-            string key = normalize(name);
-            auto defIt = definitions.find(key);
-            if (defIt != definitions.end()) {
-                values[key] = parseValue(value, defIt->second);
-            }
-            else {
-				throw std::runtime_error("Unknown parameter: " + name);
-            }
+
+        if (arg.rfind("--", 0) != 0) {
+            throw std::runtime_error("Invalid argument format: " + arg);
+        }
+
+        std::string name = toLowercase(arg.substr(2));
+        if (groupDefs.find(name) != groupDefs.end()) {
+            index = parseGroupedParameter(index, argc, argv);
         }
         else {
-			throw std::runtime_error("Invalid argument format: " + arg);
-
+            index = parseGlobalParameter(index, argc, argv);
         }
     }
 
-    for (const auto& [key, def] : definitions) {
-        if (values.find(key) != values.end())
-            continue;
+    finalizeGlobalParameters();
+}
 
-		// Required without Default -> Input required
+int CliSettingsManager::parseGlobalParameter(int index, int argc, char** argv) {
+    std::string arg = argv[index];
+
+    auto eqPos = arg.find('=');
+    if (arg.rfind("--", 0) != 0 || eqPos == std::string::npos)
+        throw std::runtime_error("Invalid global parameter format: " + arg);
+
+    std::string name = arg.substr(2, eqPos - 2);
+    std::string value = arg.substr(eqPos + 1);
+    std::string key = toLowercase(name);
+
+    auto it = definitions.find(key);
+    if (it == definitions.end())
+        throw std::runtime_error("Unknown global parameter: " + name);
+
+    values[key] = parseValue(value, it->second);
+    return index + 1;
+}
+
+const CliSettingsManager::SettingDefinition* CliSettingsManager::resolveGroupedKey(const GroupDefinition& group, const std::string& name) {
+    auto it = group.keys.find(name);
+    if (it != group.keys.end()) return &it->second;
+    std::string postFix = "[name]";
+    for (const auto& [key, def] : group.keys) {
+        if (key.ends_with("." + postFix)) {
+            std::string prefix = key.substr(0, key.size() - postFix.length());
+            if (name.rfind(prefix, 0) == 0) return &def;
+        }
+    }
+
+    return nullptr;
+}
+
+int CliSettingsManager::parseGroupedParameter(int index, int argc, char** argv) {
+    std::string groupName = toLowercase(argv[index++]).substr(2);
+
+    auto defIt = groupDefs.find(groupName);
+    if (defIt == groupDefs.end())
+        throw std::runtime_error("Unknown group: " + groupName);
+
+    const auto& groupMeta = defIt->second;
+    ValueMap group;
+
+    while (index < argc) {
+        std::string arg = argv[index];
+
+        if (arg.rfind("--", 0) == 0) break; // nächste Gruppe oder globaler Parameter
+
+        auto eqPos = arg.find('=');
+        if (eqPos == std::string::npos)
+            throw std::runtime_error("Invalid group parameter format: " + arg);
+
+        std::string name = arg.substr(0, eqPos);
+        std::string value = arg.substr(eqPos + 1);
+
+        const SettingDefinition* def = resolveGroupedKey(groupMeta, name);
+        if (!def)
+            throw std::runtime_error("Unknown parameter '" + name + "' in group '" + groupName + "'");
+        group[name] = parseValue(value, *def);
+
+        ++index;
+    }
+
+    // apply defaults
+    for (const auto& [key, def] : groupMeta.keys) {
+        if (key.ends_with(".[name]")) continue;
+        if (group.find(key) != group.end()) continue;
+        if (def.isRequired)
+            throw std::runtime_error("Missing required parameter '" + key + "' in group '" + groupName + "'");
+        if (!def.defaultValue.valueless_by_exception())
+            group[key] = def.defaultValue;
+    }
+
+    groupedValues[groupName].push_back(std::move(group));
+    return index;
+}
+
+void CliSettingsManager::finalizeGlobalParameters() {
+    for (const auto& [key, def] : definitions) {
+        if (values.contains(key)) continue;
+
         if (def.isRequired && def.defaultValue.valueless_by_exception()) {
             std::string input;
             std::cout << key << " (required): ";
             std::getline(std::cin, input);
             values[key] = parseValue(input, def);
-            continue;
         }
-
-		// Optional with Default -> set directly, no input needed
-        if (!def.isRequired && !def.defaultValue.valueless_by_exception()) {
+        else if (!def.isRequired && !def.defaultValue.valueless_by_exception()) {
             values[key] = def.defaultValue;
-            continue;
         }
-
-		// Required with Default -> Input with default suggestion
-        if (def.isRequired && !def.defaultValue.valueless_by_exception()) {
-            std::string inputPrompt = key + " (required, default: ";
-            std::visit([&inputPrompt](auto&& v) {
-                using V = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<V, int>)
-                    inputPrompt += std::to_string(v);
-                else
-                    inputPrompt += v;
-                }, def.defaultValue);
-            inputPrompt += "): ";
-
-            std::string input;
-            std::cout << inputPrompt;
-            std::getline(std::cin, input);
-            values[key] = input.empty() ? def.defaultValue : parseValue(input, def);
-            continue;
+        else if (def.isRequired) {
+            values[key] = def.defaultValue;
         }
-
-		throw std::runtime_error("Invalid setting: optional parameter '" + key + "' without default value.");
     }
 }
 
-void CliSettingsManager::parseGroupedParameters(int argc, char** argv) {
-    std::string currentGroup;
-    ValueMap currentValues;
-
-    auto flushGroup = [&]() {
-        if (currentGroup.empty()) return;
-        auto defIt = groupDefs.find(currentGroup);
-        if (defIt == groupDefs.end()) throw std::runtime_error("Unknown group: " + currentGroup);
-
-        const auto& groupMeta = defIt->second;
-
-        for (const auto& [key, def] : groupMeta.keys) {
-            if (currentValues.find(key) != currentValues.end()) continue;
-            if (def.isRequired) throw std::runtime_error("Missing required subparameter '" + key + "' in group '" + currentGroup + "'");
-            if (!def.defaultValue.valueless_by_exception())
-                currentValues[key] = def.defaultValue;
-        }
-
-        groupedValues[currentGroup].emplace_back(std::move(currentValues));
-        currentValues.clear();
-        };
-
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg.rfind("--", 0) != 0) continue;
-
-        std::string raw = arg.substr(2);
-        auto eqPos = raw.find('=');
-        std::string name = eqPos != std::string::npos ? raw.substr(0, eqPos) : raw;
-        std::string val = eqPos != std::string::npos ? raw.substr(eqPos + 1) : "";
-
-        std::string norm = normalize(name);
-
-        if (groupDefs.find(norm) != groupDefs.end()) {
-            flushGroup();
-            currentGroup = norm;
-            continue;
-        }
-
-        if (currentGroup.empty()) continue;
-
-        auto groupDefIt = groupDefs.find(currentGroup);
-        if (groupDefIt == groupDefs.end()) continue;
-
-        const auto& keys = groupDefIt->second.keys;
-        auto keyIt = keys.find(name);
-        if (keyIt == keys.end()) throw std::runtime_error("Unknown subparameter '" + name + "' in group '" + currentGroup + "'");
-
-        currentValues[name] = parseValue(val, keyIt->second);
-    }
-
-    flushGroup();
-}
-
-
-
-string CliSettingsManager::normalize(const string& name) {
+string CliSettingsManager::toLowercase(const string& name) {
     string lower = name;
     transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     return lower;

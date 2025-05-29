@@ -42,6 +42,9 @@ struct EpdTestCase {
     bool correct = false;
     int searchDepth = -1;
     uint64_t timeMs = 0;
+    uint64_t maxTimeInS = 0;
+    uint64_t minTimeInS = 0;
+    int seenPlies = -1;
     uint64_t nodeCount = 0;
     int correctAtDepth = -1;
     uint64_t correctAtNodeCount = 0;
@@ -87,11 +90,13 @@ public:
      * @brief Loads all EPD entries from the specified file and starts analysis with the given number of engines.
      *        The method returns immediately; analysis runs asynchronously.
      * @param filepath Path to the EPD file.
-     * @param enginepath Path to the Engine file.
+     * @param engineName name of the engine
      * @param concurrency Number of engine instances to run in parallel.
 	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
+	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
+	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      */
-    void analyzeEpd(const std::string& filepath, const std::string& enginePath, uint32_t concurrency, uint64_t maxTimeInS);
+    void analyzeEpd(const std::string& filepath, const std::string& engineName, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
 
     /**
      * @brief Stops the analysis. Running tasks may still complete.
@@ -152,8 +157,11 @@ private:
     bool isSameMove(const std::string& fen, const std::string& lanMove, const std::string& sanMove) const;
     /**
      * @brief Loads and transforms all EPD entries into test cases.
+	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
+	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
+	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      */
-    void initializeTestCases();
+    void initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies);
     /**
      * @brief Retrieves and transforms the next EPD entry into a test case.
      * @return Optional EpdTestCase or std::nullopt if no more entries are available.

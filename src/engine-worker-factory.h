@@ -25,6 +25,7 @@
 #include <unordered_map>
 
 #include "engine-worker.h"
+#include "engine-config-manager.h"
 
 using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
  /**
@@ -45,6 +46,22 @@ public:
         createUci(const std::filesystem::path& executablePath,
             std::optional<std::filesystem::path> workingDirectory = std::nullopt,
             std::size_t count = 1);
+
+	static void setConfigManager(const EngineConfigManager& configManager) {
+		configManager_ = configManager;
+	}
+
+	static const EngineConfigManager& getConfigManager() {
+		return configManager_;
+	}
+
+	static EngineConfigManager& getConfigManagerMutable() {
+		return configManager_;
+	}
+
+    static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
+
 private:
     static inline uint32_t identifier_ = 0;
+	static inline EngineConfigManager configManager_; 
 };

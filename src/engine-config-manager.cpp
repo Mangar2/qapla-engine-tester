@@ -31,7 +31,7 @@ void EngineConfigManager::loadFromFile(const std::string& filePath) {
 
         try {
             file >> config;
-            addOrUpdateConfig(config);
+            addOrReplaceConfig(config);
         }
         catch (const std::exception& e) {
             file.clear();
@@ -72,7 +72,7 @@ EngineConfig* EngineConfigManager::getConfig(const std::string& name) {
     return nullptr;
 }
 
-void EngineConfigManager::addOrUpdateConfig(const EngineConfig& config) {
+void EngineConfigManager::addOrReplaceConfig(const EngineConfig& config) {
     for (auto& existing : configs) {
         if (existing.getName() == config.getName()) {
             existing = config;

@@ -37,6 +37,8 @@
 
 class EngineConfigManager {
 public:
+    using Value = std::variant<std::string, int, bool>;
+    using ValueMap = std::unordered_map<std::string, Value>;
     /**
      * Loads engine configurations from an INI file.
      * Each configuration starts with a blank line followed by its key-value pairs.
@@ -68,7 +70,7 @@ public:
      * Adds a new configuration or replaces the existing one with the same name.
      * @param config The EngineConfig to add or update.
      */
-    void addOrUpdateConfig(const EngineConfig& config);
+    void addOrReplaceConfig(const EngineConfig& config);
 
 	/**
 	 * @brief Returns a list of error messages encountered during parsing.
@@ -76,6 +78,19 @@ public:
 	const std::vector<std::string>& getErrors() const {
 		return errors;
 	}
+
+    /**
+     * @brief Add or replaces several EngineConfig instances from configuration maps.
+     *        Each map must represent one complete engine configuration.
+     * @param configs A vector of parameter maps.
+     * @throws std::runtime_error if any EngineConfig is invalid.
+     */
+    void addOrReplaceConfigurations(const std::vector<ValueMap>& configs) {
+        for (const auto& map : configs) {
+            EngineConfig config = EngineConfig::createFromValueMap(map);
+            addOrReplaceConfig(config);
+        }
+    }
 
 private:
     std::vector<EngineConfig> configs;

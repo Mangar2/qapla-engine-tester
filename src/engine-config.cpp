@@ -29,37 +29,54 @@ std::unordered_map<std::string, std::string> EngineConfig::getOptions(const Engi
     return filteredOptions;
 }
 
+template<typename T>
+inline constexpr bool always_false = false;
+
+std::string EngineConfig::to_string(const std::variant<std::string, int, bool>& value) {
+    return std::visit([](auto&& v) -> std::string {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::string>) return v;
+        else if constexpr (std::is_same_v<T, int>) return std::to_string(v);
+        else if constexpr (std::is_same_v<T, bool>) return v ? "true" : "false";
+        else static_assert(always_false<T>, "Unsupported variant type");
+        }, value);
+}
+
 /**
  * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
  * @param values A map of option names and their values.
  * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
  */
-void EngineConfig::setCommandLineOptions(const std::unordered_map<std::string, std::string>& values) {
+void EngineConfig::setCommandLineOptions(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values) {
     std::unordered_set<std::string> seenKeys;
 
     for (const auto& [key, value] : values) {
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key in engine options: " + key);
-
-        if (key == "name") setName(value);
-        else if (key == "cmd") setExecutablePath(value);
-        else if (key == "dir") setWorkingDirectory(value);
+        if (key == "name") setName(std::get<std::string>(value));
+        else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
+        else if (key == "dir") setWorkingDirectory(std::get<std::string>(value));
         else if (key == "proto") {
-            if (value == "uci") protocol = EngineProtocol::Uci;
-            else if (value == "xboard") protocol = EngineProtocol::XBoard;
-            else throw std::runtime_error("Unknown protocol: " + value);
+            auto valueStr = std::get<std::string>(value);
+            if (valueStr == "uci") protocol = EngineProtocol::Uci;
+            else if (valueStr == "xboard") protocol = EngineProtocol::XBoard;
+            else throw std::runtime_error("Unknown protocol: " + valueStr);
         }
         else if (key.starts_with("option.")) {
-            optionValues[key.substr(7)] = value;
+            optionValues[key.substr(7)] = to_string(value);
         }
         else {
             throw std::runtime_error("Unknown engine option key: " + key);
         }
     }
+    finalizeSetOptions();
+}
 
-    if (getName().empty()) throw std::runtime_error("Missing required field: name");
+void EngineConfig::finalizeSetOptions() {
     if (getExecutablePath().empty()) throw std::runtime_error("Missing required field: cmd");
-    if (protocol == EngineProtocol::Unknown) throw std::runtime_error("Missing or invalid protocol");
+    if (getName().empty()) setName(getExecutablePath());
+    if (getWorkingDirectory().empty()) setWorkingDirectory(".");
+    if (protocol == EngineProtocol::Unknown) protocol = EngineProtocol::Uci;
 }
 
 
@@ -110,14 +127,10 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
         }
         else config.setOptionValue(key, value);
     }
-
+    
     if (!sectionRead)
         throw std::runtime_error("Missing section header");
-    if (config.getExecutablePath().empty())
-        throw std::runtime_error("Missing required field: executablePath");
-    if (config.protocol == EngineProtocol::Unknown)
-        throw std::runtime_error("Missing required field: protocol");
-
+    config.finalizeSetOptions();
     return in;
 }
 
