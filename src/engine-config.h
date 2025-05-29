@@ -108,7 +108,7 @@ public:
      * Gets the current option values.
      * @return A map of option names to their values.
      */
-    const std::unordered_map<std::string, std::string>& getOptions() const { return optionValues; }
+    const std::unordered_map<std::string, std::string>& getOptionValues() const { return optionValues; }
 
     /**
      * Sets a specific option value 

@@ -154,12 +154,53 @@ void UciAdapter::sendPosition(const GameRecord& game) {
     writeCommand(oss.str());
 }
 
-void UciAdapter::setOption(const std::string& name, const std::string& value) {
-    std::string command = "setoption name " + name;
-    if (!value.empty()) {
-        command += " value " + value;
-    }
+void UciAdapter::setTestOption(const std::string& name, const std::string& value) {
+    std::string command = "setoption name " + name + " value " + value;
     writeCommand(command);
+}
+
+void UciAdapter::setOptionValues(const OptionValues& optionValues) {
+    for (const auto& [name, value] : optionValues) {
+        try {
+            if (supportedOptions_.find(name) == supportedOptions_.end()) {
+                Logger::testLogger().log("Unsupported option: " + name, TraceLevel::info);
+                continue;
+            }
+			auto supportedOption = supportedOptions_.at(name);
+            // check type and  value constraints
+            if (supportedOption.type == EngineOption::Type::String) {
+                if (value.size() > 9999) {
+                    Logger::testLogger().log("Option value for " + name + " is too long", TraceLevel::info);
+                    continue;
+                }
+            }
+            else if (supportedOption.type == EngineOption::Type::Spin) {
+                int intValue = std::stoi(value);
+                if (intValue < supportedOption.min || intValue > supportedOption.max) {
+                    Logger::testLogger().log("Option value for " + name + " is out of bounds", TraceLevel::info);
+                    continue;
+                }
+            }
+			else if (supportedOption.type == EngineOption::Type::Check) {
+				if (value != "true" && value != "false") {
+					Logger::testLogger().log("Invalid boolean value for option " + name, TraceLevel::info);
+					continue;
+				}
+			}
+			else if (supportedOption.type == EngineOption::Type::Combo) {
+				if (std::find(supportedOption.vars.begin(), supportedOption.vars.end(), value) == supportedOption.vars.end()) {
+					Logger::testLogger().log("Invalid value for combo option " + name, TraceLevel::info);
+					continue;
+				}
+			}
+            std::string command = "setoption name " + name + " value " + value;
+            writeCommand(command);
+        }
+        catch (...) {
+            Logger::testLogger().log("Invalid value " + value + " for option " + name, TraceLevel::info);
+        }
+
+	}
 }
 
 /**
@@ -192,7 +233,7 @@ void readBoundedInt32(std::istringstream& iss,
 
     if (value < min || value > max) {
         errors.push_back({
-            "Search info reports correct  " + fieldName,
+            "Search info reports correct " + fieldName,
             "Reported value " + std::to_string(value) +
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
@@ -217,7 +258,7 @@ void readBoundedInt64(std::istringstream& iss,
     int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
-            "Search info reports correct  " + fieldName,
+            "Search info reports correct " + fieldName,
             "Expected an integer after '" + fieldName + "'"
             });
         iss.clear();

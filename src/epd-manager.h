@@ -51,34 +51,9 @@ struct EpdTestCase {
     uint64_t correctAtTimeInMs = 0;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
-    auto formatTime = [](uint64_t ms) -> std::string {
-        if (ms == 0) return "-";
-        uint64_t minutes = ms / 60000;
-        uint64_t seconds = (ms / 1000) % 60;
-        uint64_t milliseconds = ms % 1000;
-        std::ostringstream timeStream;
-        timeStream << std::setfill('0') << std::setw(2) << minutes << ":"
-            << std::setw(2) << seconds << "."
-            << std::setw(3) << milliseconds;
-        return timeStream.str();
-        };
-
-    os << std::setw(20) << std::left << test.id
-        << " | " << std::setw(9) << std::right
-        << (test.correct ? formatTime(test.correctAtTimeInMs) : "-")
-        << " | D: " << std::setw(3) << std::right
-        << (test.correct ? std::to_string(test.correctAtDepth) : "-")
-        << " | M: " << std::setw(6) << std::left << test.playedMove
-        << " | BM: ";
-
-    for (const auto& bm : test.bestMoves) {
-        os << bm << " ";
-    }
-    return os;
-}
-
- /**
+std::ostream& operator<<(std::ostream& os, const EpdTestCase& test);
+ 
+/**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
   * Provides GameTasks for engine workers and collects their results.
   */

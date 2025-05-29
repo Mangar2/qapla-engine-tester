@@ -182,7 +182,7 @@ string CliSettingsManager::toLowercase(const string& name) {
 }
 
 void CliSettingsManager::showHelp() {
-    constexpr int nameWidth = 24;
+    constexpr int nameWidth = 30;
 
     std::cout << "Available options:\n";
     for (const auto& [key, def] : definitions) {

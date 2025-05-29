@@ -83,7 +83,17 @@ public:
      * @param name The name of the UCI option to set.
      * @param value The value to assign to the option. May be empty.
      */
-    void setOption(const std::string& name, const std::string& value = {}) override;
+    void setTestOption(const std::string& name, const std::string& value = {}) override;
+
+    /**
+     * @brief Sets the engine's options based on the provided OptionValues.
+     * 
+	 * This method validates the options against the engine's supported options and
+	 * only sets those that fulfills the engine requirements.
+     *
+     * @param optionValues The option values to set.
+     */
+    void setOptionValues(const OptionValues& optionValues) override;
 
 private:
      /**

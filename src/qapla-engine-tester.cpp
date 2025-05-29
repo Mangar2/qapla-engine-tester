@@ -58,7 +58,10 @@ bool runEpd() {
 		}
 		for (const auto& engineConfig : EngineWorkerFactory::getConfigManager().getAllConfigs()) {
             std::string name = engineConfig.getName();
-			Logger::testLogger().log("Using engine: " + name);
+            std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
+			Logger::testLogger().log("Using engine: " + name 
+                + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
+                + earlyStop);
             epdManager.analyzeEpd(file, name, concurrency, maxTime, minTime, seenPlies);
             epdManager.wait();
 		}
@@ -67,12 +70,15 @@ bool runEpd() {
 }
 
 int main(int argc, char** argv) {
+    bool isEngineTest = false;
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::commands);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.2.0 (c) by Volker Boehm\n");
 
-        CliSettingsManager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 20,
+        CliSettingsManager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettingsManager::ValueType::Int);
+		CliSettingsManager::registerSetting("enginelog", "Enable engine logging (default: true)", false, false,
+			CliSettingsManager::ValueType::Bool);
         CliSettingsManager::registerSetting("games-number", "Number of games to play", false, 20,
             CliSettingsManager::ValueType::Int);
 	    CliSettingsManager::registerSetting("enginepath", "Path to an engine executable. Use the --engine parameter for more control on engines", false, "",
@@ -82,11 +88,11 @@ int main(int argc, char** argv) {
 	    CliSettingsManager::registerSetting("testlevel", "Test level (0=all, 1=basic, 2=advanced)", false, 0,
 		    CliSettingsManager::ValueType::Int);
 
-        CliSettingsManager::registerGroup("epd", "Defines an epd configuration", {
-            { "file",      { "Path and file name", true, "speelman Endgame.epd", CliSettingsManager::ValueType::PathExists } },
+        CliSettingsManager::registerGroup("epd", "Configuration to run an epd testset against engines", {
+            { "file",      { "Path and file name to the epd file", true, "speelman Endgame.epd", CliSettingsManager::ValueType::PathExists } },
             { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettingsManager::ValueType::Int } },
             { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettingsManager::ValueType::Int } },
-            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early", false, -1, CliSettingsManager::ValueType::Int } }
+            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettingsManager::ValueType::Int } }
             });
 
         CliSettingsManager::registerGroup("engine", "Defines an engine configuration", {
@@ -104,9 +110,12 @@ int main(int argc, char** argv) {
         if (enginePath != "") {
             EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfig(EngineConfig::createFromPath(enginePath));
         }
+		if (CliSettingsManager::get<bool>("enginelog")) {
+            Logger::engineLogger().setLogFile("qapla-engine-trace");
+		}
 
         if (!runEpd()) {
-            Logger::engineLogger().setLogFile("qapla-engine-trace");
+			isEngineTest = true;
             Logger::testLogger().setLogFile("qapla-engine-report");
             Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
             Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
@@ -124,7 +133,7 @@ int main(int argc, char** argv) {
 		Logger::testLogger().log("Unknown exception during engine test.", TraceLevel::error);
 	}
     
-	Checklist::log();
+	if (isEngineTest) Checklist::log();
     if (argc == 1) {
         std::cout << "Press Enter to quit...";
         std::cin.get();

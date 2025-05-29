@@ -25,7 +25,7 @@
 
 #include <stdexcept>
 
-EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier)
+EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, const OptionValues& optionValues)
     : adapter_(std::move(adapter)), identifier_(identifier)
     {
 
@@ -36,22 +36,34 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
         Logger::engineLogger().log(id, message, isOutput, traceLevel);
         });
+	asyncStartup(optionValues);
+}
+
+void EngineWorker::asyncStartup(const OptionValues& optionValues) {
     running_ = true;
     workThread_ = std::thread(&EngineWorker::threadLoop, this);
     startupFuture_ = startupPromise_.get_future();
 
-    post([this](EngineAdapter& adapter) {
+    post([this, options = optionValues](EngineAdapter& adapter) {
         try {
             readThread_ = std::thread(&EngineWorker::readLoop, this);
             waitForHandshake_ = EngineEvent::Type::UciOk;
             adapter.startProtocol();
-			if (!waitForHandshake(ReadyTimeoutUciOk)) {
-				throw std::runtime_error("Engine failed UCI handshake");
-			}
-            startupPromise_.set_value(); // Erfolg
+            if (!waitForHandshake(ReadyTimeoutUciOk)) {
+                throw std::runtime_error("Engine failed UCI handshake");
+            }
+            waitForHandshake_ = EngineEvent::Type::ReadyOk;
+            if (!options.empty()) {
+                adapter.setOptionValues(options);
+                adapter.askForReady();
+                if (!waitForHandshake(ReadyTimeoutOption)) {
+                    throw std::runtime_error("Engine failed ready ok handshake after setoptions");
+                }
+            }
+            startupPromise_.set_value(); 
         }
         catch (...) {
-            startupPromise_.set_exception(std::current_exception()); // Fehler
+            startupPromise_.set_exception(std::current_exception()); 
         }
         });
 }
@@ -148,10 +160,20 @@ bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
 
 bool EngineWorker::setOption(const std::string& name, const std::string& value) {
     post([this, name, value](EngineAdapter& adapter) {
-        adapter.setOption(name, value);
+        waitForHandshake_ = EngineEvent::Type::ReadyOk;
+        adapter.setTestOption(name, value);
         adapter.askForReady();
         });
     return waitForHandshake(ReadyTimeoutOption);
+}
+
+bool EngineWorker::setOptionValues(const OptionValues& optionValues) {
+	post([this, optionValues](EngineAdapter& adapter) {
+        waitForHandshake_ = EngineEvent::Type::ReadyOk;
+		adapter.setOptionValues(optionValues);
+		adapter.askForReady();
+		});
+	return waitForHandshake(ReadyTimeoutOption);
 }
 
 void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits) {

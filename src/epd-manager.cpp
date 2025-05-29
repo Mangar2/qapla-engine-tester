@@ -22,6 +22,32 @@
 #include "game-manager.h"
 #include "game-state.h"
 
+inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
+    auto formatTime = [](uint64_t ms) -> std::string {
+        if (ms == 0) return "-";
+        uint64_t seconds = (ms / 1000);
+        uint64_t milliseconds = ms % 1000;
+        std::ostringstream timeStream;
+        timeStream << std::setfill('0')  
+            << std::setw(2) << seconds << "."
+            << std::setw(3) << milliseconds;
+        return timeStream.str();
+        };
+
+    os << std::setw(20) << std::left << test.id
+        << "|" << std::setw(8) << std::right
+        << (test.correct ? formatTime(test.correctAtTimeInMs) : "-")
+        << ", D:" << std::setw(3) << std::right
+        << (test.correct ? std::to_string(test.correctAtDepth) : "-")
+        << ", M: " << std::setw(5) << std::left << test.playedMove
+        << " | BM: ";
+
+    for (const auto& bm : test.bestMoves) {
+        os << bm << " ";
+    }
+    return os;
+}
+
 void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
@@ -141,7 +167,7 @@ bool EpdManager::setPV(const std::string& engineId,
         bool earlyStop =
 			test.seenPlies >= 0 && test.correctAtDepth >= 0 && depth.has_value() &&
             timeInMs >= test.minTimeInS * 1000 &&
-            *depth - test.correctAtDepth >= test.seenPlies;
+            static_cast<int>(*depth) - test.correctAtDepth >= test.seenPlies;
 
         return earlyStop;
     }

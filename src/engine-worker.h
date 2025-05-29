@@ -45,8 +45,12 @@ public:
 	/**
 	 * @brief Constructs the worker and starts its internal thread.
 	 * @param adapter The engine adapter to control. Ownership is transferred.
+	 * @param identifier A unique identifier for the engine represented by the worker.
+	 * @param optionValues option values to set for the engine in the startup process.
 	 */
-	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier);
+	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, 
+		std::string identifier,
+		const OptionValues& optionValues);
 
 	/**
 	 * @brief Destructs the worker and cleanly shuts down its thread.
@@ -77,7 +81,7 @@ public:
 	 * @param timeout Zeitspanne, die maximal gewartet werden soll.
 	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).
 	 */
-	bool requestReady(std::chrono::milliseconds timeout = ReadyTimeoutStartup);
+	bool requestReady(std::chrono::milliseconds timeout = ReadyTimeoutNormal);
 
 	/**
 	 * Requests the engine to compute the best move for the given game state and search limits.
@@ -140,8 +144,11 @@ public:
 	 *
 	 * @param name The name of the option to set.
 	 * @param value The value to set for the option.
+	 * @return true if the option isready/readyok handshake came in time.
 	 */
 	bool setOption(const std::string& name, const std::string& value);
+
+	bool setOptionValues(const OptionValues& values);
 
 	/**
 	 * @brief Gets a map of the supported options of the engine with the default values.
@@ -190,6 +197,13 @@ public:
 
 private:
 
+	/*
+	 * @brief processs the startup of the engine asynchronously.
+	 * @param adapter The engine adapter to control. Ownership is transferred.
+	 * @param optionValues option values to set for the engine in the startup process.
+	 */
+	void asyncStartup(const OptionValues& optionValues);
+
 	/**
 	 * @brief Posts a task to be executed on the worker thread.
 	 *
@@ -218,8 +232,7 @@ private:
 	
 	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
-	static constexpr std::chrono::seconds ReadyTimeoutOption{ 5 };
-	static constexpr std::chrono::seconds ReadyTimeoutStartup{ 10 };
+	static constexpr std::chrono::seconds ReadyTimeoutOption{ 10 };
 
 	void threadLoop();
 

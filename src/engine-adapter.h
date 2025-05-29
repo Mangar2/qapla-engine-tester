@@ -40,6 +40,8 @@ enum class EngineState {
     Terminating      // Quitting
 };
 
+using OptionValues = std::unordered_map<std::string, std::string>;
+
  /**
   * @brief Abstract interface for communicating with and controlling a chess engine,
   *        independent of the underlying protocol (e.g. UCI, XBoard).
@@ -155,7 +157,16 @@ public:
      * @param name The name of the UCI option to set.
      * @param value The value to assign to the option. May be empty.
      */
-    virtual void setOption(const std::string& name, const std::string& value = {}) = 0;
+    virtual void setTestOption(const std::string& name, const std::string& value = {}) = 0;
+
+	/**
+	 * @brief Sets the engine's options based on the provided OptionValues.
+	 *        This method should be implemented by derived classes to apply
+	 *        the options to the engine.
+	 *
+	 * @param optionValues The option values to set.
+	 */
+    virtual void setOptionValues(const OptionValues& optionValues) = 0;
 
     /**
      * @brief Returns the current engine option list.

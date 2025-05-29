@@ -158,7 +158,7 @@ void GameManager::processEvent(const EngineEvent& event) {
     try {
 
         for (auto& error : event.errors) {
-            Checklist::logCheck(error.name, false, error.detail);
+            Checklist::logCheck(error.name, false, error.detail, TraceLevel::info);
         }
 		bool isWhitePlayer = event.engineIdentifier == whitePlayer_->getEngine()->getIdentifier();
 		bool isBlackPlayer = event.engineIdentifier == blackPlayer_->getEngine()->getIdentifier();
@@ -259,9 +259,12 @@ void GameManager::informTask(const EngineEvent& event, const PlayerContext* play
 		return; // No principal variation to set
 	}
     auto start = player->getComputeMoveStartTimestamp();
-	taskProvider_->setPV(event.engineIdentifier, pv, 
+	bool stopRequired = taskProvider_->setPV(event.engineIdentifier, pv, 
         event.timestampMs < start ? 0 : event.timestampMs - start, 
         event.searchInfo->depth, event.searchInfo->nodes, event.searchInfo->multipv);
+    if (stopRequired) {
+        moveNow();
+    }
 }
 
 std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {

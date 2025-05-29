@@ -38,6 +38,7 @@ public:
      * @param passed True if the check passed; false if it failed.
      */
     static void report(const std::string topic, bool passed) {
+        std::lock_guard lock(statsMutex_);
         auto& stat = stats_[topic];
         ++stat.total;
         if (!passed) ++stat.failures;
@@ -48,6 +49,7 @@ public:
 	 * @param topic The topic to check.
      */
     static int getNumErrors(const std::string& topic) {
+        std::lock_guard lock(statsMutex_);
 		auto& stat = stats_[topic];
 		return stat.failures;
     }
@@ -67,7 +69,7 @@ public:
             Logger::testLogger().log("[Report for topic \"" + std::string(name) + "\"] " + std::string(detail),
                 numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
             if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
-                Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.");
+                Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.", traceLevel);
             }
         }
         return success;
@@ -98,6 +100,6 @@ private:
 
     static inline std::string name_;
     static inline std::string author_;
-
+    static inline std::mutex statsMutex_;
     static inline std::unordered_map<std::string, Stat> stats_;
 };

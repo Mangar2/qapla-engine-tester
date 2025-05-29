@@ -28,11 +28,12 @@ EngineList EngineWorkerFactory::createUci(
 {
     std::vector<std::unique_ptr<EngineWorker>> engines;
     engines.reserve(count);
+    OptionValues values;
 
     for (std::size_t i = 0; i < count; ++i) {
         auto identifierStr = "#" + std::to_string(identifier_);
         auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
-        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr);
+        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, values);
         engines.push_back(std::move(worker));
         identifier_++;
     }
@@ -57,7 +58,7 @@ EngineList EngineWorkerFactory::createEnginesByName(const std::string& name, std
     for (std::size_t i = 0; i < count; ++i) {
         auto identifierStr = "#" + std::to_string(identifier_);
         auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
-        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr);
+        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, engineConfig->getOptionValues());
         engines.push_back(std::move(worker));
         identifier_++;
     }
