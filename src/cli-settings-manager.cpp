@@ -245,7 +245,17 @@ namespace CliSettings {
                 throw std::runtime_error("Invalid integer: " + input);
             }
         }
-
+        if (def.type == ValueType::Bool) {
+            if (input == "true" || input == "1") {
+                return true;
+            }
+            else if (input == "false" || input == "0") {
+                return false;
+            }
+            else {
+                throw std::runtime_error("Invalid boolean value: " + input);
+            }
+        }
         if (def.type == ValueType::PathExists) {
             if (!std::filesystem::exists(input)) {
                 throw std::runtime_error("Path does not exist: " + input);

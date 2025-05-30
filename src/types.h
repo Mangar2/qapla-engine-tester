@@ -275,6 +275,20 @@ namespace QaplaBasics {
 		}
 	}
 
+	constexpr char squareToRankChar(square_t square) {
+		if (square >= Square::A1 && square <= Square::H8) {
+			return static_cast<char>('1' + static_cast<char>(square / NORTH));
+		}
+		return ' ';
+	}
+
+	constexpr char squareToFileChar(square_t square) {
+		if (square >= Square::A1 && square <= Square::H8) {
+			return static_cast<char>('a' + static_cast<char>(square % NORTH));
+		}
+		return ' ';
+	}
+
 	/**
 	 * Computes the string representation of a board square
 	 * @param square Square in internal representation
@@ -322,7 +336,7 @@ namespace QaplaBasics {
 		default:return '.';
 		}
 	}
-	constexpr const char* pieceToSAN(Piece piece) {
+	constexpr const char* pieceToSan(Piece piece) {
 		switch (piece)
 		{
 		case BLACK_PAWN: return "";

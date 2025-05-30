@@ -1,0 +1,171 @@
+Concurrency: 15 Max Time: 300s Early stop - Seen plies: 3 Min time: 10s
+
+TestId              |         Spike1.4        |       Qapla0.3.2bb      |        Qapla0.3.2       |       Stockfish 17       | BM:
+(Speelman_EP_1)     |  00.207, D: 12, M: d4d5 |  00.027, D:  5, M: d4d5 |  00.031, D: 12, M: d4d5 |  00.025, D: 11, M: d4d5  | BM: Kd5
+(Speelman_EP_2)     |  00.149, D:  3, M: a5b6 |  00.001, D:  1, M: a5b6 |  00.001, D:  1, M: a5b6 |  00.001, D:  1, M: a5b6  | BM: Kb6
+(Speelman_EP_3)     |  00.127, D:  4, M: h4h5 |  00.094, D: 10, M: h4h5 |  00.003, D:  6, M: h4h5 |  00.225, D: 18, M: h4h5  | BM: Rh5
+(Speelman_EP_4)     |  00.147, D:  2, M: e2d3 |  00.001, D:  1, M: e2d3 |  00.001, D:  1, M: e2d3 |  00.001, D:  6, M: e2d3  | BM: Kd3
+(Speelman_EP_5)     |  00.150, D:  5, M: a6c8 |  00.025, D:  7, M: a6c8 |  02.119, D: 28, M: a6c8 |  00.002, D:  8, M: a6c8  | BM: Bc8
+(Speelman_EP_6)     |  00.155, D:  5, M: f1f4 |  00.016, D:  7, M: f1f4 |  00.016, D:  7, M: f1f4 |  00.006, D:  7, M: f1f4  | BM: Rf4+
+(Speelman_EP_7)     |  00.200, D: 11, M: g6e7 |  00.120, D: 11, M: g6e7 |  00.105, D: 14, M: g6e7 |  00.191, D: 16, M: g6e7  | BM: Ne7
+(Speelman_EP_8)     | 127.438, D: 25, M: g5g4 |       -, D:  -, M: h7f8 |       -, D:  -, M: h7f8 |  00.171, D: 15, M: g5g4  | BM: g4
+(Speelman_EP_9)     |  00.153, D:  1, M: d8h4 |  00.001, D:  1, M: d8g5 |  00.001, D:  1, M: d8f6 |  00.001, D:  1, M: d8g5  | BM: Bh4 Ba5 Bg5 Bf6 Be7
+(Speelman_EP_10)    |  00.162, D:  3, M: h3f4 |  00.071, D:  7, M: h3f4 |  00.007, D:  7, M: h3f4 |  00.030, D:  8, M: h3f4  | BM: Nf4+
+(Speelman_EP_11)    |  00.190, D: 10, M: a6a5 |  00.100, D: 13, M: a6a5 |  00.149, D: 16, M: a6a5 |  00.001, D:  1, M: a6a5  | BM: a5
+(Speelman_EP_12)    |  00.158, D:  7, M: g6g5 |  00.005, D:  8, M: g6g5 |  00.006, D:  8, M: g6g5 |  00.001, D:  1, M: g6g5  | BM: g5
+(Speelman_EP_13)    |       -, D:  -, M: d5d4 |       -, D:  -, M: f3g4 |       -, D:  -, M: f3g4 |  00.316, D: 17, M: g6g5  | BM: g5
+(Speelman_EP_14)    |       -, D:  -, M: e7d6 |  00.253, D: 13, M: h5h4 |  00.188, D: 13, M: h5h4 |       -, D:  -, M: e6e5  | BM: h4
+(Speelman_EP_15)    |  00.154, D:  5, M: g5g4 |  00.002, D:  4, M: g5g4 |  00.001, D:  4, M: g5g4 |  00.015, D: 10, M: g5g4  | BM: g4
+(Speelman_EP_16)    |       -, D:  -, M: b7h7 |       -, D:  -, M: c6b5 | 202.986, D: 32, M: b7b4 |       -, D:  -, M: c6b5  | BM: Rb4
+(Speelman_EP_17)    |  00.034, D:  8, M: a4b5 |  00.001, D:  1, M: a4b5 |  00.001, D:  3, M: a4b5 |  00.001, D:  1, M: a4b5  | BM: Kb5
+(Speelman_EP_18)    |  00.057, D: 10, M: h2h4 |  00.001, D:  1, M: h2h4 |  00.001, D:  1, M: h2h4 |  00.001, D:  1, M: h2h4  | BM: h4
+(Speelman_EP_19)    |  00.048, D:  9, M: d5e6 |  00.120, D: 12, M: d5e6 |  00.018, D: 12, M: d5e6 |  00.080, D: 12, M: d5e6  | BM: Ke6
+(Speelman_EP_20)    |  00.108, D: 14, M: d7c8 |  00.001, D:  1, M: d7c8 |  00.552, D: 17, M: d7c8 |  00.036, D: 11, M: d7c8  | BM: Kc8
+(Speelman_EP_21)    |  00.058, D:  7, M: c4f7 |  00.037, D:  7, M: c4f7 |  00.007, D:  8, M: c4f7 |  00.055, D: 14, M: c4f7  | BM: Qf7+
+(Speelman_EP_22)    |  00.071, D:  8, M: f5f2 |  00.001, D:  3, M: f5f2 |  00.001, D:  3, M: f5f2 |  00.002, D:  7, M: f5f2  | BM: Qf2
+(Speelman_EP_23)    |  00.052, D:  9, M: a3a4 |  17.959, D: 21, M: a3a4 |  00.925, D: 22, M: a3a4 |  00.027, D: 11, M: a3a4  | BM: a4+
+(Speelman_EP_24)    |  00.029, D:  1, M: f7f5 |  00.002, D:  1, M: f7f5 |  00.001, D:  1, M: f7f5 |  00.001, D:  3, M: f7f5  | BM: f5
+(Speelman_EP_25)    |  00.033, D:  8, M: f4f3 |  00.012, D:  6, M: f4f3 |  00.003, D:  7, M: f4f3 |  00.001, D:  1, M: f4f3  | BM: Kg4 Kf3 Kg3
+(Speelman_EP_26)    |  02.623, D: 20, M: c5c4 |  01.428, D: 22, M: c5c4 |  02.871, D: 23, M: c5c4 |  00.001, D:  1, M: c5c4  | BM: c4
+(Speelman_EP_27)    |  00.073, D: 10, M: d5d6 |  00.100, D: 11, M: d5d6 |  00.088, D: 13, M: d5d6 |  00.036, D: 13, M: d5d6  | BM: d6
+(Speelman_EP_28)    |       -, D:  -, M: a4c6 |  10.164, D: 19, M: a4a1 |  00.008, D:  7, M: a4a1 |  00.001, D:  3, M: a4a1  | BM: Qa1+
+(Speelman_EP_29)    |       -, D:  -, M: e6e5 |       -, D:  -, M: e6e5 |       -, D:  -, M: e6e5 |       -, D:  -, M: e6e5  | BM: g5
+(Speelman_EP_30)    |  02.299, D: 15, M: c3e4 |       -, D:  -, M: b5b8 |       -, D:  -, M: b5b8 |       -, D:  -, M: b5b8  | BM: Ne4
+(Speelman_EP_31)    |       -, D:  -, M: b8h8 |       -, D:  -, M: b8h8 |       -, D:  -, M: b8h8 |       -, D:  -, M: b8h8  | BM: Rb1
+(Speelman_EP_32)    | 155.851, D: 24, M: g6g7 |  04.524, D: 15, M: g6g7 |  06.333, D: 21, M: g6g7 |  00.040, D: 12, M: g6g7  | BM: g7+
+(Speelman_EP_33)    |  00.095, D: 11, M: e2f4 |       -, D:  -, M: e2g1 |       -, D:  -, M: e2g1 |       -, D:  -, M: e2g1  | BM: Nxf4+
+(Speelman_EP_34)    |  00.034, D:  2, M: g7g5 |  00.171, D: 14, M: g7g5 |  00.193, D: 15, M: g7g5 |  00.002, D:  7, M: g7g5  | BM: h6 g5
+(Speelman_EP_35)    |  00.100, D: 10, M: g2h1 |  00.333, D: 12, M: g2h1 |  00.087, D: 15, M: g2h1 |  00.002, D:  5, M: g2h1  | BM: Kh1
+(Speelman_EP_36)    |  00.037, D:  7, M: a3b2 |  00.006, D: 18, M: a3b2 |  00.006, D: 17, M: a3b2 |  00.005, D: 11, M: a3b2  | BM: Kb2
+(Speelman_EP_37)    |  00.653, D: 27, M: a1b1 |  00.012, D: 18, M: a1b1 |  00.008, D: 18, M: a1b1 |  00.014, D: 13, M: a1b1  | BM: Kb1
+(Speelman_EP_38)    |  00.154, D: 18, M: c2d3 |  00.051, D: 15, M: c2d3 |  00.001, D:  1, M: c2d3 |  00.001, D:  3, M: c2d3  | BM: Kd3
+(Speelman_EP_39)    |  00.034, D:  1, M: a8b7 |  00.001, D:  2, M: a8b7 |  01.302, D: 25, M: a8b7 |  00.010, D:  9, M: a8b7  | BM: Kb7
+(Speelman_EP_40)    |  00.053, D: 19, M: a1a2 |  00.002, D: 10, M: a1a2 |  00.002, D: 13, M: a1a2 |  00.028, D: 15, M: a1a2  | BM: Ka2
+(Speelman_EP_41)    |  00.069, D: 18, M: h8g8 |  00.006, D: 15, M: h8g8 |  00.003, D: 11, M: h8g8 |  00.002, D:  6, M: h8g8  | BM: Kg8
+(Speelman_EP_42)    |  00.049, D: 19, M: a1b1 |  00.015, D: 15, M: a1b1 |  00.037, D: 18, M: a1b1 |  00.034, D: 14, M: a1b1  | BM: Kb1
+(Speelman_EP_43)    |  00.036, D: 12, M: a5e1 |  00.003, D:  7, M: a5e1 |  00.003, D:  9, M: a5e1 |  00.074, D: 16, M: a5e1  | BM: Be1
+(Speelman_EP_44)    |  00.048, D: 10, M: c2a3 |  00.299, D: 21, M: c2a3 |  00.121, D: 20, M: c2a3 |  00.015, D: 12, M: c2a3  | BM: Na3
+(Speelman_EP_45)    |       -, D:  -, M: f4e3 |       -, D:  -, M: e5d3 |  38.224, D: 30, M: f4f3 |  00.070, D: 17, M: f4f3  | BM: Kf3
+(Speelman_EP_46)    |  00.040, D:  8, M: f3e2 |       -, D:  -, M: f3d1 |  12.471, D: 27, M: f3e2 |       -, D:  -, M: f3d1  | BM: Be2
+(Speelman_EP_47)    |  00.030, D:  4, M: e2e6 |  00.001, D:  2, M: e2e6 |  00.001, D:  2, M: e2e6 |  00.002, D: 11, M: e2e6  | BM: Qe6+
+(Speelman_EP_48)    |  04.753, D: 18, M: f2e3 | 206.525, D: 27, M: f2e3 |  21.497, D: 23, M: f2e3 |  00.017, D: 12, M: f2e3  | BM: Ke3
+(Speelman_EP_49)    |  00.294, D: 21, M: f4f3 |  00.001, D:  1, M: f4f3 |  00.134, D: 17, M: f4f3 |  00.002, D:  9, M: f4f3  | BM: Kf3
+(Speelman_EP_50)    |  36.604, D: 26, M: h7h5 |  00.071, D: 11, M: h7h5 |  00.789, D: 15, M: h7h5 |       -, D:  -, M: b8a8  | BM: h5
+(Speelman_EP_51)    |       -, D:  -, M: b3d5 |       -, D:  -, M: b3c4 | 239.463, D: 35, M: g4g5 |  00.022, D: 13, M: g4g5  | BM: g5
+(Speelman_EP_52)    |  00.109, D: 11, M: a2a3 |  06.790, D: 21, M: a2a3 |  07.802, D: 23, M: a2a3 |  00.010, D:  8, M: a2a3  | BM: a3
+(Speelman_EP_53)    |  00.621, D: 13, M: d2d5 |  00.030, D: 10, M: d2d5 |  00.047, D: 11, M: d2d5 |  00.022, D: 10, M: d2d5  | BM: Rd5
+(Speelman_EP_54)    |  00.036, D:  7, M: b4b5 |  00.994, D: 17, M: b4b5 |  02.926, D: 23, M: b4b5 |  00.001, D:  4, M: b4b5  | BM: b5
+(Speelman_EP_55)    | 116.649, D: 35, M: g6g5 |  59.917, D: 32, M: g6g5 |       -, D:  -, M: d6d7 |  00.112, D: 15, M: g6g5  | BM: g5
+(Speelman_EP_56)    |  38.087, D: 34, M: b6b2 | 263.310, D: 34, M: b6b2 |       -, D:  -, M: b6b8 |  01.095, D: 24, M: b6b2  | BM: Rb2+
+(Speelman_EP_57)    |  00.033, D:  1, M: e8g8 |  00.001, D:  1, M: e8g8 |  00.001, D:  1, M: e8g8 |  00.001, D:  1, M: e8g8  | BM: Qg8+ Qe6+ Qc8+
+(Speelman_EP_58)    |  76.753, D: 26, M: e6e5 |  58.190, D: 26, M: e6e5 |  39.664, D: 25, M: e6e5 |  00.032, D: 11, M: e6e5  | BM: e5
+(Speelman_EP_59)    |       -, D:  -, M: g2g4 |       -, D:  -, M: g2g4 |  26.424, D: 21, M: b2b4 |       -, D:  -, M: g2g4  | BM: b4
+(Speelman_EP_60)    | 119.026, D: 21, M: h6h7 |       -, D:  -, M: h6h2 |       -, D:  -, M: h6h1 |  00.803, D: 19, M: h6h7  | BM: Rh7
+(Speelman_EP_61)    |  00.161, D: 11, M: f7e6 |  00.050, D: 10, M: f7e6 |  00.116, D: 13, M: f7e6 |  00.006, D:  9, M: f7e6  | BM: Ke6
+(Speelman_EP_62)    |  00.037, D:  4, M: c6b6 |  01.218, D: 15, M: c6b6 |  00.001, D:  5, M: c6b6 |  00.004, D:  8, M: c6b6  | BM: Rb6
+(Speelman_EP_63)    |       -, D:  -, M: c6b4 |       -, D:  -, M: c6b4 |       -, D:  -, M: c6b4 |       -, D:  -, M: c6b4  | BM: Rb1
+(Speelman_EP_64)    |       -, D:  -, M: c6c5 |       -, D:  -, M: c6c5 |       -, D:  -, M: c6c5 |       -, D:  -, M: c6c5  | BM: g5
+(Speelman_EP_65)    |  00.039, D:  1, M: d4d3 |  00.001, D:  1, M: d4d3 |  00.127, D: 12, M: d4d3 |  00.003, D:  9, M: d4d3  | BM: d3
+(Speelman_EP_66)    |  00.044, D:  8, M: f4f3 |  00.001, D:  1, M: f4f3 |  00.001, D:  7, M: f4f3 |  00.007, D: 10, M: f4f3  | BM: Kf3
+(Speelman_EP_67)    |  08.289, D: 20, M: h5f4 |       -, D:  -, M: g2g4 |       -, D:  -, M: g2g4 |  00.037, D: 13, M: h5f4  | BM: Nf4
+(Speelman_EP_68)    |  00.028, D:  1, M: g4g5 |  00.010, D:  9, M: g4g5 |  00.006, D:  8, M: g4g5 |  00.005, D:  8, M: g4g5  | BM: g5
+(Speelman_EP_69)    |  00.028, D:  1, M: b4c4 |  00.001, D:  1, M: b4c4 |  00.001, D:  1, M: b4c4 |  00.001, D:  1, M: b4c5  | BM: Kc4 Kc5
+(Speelman_EP_70)    |  67.473, D: 23, M: c3d5 |       -, D:  -, M: d4c5 |       -, D:  -, M: d4c5 |       -, D:  -, M: d4c5  | BM: Nd5
+(Speelman_EP_71)    |       -, D:  -, M: h2g3 |       -, D:  -, M: h2g3 |       -, D:  -, M: h2g3 |       -, D:  -, M: h2g3  | BM: h5
+(Speelman_EP_72)    |       -, D:  -, M: d3d4 |       -, D:  -, M: e4e5 |       -, D:  -, M: e4e5 |       -, D:  -, M: e4e5  | BM: Ra5
+(Speelman_EP_73)    |  23.952, D: 20, M: c5c6 |  00.922, D: 13, M: c5c6 |  00.046, D: 10, M: c5c6 |  00.027, D: 11, M: c5c6  | BM: c6
+(Speelman_EP_74)    |       -, D:  -, M: c8e6 |  02.951, D: 18, M: c8g4 |       -, D:  -, M: c8e6 |       -, D:  -, M: c8e6  | BM: Bg4
+(Speelman_EP_75)    |  00.033, D:  6, M: b7b8q|  00.009, D:  6, M: b7b8q|  00.014, D: 11, M: b7b8q|  00.006, D:  9, M: b7b8q | BM: b8=Q+
+(Speelman_EP_76)    |  00.614, D: 15, M: c3e4 | 149.159, D: 28, M: c3e4 |  43.992, D: 26, M: c3e4 |  00.167, D: 15, M: c3e4  | BM: Ne4
+(Speelman_EP_77)    |  00.093, D: 11, M: h2h4 |  00.068, D: 11, M: h2h4 |  00.423, D: 17, M: h2h4 |       -, D:  -, M: d1h5  | BM: h4
+(Speelman_EP_78)    |       -, D:  -, M: e5d7 |       -, D:  -, M: e5d7 |       -, D:  -, M: e5d7 |  00.052, D: 14, M: g1f2  | BM: Kf2
+(Speelman_EP_79)    |  00.832, D: 14, M: g2g3 |       -, D:  -, M: c2b3 |       -, D:  -, M: c2b3 |       -, D:  -, M: c3c4  | BM: g3
+(Speelman_EP_80)    |  00.049, D:  7, M: a4d1 |  00.001, D:  2, M: a4d1 |  00.001, D:  2, M: a4d1 |  00.003, D:  6, M: a4d1  | BM: Bd1
+(Speelman_EP_81)    |  00.839, D: 15, M: f3g3 |  01.159, D: 18, M: f3g3 |  02.033, D: 22, M: f3g3 |  00.008, D:  8, M: f3g3  | BM: Kg3
+(Speelman_EP_82)    |       -, D:  -, M: f4e2 |       -, D:  -, M: f4e2 |  00.001, D:  5, M: g7g8 |       -, D:  -, M: f4e2  | BM: Kg8
+(Speelman_EP_83)    |  00.038, D:  5, M: a7a5 |  00.002, D:  5, M: a7a5 |  00.005, D:  6, M: a7a5 |  00.004, D:  8, M: a7a5  | BM: a5
+(Speelman_EP_84)    |       -, D:  -, M: c7d6 |       -, D:  -, M: g2g4 |       -, D:  -, M: c7d8 |       -, D:  -, M: c7d8  | BM: g3
+(Speelman_EP_85)    |  14.455, D: 22, M: b6b5 |  48.460, D: 25, M: b6b5 | 146.272, D: 28, M: b6b5 |  01.347, D: 23, M: b6b5  | BM: b5
+(Speelman_EP_86)    |  00.048, D: 11, M: e6f7 |  00.174, D: 14, M: e6f7 |  00.052, D: 13, M: e6f7 |  00.012, D:  9, M: e6f7  | BM: Kf7
+(Speelman_EP_87)    |  33.199, D: 32, M: f1c4 |  00.675, D: 25, M: f1c4 |  00.702, D: 26, M: f1c4 |  00.003, D:  9, M: f1c4  | BM: Bxc4
+(Speelman_EP_88)    |       -, D:  -, M: g3f4 |  35.638, D: 29, M: c2d3 |       -, D:  -, M: g3f4 |       -, D:  -, M: g3f4  | BM: Bd3
+(Speelman_EP_89)    |  00.032, D:  1, M: f3f4 |       -, D:  -, M: c5e3 |       -, D:  -, M: g5f4 |  00.083, D: 16, M: f3f4  | BM: f4
+(Speelman_EP_90)    |       -, D:  -, M: h2g3 |       -, D:  -, M: h2g3 |  07.119, D: 25, M: a3a5 |       -, D:  -, M: h2g3  | BM: Ra5
+(Speelman_EP_91)    |  00.039, D:  7, M: d8d3 |  00.232, D: 14, M: d8d3 |  04.794, D: 21, M: d8d3 |  00.001, D:  6, M: d8d3  | BM: Rd3
+(Speelman_EP_92)    |  05.960, D: 23, M: g7b2 |  00.001, D:  1, M: g7b2 |  00.001, D:  1, M: g7b2 |  00.001, D:  1, M: g7b2  | BM: Bxb2
+(Speelman_ATE_93)   |  00.029, D:  7, M: f5e5 |  00.001, D:  1, M: h4h5 |  00.289, D: 25, M: h4h5 |  15.447, D: 33, M: h4h5  | BM: Ke5 h5
+(Speelman_ATE_94)   |  00.032, D: 11, M: f7e7 |  00.001, D:  1, M: f7e7 |  00.001, D:  1, M: f7e7 |  00.001, D:  1, M: f7e7  | BM: Ke7
+(Speelman_ATE_95)   |  00.090, D: 15, M: f3g4 |  00.021, D: 12, M: f3g4 |  00.179, D: 17, M: f3g4 |  00.001, D:  1, M: f3g4  | BM: Kg4
+(Speelman_ATE_96)   |  00.032, D:  8, M: f5g5 |  00.008, D:  9, M: f5g5 |  00.220, D: 19, M: f5g5 |  00.007, D:  8, M: f5g5  | BM: Kg5
+(Speelman_ATE_97)   |       -, D:  -, M: e8d8 |  00.003, D:  5, M: e8f8 | 195.179, D: 36, M: e8f8 |  00.003, D:  7, M: e8f8  | BM: Kf8
+(Speelman_ATE_98)   |  00.032, D:  4, M: e1h1 |  00.001, D:  1, M: e1h1 |  00.032, D: 10, M: e1h1 |  00.001, D:  5, M: e1h1  | BM: Rh1
+(Speelman_ATE_99)   |  00.037, D:  6, M: e6f7 |  00.004, D:  8, M: e6f7 |  00.033, D: 10, M: e6f7 |  00.001, D:  1, M: e6f7  | BM: Kf7
+(Speelman_ATE_100)  |  00.912, D: 16, M: e7d6 |  00.090, D:  7, M: e7d6 |  00.575, D: 16, M: e7d6 |  00.037, D: 10, M: e7d6  | BM: Kd6+
+(Speelman_ATE_101)  |  00.033, D:  1, M: f5e6 |  00.003, D:  1, M: f5e6 |  00.001, D:  2, M: f5e6 |  00.001, D:  1, M: f5e6  | BM: Ke6
+(Speelman_ATE_102)  |  00.034, D:  4, M: c3b4 |  00.003, D:  1, M: c3b4 |  01.639, D: 18, M: c3b4 |  00.001, D:  1, M: c3b4  | BM: Kb4
+(Speelman_ATE_103)  |  00.036, D:  2, M: h8d8 |       -, D:  -, M: e7e6 |  13.699, D: 25, M: h8d8 |       -, D:  -, M: h8b8  | BM: Rd8
+(Speelman_ATE_104)  |  00.522, D: 14, M: b2c2 |  00.018, D:  7, M: b2c2 |  01.845, D: 19, M: b2c2 |  00.016, D: 11, M: b2c2  | BM: Kc2
+(Speelman_ATE_105)  |  02.665, D: 16, M: f4f5 |  00.003, D:  6, M: f4f5 |  00.006, D:  7, M: f4f5 |  00.004, D:  9, M: f4f5  | BM: Kf5
+(Speelman_ATE_106)  |  00.044, D:  8, M: b4c5 |  00.001, D:  1, M: b4c5 |  00.011, D:  7, M: b4c5 |  00.001, D:  1, M: b4c5  | BM: Kc5
+(Speelman_ATE_107)  |       -, D:  -, M: d3e3 |  01.717, D: 19, M: d3f3 |       -, D:  -, M: d3e3 |       -, D:  -, M: d3g3  | BM: Rf3
+(Speelman_ATE_108)  |  00.034, D:  1, M: d5e6 |  00.001, D:  1, M: d5e6 |  00.001, D:  1, M: d5e6 |  00.093, D: 15, M: d5e6  | BM: Ke6
+(Speelman_ATE_109)  |  00.033, D:  5, M: d4c5 |  00.001, D:  1, M: d4c5 |  00.001, D:  5, M: d4c5 |  00.004, D:  7, M: d4c5  | BM: Kc5
+(Speelman_ATE_110)  |  00.036, D:  6, M: h6g5 |  00.001, D:  3, M: h6g5 |  00.005, D:  8, M: h6g5 |  00.002, D:  7, M: h6g5  | BM: Kg5
+(Speelman_ATE_111)  |  10.325, D: 23, M: e4d5 |  00.002, D:  3, M: e4d5 |  03.775, D: 24, M: e4d5 |  00.177, D: 16, M: e4d5  | BM: Kd5
+(Speelman_ATE_112)  |       -, D:  -, M: e4e3 |  00.001, D:  1, M: e4e2 |  00.037, D: 11, M: e4e2 |       -, D:  -, M: e4e3  | BM: Re2
+(Speelman_ATE_113)  |  43.501, D: 27, M: e3e2 |  04.628, D: 23, M: e3e2 | 178.913, D: 28, M: e3e2 |  00.098, D: 15, M: e3e2  | BM: Ke2
+(Speelman_ATE_114)  |  00.209, D: 14, M: g3g4 |  00.056, D: 11, M: g3g4 |  00.049, D: 12, M: g3g4 |  00.002, D:  6, M: g3g4  | BM: g4
+(Speelman_ATE_115)  |  00.046, D: 10, M: h8f7 |  00.001, D:  1, M: h8f7 |  00.006, D:  8, M: h8f7 |  00.002, D:  6, M: h8f7  | BM: Nf7
+(Speelman_ATE_116)  |  00.032, D:  1, M: e5e6 |  00.002, D:  3, M: e5e6 |  00.001, D:  5, M: e5e6 |  00.597, D: 17, M: e5e6  | BM: e6
+(Speelman_ATE_117)  |  00.037, D:  9, M: b5b6 |  00.008, D:  8, M: b5b6 |  01.577, D: 25, M: b5b6 |  00.097, D: 14, M: b5b6  | BM: Kb6
+(Speelman_ATE_118)  |  05.120, D: 17, M: h3f4 |  01.216, D: 18, M: h3f4 |  22.843, D: 23, M: h3f4 |  00.004, D:  9, M: h3f4  | BM: Nf4
+(Speelman_ATE_119)  |  01.536, D: 17, M: b6b7 |  00.001, D:  1, M: b6b7 |  17.133, D: 25, M: b6b7 |  00.035, D: 12, M: b6b7  | BM: b7
+(Speelman_ATE_120)  |  00.159, D: 14, M: c7c8n|  00.001, D:  1, M: c7c8n|  00.118, D: 14, M: c7c8n|  00.008, D: 11, M: c7c8n | BM: c8=N
+(Speelman_ATE_121)  |  00.457, D: 18, M: f1e1 |  00.001, D:  2, M: f1e1 |  00.001, D:  2, M: f1e1 |  00.034, D: 15, M: f1e1  | BM: Rf4 Re1+
+(Speelman_ATE_122)  |  00.112, D:  9, M: b8b1 |  00.018, D:  9, M: b8b1 |  00.027, D:  9, M: b8b1 |  01.006, D: 20, M: b8b1  | BM: Rb1+
+(Speelman_ATE_123)  |       -, D:  -, M: d4e4 |       -, D:  -, M: g7g5 |       -, D:  -, M: g7g5 |  29.534, D: 58, M: h6h5  | BM: h5
+(Speelman_ATE_124)  |       -, D:  -, M: f6a6 |  02.570, D: 22, M: g8h8 |       -, D:  -, M: f6c6 |  00.563, D: 19, M: g8h8  | BM: Kh8
+(Speelman_ATE_125)  |       -, D:  -, M: g4h5 |       -, D:  -, M: b6b7 |  00.243, D: 13, M: c6c7 |  04.345, D: 26, M: c6c7  | BM: c7
+(Horowitz_126)      |  00.031, D:  3, M: d5d6 |  00.009, D: 10, M: d5d6 |  00.001, D:  2, M: d5d6 |  00.003, D:  9, M: d5d6  | BM: d6+
+(Horowitz_127)      |  00.028, D:  5, M: c6d5 |  29.315, D: 20, M: c6d5 |  00.215, D: 17, M: c6d5 |       -, D:  -, M: c6d6  | BM: Kd5
+(Horowitz_128)      |  00.930, D: 21, M: e6e5 |  29.563, D: 28, M: e6e5 |  04.817, D: 26, M: e6e5 |  00.016, D: 11, M: e6e5  | BM: Ke5
+(Horowitz_129)      |  00.390, D: 20, M: c3d4 |  13.647, D: 31, M: c3d4 |       -, D:  -, M: c3d2 |  00.073, D: 18, M: c3d4  | BM: Kd4
+(Horowitz_130)      |  00.037, D: 10, M: h8f7 |  00.001, D:  1, M: h8f7 |  00.001, D:  1, M: h8f7 |  00.002, D:  6, M: h8f7  | BM: Nf7
+(Horowitz_131)      |  00.031, D:  7, M: d1c2 |  00.001, D:  1, M: d1c2 |  00.001, D:  1, M: d1c2 |  00.001, D:  7, M: d1c2  | BM: Kc2
+(Horowitz_132)      |  00.028, D:  1, M: a4b5 |  00.001, D:  1, M: a4b4 |  00.003, D:  1, M: a4b5 |  00.001, D:  1, M: a4b5  | BM: Kb4 Kb5 Kb3
+(Horowitz_133)      |  00.031, D:  2, M: d4d5 |  00.001, D:  1, M: d4d5 |  00.001, D:  1, M: d4d5 |  00.045, D: 14, M: d4d5  | BM: Kd5
+(Horowitz_134)      |  04.949, D: 20, M: d2b3 |  00.001, D:  1, M: d2b3 |  01.346, D: 20, M: d2b3 |  00.010, D:  8, M: d2b3  | BM: Nb3
+(Horowitz_135)      |  02.153, D: 22, M: d5d4 |  00.013, D:  5, M: d5d4 |  00.580, D: 19, M: d5d4 |  00.030, D: 10, M: d5d4  | BM: Kd4
+(Horowitz_136)      |  00.087, D: 11, M: g3e1 |  00.046, D: 10, M: g3e1 |  00.001, D:  4, M: g3e1 |  00.002, D:  6, M: g3e1  | BM: Be1
+(Horowitz_137)      |  00.034, D:  8, M: f8e7 |  00.003, D:  1, M: f8e7 |  00.027, D: 12, M: f8e7 |  00.013, D:  9, M: f8e7  | BM: Ke7
+(Horowitz_138)      |  00.031, D:  9, M: d8h4 |  00.027, D:  7, M: d8h4 |       -, D:  -, M: d8g5 |  00.067, D: 16, M: d8h4  | BM: Bh4
+(Horowitz_139)      |       -, D:  -, M: c4c3 |       -, D:  -, M: a7a5 |  00.218, D: 15, M: d5d4 |       -, D:  -, M: a7a5  | BM: d4
+(Horowitz_140)      |  00.046, D: 12, M: b4b5 |  00.062, D: 11, M: a2a3 |  00.060, D: 15, M: b4b5 |  00.008, D:  9, M: a2a3  | BM: Kc6 a3 b5
+(Horowitz_141)      |  00.026, D:  1, M: d4e5 |  00.001, D:  3, M: d4e5 |  12.257, D: 31, M: d4e5 |  00.001, D:  6, M: d4e5  | BM: Ke5
+(Horowitz_142)      |  04.888, D: 24, M: f8e7 |  17.896, D: 29, M: f8e7 |  04.274, D: 24, M: f8e7 |  02.345, D: 45, M: f8e7  | BM: Ke7
+(Horowitz_143)      |  00.048, D:  7, M: h7h6 |  00.001, D:  1, M: h7h6 |  00.004, D:  6, M: h7h6 |  00.003, D:  7, M: h7h6  | BM: Qh6
+(Horowitz_144)      |       -, D:  -, M: h3h4 |       -, D:  -, M: d6e6 |       -, D:  -, M: g2g3 |       -, D:  -, M: g2g4  | BM: b4
+(Horowitz_145)      |       -, D:  -, M: a6a3 |       -, D:  -, M: a6a3 |  00.001, D:  4, M: a6a2 |       -, D:  -, M: a6a3  | BM: Ra2
+(Horowitz_146)      |  00.030, D:  8, M: f5f6 |  00.003, D:  1, M: f5f6 |  00.005, D:  7, M: f5f6 |  00.001, D:  1, M: f5f6  | BM: Kf6
+(Averbakh_147)      |       -, D:  -, M: f7f6 |  00.001, D:  1, M: d2e4 |  00.017, D: 10, M: d2e4 |  00.001, D:  1, M: d2e4  | BM: Ne4
+(Averbakh_148)      |  00.033, D:  7, M: a4b2 |  00.001, D:  1, M: a4b2 |  00.002, D:  7, M: a4b2 |  00.001, D:  5, M: a4b2  | BM: Nb2
+(Averbakh_149)      |  00.027, D:  2, M: a8d5 |  00.001, D:  1, M: a8d5 |  00.001, D:  3, M: a8d5 |  00.001, D:  5, M: a8d5  | BM: Bd5
+(Averbakh_150)      |  00.029, D:  2, M: e4c5 |  00.001, D:  1, M: e4c5 |  00.001, D:  1, M: e4c5 |  00.004, D: 10, M: e4c5  | BM: Nc5
+(Averbakh_151)      |  00.034, D:  4, M: e5f6 |       -, D:  -, M: e5d6 |       -, D:  -, M: e5d6 |       -, D:  -, M: e5d6  | BM: Bf6
+(Averbakh_152)      |       -, D:  -, M: d5d4 |       -, D:  -, M: f3g4 | 205.059, D: 36, M: g6g5 |       -, D:  -, M: d5d4  | BM: g5
+(Averbakh_153)      |  00.031, D:  6, M: c3d5 |  00.001, D:  1, M: c3d5 |  00.001, D:  1, M: c3d5 |  00.002, D:  5, M: c3d5  | BM: Nd5
+(Averbakh_154)      | 107.377, D: 29, M: g4g5 |  00.134, D: 15, M: g4g5 |  00.036, D: 12, M: g4g5 |  00.006, D: 11, M: g4g5  | BM: g5
+(Averbakh_155)      |       -, D:  -, M: d4d5 |       -, D:  -, M: d4d5 |       -, D:  -, M: d4d5 |       -, D:  -, M: d4d5  | BM: Ra4
+(Averbakh_156)      |       -, D:  -, M: d8b8 | 178.237, D: 29, M: d8d2 |       -, D:  -, M: d8b8 |       -, D:  -, M: d8b8  | BM: Rd2
+(Averbakh_157)      |  00.160, D: 11, M: f7e6 |  03.619, D: 21, M: f7e6 |  01.873, D: 19, M: f7e6 |  00.001, D:  3, M: f7e6  | BM: Ke6
+(Averbakh_158)      |  00.035, D:  4, M: f4b8 |  00.001, D:  2, M: f4b8 |  00.001, D:  2, M: f4b8 |  00.004, D:  7, M: f4b8  | BM: Qb8+
+(Averbakh_159)      |  00.037, D:  7, M: b4b5 |  00.095, D: 13, M: b4b5 |       -, D:  -, M: f3f4 |  00.012, D: 10, M: b4b5  | BM: b5
+(WDS exercises_160) |  00.033, D:  8, M: d7c8 |  00.001, D:  1, M: d7c8 |  00.001, D:  1, M: d7c8 |  00.007, D: 10, M: d7c8  | BM: Kc8
+(WDS exercises_161) |  00.038, D:  7, M: d7c7 |  00.001, D:  1, M: d7c7 |  00.001, D:  1, M: d7c7 |  00.001, D:  1, M: d7c7  | BM: Kc7
+(WDS exercises_162) |  00.033, D:  1, M: f7f8n|  00.002, D:  1, M: f7f8n|  00.001, D:  1, M: f7f8n|  00.001, D:  1, M: f7f8n | BM: f8=N+
+(WDS exercises_163) |  00.027, D:  2, M: f7f8r|  00.001, D:  1, M: f7f8r|  00.001, D:  2, M: f7f8r|  00.001, D:  5, M: f7f8r | BM: f8=R
+(WDS exercises_164) |  00.028, D:  2, M: f7f8b|  00.001, D:  1, M: f7f8b|  00.001, D:  2, M: f7f8b|  00.002, D:  5, M: f7f8b | BM: f8=B
+(WDS exercises_165) |  00.038, D:  4, M: e7e8b|  00.011, D:  7, M: e7e8b|  00.008, D:  7, M: e7e8b|  00.022, D: 29, M: e7e8b | BM: e8=B
+(WDS exercises_166) |       -, D:  -, M: g6g5 |       -, D:  -, M: g6g5 |  00.949, D: 19, M: b7b5 |       -, D:  -, M: g6g5  | BM: b5
+(WDS exercises_167) |  00.029, D:  1, M: g5g6 |  00.001, D:  1, M: g5g6 |  00.001, D:  1, M: g5g6 |  00.001, D:  1, M: g5g6  | BM: g6
+[Timer] Total runtime: : elapsed = 67:40.558

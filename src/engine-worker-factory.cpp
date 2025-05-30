@@ -48,27 +48,57 @@ EngineList EngineWorkerFactory::createUci(
     return engines;
 }
 
-EngineList EngineWorkerFactory::createEnginesByName(const std::string& name, std::size_t count) {
-    std::vector<std::unique_ptr<EngineWorker>> engines;
-    engines.reserve(count);
+std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngineByName(const std::string& name) {
     auto engineConfig = configManager_.getConfig(name);
     auto executablePath = engineConfig->getExecutablePath();
-	auto workingDirectory = engineConfig->getWorkingDirectory();
+    auto workingDirectory = engineConfig->getWorkingDirectory();
+    auto identifierStr = "#" + std::to_string(identifier_);
+    auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+    auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, engineConfig->getOptionValues());
+    identifier_++;
+    return std::move(worker);
+}
 
-    for (std::size_t i = 0; i < count; ++i) {
-        auto identifierStr = "#" + std::to_string(identifier_);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
-        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, engineConfig->getOptionValues());
-        engines.push_back(std::move(worker));
-        identifier_++;
-    }
+EngineList EngineWorkerFactory::createEnginesByName(const std::string& name, std::size_t count) {
+    EngineList engines;
     std::vector<std::future<void>> futures;
-    futures.reserve(count);
-    for (auto& worker : engines) {
-        futures.push_back(worker->getStartupFuture());
+    engines.reserve(count);
+    constexpr int RETRY = 3;
+
+    for (int retry = 0; retry < RETRY; retry++) {
+        futures.clear();
+        for (std::size_t i = 0; i < count; ++i) {
+            // We initialize all engines in the first loop
+            if (engines.size() <= i) {
+                engines.push_back(createEngineByName(name));
+                futures.push_back(engines.back()->getStartupFuture());
+            }
+            else if (engines[i]->isRunning() == false) {
+                // The retry loops recreate engines having exceptions in the startup process
+                engines[i] = createEngineByName(name);
+                futures.push_back(engines[i]->getStartupFuture());
+            }
+            identifier_++;
+        }
+        // Wait for all newly created engines.
+        for (auto& f : futures) {
+            try {
+                f.get();
+            }
+            catch (const std::exception& e) {
+                Logger::testLogger().log("Exception during engine startup: " + std::string(e.what()), TraceLevel::error);
+            }
+            catch (...) {
+                Logger::testLogger().log("Unknown exception during engine startup.", TraceLevel::error);
+            }
+        }
     }
-    for (auto& f : futures) {
-        f.get(); // blockiert bis Engine fertig
+
+    EngineList runningEngines;
+    for (auto& engine : engines) {
+        if (engine->isRunning()) {
+            runningEngines.push_back(std::move(engine));
+        }
     }
-    return engines;
+    return runningEngines;
 }

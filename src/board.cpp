@@ -370,3 +370,52 @@ bool Board::assertMove(Move move) const {
 	assert((move.getCapture() == operator[](move.getDestination())) || move.isCastleMove() || move.isEPMove());
 	return true;
 }
+
+
+std::string Board::GetSan(Move move) const
+{
+	std::string san = "";
+	auto piece = operator[](move.getDeparture());
+	auto capture = operator[](move.getDestination());
+	auto action = move.getActionAndMovingPiece();
+	switch (action)
+	{
+	case Move::WHITE_EP:
+		capture = BLACK_PAWN;
+		break;
+	case Move::BLACK_EP:
+		capture = WHITE_PAWN;
+		break;
+	case Move::WHITE_CASTLES_KING_SIDE:
+		assert(_board[G1] == WHITE_KING);
+		return "O-O";
+	case Move::BLACK_CASTLES_KING_SIDE:
+		assert(_board[G8] == BLACK_KING);
+		return "O-O";
+		break;
+	case Move::WHITE_CASTLES_QUEEN_SIDE:
+		assert(_board[C1] == WHITE_KING);
+		return "O-O-O";
+		break;
+	case Move::BLACK_CASTLES_QUEEN_SIDE:
+		assert(_board[C8] == BLACK_KING);
+		return "O-O-O";
+		break;
+	}
+	san = pieceToSan(piece);
+	// Add start position (column, row or both) if ambigous
+	// aRes = aRes + GetStartPosIfNeccessary(aBoard);
+	if (capture != NO_PIECE) {
+		if (getPieceType(piece) == PAWN) {
+			san += squareToFileChar(move.getDeparture());
+		}
+		san += "x";
+		san += squareToString(move.getDestination());
+		if (move.getPromotion() != NO_PIECE)
+		{
+			san += static_cast<std::string>("=") + pieceToSan(move.getPromotion());
+		}
+	}
+	return san;
+}
+

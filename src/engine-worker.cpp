@@ -40,7 +40,7 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
 }
 
 void EngineWorker::asyncStartup(const OptionValues& optionValues) {
-    running_ = true;
+    isRunning_ = true;
     workThread_ = std::thread(&EngineWorker::threadLoop, this);
     startupFuture_ = startupPromise_.get_future();
 
@@ -63,6 +63,7 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             startupPromise_.set_value(); 
         }
         catch (...) {
+            isRunning_ = false;
             startupPromise_.set_exception(std::current_exception()); 
         }
         });
@@ -81,7 +82,7 @@ void EngineWorker::stop() {
             // Nothing to do, if we cannot stop it, we can do nothing else
         }
         });
-    running_ = false;
+    isRunning_ = false;
     post(std::nullopt);  // Shutdown-Signal
     cv_.notify_all();
 
@@ -102,7 +103,7 @@ void EngineWorker::restart() {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::threadLoop() {
-    while (running_) {
+    while (isRunning_) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
         {
@@ -191,7 +192,7 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 }
 
 void EngineWorker::readLoop() {
-    while (running_) {
+    while (isRunning_) {
         // Blocking call
         try {
             EngineEvent event = adapter_->readEvent();
@@ -209,7 +210,7 @@ void EngineWorker::readLoop() {
             }
 			if (event.type == EngineEvent::Type::EngineDisconnected) {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread
-				running_ = false;
+				isRunning_ = false;
 			}
         }
 		catch (const std::exception& e) {

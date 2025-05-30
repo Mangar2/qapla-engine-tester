@@ -23,19 +23,28 @@
 #include "game-state.h"
 
 void EpdManager::printHeaderLine() const {
+    auto formatEngineName = [](const std::string& name) -> std::string {
+        constexpr int totalWidth = 25;
+        if (static_cast<int>(name.length()) > totalWidth) {
+            return "..." + name.substr(name.length() - (totalWidth - 3));
+        }
+        int padding = totalWidth - static_cast<int>(name.length());
+        int leftPad = padding / 2;
+        int rightPad = padding - leftPad;
+        return std::string(leftPad, ' ') + name + std::string(rightPad, ' ');
+        };
+
     std::ostringstream header;
     header << std::setw(20) << std::left << "TestId";
 
     for (const auto& result : results_) {
         if (result.engineName != engineName_ && result.testSetName == epdFileName_) {
-            header << "| " << std::setw(8) << std::right << result.engineName
-                << std::setw(13) << "";
+            header << "|" << formatEngineName(result.engineName);
         }
     }
 
-    header << "| " << std::setw(8) << std::right << engineName_
-        << std::setw(13) << ""
-        << "| BM:";
+    header << "|" << formatEngineName(engineName_) << "| BM:";
+
     std::cout << header.str() << std::endl;
 }
 
@@ -59,7 +68,7 @@ void EpdManager::printTestResultLine(const EpdTestCase& current) const {
 
     line << formatInlineResult(current);
 
-    line << " | BM: ";
+    line << "| BM: ";
     for (const auto& bm : current.bestMoves) {
         line << bm << " ";
     }

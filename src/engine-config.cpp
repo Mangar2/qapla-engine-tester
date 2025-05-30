@@ -79,34 +79,31 @@ void EngineConfig::finalizeSetOptions() {
     if (protocol == EngineProtocol::Unknown) protocol = EngineProtocol::Uci;
 }
 
-
-std::istream& operator>>(std::istream& in, EngineConfig& config) {
+void EngineConfig::readHeader(std::istream& in) {
     std::string line;
-    bool sectionRead = false;
-    std::unordered_set<std::string> seenKeys;
 
     while (std::getline(in, line)) {
-        if (line.empty()) continue;
-        if (line[0] == '#' || line[0] == ';') continue;
-
-        if (!sectionRead) {
-            if (line.front() == '[' && line.back() == ']') {
-                std::string name = line.substr(1, line.size() - 2);
-                if (name.empty()) throw std::runtime_error("Empty section name");
-                config.setName(name);
-                sectionRead = true;
-                continue;
-            }
-            else {
-                throw std::runtime_error("Expected section header");
-            }
-        }
-
+        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
         if (line.front() == '[' && line.back() == ']') {
-            // Neue Section gefunden -> Stream zurücksetzen
-            in.seekg(-(std::streamoff)line.length() - 1, std::ios_base::cur);
-            break;
+            std::string name = line.substr(1, line.size() - 2);
+            if (name.empty()) throw std::runtime_error("Empty section name");
+            setName(name);
+            return;
         }
+        break;
+    }
+
+    throw std::runtime_error("Expected section header");
+}
+
+std::istream& operator>>(std::istream& in, EngineConfig& config) {
+    config.readHeader(in);
+
+    std::string line;
+    std::unordered_set<std::string> seenKeys;
+
+    while (in && in.peek() != '[' && std::getline(in, line)) {
+        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
 
         auto pos = line.find('=');
         if (pos == std::string::npos) continue;
@@ -116,8 +113,8 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
 
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key: " + key);
-
-        if (key == "name") config.setName(value);
+        if (key == "name")
+            throw std::runtime_error("name is set in the header and may not be set again");
         else if (key == "executablePath") config.setExecutablePath(value);
         else if (key == "workingDirectory") config.setWorkingDirectory(value);
         else if (key == "protocol") {
@@ -125,11 +122,11 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
             else if (value == "xboard") config.protocol = EngineProtocol::XBoard;
             else throw std::runtime_error("Unknown protocol: " + value);
         }
-        else config.setOptionValue(key, value);
+        else {
+            config.setOptionValue(key, value);
+        }
     }
-    
-    if (!sectionRead)
-        throw std::runtime_error("Missing section header");
+
     config.finalizeSetOptions();
     return in;
 }

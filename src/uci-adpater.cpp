@@ -46,14 +46,14 @@ void UciAdapter::restartEngine() {
 }
 
 void UciAdapter::terminateEngine() {
-	if (state_ == EngineState::Terminating) {
-		return; // Already terminating
+	if (terminating_) {
+		return; 
 	}
 
     try {
         writeCommand("quit");
 		// Once Terminating is set, writing to the engine is not allowed anymore
-        state_ = EngineState::Terminating;
+        terminating_ = true;
     }
     catch (...) {
         // Engine might already be gone; nothing to do
@@ -380,7 +380,6 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
     if (line == "uciok") {
         logFromEngine(line, TraceLevel::handshake);
 		inUciHandshake_ = false;
-        state_ = EngineState::Initialized;
         return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
     }
 
@@ -420,7 +419,7 @@ EngineEvent UciAdapter::readEvent() {
     }
 
  	if (engineLine.error == EngineLine::Error::EngineTerminated) {
-		if (state_ == EngineState::Terminating) {
+		if (terminating_) {
 			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
 		}
 		return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);

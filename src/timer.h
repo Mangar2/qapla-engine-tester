@@ -41,7 +41,12 @@ public:
 
     void printElapsed(const char* label) {
 		int64_t elapsed = elapsedMs();
-        std::cout << "[Timer] " << label << ": elapsed = " << elapsed << " ms" << std::endl;
+        std::cout << "[Timer] " << label << ": elapsed = " 
+			<< elapsed / 1000 / 60 << ":" // minutes
+			<< std::setw(2) << std::setfill('0')
+			<< (elapsed / 1000) % 60 << "." // seconds
+			<< std::setw(3) << std::setfill('0')
+            << elapsed % 1000 << std::endl;
     }
 
 private:

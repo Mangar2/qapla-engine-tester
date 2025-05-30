@@ -34,12 +34,6 @@
 #include "logger.h"
 #include "engine-option.h"
 
-enum class EngineState {
-    Uninitialized,
-    Initialized,     // After uciok
-    Terminating      // Quitting
-};
-
 using OptionValues = std::unordered_map<std::string, std::string>;
 
  /**
@@ -138,7 +132,7 @@ public:
 	 * @return true if the engine is initialized and running.
 	 */
     bool isRunning() {
-		return (state_ == EngineState::Initialized) && process_.isRunning();
+		return !terminating_ && process_.isRunning();
     }
 
     /**
@@ -218,7 +212,7 @@ protected:
 	}
     EngineOptions supportedOptions_;
     mutable std::function<void(std::string_view, bool, TraceLevel)> logger_;
-    std::atomic<EngineState> state_ = EngineState::Uninitialized;
+    std::atomic<bool> terminating_ = false;
     EngineProcess process_;
     std::mutex commandMutex_;
     

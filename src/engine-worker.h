@@ -163,7 +163,7 @@ public:
 	 * @return true if the engine is initialized and running.
 	 */
 	bool isRunning() {
-		return adapter_->isRunning();
+		return isRunning_;
 	}
 
 	/**
@@ -256,7 +256,7 @@ private:
 	std::mutex mutex_;
 	std::condition_variable cv_;
 	std::thread workThread_;
-	std::atomic<bool> running_ = false;
+	std::atomic<bool> isRunning_ = false;
 	std::unique_ptr<EngineAdapter> adapter_;
 
 	// GameManager communication

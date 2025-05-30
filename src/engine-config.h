@@ -133,7 +133,12 @@ public:
 
 private:
 
-    
+    /**
+     * @brief Reads the section header line from the input stream and sets the engine name.
+     * @param in The input stream positioned at a section header line.
+     * @throws std::runtime_error If the line is not a valid section header.
+     */
+    void readHeader(std::istream& in);
     void finalizeSetOptions();
 
     /**

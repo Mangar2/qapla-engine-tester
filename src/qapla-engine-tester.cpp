@@ -29,6 +29,7 @@
 #include "engine-worker-factory.h"
 #include "cli-settings-manager.h"
 #include "epd-manager.h"
+#include "timer.h"
 
 bool runEpd() {
     auto epdList = CliSettings::Manager::getGroupInstances("epd");
@@ -89,15 +90,17 @@ bool runTest() {
 
 int main(int argc, char** argv) {
     bool isEngineTest = false;
+    Timer timer;
+    timer.start();
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::commands);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.2.0 (c) by Volker Boehm\n");
 
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettings::ValueType::Int);
-		CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "engines.ini",
+		CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
 			CliSettings::ValueType::PathExists);
-		CliSettings::Manager::registerSetting("enginelog", "Enable engine logging (default: true)", false, false,
+		CliSettings::Manager::registerSetting("enginelog", "Enable engine logging", false, false,
 			CliSettings::ValueType::Bool);
 	    CliSettings::Manager::registerSetting("enginepath", "Path to an engine executable. Use the --engine parameter for more control on engines", false, "",
             CliSettings::ValueType::PathExists);
@@ -139,7 +142,6 @@ int main(int argc, char** argv) {
 		if (CliSettings::Manager::get<bool>("enginelog")) {
             Logger::engineLogger().setLogFile("qapla-engine-trace");
 		}
-		EngineWorkerFactory::getConfigManager().saveToFile("engines.ini");
         runEpd();
         runTest();
 			
@@ -151,6 +153,7 @@ int main(int argc, char** argv) {
 		Logger::testLogger().log("Unknown exception during engine test.", TraceLevel::error);
 	}
     
+	timer.printElapsed("Total runtime: ");
     if (argc == 1) {
         std::cout << "Press Enter to quit...";
         std::cin.get();

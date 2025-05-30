@@ -26,7 +26,7 @@ EngineAdapter::EngineAdapter(std::filesystem::path enginePath,
 }
 
 int64_t EngineAdapter::writeCommand(const std::string& command) {
-    if (state_ == EngineState::Terminating) {
+    if (terminating_) {
 		// The engine is probably not running anymore, so we cannot write commands.
         return 0; 
     }

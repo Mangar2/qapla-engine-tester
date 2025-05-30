@@ -62,6 +62,7 @@ public:
     static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
 
 private:
+    static std::unique_ptr<EngineWorker> createEngineByName(const std::string& name);
     static inline uint32_t identifier_ = 0;
 	static inline EngineConfigManager configManager_; 
 };

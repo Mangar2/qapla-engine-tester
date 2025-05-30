@@ -92,7 +92,7 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
 }
 
 void PlayerContext::checkTime(const EngineEvent& event) {
-    const int64_t GRACE_MS = 5;
+    const int64_t GRACE_MS = 100;
     const int64_t GRACE_NODES = 1000;
 
     
@@ -114,7 +114,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (goLimits_.movetimeMs.has_value()) {
         Checklist::logCheck("No movetime overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
-            "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms");
+            "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms", TraceLevel::warning);
         if (numLimits == 1) {
             Checklist::logCheck("No movetime underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +

@@ -341,8 +341,8 @@ namespace QaplaBasics {
 		}
 
 		/**
-	 * Sets the capture square for an en passant move
-	 */
+		 * Sets the capture square for an en passant move
+		 */
 		inline void setEP(Square destination) { _boardState.setEP(destination); }
 
 		/**
@@ -387,6 +387,7 @@ namespace QaplaBasics {
 			return _boardState.pawnHash;
 		}
 
+		std::string GetSan(Move move) const;
 
 	protected:
 		std::array<Square, COLOR_COUNT> kingSquares;
