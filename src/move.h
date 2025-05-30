@@ -218,7 +218,44 @@ public:
 		}
 		return result;
 	}
+	/*
+	std::string GetSAN(const StdBoard& aBoard) const
+	{
+		std::string san = "";
+		Piece    piece = aBoard.Get(GetFromCol(), GetFromRow());
+		Piece    capt = aBoard.Get(GetToCol(), GetToRow());
 
+		if (IsCastle())
+		{
+			if (GetToCol() == cG) san = "O-O";
+			else if (GetToCol() == cC) san = "O-O-O";
+			else assert(false); // illegal move state
+		}
+		else
+		{
+			// First piece char
+			san = pieceToSAN(piece);
+			// Add start position (column, row or both) if ambigous
+			aRes = aRes + GetStartPosIfNeccessary(aBoard);
+			// check for ep as it is notated as capture
+			if (!IsEmptyPiece(aCapt) ||
+				(IsPawn(aPiece) && (GetFromCol() != GetToCol())))
+			{
+				// Add capture information "x" and for pawns the start column
+				if (IsPawn(aPiece)) aRes = aRes + ColToChar(GetFromCol());
+				aRes = aRes + "x";
+			}
+			// Add target position
+			aRes = aRes + ColToChar(GetToCol()) + RowToChar(GetToRow());
+			// Add promote char
+			if (IsPromote())
+			{
+				aRes = aRes + "=" + PieceToSANString(GetPromote());
+			}
+		}
+		return aRes;
+	}
+	*/
 	void print() const {
 		std::string moveString = getLAN();
 		std::cout << moveString;

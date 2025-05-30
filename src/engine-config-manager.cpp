@@ -55,7 +55,6 @@ void EngineConfigManager::saveToFile(const std::string& filePath) const {
     if (!file.is_open()) throw std::runtime_error("Unable to write file");
 
     for (const auto& config : configs) {
-        file << "[" << config.getName() << "]\n";
         file << config;
         file << "\n";
     }

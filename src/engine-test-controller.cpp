@@ -27,8 +27,7 @@
 #include "cli-settings-manager.h"
 #include "epd-test-manager.h"
 
-void EngineTestController::createGameManager(std::filesystem::path enginePath, bool singleEngine) {
-	enginePath_ = enginePath;
+void EngineTestController::createGameManager(bool singleEngine) {
     gameManager_ = std::make_unique<GameManager>();
     startEngine();
 }
@@ -36,8 +35,7 @@ void EngineTestController::createGameManager(std::filesystem::path enginePath, b
 void EngineTestController::startEngine() {
     bool success = false;
     try {
-        EngineWorkerFactory factory;
-        auto list = factory.createUci(enginePath_, std::nullopt, 1);
+        auto list = EngineWorkerFactory::createEnginesByName(engineName_, 1);
         gameManager_->setUniqueEngine(std::move(list[0]));
         success = gameManager_->getEngine()->requestReady();
     }
@@ -50,7 +48,7 @@ void EngineTestController::startEngine() {
 }
 
 EngineList EngineTestController::startEngines(uint32_t count) {
-    EngineList list = EngineWorkerFactory::createUci(enginePath_, std::nullopt, count);
+    EngineList list = EngineWorkerFactory::createEnginesByName(engineName_, count);
 
     std::vector<std::future<bool>> results;
     for (auto& engine : list) {
@@ -77,11 +75,14 @@ std::string bytesToMB(int64_t bytes) {
 	return oss.str();
 }
 
-void EngineTestController::runAllTests(std::filesystem::path enginePath) {
+void EngineTestController::runAllTests(std::string engineName, int numGames, int testLevel) {
     try {
-        createGameManager(enginePath, true);
-        runStartStopTest(enginePath);
-        runMultipleStartStopTest(enginePath, 20);
+        engineName_ = engineName;
+		numGames_ = numGames;
+		testLevel_ = testLevel;
+        createGameManager(true);
+        runStartStopTest();
+        runMultipleStartStopTest(20);
         runHashTableMemoryTest();
         runEngineOptionTests();
         runAnalyzeTest();
@@ -137,12 +138,11 @@ void EngineTestController::runTest(
     }
 }
 
-void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
-    runTest("Engine starts and stops fast and without problems", [enginePath, this]() -> std::pair<bool, std::string> {
-        EngineWorkerFactory factory;
+void EngineTestController::runStartStopTest() {
+    runTest("Engine starts and stops fast and without problems", [this]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
-        auto list = factory.createUci(enginePath, std::nullopt, 1);
+        auto list = EngineWorkerFactory::createEnginesByName(engineName_, 1);
         auto startTime = timer.elapsedMs();
         auto engine = list[0].get();
         int64_t memoryInBytes = engine->getEngineMemoryUsage();
@@ -170,12 +170,12 @@ void EngineTestController::runStartStopTest(std::filesystem::path enginePath) {
     }
 }
 
-void EngineTestController::runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines) {
-    runTest("Engine starts and stops fast and without problems", [enginePath, numEngines]() -> std::pair<bool, std::string> {
-        EngineWorkerFactory factory;
+void EngineTestController::runMultipleStartStopTest(int numEngines) {
+    if (testLevel_ == 1) return;
+    runTest("Engine starts and stops fast and without problems", [this, numEngines]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
-        EngineList engines = factory.createUci(enginePath, std::nullopt, numEngines);
+        EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, numEngines);
         auto startTime = timer.elapsedMs();
 
         std::vector<std::future<void>> stopFutures;
@@ -335,6 +335,7 @@ std::pair<bool, std::string> EngineTestController::setOption(const std::string& 
 
 
 void EngineTestController::runEngineOptionTests() {
+    if (testLevel_ == 1) return;
     int errors = 0;
 
     if (!gameManager_) {
@@ -441,19 +442,21 @@ void EngineTestController::runAnalyzeTest() {
         return { true, "" };
         });
 
-    runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
-        gameManager_->moveNow();
-        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!finished) {
-            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!extended) {
-                startEngine();
-                return { false, "Timeout after immediate stop" };
+    if (testLevel_ != 1) {
+        runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
+            gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
+            gameManager_->moveNow();
+            bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+            if (!finished) {
+                bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+                if (!extended) {
+                    startEngine();
+                    return { false, "Timeout after immediate stop" };
+                }
             }
-        }
-        return { true, "" };
-        });
+            return { true, "" };
+            });
+    }
 
     runTest("Infinite compute move must not exit on its own", [this]() -> std::pair<bool, std::string> {
         Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::commands);
@@ -465,7 +468,7 @@ void EngineTestController::runAnalyzeTest() {
         gameManager_->moveNow();
         bool stopped = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
         if (!stopped) {
-            createGameManager(enginePath_, true);
+            createGameManager(true);
             return { false, "Timeout after stop command in infinite mode" };
         }
         gameManager_->getFinishedFuture().wait();
@@ -513,31 +516,24 @@ void EngineTestController::runComputeGameTest() {
 }
 
 void EngineTestController::runMultipleGamesTest() {
-	if (CliSettingsManager::get<int>("testlevel") != 0) {
-		return;
-	}
-    int totalGames = CliSettingsManager::get<int>("games-number");
-    int parallelGames = CliSettingsManager::get<int>("concurrency");
+	if (testLevel_ != 0) return;
+    int parallelGames = CliSettings::Manager::get<int>("concurrency");
 
-    Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(totalGames) + 
+    Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(numGames_) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");
 	Logger::testLogger().log("You can alter the number of games played with --games-number option and the number of parallel games with --max-parallel-engines option. ");
     Logger::testLogger().log("White has always the longer time control so we expect white to win most games. ");
     Logger::testLogger().log("Please wait a moment before first game results occur.");
 
-    EngineWorkerFactory factory;
-    EngineList engines = factory.createUci(enginePath_, std::nullopt, parallelGames * 2);
-
-    TestTournament tournament(totalGames);
+    EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, parallelGames * 2);
+    TestTournament tournament(numGames_);
 
     std::vector<std::unique_ptr<GameManager>> managers;
     try {
         for (int i = 0; i < parallelGames; ++i) {
             auto manager = std::make_unique<GameManager>();
             manager->setEngines(std::move(engines[i * 2]), std::move(engines[i * 2 + 1]));
-
             manager->computeTasks(&tournament);
-
             managers.push_back(std::move(manager));
         }
 

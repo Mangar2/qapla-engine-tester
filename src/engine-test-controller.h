@@ -32,8 +32,11 @@ class EngineTestController {
 public:
     /**
      * @brief Runs the full suite of tests in a controlled sequence.
+	 * @param engineName The name of the engine to test.
+	 * @param numGames The number of games to run in the compute game test.
+	 * @param level The test leve (0 = all, 1=nice, 2=destructive)
      */
-    void runAllTests(std::filesystem::path enginePath);
+    void runAllTests(std::string engineName, int numGames, int level);
 
 private:
     bool startStopSucceeded = false;
@@ -45,9 +48,9 @@ private:
      */
     void runTest(const std::string& testName, const std::function<std::pair<bool, std::string>()>& testCallback);
 
-    void runStartStopTest(std::filesystem::path enginePath);
+    void runStartStopTest();
 
-	void runMultipleStartStopTest(std::filesystem::path enginePath, int numEngines);
+	void runMultipleStartStopTest(int numEngines);
 
     void runPlaceholderTest();
 
@@ -57,9 +60,9 @@ private:
       * Initializes a GameManager capable of controlling the engine via UCI protocol.
       * Must be called before executing any test that requires engine interaction.
       *
-      * @param enginePath Path to the engine binary.
+	  * @param bool singleEngine if true, only one engine instance is created, otherwise two instances are created
       */
-    void createGameManager(std::filesystem::path enginePath, bool singleEngine = true);
+    void createGameManager(bool singleEngine = true);
 
 	/**
 	 * @brief Starts an engine instance and sets it as unique engine to the GameManager
@@ -126,6 +129,8 @@ private:
     std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
     std::unique_ptr<GameManager> gameManager_;
-    std::filesystem::path enginePath_;
+    std::string engineName_;
+    int numGames_ = 20;
+	int testLevel_ = 0; 
 
 };

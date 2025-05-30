@@ -22,6 +22,70 @@
 #include "game-manager.h"
 #include "game-state.h"
 
+void EpdManager::printHeaderLine() const {
+    std::ostringstream header;
+    header << std::setw(20) << std::left << "TestId";
+
+    for (const auto& result : results_) {
+        if (result.engineName != engineName_ && result.testSetName == epdFileName_) {
+            header << "| " << std::setw(8) << std::right << result.engineName
+                << std::setw(13) << "";
+        }
+    }
+
+    header << "| " << std::setw(8) << std::right << engineName_
+        << std::setw(13) << ""
+        << "| BM:";
+    std::cout << header.str() << std::endl;
+}
+
+void EpdManager::printTestResultLine(const EpdTestCase& current) const {
+    std::ostringstream line;
+    line << std::setw(20) << std::left << current.id;
+
+    for (const auto& result : results_) {
+        if (result.engineName != engineName_ && result.testSetName == epdFileName_) {
+            const auto it = std::find_if(result.results.begin(), result.results.end(), [&](const EpdTestCase& t) {
+                return t.id == current.id;
+                });
+            if (it != result.results.end()) {
+                line << formatInlineResult(*it);
+            }
+            else {
+                line << "|" << std::setw(23) << "-";
+            }
+        }
+    }
+
+    line << formatInlineResult(current);
+
+    line << " | BM: ";
+    for (const auto& bm : current.bestMoves) {
+        line << bm << " ";
+    }
+
+    std::cout << line.str() << std::endl;
+}
+
+std::string EpdManager::formatTime(uint64_t ms) const {
+    if (ms == 0) return "-";
+    uint64_t seconds = (ms / 1000);
+    uint64_t milliseconds = ms % 1000;
+    std::ostringstream timeStream;
+    timeStream << std::setfill('0')
+        << std::setw(2) << seconds << "."
+        << std::setw(3) << milliseconds;
+    return timeStream.str();
+}
+
+std::string EpdManager::formatInlineResult(const EpdTestCase& test) const {
+    std::ostringstream out;
+    out << "|" << std::setw(8) << std::right << (test.correct ? formatTime(test.correctAtTimeInMs) : "-")
+        << ", D:" << std::setw(3) << std::right << (test.correct ? std::to_string(test.correctAtDepth) : "-")
+        << ", M: " << std::setw(5) << std::left << test.playedMove;
+    return out.str();
+}
+
 inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
     auto formatTime = [](uint64_t ms) -> std::string {
         if (ms == 0) return "-";
@@ -48,12 +112,14 @@ inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
     return os;
 }
 
-void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies) {
+void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies, bool clearTests) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
     }
 
-    tests_.clear();
+    if (clearTests) {
+        tests_.clear();
+    }
     reader_->reset();
 
     while (true) {
@@ -71,6 +137,8 @@ void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPli
 void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engineName,
     uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies)
 {
+	engineName_ = engineName;
+	epdFileName_ = filepath;
     bool sameFile = reader_ && reader_->getFilePath() == filepath;
     if (!sameFile) {
         reader_ = std::make_unique<EpdReader>(filepath);
@@ -80,7 +148,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engi
     currentIndex_ = 0;
     oldestIndexInUse_ = 0;
     tc.setMoveTime(maxTimeInS * 1000);
-
+    printHeaderLine();
     auto engineList = EngineWorkerFactory::createEnginesByName(engineName, concurrency);
 
     size_t managerCount = managers_.size();
@@ -109,6 +177,11 @@ bool EpdManager::wait() {
 	for (auto& manager : managers_) {
 		manager->getFinishedFuture().wait();
 	}
+    results_.push_back({
+        engineName_,
+        epdFileName_,
+        tests_
+        });
 	return true;
 }
 
@@ -228,7 +301,7 @@ void EpdManager::setGameRecord(const std::string& whiteId, const std::string& bl
         // Close gap, if oldest
         if (i == oldestIndexInUse_) {
             while (oldestIndexInUse_ < tests_.size() && !tests_[oldestIndexInUse_].playedMove.empty()) {
-                std::cout << tests_[oldestIndexInUse_] << std::endl;
+				printTestResultLine(tests_[oldestIndexInUse_]);
                 ++oldestIndexInUse_;
             }
         }

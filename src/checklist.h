@@ -88,6 +88,15 @@ public:
 		author_ = author;
 	}
 
+	/**
+      * @brief Clears all stored statistics.
+      */
+	static void clear() {
+		std::lock_guard lock(statsMutex_);
+		stats_.clear();
+        name_.clear();
+		author_.clear();
+	}
 
 private:
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;

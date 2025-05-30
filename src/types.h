@@ -322,6 +322,24 @@ namespace QaplaBasics {
 		default:return '.';
 		}
 	}
+	constexpr const char* pieceToSAN(Piece piece) {
+		switch (piece)
+		{
+		case BLACK_PAWN: return "";
+		case BLACK_KNIGHT: return "N";
+		case BLACK_BISHOP: return "B";
+		case BLACK_ROOK: return "R";
+		case BLACK_QUEEN: return "Q";
+		case BLACK_KING: return "K";
+		case WHITE_PAWN: return "";
+		case WHITE_KNIGHT: return "N";
+		case WHITE_BISHOP: return "B";
+		case WHITE_ROOK: return "R";
+		case WHITE_QUEEN: return "Q";
+		case WHITE_KING: return "K";
+		default:return "";
+		}
+	}
 
 	/**
 	 * Computes the piece number from a piece symbol

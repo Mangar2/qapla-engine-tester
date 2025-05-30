@@ -52,6 +52,14 @@ struct EpdTestCase {
 };
 
 std::ostream& operator<<(std::ostream& os, const EpdTestCase& test);
+
+struct TestResult {
+    std::string engineName;
+	std::string testSetName;
+	std::vector<EpdTestCase> results;
+};
+
+using TestResults = std::vector<TestResult>;
  
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
@@ -135,16 +143,25 @@ private:
 	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
 	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
+     * @param clearTests true, if the tests shall be fully clear (old results gets forgotten)
      */
-    void initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies);
+    void initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies, bool clearTests = true);
     /**
      * @brief Retrieves and transforms the next EPD entry into a test case.
      * @return Optional EpdTestCase or std::nullopt if no more entries are available.
      */
     std::optional<EpdTestCase> nextTestCaseFromReader();
+    void printHeaderLine() const;
+    std::string formatTime(uint64_t ms) const;
+    std::string formatInlineResult(const EpdTestCase& test) const;
+    void printTestResultLine(const EpdTestCase& current) const;
+
     std::unique_ptr<EpdReader> reader_;
     std::vector<std::unique_ptr<GameManager>> managers_;
 	std::vector<EpdTestCase> tests_; 
+	TestResults results_;
+    std::string engineName_;
+    std::string epdFileName_;
     std::mutex taskMutex_;
     int oldestIndexInUse_ = 0;
     int currentIndex_ = 0;

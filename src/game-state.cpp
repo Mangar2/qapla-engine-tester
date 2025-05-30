@@ -50,12 +50,15 @@ void GameState::setFen(bool startPos, const std::string fen) {
 	hashList_.push_back(position_.computeBoardHash());
 	gameEndCause_ = GameEndCause::Ongoing;
 	gameResult_ = GameResult::Unterminated;
+	moveListOutdated = true; 
 }
 
 std::tuple<GameEndCause, GameResult> GameState::computeGameResult() {
-	QaplaBasics::MoveList moveList;
-	position_.genMovesOfMovingColor(moveList);
-	if (moveList.totalMoveAmount == 0) {
+	if (moveListOutdated) {
+		position_.genMovesOfMovingColor(legalMoves_);
+		moveListOutdated = false;
+	}
+	if (legalMoves_.totalMoveAmount == 0) {
 		if (position_.isInCheck()) {
 			if (position_.isWhiteToMove()) {
 				return { GameEndCause::Checkmate, GameResult::BlackWins };
@@ -111,6 +114,7 @@ bool GameState::isThreefoldRepetition() const {
 };
 
 void GameState::doMove(const QaplaBasics::Move& move) {
+	moveListOutdated = true; 
 	if (move.isEmpty()) return;
 	boardState_.push_back(position_.getBoardState());
 	position_.doMove(move);
@@ -119,6 +123,7 @@ void GameState::doMove(const QaplaBasics::Move& move) {
 }
 
 void GameState::undoMove() {
+	moveListOutdated = true;
 	if (moveList_.empty()) return;
 	position_.undoMove(moveList_.back(), boardState_.back());
 	position_.computeAttackMasksForBothColors();

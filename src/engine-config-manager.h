@@ -34,6 +34,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "engine-config.h"
+#include "cli-settings-manager.h"
 
 class EngineConfigManager {
 public:
@@ -85,8 +86,9 @@ public:
      * @param configs A vector of parameter maps.
      * @throws std::runtime_error if any EngineConfig is invalid.
      */
-    void addOrReplaceConfigurations(const std::vector<ValueMap>& configs) {
-        for (const auto& map : configs) {
+    void addOrReplaceConfigurations(const CliSettings::GroupInstances& instances) {
+        for (const auto& instance : instances) {
+			CliSettings::ValueMap map = instance.getValues();
             EngineConfig config = EngineConfig::createFromValueMap(map);
             addOrReplaceConfig(config);
         }
