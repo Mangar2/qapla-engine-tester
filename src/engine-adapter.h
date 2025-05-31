@@ -44,6 +44,7 @@ class EngineAdapter {
 public:
     EngineAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
+        const std::string& engineConfigName,
         const std::string& identifier);
     virtual ~EngineAdapter() = default;
 
@@ -123,7 +124,7 @@ public:
      * @brief Assigns a logger function to use for engine communication output.
      *        Typically called by the EngineWorker to inject context.
      */
-    void setLogger(std::function<void(std::string_view, bool, TraceLevel)> logger) {
+    void setProtocolLogger(std::function<void(std::string_view, bool, TraceLevel)> logger) {
         logger_ = std::move(logger);
     }
 
@@ -182,6 +183,13 @@ public:
 	}
 
 	/**
+	 * @brief Returns the name of the engine configuration used to create this adapter.
+	 */
+	std::string getEngineConfigName() const {
+		return engineConfigName_;
+	}
+
+	/**
 	 * @brief Returns the author of the engine.
 	 */
 	std::string getEngineAuthor() const {
@@ -220,6 +228,7 @@ protected:
     std::string engineAuthor_;
     std::string welcomeMessage_;
 
+    std::string engineConfigName_; // Name of the engine configuration used to create this adapter.
     std::string identifier_;
 
 	bool ponderMode_ = false;

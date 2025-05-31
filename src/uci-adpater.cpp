@@ -32,8 +32,9 @@
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory,
+    const std::string engineConfigName,
     const std::string& identifier)
-	: EngineAdapter(enginePath, workingDirectory, identifier)
+	: EngineAdapter(enginePath, workingDirectory, engineConfigName, identifier)
 {
 }
 

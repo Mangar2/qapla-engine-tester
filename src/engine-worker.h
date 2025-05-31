@@ -159,18 +159,18 @@ public:
 	}
 
 	/**
-	 * @brief Checks if the engine is currently running.
-	 * @return true if the engine is initialized and running.
+	 * @brief Checks if the worker is in a failure state.
+	 * @return true if the worker encountered a failure, e.g., during startup or runtime.
 	 */
-	bool isRunning() {
-		return isRunning_;
+	bool failure() const {
+		return workerState_ == WorkerState::failure;
 	}
 
 	/**
-	 * @brief returns the engine's executable path.
+	 * @brief get the name of the engine configuration used to create this adapter.
 	 */
-	std::string getExecutablePath() const {
-		return adapter_->getExecutablePath();
+	std::string getEngineConfigName() const {
+		return adapter_->getEngineConfigName();
 	}
 
 	/**
@@ -196,6 +196,15 @@ public:
 
 
 private:
+
+	enum class WorkerState {
+		notStarted,
+		starting,
+		running,
+		failure,
+		stopped,
+		terminated
+	};
 
 	/*
 	 * @brief processs the startup of the engine asynchronously.
@@ -229,15 +238,17 @@ private:
 	 *
 	 */
 	void readLoop();
+	void writeLoop();
 	
 	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
 	static constexpr std::chrono::seconds ReadyTimeoutOption{ 10 };
 
-	void threadLoop();
-
-	std::queue<std::optional<std::function<void(EngineAdapter&)>>> taskQueue_;
+	std::queue<std::optional<std::function<void(EngineAdapter&)>>> writeQueue_;
 	std::string identifier_;
+
+	std::atomic<WorkerState> workerState_ = WorkerState::notStarted;
+	std::atomic<bool> disconnected_ = false;
 
 	// Startup synchronization
 	std::promise<void> startupPromise_;
@@ -253,13 +264,11 @@ private:
 	std::thread readThread_;
 
 	// Work thread
-	std::mutex mutex_;
+	std::thread writeThread_;
+		std::mutex mutex_;
 	std::condition_variable cv_;
-	std::thread workThread_;
-	std::atomic<bool> isRunning_ = false;
 	std::unique_ptr<EngineAdapter> adapter_;
 
 	// GameManager communication
-private:
 	std::function<void(EngineEvent&&)> eventSink_;
 };

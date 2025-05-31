@@ -33,19 +33,6 @@ using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
   */
 class EngineWorkerFactory {
 public:
-    /**
-     * @brief Creates one or more engine workers for the given engine executable.
-     * Each worker runs its own adapter instance in a dedicated thread.
-     *
-     * @param executablePath Path to the engine binary.
-     * @param workingDirectory Optional working directory for the engine.
-     * @param count Number of engine workers to create.
-     * @return A vector of fully initialized EngineWorker instances.
-     */
-    static EngineList
-        createUci(const std::filesystem::path& executablePath,
-            std::optional<std::filesystem::path> workingDirectory = std::nullopt,
-            std::size_t count = 1);
 
 	static void setConfigManager(const EngineConfigManager& configManager) {
 		configManager_ = configManager;
@@ -59,6 +46,12 @@ public:
 		return configManager_;
 	}
 
+	/**
+	 * @brief Creates a list of EngineWorker instances based on the engine name.
+	 * @param name The name of the engine to create workers for.
+	 * @param count The number of workers to create. Defaults to 1.
+	 * @return A vector of unique pointers to EngineWorker instances.
+	 */
     static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
 
 private:

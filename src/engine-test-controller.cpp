@@ -321,12 +321,12 @@ std::pair<bool, std::string> EngineTestController::setOption(const std::string& 
         return { true, "" };
     }
 
-    bool alive = engine->isRunning();
-    if (alive && !engine->requestReady(std::chrono::seconds{ 10 })) {
-        alive = false;
+    bool failure = engine->failure();
+    if (!failure && !engine->requestReady(std::chrono::seconds{ 10 })) {
+        failure = true;
     }
 
-    if (!alive) {
+    if (failure) {
         return { false, "Engine crashed or became unresponsive after setting option '" + name + "' to '" + value + "'" };
     }
 

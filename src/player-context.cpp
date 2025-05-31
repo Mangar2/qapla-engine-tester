@@ -194,7 +194,7 @@ void PlayerContext::handleDisconnect(bool isWhitePlayer) {
 void PlayerContext::restart() {
     computingMove_ = false;
     // Create a fully initialized new engine instance (incl. UCI handshake)
-    auto list = EngineWorkerFactory::createUci(engine_->getExecutablePath(), std::nullopt, 1);
+    auto list = EngineWorkerFactory::createEnginesByName(engine_->getEngineConfigName(), 1);
     // Replace the old engine with the new one; triggers cleanup of old engine (threads, handles)
     engine_ = std::move(list[0]);
 }

@@ -20,40 +20,14 @@
 
 #include "engine-worker-factory.h"
 #include "uci-adapter.h"
-
-EngineList EngineWorkerFactory::createUci(
-    const std::filesystem::path& executablePath,
-    std::optional<std::filesystem::path> workingDirectory,
-    std::size_t count)
-{
-    std::vector<std::unique_ptr<EngineWorker>> engines;
-    engines.reserve(count);
-    OptionValues values;
-
-    for (std::size_t i = 0; i < count; ++i) {
-        auto identifierStr = "#" + std::to_string(identifier_);
-        auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
-        auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, values);
-        engines.push_back(std::move(worker));
-        identifier_++;
-    }
-    std::vector<std::future<void>> futures;
-    futures.reserve(count);
-    for (auto& worker : engines) {
-        futures.push_back(worker->getStartupFuture());
-    }
-    for (auto& f : futures) {
-        f.get(); // blockiert bis Engine fertig
-    }
-    return engines;
-}
+#include "checklist.h"
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngineByName(const std::string& name) {
     auto engineConfig = configManager_.getConfig(name);
     auto executablePath = engineConfig->getExecutablePath();
     auto workingDirectory = engineConfig->getWorkingDirectory();
     auto identifierStr = "#" + std::to_string(identifier_);
-    auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+    auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, name, identifierStr);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, engineConfig->getOptionValues());
     identifier_++;
     return std::move(worker);
@@ -73,12 +47,11 @@ EngineList EngineWorkerFactory::createEnginesByName(const std::string& name, std
                 engines.push_back(createEngineByName(name));
                 futures.push_back(engines.back()->getStartupFuture());
             }
-            else if (engines[i]->isRunning() == false) {
+            else if (engines[i]->failure()) {
                 // The retry loops recreate engines having exceptions in the startup process
                 engines[i] = createEngineByName(name);
                 futures.push_back(engines[i]->getStartupFuture());
             }
-            identifier_++;
         }
         // Wait for all newly created engines.
         for (auto& f : futures) {
@@ -86,17 +59,17 @@ EngineList EngineWorkerFactory::createEnginesByName(const std::string& name, std
                 f.get();
             }
             catch (const std::exception& e) {
-                Logger::testLogger().log("Exception during engine startup: " + std::string(e.what()), TraceLevel::error);
+                Checklist::logCheck("Engine starts and stops fast and without problems", false, std::string(e.what()));
             }
             catch (...) {
-                Logger::testLogger().log("Unknown exception during engine startup.", TraceLevel::error);
+                Checklist::logCheck("Engine starts and stops fast and without problems", false, "Unknown error");
             }
         }
     }
 
     EngineList runningEngines;
     for (auto& engine : engines) {
-        if (engine->isRunning()) {
+        if (!engine->failure()) {
             runningEngines.push_back(std::move(engine));
         }
     }

@@ -44,8 +44,7 @@ void EpdManager::printHeaderLine() const {
     }
 
     header << "|" << formatEngineName(engineName_) << "| BM:";
-
-    std::cout << header.str() << std::endl;
+    Logger::testLogger().log(header.str(), TraceLevel::results);
 }
 
 void EpdManager::printTestResultLine(const EpdTestCase& current) const {
@@ -73,7 +72,7 @@ void EpdManager::printTestResultLine(const EpdTestCase& current) const {
         line << bm << " ";
     }
 
-    std::cout << line.str() << std::endl;
+	Logger::testLogger().log(line.str(), TraceLevel::results);
 }
 
 std::string EpdManager::formatTime(uint64_t ms) const {

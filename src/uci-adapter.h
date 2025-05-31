@@ -36,8 +36,16 @@
   */
 class UciAdapter : public EngineAdapter {
 public:
+	/**
+	 * @brief Constructs a UCI adapter for the given engine executable.
+	 * @param enginePath Path to the engine executable.
+	 * @param workingDirectory Optional working directory for the engine.
+	 * @param engineConfigName Name of the engine configuration used to create this adapter.
+	 * @param identifier Unique identifier for this engine instance.
+	 */
     explicit UciAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
+        const std::string engineConfigName,
         const std::string& identifier);
     ~UciAdapter();
 

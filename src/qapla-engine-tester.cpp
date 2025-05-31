@@ -33,6 +33,8 @@
 
 bool runEpd() {
     auto epdList = CliSettings::Manager::getGroupInstances("epd");
+    Logger::testLogger().setLogFile("epd-report");
+	Logger::testLogger().setTraceLevel(TraceLevel::results);
 	if (epdList.empty()) {
 		return false; // No EPD settings provided
 	}
@@ -66,7 +68,8 @@ bool runTest() {
         return false; // No EPD settings provided
     }
 	auto test = tests[0]; // Assuming only one test group is defined
-    Logger::testLogger().setLogFile("qapla-engine-report");
+    Logger::testLogger().setLogFile("engine-report");
+    Logger::testLogger().setTraceLevel(TraceLevel::warning);
     Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
     Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
 
@@ -102,8 +105,6 @@ int main(int argc, char** argv) {
 			CliSettings::ValueType::PathExists);
 		CliSettings::Manager::registerSetting("enginelog", "Enable engine logging", false, false,
 			CliSettings::ValueType::Bool);
-	    CliSettings::Manager::registerSetting("enginepath", "Path to an engine executable. Use the --engine parameter for more control on engines", false, "",
-            CliSettings::ValueType::PathExists);
         CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
             CliSettings::ValueType::PathExists);
 
@@ -135,10 +136,7 @@ int main(int argc, char** argv) {
         }
         auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
         EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfigurations(engineSettings);
-        std::string enginePath = CliSettings::Manager::get<std::string>("enginepath");
-        if (enginePath != "") {
-            EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfig(EngineConfig::createFromPath(enginePath));
-        }
+
 		if (CliSettings::Manager::get<bool>("enginelog")) {
             Logger::engineLogger().setLogFile("qapla-engine-trace");
 		}

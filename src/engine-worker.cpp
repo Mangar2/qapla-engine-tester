@@ -33,28 +33,31 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
         throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
     }
 
-    adapter_->setLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
+    adapter_->setProtocolLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
         Logger::engineLogger().log(id, message, isOutput, traceLevel);
         });
 	asyncStartup(optionValues);
 }
 
 void EngineWorker::asyncStartup(const OptionValues& optionValues) {
-    isRunning_ = true;
-    workThread_ = std::thread(&EngineWorker::threadLoop, this);
+	workerState_ = WorkerState::starting;
+    writeThread_ = std::thread(&EngineWorker::writeLoop, this);
     startupFuture_ = startupPromise_.get_future();
 
     post([this, options = optionValues](EngineAdapter& adapter) {
         try {
             readThread_ = std::thread(&EngineWorker::readLoop, this);
+            
+            // Define expected response for the reader before initiating the protocol command.
+            // This ensures the read thread knows which handshake response to watch for.
             waitForHandshake_ = EngineEvent::Type::UciOk;
             adapter.startProtocol();
             if (!waitForHandshake(ReadyTimeoutUciOk)) {
                 throw std::runtime_error("Engine failed UCI handshake");
             }
-            waitForHandshake_ = EngineEvent::Type::ReadyOk;
             if (!options.empty()) {
                 adapter.setOptionValues(options);
+				waitForHandshake_ = EngineEvent::Type::ReadyOk;
                 adapter.askForReady();
                 if (!waitForHandshake(ReadyTimeoutOption)) {
                     throw std::runtime_error("Engine failed ready ok handshake after setoptions");
@@ -63,7 +66,7 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             startupPromise_.set_value(); 
         }
         catch (...) {
-            isRunning_ = false;
+            workerState_ = WorkerState::failure;
             startupPromise_.set_exception(std::current_exception()); 
         }
         });
@@ -82,12 +85,12 @@ void EngineWorker::stop() {
             // Nothing to do, if we cannot stop it, we can do nothing else
         }
         });
-    isRunning_ = false;
+    workerState_ = WorkerState::stopped;
     post(std::nullopt);  // Shutdown-Signal
     cv_.notify_all();
 
-    if (workThread_.joinable()) {
-        workThread_.join();
+    if (writeThread_.joinable()) {
+        writeThread_.join();
     }
     
 	if (readThread_.joinable()) {
@@ -102,16 +105,16 @@ void EngineWorker::restart() {
 /**
  * @brief Main execution loop for the worker thread.
  */
-void EngineWorker::threadLoop() {
-    while (isRunning_) {
+void EngineWorker::writeLoop() {
+    while (workerState_ != WorkerState::stopped) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
         {
             std::unique_lock lock(mutex_);
-            cv_.wait(lock, [&] { return !taskQueue_.empty(); });
+            cv_.wait(lock, [&] { return !writeQueue_.empty(); });
 
-            task = std::move(taskQueue_.front());
-            taskQueue_.pop();
+            task = std::move(writeQueue_.front());
+            writeQueue_.pop();
         }
 
         if (!task.has_value()) {
@@ -138,7 +141,7 @@ void EngineWorker::threadLoop() {
 void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task) {
     {
         std::scoped_lock lock(mutex_);
-        taskQueue_.push(std::move(task));
+        writeQueue_.push(std::move(task));
     }
     cv_.notify_one();
 }
@@ -192,7 +195,8 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 }
 
 void EngineWorker::readLoop() {
-    while (isRunning_) {
+	// Must end on disconnected_ to prevent endless looping
+    while (workerState_ != WorkerState::stopped && !disconnected_) {
         // Blocking call
         try {
             EngineEvent event = adapter_->readEvent();
@@ -210,7 +214,8 @@ void EngineWorker::readLoop() {
             }
 			if (event.type == EngineEvent::Type::EngineDisconnected) {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread
-				isRunning_ = false;
+				disconnected_ = true;
+                workerState_ = WorkerState::failure;
 			}
         }
 		catch (const std::exception& e) {

@@ -30,6 +30,7 @@
 enum class TraceLevel : int {
     error,
     commands,
+    results,
     handshake,
     warning,
     info,
