@@ -207,7 +207,10 @@ std::optional<GameTask> EpdManager::nextTask(const std::string& whiteId, const s
     task.blackTimeControl = tc;
 
 	tests_[currentIndex_].engineId = whiteId;
-    task.fen = tests_[currentIndex_].fen;
+    GameState gameState;
+    gameState.setFen(false, tests_[currentIndex_].fen);
+    auto correctedFen = gameState.getFen();
+    task.fen = correctedFen;
     currentIndex_++;
 
     return task;

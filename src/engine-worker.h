@@ -67,8 +67,9 @@ public:
 
 	/**
 	 * @brief Terminates the engine process and stops the worker thread.
+	 * @param wait If true, waits for the write and read threads to finish before returning.
 	 */
-	void stop();
+	void stop(bool wait = true);
 
 	/**
 	 * @brief Restarts the engine process and reinitializes communication.

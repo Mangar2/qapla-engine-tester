@@ -42,7 +42,7 @@ enum class TraceLevel : int {
  */
 class Logger {
 public:
-    Logger() : traceLevelThreshold_(TraceLevel::error) {
+    Logger() : cliThreshold_(TraceLevel::error), fileThreshold_(TraceLevel::results) {
     }
 
     ~Logger() {
@@ -61,11 +61,11 @@ public:
     void log(std::string_view prefix, std::string_view message, bool isOutput, TraceLevel level = TraceLevel::info) {
 
         std::scoped_lock lock(mutex_);
-        if (fileStream_.is_open()) {
+        if (level <= fileThreshold_ && fileStream_.is_open()) {
             fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
         }
         
-        if (level > traceLevelThreshold_) return;
+        if (level > cliThreshold_) return;
 		std::cout << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
 
     }
@@ -78,11 +78,11 @@ public:
     void log(std::string_view message, TraceLevel level = TraceLevel::commands) {
 
         std::scoped_lock lock(mutex_);
-        if (fileStream_.is_open()) {
+        if (level <= fileThreshold_ && fileStream_.is_open()) {
             fileStream_ << message << std::endl;
         }
 
-        if (level > traceLevelThreshold_) return;
+        if (level > cliThreshold_) return;
         std::cout << message << std::endl;
     }
 
@@ -109,8 +109,9 @@ public:
      * @brief Sets the minimum trace level to log.
      * @param level TraceLevel threshold.
      */
-    void setTraceLevel(TraceLevel level) {
-        traceLevelThreshold_ = level;
+    void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info) {
+		cliThreshold_ = cli;
+		fileThreshold_ = file;
     }
 
     /**
@@ -152,6 +153,7 @@ private:
 
     std::mutex mutex_;
     std::ofstream fileStream_;
-    TraceLevel traceLevelThreshold_;
+    TraceLevel cliThreshold_;
+	TraceLevel fileThreshold_;
 	std::string filename_;
 };

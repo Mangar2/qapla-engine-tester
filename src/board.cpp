@@ -274,7 +274,7 @@ void Board::undoMove(Move move, BoardState recentBoardState) {
 	assert(_board[departure] != NO_PIECE);
 }
 
-std::string Board::getFen() const {
+std::string Board::getFen(int fullMoveNumber) const {
 	std::string result = "";
 	File file;
 	Rank rank;
@@ -305,6 +305,23 @@ std::string Board::getFen() const {
 	}
 
 	result += isWhiteToMove()? " w" : " b";
+
+	result += " ";
+	std::string castling;
+	castling += getBoardState().isKingSideCastleAllowed<WHITE>() ? "K" : "";
+	castling += getBoardState().isQueenSideCastleAllowed<WHITE>() ? "Q" : "";
+	castling += getBoardState().isKingSideCastleAllowed<BLACK>() ? "k" : "";
+	castling += getBoardState().isQueenSideCastleAllowed<BLACK>() ? "q" : "";
+	result += castling.empty() ? "-" : castling;
+
+	result += " ";
+	result += getBoardState().hasEP() ? squareToString(this->getEP()) : "-";
+
+	result += " ";
+	result += std::to_string(getHalfmovesWithoutPawnMoveOrCapture());
+
+	result += " ";
+	result += std::to_string(fullMoveNumber);
 
 	return result;
 }

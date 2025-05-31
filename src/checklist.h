@@ -66,10 +66,13 @@ public:
         report(name, success);
         if (!success) {
             auto numErrors = getNumErrors(name);
+            if (numErrors > MAX_CLI_LOGS_PER_ERROR && traceLevel < TraceLevel::error) {
+				return false; 
+			}
             Logger::testLogger().log("[Report for topic \"" + std::string(name) + "\"] " + std::string(detail),
                 numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
             if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
-                Logger::testLogger().log("Further reports of this type will be suppressed. See log for full details.", traceLevel);
+                Logger::testLogger().log("Too many similar reports. Further reports of this type will be suppressed. ", traceLevel);
             }
         }
         return success;
@@ -100,6 +103,7 @@ public:
 
 private:
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;
+    static constexpr uint32_t MAX_FILE_LOGS_PER_ERROR = 10;
     struct Stat {
         int total = 0;
         int failures = 0;

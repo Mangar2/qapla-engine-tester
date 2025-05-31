@@ -175,21 +175,14 @@ void EngineTestController::runMultipleStartStopTest(int numEngines) {
     runTest("Engine starts and stops fast and without problems", [this, numEngines]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
-        EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, numEngines);
-        auto startTime = timer.elapsedMs();
-
-        std::vector<std::future<void>> stopFutures;
-        stopFutures.reserve(numEngines);
-
-        for (auto& engine : engines) {
-            stopFutures.push_back(std::async(std::launch::async, [e = engine.get()] {
-                e->stop();
-            }));
+		int64_t startTime = 0;
+        {
+            EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, numEngines);
+            startTime = timer.elapsedMs();
+            for (auto& engine : engines) {
+                engine->stop(false);
+            }
         }
-        for (auto& future : stopFutures) {
-            future.get();
-        }
-
         auto stopTime = timer.elapsedMs();
 
         Logger::testLogger().log("Parallel start/stop test for " + std::to_string(numEngines) + " engines");

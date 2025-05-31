@@ -34,7 +34,7 @@
 bool runEpd() {
     auto epdList = CliSettings::Manager::getGroupInstances("epd");
     Logger::testLogger().setLogFile("epd-report");
-	Logger::testLogger().setTraceLevel(TraceLevel::results);
+	Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
 	if (epdList.empty()) {
 		return false; // No EPD settings provided
 	}
@@ -92,6 +92,7 @@ bool runTest() {
 }
 
 int main(int argc, char** argv) {
+    // example: ./qapla-engine-tester --concurrency=20 --enginelog=true --enginesfile="engines.ini" --test --epd file="c:\Chess\epd\speelman Endgame.epd" maxtime=60 mintime=2 seenplies=3
     bool isEngineTest = false;
     Timer timer;
     timer.start();

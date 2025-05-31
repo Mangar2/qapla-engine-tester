@@ -294,8 +294,7 @@ namespace QaplaBasics {
 	 * @param square Square in internal representation
 	 */
 	constexpr auto squareToString(square_t square) {
-		std::string result = "?";
-		result = "";
+		std::string result;
 		if (square >= Square::A1 && square <= Square::H8) {
 			result += ('a' + static_cast<char>(square % NORTH));
 			result += ('1' + static_cast<char>(square / NORTH));

@@ -309,7 +309,7 @@ namespace QaplaBasics {
 		/**
 		 * Gets the board in Fen representation
 		 */
-		std::string getFen() const;
+		std::string getFen(int fullMoveNumber = 1) const;
 
 		/**
 		 * Prints the board as fen to std-out

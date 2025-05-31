@@ -73,29 +73,33 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
 }
 
 EngineWorker::~EngineWorker() {
-    stop();
+    stop(true);
 }
 
-void EngineWorker::stop() {
-    post([](EngineAdapter& adapter) {
-        try {
-            adapter.terminateEngine(); 
-        }
-        catch (...) {
-            // Nothing to do, if we cannot stop it, we can do nothing else
-        }
-        });
-    workerState_ = WorkerState::stopped;
-    post(std::nullopt);  // Shutdown-Signal
-    cv_.notify_all();
-
-    if (writeThread_.joinable()) {
-        writeThread_.join();
+void EngineWorker::stop(bool wait) {
+    if (workerState_ != WorkerState::stopped) {
+        workerState_ = WorkerState::stopped;
+        post([](EngineAdapter& adapter) {
+            try {
+                adapter.terminateEngine();
+            }
+            catch (...) {
+                // Nothing to do, if we cannot stop it, we can do nothing else
+            }
+            });
+        post(std::nullopt);  // Shutdown-Signal
+        cv_.notify_all();
     }
-    
-	if (readThread_.joinable()) {
-		readThread_.join();
-	}
+
+    if (wait) {
+        if (writeThread_.joinable()) {
+            writeThread_.join();
+        }
+
+        if (readThread_.joinable()) {
+            readThread_.join();
+        }
+    }
 }
 
 void EngineWorker::restart() {
@@ -106,7 +110,8 @@ void EngineWorker::restart() {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::writeLoop() {
-    while (workerState_ != WorkerState::stopped) {
+    if (workerState_ == WorkerState::stopped) return;
+    while (true) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
         {
