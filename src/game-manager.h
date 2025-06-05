@@ -54,11 +54,6 @@ public:
      */
     void setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black);
 
-    /**
-     * @brief Switches the engines side to play
-     */
-    void switchSide();
-
 	/**
 	 * @brief stops the engine if it is running.
 	 */
@@ -186,6 +181,11 @@ private:
 	 */
     void informTask(const EngineEvent& event, const PlayerContext* player);
 
+    /**
+     * @brief Switches the engines side to play
+     */
+    void switchSide();
+
     void computeNextMove();
 
     /**
@@ -214,7 +214,9 @@ private:
 		if (whitePlayer_ != blackPlayer_) {
 			blackPlayer_->setFen(useStartPosition, fen);
 		}
-        gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove());
+        gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove(),
+            whitePlayer_->getEngine()->getEngineConfigName(),
+            blackPlayer_->getEngine()->getEngineConfigName());
 	}
 
 	/**
@@ -231,10 +233,14 @@ private:
      */
     void markFinished();
 
+    /**
+     * Players
+     */
     PlayerContext* whitePlayer_;
     PlayerContext* blackPlayer_;
     PlayerContext player1_;
     PlayerContext player2_;
+	bool switchedSide_ = false;
 
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
@@ -243,6 +249,7 @@ private:
      * Callback to get new tasks
      */
     GameTaskProvider* taskProvider_;
+
     /**
 	 * Computes the next task from the task provider
      */

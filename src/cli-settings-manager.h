@@ -21,12 +21,13 @@
 #include <string>
 #include <variant>
 #include <unordered_map>
+#include <optional>
 #include <iostream>
 
 namespace CliSettings {
 
-    enum class ValueType { String, Int, Bool, PathExists };
-    using Value = std::variant<std::string, int, bool>;
+    enum class ValueType { String, Int, Float, Bool, PathExists };
+    using Value = std::variant<std::string, int, bool, float>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
     struct Definition {
@@ -37,10 +38,11 @@ namespace CliSettings {
     };
     struct GroupDefinition {
         std::string description;
+		bool unique = false; 
         std::unordered_map<std::string, Definition> keys;
     };
 
-    std::string toLowercase(const std::string& name);
+    std::string to_lowercase(const std::string& name);
 
     /**
      * @brief Represents a single instance of a grouped CLI setting block (e.g., one --engine block).
@@ -66,7 +68,7 @@ namespace CliSettings {
          */
         template<typename T>
         T get(const std::string& name) const {
-            std::string key = toLowercase(name);
+            std::string key = to_lowercase(name);
             auto it = values_.find(key);
 			auto& keyDefs = definition_.keys;
             if (it == values_.end()) {
@@ -120,10 +122,12 @@ namespace CliSettings {
          * @brief Registers a grouped CLI block (e.g. --engine key=value...) with description and expected keys.
          * @param groupName Name of the group (e.g. \"engine\").
          * @param groupDescription Description shown in help output.
+		 * @param unique True if only one instance of this group is allowed.
          * @param keys Map of key names and their descriptions.
          */
         static void registerGroup(const std::string& groupName,
             const std::string& groupDescription,
+            bool unique,
             const std::unordered_map<std::string, Definition>& keys);
 
         /**
@@ -141,7 +145,7 @@ namespace CliSettings {
          */
         template<typename T>
         static T get(const std::string& name) {
-            std::string key = toLowercase(name);
+            std::string key = to_lowercase(name);
             auto it = values_.find(key);
             if (it == values_.end()) {
                 auto defIt = definitions_.find(key);
@@ -160,6 +164,9 @@ namespace CliSettings {
          * @throws std::runtime_error if the group is unknown.
          */
         static const GroupInstances getGroupInstances(const std::string& groupName);
+
+
+        static const std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
 
     private:
 

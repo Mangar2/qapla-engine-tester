@@ -207,6 +207,12 @@ private:
 		terminated
 	};
 
+	enum class EventFilter {
+		None = 0,
+		EmptyEvent = 1,
+		InfoEvent = 2
+	};
+
 	/*
 	 * @brief processs the startup of the engine asynchronously.
 	 * @param adapter The engine adapter to control. Ownership is transferred.
@@ -272,4 +278,7 @@ private:
 
 	// GameManager communication
 	std::function<void(EngineEvent&&)> eventSink_;
+
+	EventFilter eventFilter_ = EventFilter::InfoEvent;
+
 };

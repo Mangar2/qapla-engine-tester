@@ -136,10 +136,9 @@ void GameManager::processQueue() {
     }
 }
 
-
-
 void GameManager::switchSide() {
     std::swap(whitePlayer_, blackPlayer_);
+	switchedSide_ = !switchedSide_;
 }
 
 void GameManager::markFinished() {
@@ -377,8 +376,12 @@ void GameManager::computeNextTask() {
 		return;
 	}
 	auto task = *newTask;
+	if (task.switchSide != switchedSide_) {
+		switchSide();
+	}
 	setStartPosition(task.useStartPosition, task.fen);
 	gameRecord_.setTimeControl(task.whiteTimeControl, task.blackTimeControl);
+	gameRecord_.setRound(task.round);
 	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
     taskType_ = task.taskType;
 

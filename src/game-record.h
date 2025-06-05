@@ -35,7 +35,8 @@
  */
 class GameRecord {
 public:
-    void setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove) {
+    void setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove, 
+        std::string whiteEngineName, std::string blackEngineName) {
 		moves_.clear();
 		isWhiteToMove_ = isWhiteToMove;
 		currentPly_ = 0;
@@ -43,6 +44,8 @@ public:
 		startFen_ = startFen;
 		gameEndCause_ = GameEndCause::Ongoing;
 		gameResult_ = GameResult::Unterminated;
+		whiteEngineName_ = whiteEngineName;
+		blackEngineName_ = blackEngineName;
     }
     /** Adds a move at the current ply position, overwriting any future moves. */
     void addMove(const MoveRecord& move);
@@ -115,6 +118,28 @@ public:
 	const bool isWhiteToMove() const {
 		return isWhiteToMove_;
 	}
+
+	const std::string& getWhiteEngineName() const {
+		return whiteEngineName_;
+	}
+
+    const std::string& getBlackEngineName() const {
+		return blackEngineName_;
+    }
+
+	/**
+	 * @brief Returns the round number of the game.
+	 */
+	uint32_t getRound() const {
+		return round_;
+	}
+	/**
+	 * @brief Sets the round number of the game.
+	 * @param r The round number to set.
+	 */
+	void setRound(uint32_t r) {
+		round_ = r;
+	}
     
 
 private:
@@ -126,5 +151,8 @@ private:
 	GameResult gameResult_;
     TimeControl whiteTimeControl_;
     TimeControl blackTimeControl_;
+    std::string whiteEngineName_;
+    std::string blackEngineName_;
 	bool isWhiteToMove_ = true;
+    uint32_t round_ = 0;
 };

@@ -75,3 +75,6 @@ inline std::string gameResultToPgnResult(GameResult result) {
 	}
 }
 
+inline std::string to_string(GameResult result) {
+	return gameResultToPgnResult(result);
+}

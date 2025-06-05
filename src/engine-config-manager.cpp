@@ -18,6 +18,7 @@
  */
 
 #include "engine-config-manager.h"
+#include "cli-settings-manager.h"
 
 void EngineConfigManager::loadFromFile(const std::string& filePath) {
     std::ifstream file(filePath);
@@ -66,7 +67,7 @@ std::vector<EngineConfig> EngineConfigManager::getAllConfigs() const {
 
 EngineConfig* EngineConfigManager::getConfig(const std::string& name) {
     for (auto& config : configs) {
-        if (config.getName() == name) return &config;
+        if (CliSettings::to_lowercase(config.getName()) == CliSettings::to_lowercase(name)) return &config;
     }
     return nullptr;
 }

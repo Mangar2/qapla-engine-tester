@@ -29,16 +29,19 @@
 #include "engine-worker-factory.h"
 #include "cli-settings-manager.h"
 #include "epd-manager.h"
+#include "sprt-manager.h"
 #include "timer.h"
+#include "time-control.h"
+#include "pgn-io.h"
 
 bool runEpd() {
     auto epdList = CliSettings::Manager::getGroupInstances("epd");
-    Logger::testLogger().setLogFile("epd-report");
-	Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
 	if (epdList.empty()) {
 		return false; // No EPD settings provided
 	}
 	int concurrency = CliSettings::Manager::get<int>("concurrency");
+    Logger::testLogger().setLogFile("epd-report");
+    Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
     EpdManager epdManager;
 	for (auto& epd : epdList) {
         std::string file;
@@ -63,11 +66,10 @@ bool runEpd() {
 }
 
 bool runTest() {
-    auto tests = CliSettings::Manager::getGroupInstances("test");
-    if (tests.empty()) {
-        return false; // No EPD settings provided
+    auto test = CliSettings::Manager::getGroupInstance("test");
+    if (!test) {
+        return false; 
     }
-	auto test = tests[0]; // Assuming only one test group is defined
     Logger::testLogger().setLogFile("engine-report");
     Logger::testLogger().setTraceLevel(TraceLevel::warning);
     Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
@@ -78,7 +80,7 @@ bool runTest() {
         Checklist::clear();
         std::string name = engineConfig.getName();
         try {
-            controller.runAllTests(name, test.get<int>("numgames"), test.get<int>("level"));
+            controller.runAllTests(name, test->get<int>("numgames"), test->get<int>("level"));
         }
 		catch (const std::exception& e) {
 			Logger::testLogger().log("Exception during engine test for " + name + ": " + std::string(e.what()), TraceLevel::error);
@@ -91,6 +93,100 @@ bool runTest() {
     return true;
 }
 
+bool runSprt() {
+    auto sprt = CliSettings::Manager::getGroupInstance("sprt");
+	auto opening = CliSettings::Manager::getGroupInstance("openings");    
+    if (!sprt) return false;
+    if (!opening) {
+		Logger::testLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
+        return false;
+    }
+	auto tcSetting = CliSettings::Manager::get<std::string>("tc");
+	if (tcSetting.empty()) {
+		Logger::testLogger().log("No time control defined for SPRT tests. Please define a time control, see --help for more info.", 
+            TraceLevel::error);
+		return false;
+	}
+    Logger::testLogger().setLogFile("sprt-report");
+    Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
+    TimeControl tc;
+	tc.fromCliTimeControlString(tcSetting);
+    try {
+        SprtConfig config{
+            .eloUpper = sprt->get<int>("eloUpper"),
+            .eloLower = sprt->get<int>("eloLower"),
+            .alpha = sprt->get<float>("alpha"),
+            .beta = sprt->get<float>("beta"),
+            .maxGames = sprt->get<int>("maxgames"),
+            .tc = tc, 
+            .openings = Openings {
+                .file = opening->get<std::string>("file"),
+                .format = opening->get<std::string>("format"),
+                .order = opening->get<std::string>("order"),
+                .plies = opening->get<int>("plies"),
+                .start = opening->get<int>("start"),
+                .policy = opening->get<std::string>("policy")
+            }
+        };
+        int concurrency = CliSettings::Manager::get<int>("concurrency");
+        std::string engineName0 = sprt->get<std::string>("engine1");
+        std::string engineName1 = sprt->get<std::string>("engine2");
+
+        SprtManager manager;
+        //manager.runMonteCarloTest();
+        manager.runSprt(engineName0, engineName1, concurrency, config);
+        manager.wait();
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during sprt run: " + std::string(e.what()), TraceLevel::error);
+        return false;
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during sprt run: ", TraceLevel::error);
+        return false;
+    }
+    return true;
+}
+
+void handlePgnOptions() {
+    auto pgnOptionInstance = CliSettings::Manager::getGroupInstance("pgnoutput");
+    if (!pgnOptionInstance) {
+        auto pgn = *pgnOptionInstance;
+        PgnIO::Options pgnOptions{
+            .file = pgn.get<std::string>("file"),
+            .append = pgn.get<bool>("append"),
+            .onlyFinishedGames = pgn.get<bool>("fi"),
+            .minimalTags = pgn.get<bool>("min"),
+            //.saveAfterMove = pgn.get<bool>("aftermove"),
+            .includeClock = pgn.get<bool>("clock"),
+            .includeEval = pgn.get<bool>("eval"),
+            .includePv = pgn.get<bool>("pv"),
+            .includeDepth = pgn.get<bool>("depth")
+        };
+        PgnIO::tournament().setOptions(pgnOptions);
+    }
+}
+
+void handleEngineOptions() {
+
+    std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
+    if (!enginesFile.empty()) {
+        EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
+    }
+    auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
+    for (auto engine : engineSettings) {
+        std::string cmd = engine.get<std::string>("cmd");
+        std::string conf = engine.get<std::string>("conf");
+        std::string name = engine.get<std::string>("name");
+        if (cmd.empty() && conf.empty()) {
+            std::string engineName = name.empty() ? "" : " (for " + name + ")";
+            throw std::runtime_error("No engine command or configuration provided"
+                + engineName + ".Please specify either 'cmd' or 'conf'.");
+        }
+    }
+    EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfigurations(engineSettings);
+}
+
 int main(int argc, char** argv) {
     // example: ./qapla-engine-tester --concurrency=20 --enginelog=true --enginesfile="engines.ini" --test --epd file="c:\Chess\epd\speelman Endgame.epd" maxtime=60 mintime=2 seenplies=3
     bool isEngineTest = false;
@@ -98,7 +194,7 @@ int main(int argc, char** argv) {
     timer.start();
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::commands);
-        Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.2.0 (c) by Volker Boehm\n");
+        Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.3.0 (c) by Volker Boehm\n");
 
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettings::ValueType::Int);
@@ -108,39 +204,76 @@ int main(int argc, char** argv) {
 			CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
             CliSettings::ValueType::PathExists);
+        CliSettings::Manager::registerSetting("tc", "Time control in format moves/time+inc or 'inf'", false, "", 
+            CliSettings::ValueType::String);
 
-        CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", {
+        CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
             { "file",      { "Path and file name to the epd file", true, "speelman Endgame.epd", CliSettings::ValueType::PathExists } },
             { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
             { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
             { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } }
             });
 
-        CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", {
+        CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", false, {
+            { "conf",      { "Name of an engine from the configuration file", false, "", CliSettings::ValueType::String } },
             { "name",      { "Name of the engine", false, "", CliSettings::ValueType::String } },
-            { "cmd",       { "Path to executable", true, "", CliSettings::ValueType::PathExists } },
+            { "cmd",       { "Path to executable", false, "", CliSettings::ValueType::PathExists } },
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
 
-        CliSettings::Manager::registerGroup("test", "Test engines", {
+        CliSettings::Manager::registerGroup("each", "Defines an engine configuration", false, {
+            { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
+            { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
+            { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
+            });
+
+        CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
+            { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", true, "", CliSettings::ValueType::Int } },
+            { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", true, "", CliSettings::ValueType::Int } },
+            { "alpha", { "Type I error threshold", true, "", CliSettings::ValueType::Float } },
+            { "beta",  { "Type II error threshold", true, "", CliSettings::ValueType::Float } },
+            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
+            { "engine1", { "Name of the first engine", true, "", CliSettings::ValueType::String } },
+            { "engine2", { "Name of the second engine", true, "", CliSettings::ValueType::String } }
+            });
+
+        CliSettings::Manager::registerGroup("openings", "Defines how start positions are selected", true, {
+            { "file",  { "Path to file with opening positions", true, "", CliSettings::ValueType::PathExists } },
+            { "format", { "Format of the file: epd, raw, pgn", false, "epd", CliSettings::ValueType::String } },
+            { "order", { "Order of position selection: random, sequential", false, "sequential", CliSettings::ValueType::String } },
+            { "plies", { "Max number of plies per opening (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
+            { "start", { "Index of first opening (1-based)", false, "1", CliSettings::ValueType::Int } },
+            { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
+            });
+
+        CliSettings::Manager::registerGroup("test", "Test engines", true, {
             { "numgames",  { "Number of test games to play", false, 20, CliSettings::ValueType::Int } },
             { "level",     { "Test level (0=all, 1=nice, 2=destructive)", false, 0, CliSettings::ValueType::Int } }
             });
 
+        CliSettings::Manager::registerGroup("pgnoutput", "PGN output settings", true, {
+            { "file", { "Path to the output PGN file", true, "", CliSettings::ValueType::String } },
+            { "append", { "Append to existing file instead of overwriting it", false, true, CliSettings::ValueType::Bool } },
+            { "fi", { "Only save finished games", false, true, CliSettings::ValueType::Bool } },
+            { "min", { "Only save minimal tag information in the PGN output", false, false, CliSettings::ValueType::Bool } },
+            //{ "aftermove", { "Save after every move", false, false, CliSettings::ValueType::Bool } },
+            { "clock", { "Include clock information in the PGN output", false, true, CliSettings::ValueType::Bool } },
+            { "eval", { "Include evaluation values in the PGN output", false, true, CliSettings::ValueType::Bool } },
+            { "depth", { "Include search depth in the PGN output", false, true, CliSettings::ValueType::Bool } },
+            { "pv", { "Include principal variation in the PGN output", false, false, CliSettings::ValueType::Bool } }
+            });
+
+
         CliSettings::Manager::parseCommandLine(argc, argv);
-        // Setting engines
-		std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
-        if (!enginesFile.empty()) {
-            EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
-        }
-        auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
-        EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfigurations(engineSettings);
+        handlePgnOptions();
+		handleEngineOptions();
 
 		if (CliSettings::Manager::get<bool>("enginelog")) {
             Logger::engineLogger().setLogFile("qapla-engine-trace");
 		}
+        runSprt();
         runEpd();
         runTest();
 			

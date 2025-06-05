@@ -28,6 +28,11 @@
 #include "engine-config-manager.h"
 
 using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
+struct ActiveEngine {
+	std::string name;
+	bool isGauntlet;
+};
+using ActiveEngines = std::vector<ActiveEngine>;
  /**
   * @brief Factory for creating EngineAdapter instances based on engine type.
   */
@@ -46,6 +51,14 @@ public:
 		return configManager_;
 	}
 
+	static const ActiveEngines& getActiveEngines() {
+		return activeEngines_;
+	}
+
+	static ActiveEngines& getActiveEnginesMutable() {
+		return activeEngines_;
+	}
+
 	/**
 	 * @brief Creates a list of EngineWorker instances based on the engine name.
 	 * @param name The name of the engine to create workers for.
@@ -58,4 +71,5 @@ private:
     static std::unique_ptr<EngineWorker> createEngineByName(const std::string& name);
     static inline uint32_t identifier_ = 0;
 	static inline EngineConfigManager configManager_; 
+	static inline ActiveEngines activeEngines_; // List of currently active engines
 };

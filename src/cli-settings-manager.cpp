@@ -31,20 +31,21 @@ namespace CliSettings {
         bool isRequired,
         Value defaultValue,
         ValueType type) {
-        std::string key = toLowercase(name);
+        std::string key = to_lowercase(name);
         definitions_[key] = { description, isRequired, defaultValue, type };
     }
 
     void Manager::registerGroup(const std::string& groupName,
         const std::string& groupDescription,
+        bool unique,
         const std::unordered_map<std::string, Definition>& keys)
     {
-        std::string key = toLowercase(groupName);
-        groupDefs_[key] = GroupDefinition{ groupDescription, keys };
+        std::string key = to_lowercase(groupName);
+        groupDefs_[key] = GroupDefinition{ groupDescription, unique, keys };
     }
 
     const GroupInstances Manager::getGroupInstances(const std::string& groupName) {
-        std::string key = toLowercase(groupName);
+        std::string key = to_lowercase(groupName);
         auto it = groupInstances_.find(key);
         if (it == groupInstances_.end() || it->second.empty()) {
 			return std::vector<GroupInstance>();
@@ -52,11 +53,23 @@ namespace CliSettings {
         return it->second;
     }
 
+    const std::optional<GroupInstance> Manager::getGroupInstance(const std::string& groupName) {
+        std::string key = to_lowercase(groupName);
+        auto it = groupInstances_.find(key);
+        if (it == groupInstances_.end() || it->second.empty()) {
+			return std::nullopt; 
+        }
+		if (it->second.size() == 0) {
+			return std::nullopt; 
+		}
+        return it->second[0];
+    }
+
     void Manager::parseCommandLine(int argc, char** argv) {
         int index = 1;
 
         while (index < argc) {
-            std::string arg = argv[index];
+            std::string arg = to_lowercase(argv[index]);
 
             if (arg == "--help") {
                 showHelp();
@@ -67,7 +80,7 @@ namespace CliSettings {
                 throw std::runtime_error("Invalid argument format: " + arg);
             }
 
-            std::string name = toLowercase(arg.substr(2));
+            std::string name = arg.substr(2);
             if (groupDefs_.find(name) != groupDefs_.end()) {
                 index = parseGroupedParameter(index, argc, argv);
             }
@@ -88,7 +101,7 @@ namespace CliSettings {
 
         std::string name = arg.substr(2, eqPos - 2);
         std::string value = arg.substr(eqPos + 1);
-        std::string key = toLowercase(name);
+        std::string key = to_lowercase(name);
 
         auto it = definitions_.find(key);
         if (it == definitions_.end())
@@ -113,7 +126,7 @@ namespace CliSettings {
     }
 
     int Manager::parseGroupedParameter(int index, int argc, char** argv) {
-        std::string groupName = toLowercase(argv[index++]).substr(2);
+        std::string groupName = to_lowercase(argv[index++]).substr(2);
 
         auto defIt = groupDefs_.find(groupName);
         if (defIt == groupDefs_.end())
@@ -122,8 +135,12 @@ namespace CliSettings {
         const auto& groupDefinition = defIt->second;
         ValueMap group;
 
+		if (groupDefinition.unique && groupInstances_.contains(groupName)) {
+			throw std::runtime_error("Group '" + groupName + "' can only be defined once.");
+		}
+
         while (index < argc) {
-            std::string arg = argv[index];
+            std::string arg = to_lowercase(argv[index]);
 
             if (arg.rfind("--", 0) == 0) break;
 
@@ -174,7 +191,7 @@ namespace CliSettings {
         }
     }
 
-    std::string toLowercase(const std::string& name) {
+    std::string to_lowercase(const std::string& name) {
         std::string lower = name;
         transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
         return lower;
@@ -243,6 +260,14 @@ namespace CliSettings {
             }
             catch (...) {
                 throw std::runtime_error("Invalid integer: " + input);
+            }
+        }
+        if (def.type == ValueType::Float) {
+            try {
+                return std::stof(input);
+            }
+            catch (...) {
+                throw std::runtime_error("Invalid float: " + input);
             }
         }
         if (def.type == ValueType::Bool) {

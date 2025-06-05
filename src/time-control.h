@@ -49,18 +49,19 @@ struct GoLimits {
   * @brief Defines a stage in a time control setup.
   */
 struct TimeSegment {
+    bool operator==(const TimeSegment& other) const = default;
     int movesToPlay = 0;            ///< Number of moves in this time segment (0 = sudden death)
     int64_t baseTimeMs = 0;         ///< Time for this segment in milliseconds
     int64_t incrementMs = 0;        ///< Increment per move in milliseconds
 };
-
-
 
 /**
  * @brief User-facing representation of a test time control.
  */
 class TimeControl {
 public:
+    bool operator==(const TimeControl& other) const = default;
+
     void setMoveTime(int64_t ms) { movetimeMs_ = ms; }
     void setDepth(int d) { depth_ = d; }
     void setNodes(int n) { nodes_ = n; }
@@ -119,6 +120,51 @@ public:
         }
     }
 
+    /**
+     * @brief Parses a cutechess-cli-style time control string and sets up the time control.
+     *
+     * Supported formats:
+     * - "moves/time+increment", e.g. "40/300+2" (40 moves in 300 seconds with 2s increment)
+     * - "time+increment", e.g. "300+2" (sudden death with 2s increment)
+     * - "time", e.g. "60" (sudden death, no increment)
+     * - "inf" for infinite time control
+     *
+     * Time and increment are interpreted as seconds and can include decimals (e.g. "0.5").
+     *
+     * @param cliString The time control string to parse.
+     */
+    void fromCliTimeControlString(const std::string& cliString) {
+        timeSegments_.clear();
+
+        if (cliString == "inf") {
+            setInfinite(true);
+            return;
+        }
+
+        TimeSegment segment;
+
+        size_t slashPos = cliString.find('/');
+        size_t plusPos = cliString.find('+');
+
+        if (slashPos != std::string::npos) {
+            segment.movesToPlay = std::stoi(cliString.substr(0, slashPos));
+        }
+
+        std::string timePart = (slashPos != std::string::npos) ? cliString.substr(slashPos + 1) : cliString;
+
+        if (plusPos != std::string::npos) {
+            segment.baseTimeMs = static_cast<int64_t>(std::stof(timePart.substr(0, plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0))) * 1000);
+            segment.incrementMs = static_cast<int64_t>(std::stof(timePart.substr(plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0) + 1)) * 1000);
+        }
+        else {
+            segment.baseTimeMs = static_cast<int64_t>(std::stof(timePart) * 1000);
+        }
+
+        timeSegments_.push_back(segment);
+        setInfinite(false);
+    }
+
+
 private:
     std::optional<int64_t> movetimeMs_;
     std::optional<int> depth_;
@@ -127,6 +173,10 @@ private:
     std::optional<bool> infinite_;
     std::vector<TimeSegment> timeSegments_;
 };
+
+inline std::string to_string(const TimeControl& tc) {
+	return tc.toPgnTimeControlString();
+}
 
 /**
  * @brief Creates GoLimits from two time control definitions.

@@ -232,5 +232,6 @@ protected:
     std::string identifier_;
 
 	bool ponderMode_ = false;
+    bool noInfo_ = false;
 
 };

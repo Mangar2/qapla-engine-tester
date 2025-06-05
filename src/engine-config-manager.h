@@ -38,8 +38,7 @@
 
 class EngineConfigManager {
 public:
-    using Value = std::variant<std::string, int, bool>;
-    using ValueMap = std::unordered_map<std::string, Value>;
+
     /**
      * Loads engine configurations from an INI file.
      * Each configuration starts with a blank line followed by its key-value pairs.

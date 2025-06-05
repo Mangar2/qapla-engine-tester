@@ -32,11 +32,12 @@ std::unordered_map<std::string, std::string> EngineConfig::getOptions(const Engi
 template<typename T>
 inline constexpr bool always_false = false;
 
-std::string EngineConfig::to_string(const std::variant<std::string, int, bool>& value) {
+std::string EngineConfig::to_string(const Value& value) {
     return std::visit([](auto&& v) -> std::string {
         using T = std::decay_t<decltype(v)>;
         if constexpr (std::is_same_v<T, std::string>) return v;
         else if constexpr (std::is_same_v<T, int>) return std::to_string(v);
+		else if constexpr (std::is_same_v<T, float>) return std::to_string(v);
         else if constexpr (std::is_same_v<T, bool>) return v ? "true" : "false";
         else static_assert(always_false<T>, "Unsupported variant type");
         }, value);
@@ -47,7 +48,7 @@ std::string EngineConfig::to_string(const std::variant<std::string, int, bool>& 
  * @param values A map of option names and their values.
  * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
  */
-void EngineConfig::setCommandLineOptions(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values) {
+void EngineConfig::setCommandLineOptions(const ValueMap& values) {
     std::unordered_set<std::string> seenKeys;
 
     for (const auto& [key, value] : values) {

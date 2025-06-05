@@ -20,6 +20,7 @@
 #include "epd-manager.h"
 #include "engine-worker-factory.h"
 #include "game-manager.h"
+#include "game-manager-pool.h"
 #include "game-state.h"
 
 void EpdManager::printHeaderLine() const {
@@ -157,34 +158,12 @@ void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engi
     oldestIndexInUse_ = 0;
     tc.setMoveTime(maxTimeInS * 1000);
     printHeaderLine();
-    auto engineList = EngineWorkerFactory::createEnginesByName(engineName, concurrency);
-
-    size_t managerCount = managers_.size();
-
-    for (size_t i = 0; i < concurrency; ++i) {
-        if (i < managerCount) {
-            managers_[i]->setUniqueEngine(std::move(engineList[i]));
-            managers_[i]->computeTasks(this);
-        }
-        else {
-            auto manager = std::make_unique<GameManager>();
-            manager->setUniqueEngine(std::move(engineList[i]));
-            manager->computeTasks(this);
-            managers_.push_back(std::move(manager));
-        }
-    }
-}
-
-void EpdManager::stop() {
-	for (auto& manager : managers_) {
-		manager->stop();
-	}
+	GameManagerPool::getInstance().setConcurrency(concurrency, true);
+	GameManagerPool::getInstance().addTask(this, engineName);
 }
 
 bool EpdManager::wait() {
-	for (auto& manager : managers_) {
-		manager->getFinishedFuture().wait();
-	}
+    GameManagerPool::getInstance().waitForTask(this);
     results_.push_back({
         engineName_,
         epdFileName_,

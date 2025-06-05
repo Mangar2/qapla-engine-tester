@@ -36,6 +36,7 @@ UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::string& identifier)
 	: EngineAdapter(enginePath, workingDirectory, engineConfigName, identifier)
 {
+    noInfo_ = true;
 }
 
 UciAdapter::~UciAdapter() {

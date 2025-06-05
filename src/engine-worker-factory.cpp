@@ -24,6 +24,9 @@
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngineByName(const std::string& name) {
     auto engineConfig = configManager_.getConfig(name);
+    if (!engineConfig) {
+        throw std::runtime_error("Configuration for engine not found, name: " + name);
+    }
     auto executablePath = engineConfig->getExecutablePath();
     auto workingDirectory = engineConfig->getWorkingDirectory();
     auto identifierStr = "#" + std::to_string(identifier_);

@@ -30,19 +30,22 @@
 
 #include "engine-option.h"
 
+
 /**
  * Stores configuration for a chess engine including its executable path,
  * working directory and available options. Supports loading and saving from INI files.
  */
 class EngineConfig {
 public:
+    using Value = std::variant<std::string, int, bool, float>;
+    using ValueMap = std::unordered_map<std::string, Value>;
     /**
      * @brief Creates a fully initialized EngineConfig instance from a value map.
      * @param values A map of parameters for an engine.
      * @return Fully constructed and validated EngineConfig.
      * @throws std::runtime_error if required fields are missing or invalid.
      */
-    static EngineConfig createFromValueMap(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values) {
+    static EngineConfig createFromValueMap(const ValueMap& values) {
 		EngineConfig config;
 		config.setCommandLineOptions(values);
 		return config;
@@ -146,8 +149,8 @@ private:
      * @param values A map of option names and their values.
      * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
      */
-    void setCommandLineOptions(const std::unordered_map<std::string, std::variant<std::string, int, bool>>& values);
-    std::string to_string(const std::variant<std::string, int, bool>& value);
+    void setCommandLineOptions(const ValueMap& values);
+    std::string to_string(const Value& value);
     std::string name;
     std::string executablePath;
     std::string workingDirectory;

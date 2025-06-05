@@ -82,11 +82,6 @@ public:
     void analyzeEpd(const std::string& filepath, const std::string& engineName, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
 
     /**
-     * @brief Stops the analysis. Running tasks may still complete.
-     */
-    void stop();
-
-    /**
      * @brief Waits for all engines to finish.
      * @return true if all tasks completed successfully, false if the analysis was stopped prematurely.
      */
@@ -157,7 +152,6 @@ private:
     void printTestResultLine(const EpdTestCase& current) const;
 
     std::unique_ptr<EpdReader> reader_;
-    std::vector<std::unique_ptr<GameManager>> managers_;
 	std::vector<EpdTestCase> tests_; 
 	TestResults results_;
     std::string engineName_;
