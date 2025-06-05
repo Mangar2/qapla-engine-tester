@@ -65,11 +65,17 @@ public:
 	 * @param count The number of workers to create. Defaults to 1.
 	 * @return A vector of unique pointers to EngineWorker instances.
 	 */
-    static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
+	static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
+
+	static void setSuppressInfoLines(bool suppress) {
+		suppressInfoLines_ = suppress;
+	}
 
 private:
-    static std::unique_ptr<EngineWorker> createEngineByName(const std::string& name);
-    static inline uint32_t identifier_ = 0;
-	static inline EngineConfigManager configManager_; 
+	static std::unique_ptr<EngineWorker> createEngineByName(const std::string& name);
+	static inline uint32_t identifier_ = 0;
+	static inline EngineConfigManager configManager_;
 	static inline ActiveEngines activeEngines_; // List of currently active engines
+
+	static inline bool suppressInfoLines_ = false;
 };

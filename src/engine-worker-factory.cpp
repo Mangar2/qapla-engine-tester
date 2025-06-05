@@ -31,6 +31,7 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngineByName(const std:
     auto workingDirectory = engineConfig->getWorkingDirectory();
     auto identifierStr = "#" + std::to_string(identifier_);
     auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, name, identifierStr);
+    adapter->setSuppressInfoLines(suppressInfoLines_);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, engineConfig->getOptionValues());
     identifier_++;
     return std::move(worker);

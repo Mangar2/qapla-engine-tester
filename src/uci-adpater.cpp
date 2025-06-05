@@ -36,7 +36,7 @@ UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::string& identifier)
 	: EngineAdapter(enginePath, workingDirectory, engineConfigName, identifier)
 {
-    noInfo_ = true;
+    suppressInfoLines_ = true;
 }
 
 UciAdapter::~UciAdapter() {
@@ -437,6 +437,14 @@ EngineEvent UciAdapter::readEvent() {
     std::string command;
     iss >> command;
 
+    if (command == "info") {
+		if (suppressInfoLines_) {
+			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+		}
+        logFromEngine(line, TraceLevel::info);
+        return parseSearchInfo(iss, engineLine.timestampMs, line);
+    }
+
     if (command == "readyok") {
         logFromEngine(line, TraceLevel::handshake);
         return EngineEvent::createReadyOk(identifier_, engineLine.timestampMs, line);
@@ -463,11 +471,6 @@ EngineEvent UciAdapter::readEvent() {
             e.errors.push_back({ "bestmove", err });
         }
         return e;
-    }
-
-    if (command == "info") {
-        logFromEngine(line, TraceLevel::info);
-        return parseSearchInfo(iss, engineLine.timestampMs, line);
     }
 
     if (command == "ponderhit") {

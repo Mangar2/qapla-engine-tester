@@ -65,7 +65,7 @@ std::vector<EngineConfig> EngineConfigManager::getAllConfigs() const {
     return configs;
 }
 
-EngineConfig* EngineConfigManager::getConfig(const std::string& name) {
+const EngineConfig* EngineConfigManager::getConfig(const std::string& name) const {
     for (auto& config : configs) {
         if (CliSettings::to_lowercase(config.getName()) == CliSettings::to_lowercase(name)) return &config;
     }

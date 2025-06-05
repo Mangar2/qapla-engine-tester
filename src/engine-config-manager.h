@@ -64,7 +64,7 @@ public:
      * @param name The name of the engine.
      * @return A pointer to the EngineConfig or nullptr if not found.
      */
-    EngineConfig* getConfig(const std::string& name);
+    const EngineConfig* getConfig(const std::string& name) const;
 
     /**
      * Adds a new configuration or replaces the existing one with the same name.
@@ -92,6 +92,16 @@ public:
             addOrReplaceConfig(config);
         }
     }
+
+	/**
+	 * @brief Add or replaces a single EngineConfig instance from a GroupInstance.
+	 * @param instances The GroupInstance containing the configuration values.
+	 */
+    void addOrReplaceConfiguration(const CliSettings::GroupInstance& instances) {
+		CliSettings::ValueMap map = instances.getValues();
+		EngineConfig config = EngineConfig::createFromValueMap(map);
+		addOrReplaceConfig(config);
+	}
 
 private:
     std::vector<EngineConfig> configs;

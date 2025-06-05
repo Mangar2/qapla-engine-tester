@@ -214,13 +214,9 @@ void EngineWorker::readLoop() {
                 handshakeCv_.notify_all();
             }
 
-			if (eventFilter_ >= EventFilter::EmptyEvent && 
-                (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData)) {
+			if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {
 				continue; 
 			}
-            if (eventFilter_ >= EventFilter::InfoEvent && event.type == EngineEvent::Type::Info) {
-                continue;
-            }
 
             if (eventSink_) {
                 eventSink_(std::move(event));

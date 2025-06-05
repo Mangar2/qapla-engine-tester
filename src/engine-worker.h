@@ -195,6 +195,11 @@ public:
 		return adapter_->getWelcomeMessage();
 	}
 
+	enum class EventFilter {
+		None = 0,
+		EmptyEvent = 1,
+		InfoEvent = 2
+	};
 
 private:
 
@@ -205,12 +210,6 @@ private:
 		failure,
 		stopped,
 		terminated
-	};
-
-	enum class EventFilter {
-		None = 0,
-		EmptyEvent = 1,
-		InfoEvent = 2
 	};
 
 	/*
@@ -278,7 +277,5 @@ private:
 
 	// GameManager communication
 	std::function<void(EngineEvent&&)> eventSink_;
-
-	EventFilter eventFilter_ = EventFilter::InfoEvent;
 
 };

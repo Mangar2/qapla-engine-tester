@@ -52,8 +52,8 @@ bool runEpd() {
 		maxTime = epd.get<int>("maxtime");
 		minTime = epd.get<int>("mintime");
 		seenPlies = epd.get<int>("seenplies");
-		for (const auto& engineConfig : EngineWorkerFactory::getConfigManager().getAllConfigs()) {
-            std::string name = engineConfig.getName();
+		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
+            std::string name = engine.name;
             std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
 			Logger::testLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
@@ -76,9 +76,9 @@ bool runTest() {
     Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
 
     EngineTestController controller;
-    for (const auto& engineConfig : EngineWorkerFactory::getConfigManager().getAllConfigs()) {
+    for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         Checklist::clear();
-        std::string name = engineConfig.getName();
+        std::string name = engine.name;
         try {
             controller.runAllTests(name, test->get<int>("numgames"), test->get<int>("level"));
         }
@@ -107,6 +107,12 @@ bool runSprt() {
             TraceLevel::error);
 		return false;
 	}
+	auto activeEngines = EngineWorkerFactory::getActiveEngines();
+    if (activeEngines.size() < 2) {
+        Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
+            TraceLevel::error);
+        return false;
+    }
     Logger::testLogger().setLogFile("sprt-report");
     Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
     TimeControl tc;
@@ -129,8 +135,8 @@ bool runSprt() {
             }
         };
         int concurrency = CliSettings::Manager::get<int>("concurrency");
-        std::string engineName0 = sprt->get<std::string>("engine1");
-        std::string engineName1 = sprt->get<std::string>("engine2");
+        std::string engineName0 = activeEngines[0].name;
+        std::string engineName1 = activeEngines[1].name;
 
         SprtManager manager;
         //manager.runMonteCarloTest();
@@ -150,25 +156,25 @@ bool runSprt() {
 
 void handlePgnOptions() {
     auto pgnOptionInstance = CliSettings::Manager::getGroupInstance("pgnoutput");
-    if (!pgnOptionInstance) {
-        auto pgn = *pgnOptionInstance;
-        PgnIO::Options pgnOptions{
-            .file = pgn.get<std::string>("file"),
-            .append = pgn.get<bool>("append"),
-            .onlyFinishedGames = pgn.get<bool>("fi"),
-            .minimalTags = pgn.get<bool>("min"),
-            //.saveAfterMove = pgn.get<bool>("aftermove"),
-            .includeClock = pgn.get<bool>("clock"),
-            .includeEval = pgn.get<bool>("eval"),
-            .includePv = pgn.get<bool>("pv"),
-            .includeDepth = pgn.get<bool>("depth")
-        };
-        PgnIO::tournament().setOptions(pgnOptions);
-    }
+    if (!pgnOptionInstance) return;
+
+    auto pgn = *pgnOptionInstance;
+    PgnIO::Options pgnOptions{
+        .file = pgn.get<std::string>("file"),
+        .append = pgn.get<bool>("append"),
+        .onlyFinishedGames = pgn.get<bool>("fi"),
+        .minimalTags = pgn.get<bool>("min"),
+        //.saveAfterMove = pgn.get<bool>("aftermove"),
+        .includeClock = pgn.get<bool>("clock"),
+        .includeEval = pgn.get<bool>("eval"),
+        .includePv = pgn.get<bool>("pv"),
+        .includeDepth = pgn.get<bool>("depth")
+    };
+    PgnIO::tournament().setOptions(pgnOptions);
 }
 
 void handleEngineOptions() {
-
+	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("noinfo"));
     std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
@@ -178,13 +184,25 @@ void handleEngineOptions() {
         std::string cmd = engine.get<std::string>("cmd");
         std::string conf = engine.get<std::string>("conf");
         std::string name = engine.get<std::string>("name");
-        if (cmd.empty() && conf.empty()) {
+        std::string active = "";
+        if (!cmd.empty()) {
+            EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfiguration(engine);
+			active = !name.empty() ? name : cmd;
+		}
+		else if (!conf.empty()) {
+			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+			if (!engineConfig) {
+				throw std::runtime_error("Engine configuration '" + conf + "' not found.");
+			}
+			active = engineConfig->getName();
+		}
+		else {
             std::string engineName = name.empty() ? "" : " (for " + name + ")";
             throw std::runtime_error("No engine command or configuration provided"
                 + engineName + ".Please specify either 'cmd' or 'conf'.");
-        }
+		}
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(ActiveEngine{ .name = active });
     }
-    EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfigurations(engineSettings);
 }
 
 int main(int argc, char** argv) {
@@ -198,7 +216,10 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettings::ValueType::Int);
-		CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
+        CliSettings::Manager::registerSetting("noinfo",
+            "Ignore engine info output. Use this option for extremely fast games (e.g., 2s+10ms per move) to minimize the tester's impact on performance.",
+            false, false, CliSettings::ValueType::Bool);
+        CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
 			CliSettings::ValueType::PathExists);
 		CliSettings::Manager::registerSetting("enginelog", "Enable engine logging", false, false,
 			CliSettings::ValueType::Bool);
@@ -234,9 +255,7 @@ int main(int argc, char** argv) {
             { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", true, "", CliSettings::ValueType::Int } },
             { "alpha", { "Type I error threshold", true, "", CliSettings::ValueType::Float } },
             { "beta",  { "Type II error threshold", true, "", CliSettings::ValueType::Float } },
-            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
-            { "engine1", { "Name of the first engine", true, "", CliSettings::ValueType::String } },
-            { "engine2", { "Name of the second engine", true, "", CliSettings::ValueType::String } }
+            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } }
             });
 
         CliSettings::Manager::registerGroup("openings", "Defines how start positions are selected", true, {
@@ -279,10 +298,10 @@ int main(int argc, char** argv) {
 			
     }
 	catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during engine test: " + std::string(e.what()), TraceLevel::error);
+		Logger::testLogger().log(std::string(e.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::testLogger().log("Unknown exception during engine test.", TraceLevel::error);
+		Logger::testLogger().log("Unknown exception, program terminated.", TraceLevel::error);
 	}
     
 	timer.printElapsed("Total runtime: ");

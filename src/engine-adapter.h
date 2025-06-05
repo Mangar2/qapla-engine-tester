@@ -203,6 +203,10 @@ public:
 		return welcomeMessage_;
 	}
 
+	void setSuppressInfoLines(bool suppress) {
+		suppressInfoLines_ = suppress;
+	}
+
 protected:
     
     /**
@@ -232,6 +236,6 @@ protected:
     std::string identifier_;
 
 	bool ponderMode_ = false;
-    bool noInfo_ = false;
+    bool suppressInfoLines_ = false;
 
 };
