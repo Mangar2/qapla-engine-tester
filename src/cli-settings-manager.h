@@ -170,6 +170,22 @@ namespace CliSettings {
 
     private:
 
+        struct ParsedParameter {
+            std::string original;               // full raw input, for error reporting
+            bool hasPrefix;                     // true if starts with "--"
+            std::string name;                   // key part, never empty
+            std::optional<std::string> value;   // optional value part
+        };
+
+        /**
+         * Splits a raw command line argument into syntactic parts:
+         * prefix (if any), name, and optional value.
+         * Does not perform semantic interpretation.
+         * @param raw The raw argument string, e.g. "--foo=bar" or "baz".
+         * @return ParsedParameter with decomposed components.
+         */
+        static ParsedParameter parseParameter(const std::string& raw);
+
         /**
          * @brief Parses a single global parameter at the given position.
          * @param index Current index in argv array.
@@ -212,6 +228,6 @@ namespace CliSettings {
         static inline GroupInstancesMap groupInstances_;
 
         static void showHelp();
-        static Value parseValue(const std::string& input, const Definition& def);
+        static Value parseValue(const ParsedParameter& arg, const Definition& def);
     };
 }

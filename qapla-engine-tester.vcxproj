@@ -159,6 +159,7 @@
     <ClCompile Include="src\uci-adpater.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\app-error.h" />
     <ClInclude Include="src\bitboardmasks.h" />
     <ClInclude Include="src\bits.h" />
     <ClInclude Include="src\board.h" />

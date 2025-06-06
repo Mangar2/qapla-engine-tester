@@ -24,6 +24,8 @@
 #include <cstdlib>
 #include <filesystem>
 
+#include "app-error.h"
+
 namespace CliSettings {
 
     void Manager::registerSetting(const std::string& name,
@@ -65,23 +67,46 @@ namespace CliSettings {
         return it->second[0];
     }
 
+    Manager::ParsedParameter Manager::parseParameter(const std::string& raw) {
+        ParsedParameter result;
+        result.original = raw;
+
+        std::string working = to_lowercase(raw);
+
+        result.hasPrefix = working.rfind("--", 0) == 0;
+        if (result.hasPrefix) {
+            working = working.substr(2);
+        }
+
+        auto eqPos = working.find('=');
+        if (eqPos == std::string::npos) {
+            result.name = working;
+            result.value = std::nullopt;
+        }
+        else {
+            result.name = working.substr(0, eqPos);
+            result.value = working.substr(eqPos + 1);
+        }
+
+        return result;
+    }
+
     void Manager::parseCommandLine(int argc, char** argv) {
         int index = 1;
 
         while (index < argc) {
-            std::string arg = to_lowercase(argv[index]);
+            auto arg = parseParameter(argv[index]);
 
-            if (arg == "--help") {
+            if (arg.original == "--help") {
                 showHelp();
                 exit(0);
             }
 
-            if (arg.rfind("--", 0) != 0) {
-                throw std::runtime_error("Invalid argument format: " + arg);
+            if (!arg.hasPrefix) {
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" must start with \"--\"");
             }
 
-            std::string name = arg.substr(2);
-            if (groupDefs_.find(name) != groupDefs_.end()) {
+            if (groupDefs_.find(arg.name) != groupDefs_.end()) {
                 index = parseGroupedParameter(index, argc, argv);
             }
             else {
@@ -93,21 +118,16 @@ namespace CliSettings {
     }
 
     int Manager::parseGlobalParameter(int index, int argc, char** argv) {
-        std::string arg = argv[index];
+        auto arg = parseParameter(argv[index]);
 
-        auto eqPos = arg.find('=');
-        if (arg.rfind("--", 0) != 0 || eqPos == std::string::npos)
-            throw std::runtime_error("Invalid global parameter format: " + arg);
+        if (!arg.hasPrefix)
+            throw AppError::makeInvalidParameters("\"" + arg.original + "\" must be in the form --name=value");
 
-        std::string name = arg.substr(2, eqPos - 2);
-        std::string value = arg.substr(eqPos + 1);
-        std::string key = to_lowercase(name);
-
-        auto it = definitions_.find(key);
+        auto it = definitions_.find(arg.name);
         if (it == definitions_.end())
-            throw std::runtime_error("Unknown global parameter: " + name);
+            throw AppError::makeInvalidParameters("\"" + arg.name + "\" is not a valid global parameter");
 
-        values_[key] = parseValue(value, it->second);
+        values_[arg.name] = parseValue(arg, it->second);
         return index + 1;
     }
 
@@ -126,35 +146,31 @@ namespace CliSettings {
     }
 
     int Manager::parseGroupedParameter(int index, int argc, char** argv) {
-        std::string groupName = to_lowercase(argv[index++]).substr(2);
+        auto groupArg = parseParameter(argv[index]);
+        index++;
 
-        auto defIt = groupDefs_.find(groupName);
+        auto defIt = groupDefs_.find(groupArg.name);
         if (defIt == groupDefs_.end())
-            throw std::runtime_error("Unknown group: " + groupName);
+            throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" is not a valid parameter");
 
         const auto& groupDefinition = defIt->second;
         ValueMap group;
 
-		if (groupDefinition.unique && groupInstances_.contains(groupName)) {
-			throw std::runtime_error("Group '" + groupName + "' can only be defined once.");
+		if (groupDefinition.unique && groupInstances_.contains(groupArg.name)) {
+            throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" may only be specified once");
 		}
 
         while (index < argc) {
-            std::string arg = to_lowercase(argv[index]);
+			auto arg = parseParameter(argv[index]);
 
-            if (arg.rfind("--", 0) == 0) break;
+			// this is not a parameter of the group, so we stop parsing
+            if (arg.hasPrefix) break;
 
-            auto eqPos = arg.find('=');
-            if (eqPos == std::string::npos)
-                throw std::runtime_error("Invalid group parameter format: " + arg);
-
-            std::string name = arg.substr(0, eqPos);
-            std::string value = arg.substr(eqPos + 1);
-
-            const Definition* def = resolveGroupedKey(groupDefinition, name);
+            const Definition* def = resolveGroupedKey(groupDefinition, arg.name);
             if (!def)
-                throw std::runtime_error("Unknown parameter '" + name + "' in group '" + groupName + "'");
-            group[name] = parseValue(value, *def);
+                throw AppError::makeInvalidParameters(
+                    "Unknown parameter \"" + arg.name + "\" in section \"" + groupArg.name + "\"");
+            group[arg.name] = parseValue(arg, *def);
 
             ++index;
         }
@@ -163,12 +179,13 @@ namespace CliSettings {
             if (key.ends_with(".[name]")) continue;
             if (group.contains(key)) continue;
             if (def.isRequired)
-                throw std::runtime_error("Missing required parameter '" + key + "' in group '" + groupName + "'");
+                throw AppError::makeInvalidParameters(
+                    "Missing required parameter \"" + key + "\" in section \"" + groupArg.name + "\"");
             if (!def.defaultValue.valueless_by_exception())
                 group[key] = def.defaultValue;
         }
 
-        groupInstances_[groupName].emplace_back(group, groupDefinition);
+        groupInstances_[groupArg.name].emplace_back(group, groupDefinition);
         return index;
     }
 
@@ -180,7 +197,8 @@ namespace CliSettings {
                 std::string input;
                 std::cout << key << " (required): ";
                 std::getline(std::cin, input);
-                values_[key] = parseValue(input, def);
+                values_[key] = parseValue(
+                    ParsedParameter{ .hasPrefix = false, .name = key, .value = input }, def);
             }
             else if (!def.isRequired && !def.defaultValue.valueless_by_exception()) {
                 values_[key] = def.defaultValue;
@@ -251,42 +269,45 @@ namespace CliSettings {
             }
         }
     }
-
-
-    Value Manager::parseValue(const std::string& input, const Definition& def) {
+    
+    Value Manager::parseValue(const ParsedParameter& arg, const Definition& def) {
+        if (def.type == ValueType::Bool) {
+            if (!arg.value) return true;
+            if (*arg.value == "true" || *arg.value == "1") {
+                return true;
+            }
+            else if (*arg.value == "false" || *arg.value == "0") {
+                return false;
+            }
+            else {
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected true, false, 1 or 0");
+            }
+        }
+		if (!arg.value) {
+    		throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+		}
         if (def.type == ValueType::Int) {
             try {
-                return stoi(input);
+                return stoi(*arg.value);
             }
             catch (...) {
-                throw std::runtime_error("Invalid integer: " + input);
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected integer");
             }
         }
         if (def.type == ValueType::Float) {
             try {
-                return std::stof(input);
+                return std::stof(*arg.value);
             }
             catch (...) {
-                throw std::runtime_error("Invalid float: " + input);
-            }
-        }
-        if (def.type == ValueType::Bool) {
-            if (input == "true" || input == "1") {
-                return true;
-            }
-            else if (input == "false" || input == "0") {
-                return false;
-            }
-            else {
-                throw std::runtime_error("Invalid boolean value: " + input);
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected float");
             }
         }
         if (def.type == ValueType::PathExists) {
-            if (!std::filesystem::exists(input)) {
-                throw std::runtime_error("Path does not exist: " + input);
+            if (!std::filesystem::exists(*arg.value)) {
+                throw AppError::makeInvalidParameters("The path in \"" + arg.original + "\" does not exist");
             }
         }
 
-        return input;
+        return *arg.value;
     }
 }

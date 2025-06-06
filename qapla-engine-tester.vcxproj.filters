@@ -245,6 +245,9 @@
     <ClInclude Include="src\pgn-io.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\app-error.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

@@ -24,6 +24,7 @@
  */
 
 #include <map>
+#include <array>
 #include <algorithm>
 #include "checklist.h"
 
@@ -50,11 +51,18 @@ void Checklist::addMissingTopicsAsFail() {
     }
 }
 
-void Checklist::log() {
+AppReturnCode Checklist::log() {
+	AppReturnCode code = AppReturnCode::NoError;
     Logger::testLogger().log("\n== Summary ==\n");
 	Logger::testLogger().log(name_ + " by " + author_ + "\n");
 
-    enum class Section { Important, Missbehaviour, Notes };
+    enum class Section { Important = 0, Missbehaviour = 1, Notes = 2};
+	std::array<AppReturnCode, 3> sectionCodes = {
+		AppReturnCode::EngineError, // Important
+		AppReturnCode::EngineMissbehaviour, // Missbehaviour
+		AppReturnCode::EngineNote // Notes
+	};
+
     const std::unordered_map<std::string, Section> topicSections = {
         { "Engine starts and stops fast and without problems", Section::Important },
         { "Engine Options works safely", Section::Important },
@@ -101,7 +109,11 @@ void Checklist::log() {
         bool lastWasFail = false;
         for (const auto& [topic, stat] : sorted) {
             const bool passed = stat.total > 0 && stat.failures == 0;
+			if (code == AppReturnCode::NoError && !passed) {
+				code = sectionCodes[static_cast<int>(section)];
+			}
             if (passed && lastWasFail) {
+				// An empty line between fail and pass topics
                 Logger::testLogger().log("");
             }
             std::ostringstream line;
@@ -115,6 +127,7 @@ void Checklist::log() {
         }
         Logger::testLogger().log("");
     }
+    return code;
 }
 
 

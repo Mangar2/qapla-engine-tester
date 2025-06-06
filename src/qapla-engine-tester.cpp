@@ -23,6 +23,7 @@
 #include <utility>
 #include <iostream>
 
+#include "app-error.h"
 #include "checklist.h"
 #include "engine-test-controller.h"
 #include "logger.h"
@@ -33,6 +34,9 @@
 #include "timer.h"
 #include "time-control.h"
 #include "pgn-io.h"
+#include <errno.h>
+
+auto i = EIO;
 
 bool runEpd() {
     auto epdList = CliSettings::Manager::getGroupInstances("epd");
@@ -65,22 +69,21 @@ bool runEpd() {
     return true;
 }
 
-bool runTest() {
-    auto test = CliSettings::Manager::getGroupInstance("test");
-    if (!test) {
-        return false; 
-    }
+AppReturnCode runTest(const CliSettings::GroupInstance& test) {
     Logger::testLogger().setLogFile("engine-report");
     Logger::testLogger().setTraceLevel(TraceLevel::warning);
     Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
     Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
 
     EngineTestController controller;
+	auto code = AppReturnCode::NoError;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         Checklist::clear();
         std::string name = engine.name;
         try {
-            controller.runAllTests(name, test->get<int>("numgames"), test->get<int>("level"));
+            controller.runAllTests(name, 
+                test.get<int>("numgames"), 
+                test.get<int>("level"));
         }
 		catch (const std::exception& e) {
 			Logger::testLogger().log("Exception during engine test for " + name + ": " + std::string(e.what()), TraceLevel::error);
@@ -88,9 +91,10 @@ bool runTest() {
 		catch (...) {
 			Logger::testLogger().log("Unknown exception during engine test for " + name, TraceLevel::error);
 		}
-        Checklist::log();
+        auto newCode = Checklist::log();
+		code = code == AppReturnCode::NoError ? newCode : std::min(code, newCode);
     }
-    return true;
+    return code;
 }
 
 bool runSprt() {
@@ -192,6 +196,8 @@ void handleEngineOptions() {
 		else if (!conf.empty()) {
 			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
 			if (!engineConfig) {
+				throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory),
+					"Engine configuration '" + conf + "' not found.");
 				throw std::runtime_error("Engine configuration '" + conf + "' not found.");
 			}
 			active = engineConfig->getName();
@@ -210,6 +216,7 @@ int main(int argc, char** argv) {
     bool isEngineTest = false;
     Timer timer;
     timer.start();
+    AppReturnCode returnCode = AppReturnCode::NoError;
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::commands);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.3.0 (c) by Volker Boehm\n");
@@ -294,14 +301,22 @@ int main(int argc, char** argv) {
 		}
         runSprt();
         runEpd();
-        runTest();
+        if (auto test = CliSettings::Manager::getGroupInstance("test")) {
+            returnCode = runTest(*test);
+        }
 			
+    }
+    catch (const AppError& ex) {
+		Logger::testLogger().log("Application error: " + std::string(ex.what()), TraceLevel::error);
+        returnCode = ex.getReturnCode();
     }
 	catch (const std::exception& e) {
 		Logger::testLogger().log(std::string(e.what()), TraceLevel::error);
+        returnCode = AppReturnCode::GeneralError;
 	}
 	catch (...) {
 		Logger::testLogger().log("Unknown exception, program terminated.", TraceLevel::error);
+		returnCode = AppReturnCode::GeneralError;
 	}
     
 	timer.printElapsed("Total runtime: ");
@@ -309,6 +324,6 @@ int main(int argc, char** argv) {
         std::cout << "Press Enter to quit...";
         std::cin.get();
     }
-    return 0;
+    return static_cast<int>(returnCode);
 }
 

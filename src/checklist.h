@@ -28,6 +28,7 @@
 #include <string>
 #include <unordered_map>
 #include "logger.h"
+#include "app-error.h"
 
 class Checklist {
 public:
@@ -81,7 +82,7 @@ public:
     /**
 	 * @brief Logs the results of all tests to the test logger.
      */
-    static void log();
+    static AppReturnCode log();
 
     /**
 	 * @brief Sets the engine name and author.
