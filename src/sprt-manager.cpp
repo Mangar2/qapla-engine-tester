@@ -29,7 +29,8 @@ bool SprtManager::wait() {
     return true;
 };
 
-void SprtManager::runSprt(const std::string& engineName0, const std::string& engineName1, int concurrency, const SprtConfig& config) {
+void SprtManager::runSprt(
+    const std::string& engineName0, const std::string& engineName1, int concurrency, const SprtConfig& config) {
 	config_ = config;
 	engineP1Name_ = engineName0;
 	engineP2Name_ = engineName1;
@@ -130,13 +131,18 @@ void SprtManager::setGameRecord(const std::string& whiteId,
         resultText = "Unterminated game";
         break;
     }
-    auto info = computeSprt().second;
+    auto [decision, info] = computeSprt();
     std::ostringstream oss; 
     oss << engineP1Name_ 
         << " W:" << winsP1_ << " D:" << draws_ << " L:" << winsP2_
         << " " << to_string(cause)
         << " " << info;
-    Logger::testLogger().log(oss.str(), TraceLevel::results);
+    if (!decision_) {
+        // Only long a decision once
+        Logger::testLogger().log(oss.str(), TraceLevel::results);
+    }
+	// Ignore changes of the decision after a decision has been made
+    if (decision) decision_ = decision;
     PgnIO::tournament().saveGame(record);
 }
 
@@ -267,23 +273,25 @@ void SprtManager::testAgainstConfidenceMethod() {
 }
 */
 
-void SprtManager::runMonteCarloTest() {
-    constexpr int simulationsPerElo = 5000;
-    constexpr int maxGames = 100000;
+void SprtManager::runMonteCarloTest(const SprtConfig& config) {
+	config_ = config;
+    constexpr int simulationsPerElo = 1000;
     constexpr double drawRate = 0.4;
     constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 1, 5, 10, 15, 20, 25 };
 
     std::cout << "EloDiff, CorrectDecisions, TotalGames\n";
-	config_.alpha = 0.05f; // Type I error threshold
-	config_.beta = 0.02f; // Type II error threshold
-    config_.eloLower = -4;
-    config_.eloUpper = 10;
     engineP1Name_ = "P1";
 	engineP2Name_ = "P2";
 
     for (int elo : eloDiffs) {
-        int correctDecisions = 0;
-        int totalGames = 0;
+        int64_t correctDecisions = 0;
+		int64_t noDecisions = 0;
+        int64_t totalGames = 0;
+
+		if (elo == config_.eloLower || elo == config_.eloUpper) {
+			// Skip the exact boundaries, as they are not producing meaningful results
+			continue;
+		}
 
         for (int sim = 0; sim < simulationsPerElo; ++sim) {
             // Reset intern
@@ -304,18 +312,12 @@ void SprtManager::runMonteCarloTest() {
             std::optional<bool> decision;
             int g = 0;
 
-            for (; g < maxGames; ++g) {
+            for (; g < config_.maxGames; ++g) {
                 double r = (double)rand() / RAND_MAX;
                 if (r < winProb) ++winsP1_;
                 else if (r < winProb + drawRate) ++draws_;
                 else ++winsP2_;
                 auto [result, info] = computeSprt();
-                /*
-                if (g % 10000 == 0) {
-                    std::cout << "W:" << winsP1_ << " D:" << draws_ << " L:" << winsP2_ << " (Game " << g + 1 << ") "
-                        << info << "\n";
-                }
-                */
                 if (result.has_value()) {
                     decision = result;
                     break;
@@ -323,15 +325,22 @@ void SprtManager::runMonteCarloTest() {
             }
 
             if (decision.has_value()) {
-                bool correct = (elo >= config_.eloLower && *decision) ||
-                    (elo <= config_.eloLower && !*decision) ;
-                if (correct) ++correctDecisions;
+				if (!decision) {
+					++noDecisions;
+				}
+                else {
+                    bool correct = (elo >= config_.eloLower && *decision) ||
+                        (elo <= config_.eloLower && !*decision);
+                    if (correct) ++correctDecisions;
+                }
                 totalGames += (g + 1);
             }
         }
 
         double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
-        std::cout << elo << ", " << correctDecisions << ", " << avgGames << "\n";
+		std::cout << "Simulated Elo: " << elo 
+            << " No Decisions " << (noDecisions * 100) / avgGames << "%"
+			<< " Correct Decisions: " << (correctDecisions * 100) / avgGames << "%\n";
     }
 }
 

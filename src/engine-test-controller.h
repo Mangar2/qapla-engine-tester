@@ -34,9 +34,8 @@ public:
      * @brief Runs the full suite of tests in a controlled sequence.
 	 * @param engineName The name of the engine to test.
 	 * @param numGames The number of games to run in the compute game test.
-	 * @param level The test leve (0 = all, 1=nice, 2=destructive)
      */
-    void runAllTests(std::string engineName, int numGames, int level);
+    void runAllTests(std::string engineName, int numGames);
 
 private:
     bool startStopSucceeded = false;
@@ -102,6 +101,8 @@ private:
 	 * @brief Tests the engine's ability to analyze a position.
      */
     void runAnalyzeTest();
+    void runImmediateStopTest();
+	void runInfiniteAnalyzeTest();
 
     /**
      * @brief computes a list of moves for epd test positions
@@ -131,6 +132,4 @@ private:
     std::unique_ptr<GameManager> gameManager_;
     std::string engineName_;
     int numGames_ = 20;
-	int testLevel_ = 0; 
-
 };

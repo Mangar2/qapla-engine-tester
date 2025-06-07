@@ -25,10 +25,12 @@
 enum class AppReturnCode {
     NoError = 0,
     GeneralError = 1,
-	InvalidParameters = 2,
+    InvalidParameters = 2,
     EngineError = 10,
     EngineMissbehaviour = 11,
-    EngineNote = 12
+    EngineNote = 12,
+    MissedTarget = 13,
+    UndefinedResult = 14
 };
 
  /**

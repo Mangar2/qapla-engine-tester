@@ -51,7 +51,7 @@ void Checklist::addMissingTopicsAsFail() {
     }
 }
 
-AppReturnCode Checklist::log() {
+AppReturnCode Checklist::log(TraceLevel traceLevel) {
 	AppReturnCode code = AppReturnCode::NoError;
     Logger::testLogger().log("\n== Summary ==\n");
 	Logger::testLogger().log(name_ + " by " + author_ + "\n");
@@ -93,7 +93,7 @@ AppReturnCode Checklist::log() {
     };
 
     for (const auto& [section, entries] : sectionTitles) {
-        Logger::testLogger().log("[" + entries + "]");
+        Logger::testLogger().log("[" + entries + "]", traceLevel);
         auto sorted = grouped[section];
         std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
             const bool aFail = a.second.total > 0 && a.second.failures > 0;
@@ -114,7 +114,7 @@ AppReturnCode Checklist::log() {
 			}
             if (passed && lastWasFail) {
 				// An empty line between fail and pass topics
-                Logger::testLogger().log("");
+                Logger::testLogger().log("", traceLevel);
             }
             std::ostringstream line;
             line << (passed ? "PASS " : "FAIL ");
@@ -123,9 +123,9 @@ AppReturnCode Checklist::log() {
                 line << "(" << stat.failures << " failed)";
             }
             lastWasFail = !passed;
-            Logger::testLogger().log(line.str());
+            Logger::testLogger().log(line.str(), traceLevel);
         }
-        Logger::testLogger().log("");
+        Logger::testLogger().log("", traceLevel);
     }
     return code;
 }

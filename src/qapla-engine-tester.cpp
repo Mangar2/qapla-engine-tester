@@ -34,15 +34,19 @@
 #include "timer.h"
 #include "time-control.h"
 #include "pgn-io.h"
-#include <errno.h>
 
-auto i = EIO;
+auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::commands) {
+    auto newCode = Checklist::log();
+    if (code == AppReturnCode::NoError) {
+        code = newCode;
+    }
+    else if (code >= AppReturnCode::EngineError) {
+        code = std::min(code, newCode);
+    }
+    return code;
+}
 
-bool runEpd() {
-    auto epdList = CliSettings::Manager::getGroupInstances("epd");
-	if (epdList.empty()) {
-		return false; // No EPD settings provided
-	}
+auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 	int concurrency = CliSettings::Manager::get<int>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
     Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
@@ -64,58 +68,72 @@ bool runEpd() {
                 + earlyStop);
             epdManager.analyzeEpd(file, name, concurrency, maxTime, minTime, seenPlies);
             epdManager.wait();
+			code = logChecklist(code, TraceLevel::info);
+			auto minSuccess = epd.get<int>("minsuccess");
+            if (code == AppReturnCode::NoError) {
+                bool success = epdManager.getSuccessRate() >= minSuccess / 100.0;
+				code = success ? AppReturnCode::NoError : AppReturnCode::MissedTarget;
+            }
 		}
 	}
-    return true;
+    return code;
 }
 
-AppReturnCode runTest(const CliSettings::GroupInstance& test) {
+AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
     Logger::testLogger().setLogFile("engine-report");
     Logger::testLogger().setTraceLevel(TraceLevel::warning);
-    Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
+    if (!Logger::engineLogger().getFilename().empty()) {
+        Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
+    }
     Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
 
     EngineTestController controller;
-	auto code = AppReturnCode::NoError;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         Checklist::clear();
         std::string name = engine.name;
         try {
+			Checklist::reportUnderruns = test.get<bool>("underrun");
             controller.runAllTests(name, 
-                test.get<int>("numgames"), 
-                test.get<int>("level"));
+                test.get<int>("numgames"));
+        }
+        catch (const AppError& ex) {
+            Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 
+                TraceLevel::error);
+            code = ex.getReturnCode();
         }
 		catch (const std::exception& e) {
-			Logger::testLogger().log("Exception during engine test for " + name + ": " + std::string(e.what()), TraceLevel::error);
+			Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(e.what()), 
+                TraceLevel::error);
+            code = AppReturnCode::GeneralError;
 		}
 		catch (...) {
 			Logger::testLogger().log("Unknown exception during engine test for " + name, TraceLevel::error);
+            code = AppReturnCode::GeneralError;
 		}
-        auto newCode = Checklist::log();
-		code = code == AppReturnCode::NoError ? newCode : std::min(code, newCode);
+        code = logChecklist(code);
     }
     return code;
 }
 
-bool runSprt() {
+auto runSprt(AppReturnCode code) {
     auto sprt = CliSettings::Manager::getGroupInstance("sprt");
 	auto opening = CliSettings::Manager::getGroupInstance("openings");    
-    if (!sprt) return false;
+    if (!sprt) return code;
     if (!opening) {
 		Logger::testLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
-        return false;
+        return AppReturnCode::InvalidParameters;
     }
 	auto tcSetting = CliSettings::Manager::get<std::string>("tc");
 	if (tcSetting.empty()) {
 		Logger::testLogger().log("No time control defined for SPRT tests. Please define a time control, see --help for more info.", 
             TraceLevel::error);
-		return false;
+		return AppReturnCode::InvalidParameters;
 	}
 	auto activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2) {
         Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
             TraceLevel::error);
-        return false;
+        return AppReturnCode::InvalidParameters;
     }
     Logger::testLogger().setLogFile("sprt-report");
     Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
@@ -143,19 +161,29 @@ bool runSprt() {
         std::string engineName1 = activeEngines[1].name;
 
         SprtManager manager;
-        //manager.runMonteCarloTest();
-        manager.runSprt(engineName0, engineName1, concurrency, config);
-        manager.wait();
+		if (CliSettings::Manager::get<bool>("montecarlo")) {
+            manager.runMonteCarloTest(config);
+		}
+        else {
+            manager.runSprt(engineName0, engineName1, concurrency, config);
+            manager.wait();
+            code = logChecklist(code);
+            if (code == AppReturnCode::NoError) {
+                auto decision = manager.getDecision();
+				code = !decision ? AppReturnCode::UndefinedResult : 
+                    (*decision ? AppReturnCode::NoError : AppReturnCode::MissedTarget);
+            }
+        }
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Exception during sprt run: " + std::string(e.what()), TraceLevel::error);
-        return false;
+        return AppReturnCode::GeneralError;
     }
     catch (...) {
         Logger::testLogger().log("Unknown exception during sprt run: ", TraceLevel::error);
-        return false;
+        return AppReturnCode::GeneralError;
     }
-    return true;
+    return code;
 }
 
 void handlePgnOptions() {
@@ -239,7 +267,8 @@ int main(int argc, char** argv) {
             { "file",      { "Path and file name to the epd file", true, "speelman Endgame.epd", CliSettings::ValueType::PathExists } },
             { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
             { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
-            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } }
+            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
+            { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::Int} }
             });
 
         CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", false, {
@@ -262,7 +291,8 @@ int main(int argc, char** argv) {
             { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", true, "", CliSettings::ValueType::Int } },
             { "alpha", { "Type I error threshold", true, "", CliSettings::ValueType::Float } },
             { "beta",  { "Type II error threshold", true, "", CliSettings::ValueType::Float } },
-            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } }
+            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
+			{ "montecarlo", { "Run Monte Carlo test instead of SPRT", false, false, CliSettings::ValueType::Bool } }
             });
 
         CliSettings::Manager::registerGroup("openings", "Defines how start positions are selected", true, {
@@ -274,9 +304,15 @@ int main(int argc, char** argv) {
             { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
             });
 
-        CliSettings::Manager::registerGroup("test", "Test engines", true, {
-            { "numgames",  { "Number of test games to play", false, 20, CliSettings::ValueType::Int } },
-            { "level",     { "Test level (0=all, 1=nice, 2=destructive)", false, 0, CliSettings::ValueType::Int } }
+        CliSettings::Manager::registerGroup("test", "Test the engine", true, {
+            { "nomemory",   { "Skip hash table memory usage test", false, false, CliSettings::ValueType::Bool } },
+            { "nostop",     { "Skip immediate stop response test", false, false, CliSettings::ValueType::Bool } },
+            { "nowait",     { "Skip check that infinite search never returns", false, false, CliSettings::ValueType::Bool } },
+            { "noepd",      { "Skip EPD bestmove test", false, false, CliSettings::ValueType::Bool } },
+            { "underrun",   { "Check for movetime underruns", false, false, CliSettings::ValueType::Bool } },
+            { "timeusage",  { "Check time usage in test games", false, false, CliSettings::ValueType::Bool } },
+            { "numgames",   { "Number of test games to run", false, 20, CliSettings::ValueType::Int } },
+            { "level",      { "Test level (0 = all, 1 = safe, 2 = destructive)", false, 0, CliSettings::ValueType::Int } }
             });
 
         CliSettings::Manager::registerGroup("pgnoutput", "PGN output settings", true, {
@@ -299,11 +335,18 @@ int main(int argc, char** argv) {
 		if (CliSettings::Manager::get<bool>("enginelog")) {
             Logger::engineLogger().setLogFile("qapla-engine-trace");
 		}
-        runSprt();
-        runEpd();
+		AppReturnCode code = AppReturnCode::NoError;
+
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
-            returnCode = runTest(*test);
+            returnCode = runTest(*test, code);
         }
+
+        auto epdList = CliSettings::Manager::getGroupInstances("epd");
+        if (!epdList.empty()) {
+            code = runEpd(epdList, code);
+        }
+        
+        code = runSprt(code);
 			
     }
     catch (const AppError& ex) {

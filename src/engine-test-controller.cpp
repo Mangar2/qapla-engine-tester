@@ -26,6 +26,7 @@
 #include "checklist.h"
 #include "cli-settings-manager.h"
 #include "epd-test-manager.h"
+#include "game-manager-pool.h"
 
 void EngineTestController::createGameManager(bool singleEngine) {
     gameManager_ = std::make_unique<GameManager>();
@@ -75,19 +76,29 @@ std::string bytesToMB(int64_t bytes) {
 	return oss.str();
 }
 
-void EngineTestController::runAllTests(std::string engineName, int numGames, int testLevel) {
+void EngineTestController::runAllTests(std::string engineName, int numGames) {
     try {
+        auto testSettings = *CliSettings::Manager::getGroupInstance("test");
         engineName_ = engineName;
-		numGames_ = numGames;
-		testLevel_ = testLevel;
+        numGames_ = numGames;
         createGameManager(true);
         runStartStopTest();
         runMultipleStartStopTest(20);
-        runHashTableMemoryTest();
+        if (!testSettings.get<bool>("nomemory")) {
+            runHashTableMemoryTest();
+        }
         runEngineOptionTests();
         runAnalyzeTest();
+		if (!testSettings.get<bool>("nostop")) {
+            runImmediateStopTest();
+        }
+		if (!testSettings.get<bool>("nowait")) {
+            runInfiniteAnalyzeTest();
+        }
         runGoLimitsTests();
-        runEpdTests();
+		if (!testSettings.get<bool>("noepd")) {
+			runEpdTests();
+		}
         runComputeGameTest();
         runMultipleGamesTest();
         gameManager_->stop();
@@ -171,7 +182,6 @@ void EngineTestController::runStartStopTest() {
 }
 
 void EngineTestController::runMultipleStartStopTest(int numEngines) {
-    if (testLevel_ == 1) return;
     runTest("Engine starts and stops fast and without problems", [this, numEngines]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
@@ -328,7 +338,6 @@ std::pair<bool, std::string> EngineTestController::setOption(const std::string& 
 
 
 void EngineTestController::runEngineOptionTests() {
-    if (testLevel_ == 1) return;
     int errors = 0;
 
     if (!gameManager_) {
@@ -399,57 +408,53 @@ void EngineTestController::runEngineOptionTests() {
 void EngineTestController::runAnalyzeTest() {
     static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
-    static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
 
     runTest("Engine reacts on stop", [this]() -> std::pair<bool, std::string> {
         gameManager_->newGame();
         TimeControl t;
         t.setInfinite();
         gameManager_->setUniqueTimeControl(t);
-        gameManager_->computeMove(false, "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - - 0 1");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        gameManager_->moveNow();
-        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!finished) {
-            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!extended) {
-                startEngine();
-                return { false, "Timeout after stop command (even after extended wait)" };
-            }
-        }
-        return { true, "" };
-        });
-
-    runTest("Engine reacts on stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->computeMove(false, "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - - 0 1");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        gameManager_->moveNow();
-        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!finished) {
-            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!extended) {
-                startEngine();
-                return { false, "Timeout after stop command on second position" };
-            }
-        }
-        return { true, "" };
-        });
-
-    if (testLevel_ != 1) {
-        runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
-            gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
+        for (auto fen : {
+            "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - - 0 1",
+            "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - - 0 1"
+            }) {
+            gameManager_->computeMove(false, fen);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
             gameManager_->moveNow();
             bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
             if (!finished) {
                 bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
                     startEngine();
-                    return { false, "Timeout after immediate stop" };
+                    return { false, "Timeout after stop command (even after extended wait)" };
                 }
             }
-            return { true, "" };
-            });
-    }
+        }
+        return { true, "" };
+        });
+}
+
+void EngineTestController::runImmediateStopTest() {
+    static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
+    static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
+    runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
+        gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
+        gameManager_->moveNow();
+        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        if (!finished) {
+            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            if (!extended) {
+                startEngine();
+                return { false, "Timeout after immediate stop" };
+            }
+        }
+        return { true, "" };
+        });
+}
+
+void EngineTestController::runInfiniteAnalyzeTest() {
+    static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
+    static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
 
     runTest("Infinite compute move must not exit on its own", [this]() -> std::pair<bool, std::string> {
         Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::commands);
@@ -468,6 +473,7 @@ void EngineTestController::runAnalyzeTest() {
         return { true, "" };
         });
 }
+
 
 void EngineTestController::runEpdTests() {
 	Logger::testLogger().log("\nTesting simple EPD positions.");
@@ -509,31 +515,20 @@ void EngineTestController::runComputeGameTest() {
 }
 
 void EngineTestController::runMultipleGamesTest() {
-	if (testLevel_ != 0) return;
     int parallelGames = CliSettings::Manager::get<int>("concurrency");
 
     Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(numGames_) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");
-	Logger::testLogger().log("You can alter the number of games played with --games-number option and the number of parallel games with --max-parallel-engines option. ");
+	Logger::testLogger().log("You can alter the number of games played with --numgames option and the number of parallel games with --concurrency option. ");
     Logger::testLogger().log("White has always the longer time control so we expect white to win most games. ");
     Logger::testLogger().log("Please wait a moment before first game results occur.");
 
-    EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, parallelGames * 2);
+	GameManagerPool::getInstance().setConcurrency(parallelGames, true);
     TestTournament tournament(numGames_);
 
-    std::vector<std::unique_ptr<GameManager>> managers;
     try {
-        for (int i = 0; i < parallelGames; ++i) {
-            auto manager = std::make_unique<GameManager>();
-            manager->setEngines(std::move(engines[i * 2]), std::move(engines[i * 2 + 1]));
-            manager->computeTasks(&tournament);
-            managers.push_back(std::move(manager));
-        }
-
-        for (auto& m : managers) {
-            m->getFinishedFuture().wait();
-        }
-
+        GameManagerPool::getInstance().addTask(&tournament, engineName_);
+        GameManagerPool::getInstance().waitForTask(&tournament);
         Logger::testLogger().log("All games completed.");
     }
     catch (const std::exception& e) {

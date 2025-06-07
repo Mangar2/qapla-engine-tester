@@ -167,9 +167,11 @@ public:
             + " time left: " + std::to_string(timeLeft) + "ms";
 
         // Checklist::logCheck("Uses enough time from time control", inMinRange, detail);
-        Checklist::logCheck("Keeps reserve time", inMaxRange, detail);
-        Checklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000,
-            " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
+        if (checkTimeLimits) {
+            Checklist::logCheck("Keeps reserve time", inMaxRange, detail);
+            Checklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000,
+                " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
+        }
     }
 
 
@@ -208,6 +210,7 @@ public:
         Logger::testLogger().log(oss.str());
     }
 
+    bool checkTimeLimits = false;
 private:
     int maxGames_;
     int current_;

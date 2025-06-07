@@ -131,6 +131,8 @@ public:
         std::optional<uint64_t> nodes,
         std::optional<uint32_t> multipv) override;
 
+	double getSuccessRate() const;
+
 private:
     bool isSameMove(const std::string& fen, const std::string& lanMove, const std::string& sanMove) const;
     /**

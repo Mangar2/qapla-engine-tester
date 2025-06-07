@@ -82,7 +82,7 @@ public:
     /**
 	 * @brief Logs the results of all tests to the test logger.
      */
-    static AppReturnCode log();
+    static AppReturnCode log(TraceLevel traceLevel = TraceLevel::results);
 
     /**
 	 * @brief Sets the engine name and author.
@@ -101,6 +101,8 @@ public:
         name_.clear();
 		author_.clear();
 	}
+
+	static inline bool reportUnderruns = false;
 
 private:
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;

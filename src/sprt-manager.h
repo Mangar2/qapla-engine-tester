@@ -64,8 +64,11 @@ public:
      * @param engineName1 Identifier for the second engine.
      * @param concurrency Number of engine instances to run in parallel.
      * @param config All configuration parameters required for the SPRT test.
+	 * @return An optional boolean indicating the result of the SPRT test. 
+     *         true, H1 accepted; false, H0 accepted; std::nullopt, inconclusive.
      */
-    void runSprt(const std::string& engineName0, const std::string& engineName1, int concurrency, const SprtConfig& config);
+    void runSprt(const std::string& engineName0, const std::string& engineName1, 
+        int concurrency, const SprtConfig& config);
 
     /**
      * @brief Waits for all engines to finish.
@@ -90,7 +93,15 @@ public:
     void setGameRecord(const std::string& whiteId, const std::string& blackId,
         const GameRecord& record) override;
 
-    void runMonteCarloTest();
+    void runMonteCarloTest(const SprtConfig& config);
+
+	/**
+	 * @brief Returns the current decision of the SPRT test.
+	 * @return std::optional<bool> containing true if H1 accepted, false if H0 accepted, or std::nullopt if inconclusive.
+	 */
+	std::optional<bool> getDecision() const {
+		return decision_;
+	}
 
 private:
     /**
@@ -115,6 +126,7 @@ private:
     uint32_t winsP1_ = 0;
     uint32_t winsP2_ = 0;
     uint32_t draws_ = 0;
+	std::optional<bool> decision_ = std::nullopt;
 
     std::string engineP1Name_;
     std::string engineP2Name_;

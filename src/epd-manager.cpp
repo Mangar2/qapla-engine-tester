@@ -335,3 +335,20 @@ bool EpdManager::isSameMove(const std::string& fen, const std::string& lanMove, 
     auto sMove = gameState.stringToMove(sanMove, false);
     return lMove == sMove;
 }
+
+double EpdManager::getSuccessRate() const {
+	int totalTests = 0;
+	int correctTests = 0;
+	for (const auto& result : results_) {
+		if (result.engineName != engineName_ || result.testSetName != epdFileName_) {
+			continue;
+		}
+		for (const auto& test : result.results) {
+			++totalTests;
+			if (test.correct) {
+				++correctTests;
+			}
+		}
+	}
+	return totalTests > 0 ? static_cast<double>(correctTests) / totalTests : 0.0;
+}
