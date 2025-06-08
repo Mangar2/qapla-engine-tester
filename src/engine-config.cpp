@@ -43,12 +43,7 @@ std::string EngineConfig::to_string(const Value& value) {
         }, value);
 }
 
-/**
- * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
- * @param values A map of option names and their values.
- * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
- */
-void EngineConfig::setCommandLineOptions(const ValueMap& values) {
+void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     std::unordered_set<std::string> seenKeys;
 
     for (const auto& [key, value] : values) {
@@ -70,7 +65,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values) {
             throw std::runtime_error("Unknown engine option key: " + key);
         }
     }
-    finalizeSetOptions();
+    if (!update) finalizeSetOptions();
 }
 
 void EngineConfig::finalizeSetOptions() {

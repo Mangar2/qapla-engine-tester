@@ -65,6 +65,7 @@ public:
      * @return A pointer to the EngineConfig or nullptr if not found.
      */
     const EngineConfig* getConfig(const std::string& name) const;
+    EngineConfig* getConfigMutable(const std::string& name);
 
     /**
      * Adds a new configuration or replaces the existing one with the same name.
@@ -95,11 +96,10 @@ public:
 
 	/**
 	 * @brief Add or replaces a single EngineConfig instance from a GroupInstance.
-	 * @param instances The GroupInstance containing the configuration values.
+	 * @param valueMap The values for the configuraiton.
 	 */
-    void addOrReplaceConfiguration(const CliSettings::GroupInstance& instances) {
-		CliSettings::ValueMap map = instances.getValues();
-		EngineConfig config = EngineConfig::createFromValueMap(map);
+    void addOrReplaceConfiguration(const CliSettings::ValueMap& valueMap) {
+		EngineConfig config = EngineConfig::createFromValueMap(valueMap);
 		addOrReplaceConfig(config);
 	}
 

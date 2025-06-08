@@ -135,6 +135,9 @@ public:
      */
     void fromCliTimeControlString(const std::string& cliString) {
         timeSegments_.clear();
+		if (cliString.empty()) {
+			return;
+		}
 
         if (cliString == "inf") {
             setInfinite(true);

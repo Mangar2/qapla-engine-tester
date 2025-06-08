@@ -119,18 +119,19 @@ auto runSprt(AppReturnCode code) {
     auto sprt = CliSettings::Manager::getGroupInstance("sprt");
 	auto opening = CliSettings::Manager::getGroupInstance("openings");    
     if (!sprt) return code;
-    if (!opening) {
+    auto isMontecarlo = sprt->get<bool>("montecarlo");
+    if (!opening && !isMontecarlo) {
 		Logger::testLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
 	auto tcSetting = CliSettings::Manager::get<std::string>("tc");
-	if (tcSetting.empty()) {
+	if (tcSetting.empty() && !isMontecarlo) {
 		Logger::testLogger().log("No time control defined for SPRT tests. Please define a time control, see --help for more info.", 
             TraceLevel::error);
 		return AppReturnCode::InvalidParameters;
 	}
 	auto activeEngines = EngineWorkerFactory::getActiveEngines();
-    if (activeEngines.size() < 2) {
+    if (activeEngines.size() < 2 && !isMontecarlo) {
         Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
             TraceLevel::error);
         return AppReturnCode::InvalidParameters;
@@ -140,6 +141,17 @@ auto runSprt(AppReturnCode code) {
     TimeControl tc;
 	tc.fromCliTimeControlString(tcSetting);
     try {
+        Openings openings;
+        if (opening) {
+            openings = Openings{
+                .file = opening->get<std::string>("file"),
+                .format = opening->get<std::string>("format"),
+                .order = opening->get<std::string>("order"),
+                .plies = opening->get<int>("plies"),
+                .start = opening->get<int>("start"),
+                .policy = opening->get<std::string>("policy")
+            };
+        }
         SprtConfig config{
             .eloUpper = sprt->get<int>("eloUpper"),
             .eloLower = sprt->get<int>("eloLower"),
@@ -147,24 +159,17 @@ auto runSprt(AppReturnCode code) {
             .beta = sprt->get<float>("beta"),
             .maxGames = sprt->get<int>("maxgames"),
             .tc = tc, 
-            .openings = Openings {
-                .file = opening->get<std::string>("file"),
-                .format = opening->get<std::string>("format"),
-                .order = opening->get<std::string>("order"),
-                .plies = opening->get<int>("plies"),
-                .start = opening->get<int>("start"),
-                .policy = opening->get<std::string>("policy")
-            }
+            .openings = openings
         };
         int concurrency = CliSettings::Manager::get<int>("concurrency");
-        std::string engineName0 = activeEngines[0].name;
-        std::string engineName1 = activeEngines[1].name;
 
         SprtManager manager;
-		if (CliSettings::Manager::get<bool>("montecarlo")) {
+		if (isMontecarlo) {
             manager.runMonteCarloTest(config);
 		}
         else {
+            std::string engineName0 = activeEngines[0].name;
+            std::string engineName1 = activeEngines[1].name;
             manager.runSprt(engineName0, engineName1, concurrency, config);
             manager.wait();
             code = logChecklist(code);
@@ -212,23 +217,32 @@ void handleEngineOptions() {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
     auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
+	auto eachSetting = CliSettings::Manager::getGroupInstance("each");
+	CliSettings::ValueMap eachOptions;
+	if (eachSetting) {
+		eachOptions = eachSetting->getValues();
+	}
+
     for (auto engine : engineSettings) {
         std::string cmd = engine.get<std::string>("cmd");
         std::string conf = engine.get<std::string>("conf");
         std::string name = engine.get<std::string>("name");
         std::string active = "";
+		CliSettings::ValueMap options = engine.getValues();
+        options.insert(eachOptions.begin(), eachOptions.end());
         if (!cmd.empty()) {
-            EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfiguration(engine);
+            EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfiguration(options);
 			active = !name.empty() ? name : cmd;
 		}
 		else if (!conf.empty()) {
-			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+			auto engineConfig = EngineWorkerFactory::getConfigManagerMutable().getConfigMutable(conf);
 			if (!engineConfig) {
 				throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory),
 					"Engine configuration '" + conf + "' not found.");
 				throw std::runtime_error("Engine configuration '" + conf + "' not found.");
 			}
-			active = engineConfig->getName();
+            engineConfig->setCommandLineOptions(options, true);
+            active = engineConfig->getName();
 		}
 		else {
             std::string engineName = name.empty() ? "" : " (for " + name + ")";
@@ -280,7 +294,7 @@ int main(int argc, char** argv) {
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
 
-        CliSettings::Manager::registerGroup("each", "Defines an engine configuration", false, {
+        CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }

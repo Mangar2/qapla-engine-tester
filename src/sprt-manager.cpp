@@ -19,6 +19,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <ctime>
 #include "sprt-manager.h"
 #include "game-manager-pool.h"
 #include "logger.h"
@@ -277,21 +278,18 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
 	config_ = config;
     constexpr int simulationsPerElo = 1000;
     constexpr double drawRate = 0.4;
-    constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 1, 5, 10, 15, 20, 25 };
+    constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25 };
 
-    std::cout << "EloDiff, CorrectDecisions, TotalGames\n";
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    std::cout << "Monte carlo simulation for different elos running\n";
     engineP1Name_ = "P1";
 	engineP2Name_ = "P2";
 
     for (int elo : eloDiffs) {
-        int64_t correctDecisions = 0;
+        int64_t numH1 = 0;
+        int64_t numH0 = 0;
 		int64_t noDecisions = 0;
         int64_t totalGames = 0;
-
-		if (elo == config_.eloLower || elo == config_.eloUpper) {
-			// Skip the exact boundaries, as they are not producing meaningful results
-			continue;
-		}
 
         for (int sim = 0; sim < simulationsPerElo; ++sim) {
             // Reset intern
@@ -324,23 +322,23 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
                 }
             }
 
-            if (decision.has_value()) {
-				if (!decision) {
-					++noDecisions;
-				}
-                else {
-                    bool correct = (elo >= config_.eloLower && *decision) ||
-                        (elo <= config_.eloLower && !*decision);
-                    if (correct) ++correctDecisions;
-                }
-                totalGames += (g + 1);
+			if (!decision) {
+				++noDecisions;
+			}
+            else {
+				numH0 += *decision ? 0 : 1;
+				numH1 += *decision ? 1 : 0;
             }
+            totalGames += (g + 1);
         }
 
         double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
-		std::cout << "Simulated Elo: " << elo 
-            << " No Decisions " << (noDecisions * 100) / avgGames << "%"
-			<< " Correct Decisions: " << (correctDecisions * 100) / avgGames << "%\n";
+        std::cout << std::fixed << std::setprecision(1)
+            << "Simulated elo difference: " << std::setw(6) << elo
+            << "  No Decisions: " << std::setw(6) << (noDecisions * 100.0) / simulationsPerElo << "%"
+            << "  H0 Accepted: " << std::setw(6) << (numH0 * 100.0) / simulationsPerElo << "%"
+            << "  H1 Accepted: " << std::setw(6) << (numH1 * 100.0) / simulationsPerElo << "%"
+            << "  Average Games: " << std::setw(6) << avgGames << "\n";
     }
 }
 

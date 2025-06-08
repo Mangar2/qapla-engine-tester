@@ -72,6 +72,13 @@ const EngineConfig* EngineConfigManager::getConfig(const std::string& name) cons
     return nullptr;
 }
 
+EngineConfig* EngineConfigManager::getConfigMutable(const std::string& name)  {
+    for (auto& config : configs) {
+        if (CliSettings::to_lowercase(config.getName()) == CliSettings::to_lowercase(name)) return &config;
+    }
+    return nullptr;
+}
+
 void EngineConfigManager::addOrReplaceConfig(const EngineConfig& config) {
     for (auto& existing : configs) {
         if (existing.getName() == config.getName()) {

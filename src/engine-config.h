@@ -123,6 +123,16 @@ public:
     }
 
     /**
+     * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
+     * @param values A map of option names and their values.
+     * @throw std::runtime_error 
+     *  - if a key is encountered twice 
+     *  - if an unknown key is encountered.
+	 *  - if a required key is missing.
+     */
+    void setCommandLineOptions(const ValueMap& values, bool update = false);
+
+    /**
 	 * @brief Filters the current options based on the available options.
 	 * @param availableOptions The set of options that are available for the engine.
 	 * @return A map of option names and their values that are present in the available options.
@@ -144,12 +154,7 @@ private:
     void readHeader(std::istream& in);
     void finalizeSetOptions();
 
-    /**
-     * @brief Sets multiple options at once from a map of key-value pairs coming from the command line
-     * @param values A map of option names and their values.
-     * @throw std::runtime_error if a required field is missing or an unknown key is encountered.
-     */
-    void setCommandLineOptions(const ValueMap& values);
+
     std::string to_string(const Value& value);
     std::string name;
     std::string executablePath;
