@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <optional>
 #include <iostream>
+#include "app-error.h"
 
 namespace CliSettings {
 
@@ -74,9 +75,23 @@ namespace CliSettings {
             if (it == values_.end()) {
                 auto defIt = keyDefs.find(key);
                 if (defIt == keyDefs.end()) {
-                    throw std::runtime_error("Access to undefined group setting: " + name);
+                    throw AppError::makeInvalidParameters("Access to undefined group setting: " + name);
                 }
                 return std::get<T>(defIt->second.defaultValue);
+            }
+            if (!std::holds_alternative<T>(it->second)) {
+                if constexpr (std::is_same_v<T, int>) {
+                    throw AppError::makeInvalidParameters("Expected integer for group setting \"" + name + "\".");
+                }
+                else if constexpr (std::is_same_v<T, bool>) {
+                    throw AppError::makeInvalidParameters("Expected boolean for group setting \"" + name + "\".");
+                }
+                else if constexpr (std::is_same_v<T, std::string>) {
+                    throw AppError::makeInvalidParameters("Expected string for group setting \"" + name + "\".");
+                }
+                else if constexpr (std::is_same_v < T, float>) {
+					throw AppError::makeInvalidParameters("Expected float for group setting \"" + name + "\".");
+				}
             }
             return std::get<T>(it->second);
         }
@@ -211,6 +226,11 @@ namespace CliSettings {
          * @return Pointer to matching definition, or nullptr if not found.
          */
         static const Definition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
+
+        /** Validates that the given default value matches the expected ValueType.
+         *  Throws AppError if the type does not match or is semantically invalid.
+         */
+        static void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
 
         /**
          * @brief Validates and finalizes all global parameters after parsing.

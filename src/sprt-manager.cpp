@@ -45,6 +45,11 @@ void SprtManager::runSprt(
 		return;
 	}
 	EpdReader reader(config.openings.file);
+    std::cout << "Running SPRT: " << engineName0 << " vs " << engineName1
+        << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
+        << " | alpha: " << config.alpha << ", beta: " << config.beta
+        << " | maxGames: " << config.maxGames
+        << " | concurrency: " << concurrency << std::endl;
 	for (auto& entry : reader.all()) {
 		if (entry.fen.empty()) {
 			continue;
@@ -71,10 +76,10 @@ std::optional<GameTask> SprtManager::nextTask(
     rememberStop_ = rememberStop_ || result.has_value();
     if (rememberStop_) return std::nullopt;
     
-    size_t index = nextIndex_;
-    if (config_.openings.order == "random") {
-        index = std::rand() % startPositions_.size();
+    if (gamesStarted_ % 2 == 0 && config_.openings.order == "random") {
+        nextIndex_ = std::rand() % startPositions_.size();
     }
+    size_t index = nextIndex_;
 
     GameTask task;
     task.taskType = GameTask::Type::PlayGame;

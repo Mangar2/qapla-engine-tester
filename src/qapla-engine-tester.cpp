@@ -36,7 +36,7 @@
 #include "pgn-io.h"
 
 auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::commands) {
-    auto newCode = Checklist::log();
+    auto newCode = Checklist::log(traceLevel);
     if (code == AppReturnCode::NoError) {
         code = newCode;
     }
@@ -70,12 +70,23 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
             epdManager.wait();
 			code = logChecklist(code, TraceLevel::info);
 			auto minSuccess = epd.get<int>("minsuccess");
-            if (code == AppReturnCode::NoError) {
+            if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 bool success = epdManager.getSuccessRate() >= minSuccess / 100.0;
-				code = success ? AppReturnCode::NoError : AppReturnCode::MissedTarget;
+				code = success ? code : AppReturnCode::MissedTarget;
             }
 		}
 	}
+    return code;
+}
+
+AppReturnCode handleGlobalOptions(AppReturnCode code) {
+    if (!CliSettings::Manager::get<std::string>("logpath").empty()) {
+        Logger::setLogPath(CliSettings::Manager::get<std::string>("logpath"));
+    }
+    if (CliSettings::Manager::get<bool>("enginelog")) {
+        Logger::engineLogger().setLogFile("qapla-engine-trace");
+    }
+
     return code;
 }
 
@@ -173,10 +184,10 @@ auto runSprt(AppReturnCode code) {
             manager.runSprt(engineName0, engineName1, concurrency, config);
             manager.wait();
             code = logChecklist(code);
-            if (code == AppReturnCode::NoError) {
+            if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto decision = manager.getDecision();
 				code = !decision ? AppReturnCode::UndefinedResult : 
-                    (*decision ? AppReturnCode::NoError : AppReturnCode::MissedTarget);
+                    (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
             }
         }
     }
@@ -237,16 +248,14 @@ void handleEngineOptions() {
 		else if (!conf.empty()) {
 			auto engineConfig = EngineWorkerFactory::getConfigManagerMutable().getConfigMutable(conf);
 			if (!engineConfig) {
-				throw std::system_error(std::make_error_code(std::errc::no_such_file_or_directory),
-					"Engine configuration '" + conf + "' not found.");
-				throw std::runtime_error("Engine configuration '" + conf + "' not found.");
+				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
 			}
             engineConfig->setCommandLineOptions(options, true);
             active = engineConfig->getName();
 		}
 		else {
             std::string engineName = name.empty() ? "" : " (for " + name + ")";
-            throw std::runtime_error("No engine command or configuration provided"
+            throw AppError::makeInvalidParameters("No engine command or configuration provided"
                 + engineName + ".Please specify either 'cmd' or 'conf'.");
 		}
         EngineWorkerFactory::getActiveEnginesMutable().push_back(ActiveEngine{ .name = active });
@@ -272,13 +281,13 @@ int main(int argc, char** argv) {
 			CliSettings::ValueType::PathExists);
 		CliSettings::Manager::registerSetting("enginelog", "Enable engine logging", false, false,
 			CliSettings::ValueType::Bool);
-        CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string("."), 
+        CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string(""), 
             CliSettings::ValueType::PathExists);
         CliSettings::Manager::registerSetting("tc", "Time control in format moves/time+inc or 'inf'", false, "", 
             CliSettings::ValueType::String);
 
         CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
-            { "file",      { "Path and file name to the epd file", true, "speelman Endgame.epd", CliSettings::ValueType::PathExists } },
+            { "file",      { "Path and file name to the epd file", true, "", CliSettings::ValueType::PathExists } },
             { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
             { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
             { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
@@ -289,7 +298,7 @@ int main(int argc, char** argv) {
             { "conf",      { "Name of an engine from the configuration file", false, "", CliSettings::ValueType::String } },
             { "name",      { "Name of the engine", false, "", CliSettings::ValueType::String } },
             { "cmd",       { "Path to executable", false, "", CliSettings::ValueType::PathExists } },
-            { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
+            { "dir",       { "Working directory", false, "", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
@@ -301,11 +310,11 @@ int main(int argc, char** argv) {
             });
 
         CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
-            { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", true, "", CliSettings::ValueType::Int } },
-            { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", true, "", CliSettings::ValueType::Int } },
-            { "alpha", { "Type I error threshold", true, "", CliSettings::ValueType::Float } },
-            { "beta",  { "Type II error threshold", true, "", CliSettings::ValueType::Float } },
-            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
+            { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, CliSettings::ValueType::Int } },
+            { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, CliSettings::ValueType::Int } },
+            { "alpha", { "Type I error threshold", false, 0.05f, CliSettings::ValueType::Float } },
+            { "beta",  { "Type II error threshold", false, 0.05f, CliSettings::ValueType::Float } },
+            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, 0, CliSettings::ValueType::Int } },
 			{ "montecarlo", { "Run Monte Carlo test instead of SPRT", false, false, CliSettings::ValueType::Bool } }
             });
 
@@ -313,20 +322,20 @@ int main(int argc, char** argv) {
             { "file",  { "Path to file with opening positions", true, "", CliSettings::ValueType::PathExists } },
             { "format", { "Format of the file: epd, raw, pgn", false, "epd", CliSettings::ValueType::String } },
             { "order", { "Order of position selection: random, sequential", false, "sequential", CliSettings::ValueType::String } },
-            { "plies", { "Max number of plies per opening (0 = unlimited)", false, "0", CliSettings::ValueType::Int } },
-            { "start", { "Index of first opening (1-based)", false, "1", CliSettings::ValueType::Int } },
+            { "plies", { "Max number of plies per opening (0 = unlimited)", false, 0, CliSettings::ValueType::Int } },
+            { "start", { "Index of first opening (1-based)", false, 1, CliSettings::ValueType::Int } },
             { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
             });
 
         CliSettings::Manager::registerGroup("test", "Test the engine", true, {
-            { "nomemory",   { "Skip hash table memory usage test", false, false, CliSettings::ValueType::Bool } },
-            { "nostop",     { "Skip immediate stop response test", false, false, CliSettings::ValueType::Bool } },
-            { "nowait",     { "Skip check that infinite search never returns", false, false, CliSettings::ValueType::Bool } },
-            { "noepd",      { "Skip EPD bestmove test", false, false, CliSettings::ValueType::Bool } },
             { "underrun",   { "Check for movetime underruns", false, false, CliSettings::ValueType::Bool } },
             { "timeusage",  { "Check time usage in test games", false, false, CliSettings::ValueType::Bool } },
             { "numgames",   { "Number of test games to run", false, 20, CliSettings::ValueType::Int } },
-            { "level",      { "Test level (0 = all, 1 = safe, 2 = destructive)", false, 0, CliSettings::ValueType::Int } }
+            { "noepd",      { "Skip EPD bestmove test", false, false, CliSettings::ValueType::Bool } },
+            { "nomemory",   { "Skip hash table memory usage test", false, false, CliSettings::ValueType::Bool } },
+            { "nooption",   { "Skip option crash tests", false, false, CliSettings::ValueType::Bool } },
+            { "nostop",     { "Skip immediate stop response test", false, false, CliSettings::ValueType::Bool } },
+            { "nowait",     { "Skip check that infinite search never returns", false, false, CliSettings::ValueType::Bool } }
             });
 
         CliSettings::Manager::registerGroup("pgnoutput", "PGN output settings", true, {
@@ -343,24 +352,21 @@ int main(int argc, char** argv) {
 
 
         CliSettings::Manager::parseCommandLine(argc, argv);
+        handleGlobalOptions(returnCode);
         handlePgnOptions();
 		handleEngineOptions();
 
-		if (CliSettings::Manager::get<bool>("enginelog")) {
-            Logger::engineLogger().setLogFile("qapla-engine-trace");
-		}
-		AppReturnCode code = AppReturnCode::NoError;
 
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
-            returnCode = runTest(*test, code);
+            returnCode = runTest(*test, returnCode);
         }
 
         auto epdList = CliSettings::Manager::getGroupInstances("epd");
         if (!epdList.empty()) {
-            code = runEpd(epdList, code);
+            returnCode = runEpd(epdList, returnCode);
         }
         
-        code = runSprt(code);
+        returnCode = runSprt(returnCode);
 			
     }
     catch (const AppError& ex) {

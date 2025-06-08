@@ -28,20 +28,55 @@
 
 namespace CliSettings {
 
+    void Manager::validateDefaultValue(const std::string& name, const Value& value, ValueType type) {
+        auto typeMismatch = [&](const std::string& expected) {
+            throw AppError::make("Default value for setting \"" + name + "\" must be of type " + expected + ".");
+            };
+
+        switch (type) {
+        case ValueType::String:
+            if (!std::holds_alternative<std::string>(value)) typeMismatch("string");
+            break;
+        case ValueType::Int:
+            if (!std::holds_alternative<int>(value)) typeMismatch("int");
+            break;
+        case ValueType::Float:
+            if (!std::holds_alternative<float>(value)) typeMismatch("float");
+            break;
+        case ValueType::Bool:
+            if (!std::holds_alternative<bool>(value)) typeMismatch("bool");
+            break;
+        case ValueType::PathExists:
+            if (!std::holds_alternative<std::string>(value) || 
+                (!std::get<std::string>(value).empty() && std::get<std::string>(value) != ".")) {
+                typeMismatch("empty string required as default for type PathExists");
+            }
+            break;
+        }
+    }
+
     void Manager::registerSetting(const std::string& name,
         const std::string& description,
         bool isRequired,
         Value defaultValue,
         ValueType type) {
+
+        validateDefaultValue(name, defaultValue, type);
+
         std::string key = to_lowercase(name);
         definitions_[key] = { description, isRequired, defaultValue, type };
     }
+
 
     void Manager::registerGroup(const std::string& groupName,
         const std::string& groupDescription,
         bool unique,
         const std::unordered_map<std::string, Definition>& keys)
     {
+        for (const auto& [name, def] : keys) {
+            validateDefaultValue(name, def.defaultValue, def.type);
+        }
+
         std::string key = to_lowercase(groupName);
         groupDefs_[key] = GroupDefinition{ groupDescription, unique, keys };
     }

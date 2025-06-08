@@ -49,8 +49,11 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     for (const auto& [key, value] : values) {
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key in engine options: " + key);
-        if (key == "name") setName(std::get<std::string>(value));
-        else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
+        if (update && std::get<std::string>(value).empty()) continue;
+        if (key == "conf") continue;
+        if (key == "name") {
+            if (!update) setName(std::get<std::string>(value));
+        } else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
         else if (key == "dir") setWorkingDirectory(std::get<std::string>(value));
         else if (key == "proto") {
             auto valueStr = std::get<std::string>(value);

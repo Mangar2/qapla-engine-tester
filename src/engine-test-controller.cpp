@@ -87,7 +87,9 @@ void EngineTestController::runAllTests(std::string engineName, int numGames) {
         if (!testSettings.get<bool>("nomemory")) {
             runHashTableMemoryTest();
         }
-        runEngineOptionTests();
+        if (!testSettings.get<bool>("nooption")) {
+            runEngineOptionTests();
+        }
         runAnalyzeTest();
 		if (!testSettings.get<bool>("nostop")) {
             runImmediateStopTest();
@@ -500,7 +502,7 @@ void EngineTestController::runComputeGameTest() {
     gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
     try {
         gameManager_->newGame();
-        TimeControl t1; t1.addTimeSegment({ 0, 30000, 500 });
+        TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         gameManager_->setTimeControls(t1, t2);
         gameManager_->computeGame(true, "", true);

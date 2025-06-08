@@ -29,8 +29,10 @@ enum class AppReturnCode {
     EngineError = 10,
     EngineMissbehaviour = 11,
     EngineNote = 12,
-    MissedTarget = 13,
-    UndefinedResult = 14
+    MissedTarget=13,
+    H1Accepted = 14,
+    H0Accepted = 15,
+    UndefinedResult = 16
 };
 
  /**

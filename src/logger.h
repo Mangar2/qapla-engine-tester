@@ -22,6 +22,7 @@
 #include <string_view>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -92,7 +93,9 @@ public:
      */
     void setLogFile(const std::string& basename) {
         std::scoped_lock lock(mutex_);
-        filename_ = generateTimestampedFilename(basename);
+        namespace fs = std::filesystem;
+        fs::path path = logPath_.empty() ? "" : fs::path(logPath_);
+        filename_ = (path / generateTimestampedFilename(basename)).string();
         fileStream_.close();
         fileStream_.open(filename_, std::ios::app);
     }
@@ -127,6 +130,10 @@ public:
         return instance;
     }
 
+	static void setLogPath(const std::string& path) {
+		logPath_ = path;
+	}
+
 private:
 
     std::string generateTimestampedFilename(const std::string& baseName) {
@@ -156,4 +163,5 @@ private:
     TraceLevel cliThreshold_;
 	TraceLevel fileThreshold_;
 	std::string filename_;
+    static inline std::string logPath_ = "";
 };
