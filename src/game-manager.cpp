@@ -205,7 +205,7 @@ void GameManager::processEvent(const EngineEvent& event) {
                 return;
             }
             if (event.type == EngineEvent::Type::BestMove) {
-                computeNextMove();
+                computeNextMove(event);
                 return;
             }
         }
@@ -322,16 +322,18 @@ void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     computeNextMove();
 }
 
-void GameManager::computeNextMove() {
+void GameManager::computeNextMove(const std::optional<EngineEvent>& event = std::nullopt) {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     GoLimits goLimits = createGoLimits(
 		whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl(),
         gameRecord_.currentPly(), whiteTime, blackTime, gameRecord_.isWhiteToMove());
 	if (gameRecord_.isWhiteToMove()) {
         whitePlayer_->computeMove(gameRecord_, goLimits);
+        blackPlayer_->allowPonder(gameRecord_, goLimits, event);
     }
     else {
 		blackPlayer_->computeMove(gameRecord_, goLimits);
+        whitePlayer_->allowPonder(gameRecord_, goLimits, event);
     }
 }
 

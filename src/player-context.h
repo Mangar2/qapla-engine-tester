@@ -61,6 +61,15 @@ public:
      */
     void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits);
 
+    /**
+	 * @brief Allows the engine to ponder during its turn.
+	 * @param gameRecord The current game with startposition and moves played so far.
+	 * @param goLimits The time limits for the next move
+	 * @param event the event that triggered the pondering, if any
+     */
+    void allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
+        const std::optional<EngineEvent>& event);
+
 	/**
 	 * @brief Cancels the current move computation.
 	 *
@@ -210,6 +219,7 @@ private:
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
+	bool pondering_ = false;
     std::atomic<bool> computingMove_ = false;
     MoveRecord currentMove_;
 };

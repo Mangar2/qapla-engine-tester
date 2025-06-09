@@ -23,6 +23,7 @@
 #include "checklist.h"
 #include "timer.h"
 #include "engine-worker-factory.h"
+#include "app-error.h"
 
 void PlayerContext::handleInfo(const EngineEvent& event) {
     if (!event.searchInfo.has_value()) return;
@@ -230,5 +231,26 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
     setComputeMoveStartTimestamp(Timer::getCurrentTimeMs());
     computingMove_ = true;
     engine_->computeMove(gameRecord, goLimits);
+}
+
+void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
+    const std::optional<EngineEvent>& event) {
+    if (!event) return;
+    if (computingMove_) {
+		// We are already computing a move, no need to allow pondering
+		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering while already computing a move.");
+	}
+    pondering_ = true;
+	goLimits_ = goLimits;
+
+    if (event->ponderMove) {
+		const auto ponderLan = *event->ponderMove;
+        const auto move = gameState_.stringToMove(ponderLan, requireLan_);
+        if (!Checklist::logCheck("Ponder move is legal", !move.isEmpty(),
+            "Encountered illegal ponder move \"" + ponderLan + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
+
+        }
+    }
+	engine_->allowPonder(gameRecord, goLimits, event->ponderMove);
 }
 

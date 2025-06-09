@@ -186,7 +186,7 @@ private:
      */
     void switchSide();
 
-    void computeNextMove();
+    void computeNextMove(const std::optional<EngineEvent>& event = std::nullopt);
 
     /**
 	 * @brief template executing a function for both white and black engine, if they are not identical
