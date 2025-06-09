@@ -387,8 +387,6 @@ namespace QaplaBasics {
 			return _boardState.pawnHash;
 		}
 
-		std::string GetSan(Move move) const;
-
 	protected:
 		std::array<Square, COLOR_COUNT> kingSquares;
 

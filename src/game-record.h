@@ -72,7 +72,15 @@ public:
     /** Returns const reference to move history. */
     const std::vector<MoveRecord>& history() const;
 
+    /**
+	 * @brief returns true if the game started with the standard starting position.
+     */
 	bool getStartPos() const { return startPos_; }
+
+	/**
+	 * @brief Returns the starting position in FEN format.
+	 * @return The starting position as a FEN string.
+	 */
 	std::string getStartFen() const { return startFen_; }
 
     /** 

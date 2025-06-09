@@ -91,11 +91,13 @@ private:
     /**
      * @brief Writes a single PGN move with optional annotations.
      * @param out Output stream to write to.
+	 * @param san Standard Algebraic Notation (SAN) of the move.
      * @param move Move to write.
      * @param plyIndex Zero-based ply index to determine move number and side.
      * @param isWhiteStart Whether white starts (relevant for proper numbering if not).
      */
-    void saveMove(std::ostream& out, const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart);
+    void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move, 
+        uint32_t plyIndex, bool isWhiteStart);
 
 
     Options options_;

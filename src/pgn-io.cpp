@@ -22,6 +22,7 @@
 #include "timer.h"
 #include "pgn-io.h"
 #include "time-control.h"
+#include "game-state.h"
 
 void PgnIO::initialize() {
     if (!options_.append) {
@@ -103,14 +104,15 @@ void PgnIO::saveTags(std::ostream& out, const GameRecord& game) {
     out << "\n";
 }
 
-void PgnIO::saveMove(std::ostream& out, const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart) {
+void PgnIO::saveMove(std::ostream& out, const std::string& san, 
+    const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart) {
     
     bool shouldPrintMoveNumber = (plyIndex % 2 == 0 && isWhiteStart) || (plyIndex % 2 == 1 && !isWhiteStart);
     if (shouldPrintMoveNumber) {
         out << ((plyIndex / 2) + 1) << ". ";
     }
 
-    out << move.lan;
+    out << san;
 
     bool hasAnnotation = (options_.includeEval && (move.scoreCp || move.scoreMate))
         || (options_.includeDepth && move.depth > 0)
@@ -170,6 +172,9 @@ void PgnIO::saveGame(const GameRecord& game) {
         throw std::runtime_error("Failed to open PGN file: " + options_.file);
     }
 
+    GameState state;
+	state.setFen(game.getStartPos(), game.getStartFen());
+
     saveTags(out, game);
 
     const auto& history = game.history();
@@ -178,7 +183,12 @@ void PgnIO::saveGame(const GameRecord& game) {
         out << "1... ";
     }
     for (size_t i = 0; i < history.size(); ++i) {
-        saveMove(out, history[i], static_cast<uint32_t>(i), isWhiteStart);
+        auto moveRecord = history[i];
+        auto lan = moveRecord.lan;
+		auto move = state.stringToMove(lan, true);
+        auto san = state.moveToSan(move);
+		state.doMove(move);
+        saveMove(out, san, history[i], static_cast<uint32_t>(i), isWhiteStart);
     }
 
     out << to_string(std::get<1>(game.getGameResult())) << "\n\n";

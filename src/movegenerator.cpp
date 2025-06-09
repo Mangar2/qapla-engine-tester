@@ -786,6 +786,73 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	return false;
 }
 
+std::string MoveGenerator::moveToSan(Move move) const
+{
+	std::string san;
+	auto piece = (*this)[move.getDeparture()];
+	auto capture = (*this)[move.getDestination()];
+	auto action = move.getActionAndMovingPiece();
+	switch (action)
+	{
+	case Move::WHITE_EP:
+		capture = BLACK_PAWN;
+		break;
+	case Move::BLACK_EP:
+		capture = WHITE_PAWN;
+		break;
+	case Move::WHITE_CASTLES_KING_SIDE:
+		return "O-O";
+	case Move::BLACK_CASTLES_KING_SIDE:
+		return "O-O";
+	case Move::WHITE_CASTLES_QUEEN_SIDE:
+		return "O-O-O";
+	case Move::BLACK_CASTLES_QUEEN_SIDE:
+		return "O-O-O";
+	}
+	san = pieceToSan(piece);
+	// Add start position (column, row or both) if ambigous
+	if (!isPawn(piece)) {
+		auto distBB = squareToBB(move.getDestination());
+		auto pieceBB = getPieceBB(piece);
+		bool rankAmbiguous = false;
+		bool fileAmbiguous = false;
+		bool isAmbiguous = false;
+		while (pieceBB != 0) {
+			Square cur = popLSB(pieceBB);
+			auto attackBB = pieceAttackMask[cur];
+			if (cur != move.getDeparture() && (distBB & attackBB)) {
+				isAmbiguous = true;
+				rankAmbiguous |= getRank(cur) == getRank(move.getDeparture());
+				fileAmbiguous |= getFile(cur) == getFile(move.getDeparture());
+			}
+		}
+		if (isAmbiguous) {
+			if (!fileAmbiguous) {
+				san += squareToFileChar(move.getDeparture());
+			}
+			else if (!rankAmbiguous) {
+				san += squareToRankChar(move.getDeparture());
+			}
+			else {
+				san += squareToString(move.getDeparture());
+			}
+		}
+	}
+	// aRes = aRes + GetStartPosIfNeccessary(aBoard);
+	if (capture != NO_PIECE) {
+		if (getPieceType(piece) == PAWN) {
+			san += squareToFileChar(move.getDeparture());
+		}
+		san += "x";
+	}
+	san += squareToString(move.getDestination());
+	if (move.getPromotion() != NO_PIECE)
+	{
+		san += static_cast<std::string>("=") + pieceToSan(move.getPromotion());
+	}
+	return san;
+}
+
 template void MoveGenerator::genMoves<WHITE>(MoveList&);
 template void MoveGenerator::genMoves<BLACK>(MoveList&);
 template void MoveGenerator::genPinnedMovesForAllPieces<WHITE>(MoveList&, Square);

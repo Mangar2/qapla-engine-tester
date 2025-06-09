@@ -64,6 +64,12 @@ public:
 	QaplaBasics::Move stringToMove(std::string move, bool requireLan);
 
 	/**
+	 * @brief Returns a move as San notation. The move must be a legal move in the current position.
+	 * @param move The move to convert to San notation.
+	 */
+	std::string moveToSan(const QaplaBasics::Move& move) const;
+
+	/**
 	 * @brief Checks if the game is over and returns the result.
 	 * @return The result of the game and the winner side.
 	 */

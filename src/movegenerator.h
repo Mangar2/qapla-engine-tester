@@ -202,6 +202,12 @@ namespace QaplaMoveGenerator {
 		template <Piece COLOR>
 		void computePinnedMask();
 
+		/**
+		 * @brief provides a SAN for the move
+		 * @param move the move
+		 */
+		std::string moveToSan(Move move) const;
+
 		// ------------------------------------------------------------------------
 		// ---------------------- Gives check -------------------------------------
 		// ------------------------------------------------------------------------

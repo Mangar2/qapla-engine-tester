@@ -132,6 +132,12 @@ void GameState::undoMove() {
 	hashList_.pop_back();
 }
 
+std::string GameState::moveToSan(const QaplaBasics::Move& move) const
+{
+	if (move.isEmpty()) return std::string();
+	return position_.moveToSan(move);
+}
+
 QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan) 
 {
 	QaplaInterface::MoveScanner scanner(move);

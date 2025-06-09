@@ -286,14 +286,6 @@ int main(int argc, char** argv) {
         CliSettings::Manager::registerSetting("tc", "Time control in format moves/time+inc or 'inf'", false, "", 
             CliSettings::ValueType::String);
 
-        CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
-            { "file",      { "Path and file name to the epd file", true, "", CliSettings::ValueType::PathExists } },
-            { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
-            { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
-            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
-            { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::Int} }
-            });
-
         CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", false, {
             { "conf",      { "Name of an engine from the configuration file", false, "", CliSettings::ValueType::String } },
             { "name",      { "Name of the engine", false, "", CliSettings::ValueType::String } },
@@ -302,12 +294,20 @@ int main(int argc, char** argv) {
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
-
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
+
+        CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
+            { "file",      { "Path and file name to the epd file", true, "", CliSettings::ValueType::PathExists } },
+            { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
+            { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
+            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
+            { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::Int} }
+            });
+
 
         CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
             { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, CliSettings::ValueType::Int } },

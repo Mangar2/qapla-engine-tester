@@ -81,10 +81,13 @@ std::optional<GameTask> SprtManager::nextTask(
     }
     size_t index = nextIndex_;
 
+    GameState gameState;
+    gameState.setFen(false, startPositions_[index]);
+    auto correctedFen = gameState.getFen();
     GameTask task;
     task.taskType = GameTask::Type::PlayGame;
     task.useStartPosition = false;
-    task.fen = startPositions_[index];
+    task.fen = correctedFen;
     task.whiteTimeControl = config_.tc;
     task.blackTimeControl = config_.tc;
     task.switchSide = (gamesStarted_ % 2) == 1;
@@ -286,7 +289,10 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
     constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25 };
 
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::cout << "Monte carlo simulation for different elos running\n";
+    std::cout << "Running SPRT Monte carlo simulation: "
+        << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
+        << " | alpha: " << config.alpha << ", beta: " << config.beta
+        << " | maxGames: " << config.maxGames << std::endl;
     engineP1Name_ = "P1";
 	engineP2Name_ = "P2";
 
