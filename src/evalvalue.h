@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2021 Volker Bï¿½hm
  * @Overview
  * Implements a value class containing midgame and endgame evaluation components
  */
@@ -188,17 +188,17 @@ namespace QaplaBasics {
 	/**
 	 * Component-wise multiplication. 
 	 */
-	constexpr EvalValue operator*(EvalValue a, EvalValue b) {
+	constexpr EvalValue operator*(const EvalValue a, const EvalValue b) {
 		return EvalValue(value_t(a._midgame * b._midgame), value_t(a._endgame * b._endgame));
 	}
 
-	constexpr EvalValue operator*(EvalValue v, value_t scale) {
+	constexpr EvalValue operator*(const EvalValue v, value_t scale) {
 		return EvalValue(v.midgame() * scale, v.endgame() * scale);
 	}
-	constexpr EvalValue operator*(value_t scale, EvalValue v) {
+	constexpr EvalValue operator*(value_t scale, const EvalValue v) {
 		return v * scale;
 	}
-	constexpr EvalValue operator/(EvalValue v, value_t divisor) {
+	constexpr EvalValue operator/(const EvalValue v, value_t divisor) {
 		return EvalValue(v.midgame() / divisor, v.endgame() / divisor);
 	}
 

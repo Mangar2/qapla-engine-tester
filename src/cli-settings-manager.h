@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 #pragma once
 
@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <optional>
 #include <iostream>
+#include <vector>
 #include "app-error.h"
 
 namespace CliSettings {

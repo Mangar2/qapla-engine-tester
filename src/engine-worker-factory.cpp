@@ -13,10 +13,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
-#pragma once
 
 #include "engine-worker-factory.h"
 #include "uci-adapter.h"

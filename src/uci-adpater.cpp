@@ -18,6 +18,7 @@
  */
 
 
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <chrono>
@@ -40,10 +41,6 @@ UciAdapter::UciAdapter(std::filesystem::path enginePath,
 
 UciAdapter::~UciAdapter() {
     terminateEngine();
-}
-
-void UciAdapter::restartEngine() {
-    process_.restart();
 }
 
 void UciAdapter::terminateEngine() {

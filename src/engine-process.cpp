@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 
 #include "engine-process.h"
@@ -24,6 +24,7 @@
 #include <cstring>
 #include <chrono>
 #include <thread>
+#include <string>
 #include <assert.h>
 
 #ifdef _WIN32
@@ -37,6 +38,8 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <fstream>
+#include <sstream>
 #endif
 
 #include "timer.h"
@@ -59,8 +62,9 @@ EngineProcess::EngineProcess(const std::filesystem::path& path,
 
 void EngineProcess::start() {
     constexpr bool useStdErr = false;
-	constexpr DWORD READ_PUFFER_SIZE = 64 * 1024; 
 #ifdef _WIN32
+    constexpr DWORD READ_PUFFER_SIZE = 64 * 1024; 
+
     SECURITY_ATTRIBUTES saAttr{};
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
     saAttr.bInheritHandle = TRUE;
@@ -149,7 +153,11 @@ void EngineProcess::start() {
         if (workingDirectory_) chdir(workingDirectory_->c_str());
 
         dup2(inPipe[0], STDIN_FILENO);
+        close(inPipe[0]);
+
         dup2(outPipe[1], STDOUT_FILENO);
+        close(outPipe[1]);
+
         if (useStdErr) {
             dup2(errPipe[1], STDERR_FILENO);
             close(errPipe[0]);
@@ -163,7 +171,7 @@ void EngineProcess::start() {
         }
 
         close(inPipe[1]); close(outPipe[0]);
-
+        // Hand over control to the engine executable
         execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
         _exit(1);
     }
@@ -206,15 +214,14 @@ void EngineProcess::closeAllHandles() {
 }
 
 int64_t EngineProcess::writeLine(const std::string& line) {
-#ifdef _WIN32
+    int64_t now = Timer::getCurrentTimeMs();
     std::string withNewline = line + '\n';
+#ifdef _WIN32
     DWORD written;
-	int64_t now = Timer::getCurrentTimeMs();
     if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), &written, nullptr)) {
         throw std::runtime_error("Failed to write to stdin");
     }
 #else
-    std::string withNewline = line + '\n';
     ssize_t written = write(stdinWrite_, withNewline.c_str(), withNewline.size());
     if (written == -1) {
         throw std::runtime_error("Failed to write to stdin");
@@ -234,7 +241,20 @@ std::size_t EngineProcess::getMemoryUsage() const {
     }
     return 0;
 #else
-    // Linux version follows below
+    std::ifstream statusFile("/proc/" + std::to_string(childPid_) + "/status");
+    std::string line;
+    while (std::getline(statusFile, line)) {
+        if (line.rfind("VmRSS:", 0) == 0) {
+            std::istringstream iss(line);
+            std::string key;
+            std::size_t valueKb;
+            std::string unit;
+            if (iss >> key >> valueKb >> unit) {
+                return valueKb * 1024; // Convert KB to Bytes
+            }
+        }
+    }
+    return 0;
 #endif
 }
 
@@ -474,6 +494,9 @@ void EngineProcess::terminate() {
         DWORD error = GetLastError();
         throw std::runtime_error("GetExitCodeProcess failed with error code: " + std::to_string(error));
     }
+    closeAllHandles();
+    // Should never be reached unless TerminateProcess succeeds but the process remains active (unexpected)
+    throw std::runtime_error("Engine did not end by itself");
 #else
     if (childPid_ <= 0) {
         closeAllHandles();
@@ -492,20 +515,9 @@ void EngineProcess::terminate() {
     if (waitpid(childPid_, nullptr, 0) == -1) {
         throw std::runtime_error("waitpid() failed");
     }
-#endif
     closeAllHandles();
-    throw std::runtime_error("Engine did not end by itself");
-}
+#endif
 
-void EngineProcess::restart() {
-    try {
-        terminate();
-    }
-	catch (...) {
-		// We can ignore the error "Engine did not end by itself" error 
-        // as the restart is already reported as an error
-	}
-	start();
 }
 
 bool EngineProcess::isRunning() const {

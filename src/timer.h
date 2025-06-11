@@ -13,16 +13,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 #pragma once
 
-#include <sys/timeb.h>
 #include <iostream>
 #include <chrono>
+#include <iomanip>
 
- class Timer {
+class Timer {
 public:
     static int64_t getCurrentTimeMs() {
         return duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();

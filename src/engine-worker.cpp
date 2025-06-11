@@ -13,15 +13,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 
 #include "engine-worker.h"
 #include "engine-adapter.h"  
 #include "logger.h"
 #include "timer.h"
-#include "windows.h"
 
 #include <stdexcept>
 
@@ -102,10 +101,6 @@ void EngineWorker::stop(bool wait) {
             readThread_.join();
         }
     }
-}
-
-void EngineWorker::restart() {
-	adapter_->restartEngine();
 }
 
 /**
