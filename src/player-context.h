@@ -41,7 +41,7 @@ public:
      *
      * @param engineWorker Shared pointer to the EngineWorker.
      */
-    void setEngine(std::shared_ptr<EngineWorker> engineWorker, bool requireLan) {
+    void setEngine(std::unique_ptr<EngineWorker> engineWorker, bool requireLan) {
         computingMove_ = false;
         engine_ = std::move(engineWorker);
 		requireLan_ = requireLan;
@@ -79,8 +79,13 @@ public:
     void cancelCompute() {
         constexpr auto readyTimeout = std::chrono::seconds{ 1 };
         if (computingMove_) {
-            computingMove_ = false; // Ignores the move
-            engine_->moveNow();
+            computingMove_ = false; 
+            engine_->moveNow(true);
+        }
+		if (pondering_ && !ponderMove_.empty()) {
+			pondering_ = false;
+			ponderMove_ = "";
+            engine_->moveNow(true);
         }
         engine_->requestReady(readyTimeout);
     }
@@ -176,17 +181,10 @@ public:
     /**
 	 * @brief Plays a move in the game.
      *
-     * @param moveText The move in algebraic notation.
+     * @param move The move.
      */
-    void doMove(const std::string& moveText);
+    void doMove(QaplaBasics::Move move);
     
-    /**
-	 * @brief Plays a move in the game.
-     */
-	void doMove(QaplaBasics::Move move) {
-		gameState_.doMove(move);
-	}
-
 	/**
 	 * @brief Sets the game state to a new position.
 	 *
@@ -213,13 +211,14 @@ private:
     bool restartIfNotReady();
     void restart();
 
-    std::shared_ptr<EngineWorker> engine_;
+    std::unique_ptr<EngineWorker> engine_;
     TimeControl timeControl_;
     GameState gameState_;
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
 	bool pondering_ = false;
+	std::string ponderMove_ = "";
     std::atomic<bool> computingMove_ = false;
     MoveRecord currentMove_;
 };

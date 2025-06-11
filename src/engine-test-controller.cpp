@@ -36,7 +36,7 @@ void EngineTestController::createGameManager(bool singleEngine) {
 void EngineTestController::startEngine() {
     bool success = false;
     try {
-        auto list = EngineWorkerFactory::createEnginesByName(engineName_, 1);
+        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
         gameManager_->setUniqueEngine(std::move(list[0]));
         success = gameManager_->getEngine()->requestReady();
     }
@@ -49,7 +49,7 @@ void EngineTestController::startEngine() {
 }
 
 EngineList EngineTestController::startEngines(uint32_t count) {
-    EngineList list = EngineWorkerFactory::createEnginesByName(engineName_, count);
+    EngineList list = EngineWorkerFactory::createEngines(engineConfig_, count);
 
     std::vector<std::future<bool>> results;
     for (auto& engine : list) {
@@ -76,10 +76,10 @@ std::string bytesToMB(int64_t bytes) {
 	return oss.str();
 }
 
-void EngineTestController::runAllTests(std::string engineName, int numGames) {
+void EngineTestController::runAllTests(const EngineConfig& engine, int numGames) {
     try {
         auto testSettings = *CliSettings::Manager::getGroupInstance("test");
-        engineName_ = engineName;
+        engineConfig_ = engine;
         numGames_ = numGames;
         createGameManager(true);
         runStartStopTest();
@@ -102,6 +102,9 @@ void EngineTestController::runAllTests(std::string engineName, int numGames) {
 			runEpdTests();
 		}
         runComputeGameTest();
+        if (!testSettings.get<bool>("noponder")) {
+            runPonderGameTest();
+        }
         runMultipleGamesTest();
         gameManager_->stop();
     }
@@ -155,7 +158,7 @@ void EngineTestController::runStartStopTest() {
     runTest("Engine starts and stops fast and without problems", [this]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
-        auto list = EngineWorkerFactory::createEnginesByName(engineName_, 1);
+        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
         auto startTime = timer.elapsedMs();
         auto engine = list[0].get();
         int64_t memoryInBytes = engine->getEngineMemoryUsage();
@@ -189,7 +192,7 @@ void EngineTestController::runMultipleStartStopTest(int numEngines) {
         timer.start();
 		int64_t startTime = 0;
         {
-            EngineList engines = EngineWorkerFactory::createEnginesByName(engineName_, numEngines);
+            EngineList engines = EngineWorkerFactory::createEngines(engineConfig_, numEngines);
             startTime = timer.elapsedMs();
             for (auto& engine : engines) {
                 engine->stop(false);
@@ -459,7 +462,7 @@ void EngineTestController::runInfiniteAnalyzeTest() {
     static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
 
     runTest("Infinite compute move must not exit on its own", [this]() -> std::pair<bool, std::string> {
-        Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::commands);
+        Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::command);
         gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
         bool exited = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
         if (exited) {
@@ -516,12 +519,34 @@ void EngineTestController::runComputeGameTest() {
     }
 }
 
+void EngineTestController::runPonderGameTest() {
+    Logger::testLogger().log("\nThe engine now plays against itself with pondering enabled. ");
+    EngineList engines = startEngines(2);
+	engines[0]->getConfigMutable().setPonder(true);
+	engines[1]->getConfigMutable().setPonder(true);
+    gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
+    try {
+        gameManager_->newGame();
+        TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
+        TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
+        gameManager_->setTimeControls(t1, t2);
+        gameManager_->computeGame(true, "", true);
+        gameManager_->getFinishedFuture().wait();
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during compute games test: " + std::string(e.what()), TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during compute games test.", TraceLevel::error);
+    }
+}
+
 void EngineTestController::runMultipleGamesTest() {
     int parallelGames = CliSettings::Manager::get<int>("concurrency");
 
     Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(numGames_) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");
-	Logger::testLogger().log("You can alter the number of games played with --numgames option and the number of parallel games with --concurrency option. ");
+	Logger::testLogger().log("You can alter the number of games played with 'numgames' option and the number of parallel games with --concurrency option. ");
     Logger::testLogger().log("White has always the longer time control so we expect white to win most games. ");
     Logger::testLogger().log("Please wait a moment before first game results occur.");
 
@@ -529,7 +554,7 @@ void EngineTestController::runMultipleGamesTest() {
     TestTournament tournament(numGames_);
 
     try {
-        GameManagerPool::getInstance().addTask(&tournament, engineName_);
+        GameManagerPool::getInstance().addTask(&tournament, engineConfig_);
         GameManagerPool::getInstance().waitForTask(&tournament);
         Logger::testLogger().log("All games completed.");
     }

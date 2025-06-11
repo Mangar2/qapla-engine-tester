@@ -22,10 +22,8 @@
 
 EngineAdapter::EngineAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory, 
-    const std::string& engineConfigName,
     const std::string& identifier)
     : process_(enginePath, workingDirectory, identifier), 
-      engineConfigName_(engineConfigName), 
       identifier_(identifier) {
 }
 
@@ -35,6 +33,6 @@ int64_t EngineAdapter::writeCommand(const std::string& command) {
         return 0; 
     }
     std::lock_guard<std::mutex> lock(commandMutex_);
-    logToEngine(command, TraceLevel::commands);
+    logToEngine(command, TraceLevel::command);
     return process_.writeLine(command);
 }

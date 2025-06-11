@@ -45,7 +45,7 @@ void EpdManager::printHeaderLine() const {
     }
 
     header << "|" << formatEngineName(engineName_) << "| BM:";
-    Logger::testLogger().log(header.str(), TraceLevel::results);
+    Logger::testLogger().log(header.str(), TraceLevel::result);
 }
 
 void EpdManager::printTestResultLine(const EpdTestCase& current) const {
@@ -73,7 +73,7 @@ void EpdManager::printTestResultLine(const EpdTestCase& current) const {
         line << bm << " ";
     }
 
-	Logger::testLogger().log(line.str(), TraceLevel::results);
+	Logger::testLogger().log(line.str(), TraceLevel::result);
 }
 
 std::string EpdManager::formatTime(uint64_t ms) const {
@@ -143,10 +143,10 @@ void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPli
     }
 }
 
-void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engineName,
+void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& engine, 
     uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies)
 {
-	engineName_ = engineName;
+	engineName_ = engine.getName();
 	epdFileName_ = filepath;
     bool sameFile = reader_ && reader_->getFilePath() == filepath;
     if (!sameFile) {
@@ -159,7 +159,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const std::string& engi
     tc.setMoveTime(maxTimeInS * 1000);
     printHeaderLine();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTask(this, engineName);
+	GameManagerPool::getInstance().addTask(this, engine);
 }
 
 bool EpdManager::wait() {

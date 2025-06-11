@@ -86,6 +86,7 @@ struct EngineEvent {
     enum class Type {
         None,
         ComputeMoveSent,
+        PonderMoveSent,
         ReadyOk,
         UciOk,
         BestMove,

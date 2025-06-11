@@ -47,8 +47,10 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
                 for (const auto& m : searchInfo.pv)
                     fullPv += m + " ";
                 if (!fullPv.empty()) fullPv.pop_back();
+				std::string stateStr = computingMove_ ? "computing move" : 
+					pondering_ ? "pondering" : "inactive";
                 Checklist::logCheck("Search info reports correct PV", false,
-                    "Encountered illegal move " + moveStr + " in pv " + fullPv);
+                    "Encountered illegal move "  + moveStr + " while " + stateStr + " in pv " + fullPv);
                 break;
             }
             gameState_.doMove(move);
@@ -75,14 +77,16 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     computingMove_ = false;
     if (!Checklist::logCheck("Computing a move returns a legal move", event.bestMove.has_value())) {
-        gameState_.setGameResult(GameEndCause::IllegalMove, gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
+        gameState_.setGameResult(GameEndCause::IllegalMove, 
+            gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
 		currentMove_ = MoveRecord{};
         return QaplaBasics::Move::EMPTY_MOVE;
     }
     const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
     if (!Checklist::logCheck("Computing a move returns a legal move", !move.isEmpty(),
         "Encountered illegal move \"" + *event.bestMove + "\" in currMove, raw info line \"" + event.rawLine + "\"")) {
-        gameState_.setGameResult(GameEndCause::IllegalMove, gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
+        gameState_.setGameResult(GameEndCause::IllegalMove, 
+            gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         currentMove_ = MoveRecord{};
         return QaplaBasics::Move::EMPTY_MOVE;
     }
@@ -197,9 +201,7 @@ void PlayerContext::handleDisconnect(bool isWhitePlayer) {
 void PlayerContext::restart() {
     computingMove_ = false;
     // Create a fully initialized new engine instance (incl. UCI handshake)
-    auto list = EngineWorkerFactory::createEnginesByName(engine_->getEngineConfigName(), 1);
-    // Replace the old engine with the new one; triggers cleanup of old engine (threads, handles)
-    engine_ = std::move(list[0]);
+    engine_ = std::move(EngineWorkerFactory::restart(*engine_));
 }
 
 bool PlayerContext::restartIfNotReady() {
@@ -211,11 +213,33 @@ bool PlayerContext::restartIfNotReady() {
     return false;
 }
 
-void PlayerContext::doMove(const std::string& moveText) {
-    const auto move = gameState_.stringToMove(moveText, requireLan_);
-    if (!move.isEmpty()) {
-        gameState_.doMove(move);
+void PlayerContext::doMove(QaplaBasics::Move move) {
+	if (move.isEmpty()) {
+		throw AppError::make("PlayerContext::doMove; Illegal move in for doMove");
+	}
+    // This method is only called with a checked move thus beeing empty should never happen
+    std::string lan = move.getLAN();
+	if (pondering_ && ponderMove_ == lan) {
+		// We are in pondering mode and the move is the pondermove. We do not need to do or undo a move.
+		// The game state is already correct.
+		return;
+	}
+    if (pondering_ && ponderMove_ != "" && ponderMove_ != lan) {
+        // Game state has the position after the pondermove. As the pondermove is not played
+		// we undo the move to get back to the position before the pondermove.
+        gameState_.undoMove();
+        // moveNow with option true will wait until bestmove received and consider the bestmove as
+        // handshake. The bestmove is then not send to the GameManager
+		auto success = engine_->moveNow(true);
+        if (!Checklist::logCheck("Correct pondering", success,
+            "stop command to engine did not return a bestmove while in pondermode in time")) {
+			// Try to heal the situation by requesting a ready state from the engine
+            engine_->requestReady();
+        }
     }
+    pondering_ = false;
+    ponderMove_ = "";
+    gameState_.doMove(move);
 }
 
 bool PlayerContext::isLegalMove(const std::string& moveText) {
@@ -224,33 +248,55 @@ bool PlayerContext::isLegalMove(const std::string& moveText) {
 }
 
 void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits) {
+	bool ponderHit = pondering_ && ponderMove_ != "";
+
     goLimits_ = goLimits;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
     // the compute move string to the engine. As it is asynchronous, we might get a bestmove event before receiving the
     // sent compute move event. In this case we use this timestamp here
     setComputeMoveStartTimestamp(Timer::getCurrentTimeMs());
+    pondering_ = false;
+	ponderMove_ = "";
     computingMove_ = true;
-    engine_->computeMove(gameRecord, goLimits);
+    engine_->computeMove(gameRecord, goLimits, ponderHit);
 }
 
 void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
     const std::optional<EngineEvent>& event) {
+    if (!engine_->getConfig().isPonderEnabled()) return;
     if (!event) return;
+
+	if (event->type != EngineEvent::Type::BestMove) {
+		throw AppError::make("PlayerContext::allowPonder; Best move event required to ponder.");
+	}
     if (computingMove_) {
-		// We are already computing a move, no need to allow pondering
 		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering while already computing a move.");
 	}
-    pondering_ = true;
 	goLimits_ = goLimits;
+    ponderMove_ = event->ponderMove ? *event->ponderMove : "";
 
-    if (event->ponderMove) {
-		const auto ponderLan = *event->ponderMove;
-        const auto move = gameState_.stringToMove(ponderLan, requireLan_);
-        if (!Checklist::logCheck("Ponder move is legal", !move.isEmpty(),
-            "Encountered illegal ponder move \"" + ponderLan + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
-
+    if (ponderMove_ != "") {
+        const auto move = gameState_.stringToMove(ponderMove_, requireLan_);
+        if (Checklist::logCheck("Ponder move is legal", !move.isEmpty(),
+            "Encountered illegal ponder move \"" + ponderMove_ + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
+            gameState_.doMove(move);
+			auto [cause, result] = gameState_.getGameResult();
+			if (result != GameResult::Unterminated) {
+				// If the game is already over, we cannot ponder
+				pondering_ = false;
+				ponderMove_ = "";
+                gameState_.undoMove();
+			} 
+            else {
+                pondering_ = true;
+                engine_->allowPonder(gameRecord, goLimits, ponderMove_);
+            }
         }
     }
-	engine_->allowPonder(gameRecord, goLimits, event->ponderMove);
+    else {
+        pondering_ = true;
+		engine_->allowPonder(gameRecord, goLimits, ponderMove_);
+    }
+
 }
 

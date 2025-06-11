@@ -28,6 +28,7 @@
 #include <future>
 #include "game-record.h"
 #include "engine-adapter.h"
+#include "engine-config.h"
 
 class EngineAdapter;
 
@@ -48,9 +49,9 @@ public:
 	 * @param identifier A unique identifier for the engine represented by the worker.
 	 * @param optionValues option values to set for the engine in the startup process.
 	 */
-	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter, 
+	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter,
 		std::string identifier,
-		const OptionValues& optionValues);
+		const EngineConfig& engineConfig);
 
 	/**
 	 * @brief Destructs the worker and cleanly shuts down its thread.
@@ -89,8 +90,17 @@ public:
 	 *
 	 * @param gameRecord The current game information (includes starting position and move history).
 	 * @param limits The constraints for the upcoming search (time, depth, nodes, etc.).
+	 * @param ponderHit If true, indicates that the engine is currently pondering on the right move.
 	 */
-	void computeMove(const GameRecord& gameRecord, const GoLimits& limits);
+	void computeMove(const GameRecord& gameRecord, const GoLimits& limits, bool ponderHit = false);
+
+	/**
+	 * @brief Allows the engine to ponder during its turn.
+	 * @param game The current game with start position and moves played so far.
+	 * @param limits The time limits for the next move.
+	 * @param ponderMove The move to ponder, if any.
+	 */
+	void allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove);
 
 	/**
 	 * @brief Sends a command to the engine to prepare for a new game.
@@ -104,11 +114,7 @@ public:
 	/**
 	 * @brief Sends a command to the engine to stop the current move calculation and send the best move.
 	 */
-	void moveNow() {
-		post([this](EngineAdapter& adapter) {
-			adapter.moveNow();
-			});
-	}
+	bool moveNow(bool wait = false);
 
 	/**
 	 * @brief Sets the event sink for engine events.
@@ -168,13 +174,6 @@ public:
 	}
 
 	/**
-	 * @brief get the name of the engine configuration used to create this adapter.
-	 */
-	std::string getEngineConfigName() const {
-		return adapter_->getEngineConfigName();
-	}
-
-	/**
 	 * @brief Returns the name of the engine.
 	 */
 	std::string getEngineName() const {
@@ -193,6 +192,14 @@ public:
 	 */
 	std::string getWelcomeMessage() const {
 		return adapter_->getWelcomeMessage();
+	}
+
+	const EngineConfig& getConfig() const {
+		return engineConfig_;
+	}
+
+	EngineConfig& getConfigMutable() {
+		return engineConfig_;
 	}
 
 	enum class EventFilter {
@@ -246,8 +253,9 @@ private:
 	void readLoop();
 	void writeLoop();
 	
-	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
+	static constexpr std::chrono::seconds BestMoveTimeout{ 2 };
+	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
 	static constexpr std::chrono::seconds ReadyTimeoutOption{ 10 };
 
 	std::queue<std::optional<std::function<void(EngineAdapter&)>>> writeQueue_;
@@ -277,5 +285,8 @@ private:
 
 	// GameManager communication
 	std::function<void(EngineEvent&&)> eventSink_;
+
+	// Engine configuration
+	EngineConfig engineConfig_;
 
 };

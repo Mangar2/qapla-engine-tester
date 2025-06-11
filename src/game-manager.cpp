@@ -67,29 +67,28 @@ bool GameManager::processNextEvent() {
     return true;
 }
 
-void GameManager::setUniqueEngine(std::shared_ptr<EngineWorker> engine) {
-	whitePlayer_ = &player1_;
-    blackPlayer_ = &player1_;
-    whitePlayer_->setEngine(engine, requireLan_);
-
+void GameManager::setUniqueEngine(std::unique_ptr<EngineWorker> engine) {
     engine->setEventSink([this](EngineEvent&& event) {
         enqueueEvent(std::move(event));
         });
+    whitePlayer_ = &player1_;
+    blackPlayer_ = &player1_;
+    whitePlayer_->setEngine(std::move(engine), requireLan_);
 }
 
-void GameManager::setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black) {
-    whitePlayer_ = &player1_;
-    blackPlayer_ = &player2_;
-	whitePlayer_->setEngine(white, requireLan_);
-    blackPlayer_->setEngine(black, requireLan_);
-
+void GameManager::setEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
     white->setEventSink([this](EngineEvent&& event) {
         enqueueEvent(std::move(event));
         });
 
     black->setEventSink([this](EngineEvent&& event) {
-         enqueueEvent(std::move(event));
-         });
+        enqueueEvent(std::move(event));
+        });
+
+    whitePlayer_ = &player1_;
+    blackPlayer_ = &player2_;
+	whitePlayer_->setEngine(std::move(white), requireLan_);
+    blackPlayer_->setEngine(std::move(black), requireLan_);
 }
 
 void GameManager::processQueue() {
@@ -224,6 +223,7 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 	MoveRecord moveRecord;
 	PlayerContext* playerToInform = nullptr;
     PlayerContext* player = nullptr;
+    // Special feature for the test output of a single game played
     if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
 	if (whitePlayer_->getEngine()->getIdentifier() == event.engineIdentifier) {
 		player = whitePlayer_;
@@ -322,11 +322,11 @@ void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     computeNextMove();
 }
 
-void GameManager::computeNextMove(const std::optional<EngineEvent>& event = std::nullopt) {
+void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     auto [whiteTime, blackTime] = gameRecord_.timeUsed();
     GoLimits goLimits = createGoLimits(
 		whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl(),
-        gameRecord_.currentPly(), whiteTime, blackTime, gameRecord_.isWhiteToMove());
+        gameRecord_.nextMoveIndex(), whiteTime, blackTime, gameRecord_.isWhiteToMove());
 	if (gameRecord_.isWhiteToMove()) {
         whitePlayer_->computeMove(gameRecord_, goLimits);
         blackPlayer_->allowPonder(gameRecord_, goLimits, event);
@@ -368,7 +368,7 @@ void GameManager::computeNextTask() {
 	}
 	auto whiteId = whitePlayer_->getEngine()->getIdentifier();
 	auto blackId = blackPlayer_->getEngine()->getIdentifier();
-    if (gameRecord_.currentPly() > 0) {
+    if (gameRecord_.nextMoveIndex() > 0) {
         taskProvider_->setGameRecord(whiteId, blackId, gameRecord_);
     }
     auto newTask = taskProvider_->nextTask(whiteId, blackId);

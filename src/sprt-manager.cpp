@@ -31,10 +31,10 @@ bool SprtManager::wait() {
 };
 
 void SprtManager::runSprt(
-    const std::string& engineName0, const std::string& engineName1, int concurrency, const SprtConfig& config) {
+    const EngineConfig& engine0, const EngineConfig& engine1, int concurrency, const SprtConfig& config) {
 	config_ = config;
-	engineP1Name_ = engineName0;
-	engineP2Name_ = engineName1;
+	engineP1Name_ = engine0.getName();
+	engineP2Name_ = engine1.getName();
 
 	if (config.openings.file.empty()) {
 		Logger::testLogger().log("No openings file provided, using default EPD test set.", TraceLevel::error);
@@ -45,7 +45,7 @@ void SprtManager::runSprt(
 		return;
 	}
 	EpdReader reader(config.openings.file);
-    std::cout << "Running SPRT: " << engineName0 << " vs " << engineName1
+    std::cout << "Running SPRT: " << engineP1Name_ << " vs " << engineP2Name_
         << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
         << " | alpha: " << config.alpha << ", beta: " << config.beta
         << " | maxGames: " << config.maxGames
@@ -63,7 +63,7 @@ void SprtManager::runSprt(
 	nextIndex_ = 0;
     PgnIO::tournament().initialize();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTask(this, engineName0, engineName1);
+	GameManagerPool::getInstance().addTask(this, engine0, engine1);
 
 }
 
@@ -148,7 +148,7 @@ void SprtManager::setGameRecord(const std::string& whiteId,
         << " " << info;
     if (!decision_) {
         // Only long a decision once
-        Logger::testLogger().log(oss.str(), TraceLevel::results);
+        Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
 	// Ignore changes of the decision after a decision has been made
     if (decision) decision_ = decision;

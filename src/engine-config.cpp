@@ -18,10 +18,11 @@
  */
  
 #include "engine-config.h"
+#include "engine-option.h"
 
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
-    for (const auto& [key, value] : optionValues) {
+    for (const auto& [key, value] : optionValues_) {
         if (availableOptions.find(key) != availableOptions.end()) {
             filteredOptions[key] = value;
         }
@@ -32,7 +33,7 @@ std::unordered_map<std::string, std::string> EngineConfig::getOptions(const Engi
 template<typename T>
 inline constexpr bool always_false = false;
 
-std::string EngineConfig::to_string(const Value& value) {
+std::string EngineConfig::toString(const Value& value) {
     return std::visit([](auto&& v) -> std::string {
         using T = std::decay_t<decltype(v)>;
         if constexpr (std::is_same_v<T, std::string>) return v;
@@ -49,20 +50,22 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     for (const auto& [key, value] : values) {
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key in engine options: " + key);
-        if (update && std::get<std::string>(value).empty()) continue;
+        if (update && std::holds_alternative<std::string>(value) && std::get<std::string>(value).empty())
+            continue;
         if (key == "conf") continue;
-        if (key == "name") {
+        if (key == "ponder") setPonder(std::get<bool>(value));
+        else if (key == "name") {
             if (!update) setName(std::get<std::string>(value));
         } else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
         else if (key == "dir") setWorkingDirectory(std::get<std::string>(value));
         else if (key == "proto") {
             auto valueStr = std::get<std::string>(value);
-            if (valueStr == "uci") protocol = EngineProtocol::Uci;
-            else if (valueStr == "xboard") protocol = EngineProtocol::XBoard;
+            if (valueStr == "uci") protocol_ = EngineProtocol::Uci;
+            else if (valueStr == "xboard") protocol_ = EngineProtocol::XBoard;
             else throw std::runtime_error("Unknown protocol: " + valueStr);
         }
         else if (key.starts_with("option.")) {
-            optionValues[key.substr(7)] = to_string(value);
+            optionValues_[key.substr(7)] = toString(value);
         }
         else {
             throw std::runtime_error("Unknown engine option key: " + key);
@@ -75,7 +78,7 @@ void EngineConfig::finalizeSetOptions() {
     if (getExecutablePath().empty()) throw std::runtime_error("Missing required field: cmd");
     if (getName().empty()) setName(getExecutablePath());
     if (getWorkingDirectory().empty()) setWorkingDirectory(".");
-    if (protocol == EngineProtocol::Unknown) protocol = EngineProtocol::Uci;
+    if (protocol_ == EngineProtocol::Unknown) protocol_ = EngineProtocol::Uci;
 }
 
 void EngineConfig::readHeader(std::istream& in) {
@@ -117,8 +120,8 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
         else if (key == "executablePath") config.setExecutablePath(value);
         else if (key == "workingDirectory") config.setWorkingDirectory(value);
         else if (key == "protocol") {
-            if (value == "uci") config.protocol = EngineProtocol::Uci;
-            else if (value == "xboard") config.protocol = EngineProtocol::XBoard;
+            if (value == "uci") config.protocol_ = EngineProtocol::Uci;
+            else if (value == "xboard") config.protocol_ = EngineProtocol::XBoard;
             else throw std::runtime_error("Unknown protocol: " + value);
         }
         else {
@@ -134,14 +137,32 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
 std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
     if (!out) throw std::runtime_error("Invalid output stream");
 
-    out << "[" << config.name << "]\n";
-    out << "protocol=" << to_string(config.protocol) << '\n';
-    out << "executablePath=" << config.executablePath << '\n';
-    out << "workingDirectory=" << config.workingDirectory << '\n';
+    out << "[" << config.name_ << "]\n";
+    out << "protocol=" << to_string(config.protocol_) << '\n';
+    out << "executablePath=" << config.executablePath_ << '\n';
+    out << "workingDirectory=" << config.workingDirectory_ << '\n';
 
-    for (const auto& [key, value] : config.optionValues) {
+    for (const auto& [key, value] : config.optionValues_) {
         out << key << "=" << value << '\n';
     }
 
     return out;
+}
+
+std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap() const {
+    std::unordered_map<std::string, std::string> result;
+
+    if (!name_.empty())
+        result["name"] = name_;
+
+    result["protocol"] = to_string(protocol_);
+
+    if (ponder_)
+        result["ponder"] = "";
+
+    for (const auto& [key, value] : optionValues_) {
+        result[key] = value;
+    }
+
+    return result;
 }

@@ -32,9 +32,8 @@
 
 UciAdapter::UciAdapter(std::filesystem::path enginePath,
     const std::optional<std::filesystem::path>& workingDirectory,
-    const std::string engineConfigName,
     const std::string& identifier)
-	: EngineAdapter(enginePath, workingDirectory, engineConfigName, identifier)
+	: EngineAdapter(enginePath, workingDirectory, identifier)
 {
     suppressInfoLines_ = true;
 }
@@ -103,18 +102,25 @@ void UciAdapter::ticker() {
     // Currently unused in UCI
 }
 
-void UciAdapter::ponder(const GameRecord& game, GoLimits& limits) {
-    
+int64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limits, std::string ponderMove) {
+    if (ponderMove == "") return 0;
+	sendPosition(game, ponderMove);
 
+    std::ostringstream oss;
+    oss << "go ponder" << computeGoOptions(limits);
+
+    return writeCommand(oss.str());
 }
 
-int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits) {
+int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) {
+    if (ponderHit) {
+		return writeCommand("ponderhit");
+    }
     sendPosition(game);
 
     std::ostringstream oss;
     oss << "go" << computeGoOptions(limits);
 
-    // TODO: Add searchmoves
     return writeCommand(oss.str());
 }
 
@@ -139,7 +145,7 @@ void UciAdapter::askForReady() {
 	writeCommand("isready");
 }
 
-void UciAdapter::sendPosition(const GameRecord& game) {
+void UciAdapter::sendPosition(const GameRecord& game, std::string ponderMove) {
     std::ostringstream oss;
     if (game.getStartPos()) {
         oss << "position startpos";
@@ -147,11 +153,14 @@ void UciAdapter::sendPosition(const GameRecord& game) {
     else {
         oss << "position fen " << game.getStartFen();
     }
-    if (!game.currentPly() == 0) {
+    if (!game.nextMoveIndex() == 0 || ponderMove != "") {
         oss << " moves";
-		for (uint32_t ply = 0; ply < game.currentPly(); ++ply) {
+		for (uint32_t ply = 0; ply < game.nextMoveIndex(); ++ply) {
             oss << " " << game.history()[ply].lan;
 		}
+        if (ponderMove != "") {
+            oss << " " << ponderMove;
+        }
     }
     writeCommand(oss.str());
 }
@@ -380,7 +389,7 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
 EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
     const std::string& line = engineLine.content;
     if (line == "uciok") {
-        logFromEngine(line, TraceLevel::handshake);
+        logFromEngine(line, TraceLevel::command);
 		inUciHandshake_ = false;
         return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
     }
@@ -446,16 +455,16 @@ EngineEvent UciAdapter::readEvent() {
     }
 
     if (command == "readyok") {
-        logFromEngine(line, TraceLevel::handshake);
+        logFromEngine(line, TraceLevel::command);
         return EngineEvent::createReadyOk(identifier_, engineLine.timestampMs, line);
     }
 	if (command == "uciok") {
-		logFromEngine(line, TraceLevel::handshake);
+		logFromEngine(line, TraceLevel::command);
 		return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
 	}
 
     if (command == "bestmove") {
-        logFromEngine(line, TraceLevel::commands);
+        logFromEngine(line, TraceLevel::command);
         std::string best, token, ponder, err;
         iss >> best;
         iss >> token;
@@ -474,14 +483,14 @@ EngineEvent UciAdapter::readEvent() {
     }
 
     if (command == "ponderhit") {
-        logFromEngine(line, TraceLevel::commands);
+        logFromEngine(line, TraceLevel::command);
         return EngineEvent::createPonderHit(identifier_, engineLine.timestampMs, line);
     }
 
     if (command == "option") {
         if (numOptionError_ <= 5) {
             logFromEngine(line + " Report: option command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::commands);
+            logFromEngine(line, TraceLevel::command);
             if (numOptionError_ == 5) {
                 logFromEngine("Report: too many option errors, stopping further checks", TraceLevel::error);
             }
@@ -491,7 +500,7 @@ EngineEvent UciAdapter::readEvent() {
     else if (command == "id") {
         if (numIdError_ <= 5) {
             logFromEngine(line + " Report: id name command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::commands);
+            logFromEngine(line, TraceLevel::command);
             if (numIdError_ == 5) {
                 logFromEngine("Report: too many id name errors, stopping further checks", TraceLevel::error);
             }
@@ -502,7 +511,7 @@ EngineEvent UciAdapter::readEvent() {
     else if (command == "name") {
         if (numNameError_ <= 5) {
             logFromEngine(line + " Report: name command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::commands);
+            logFromEngine(line, TraceLevel::command);
             if (numNameError_ == 5) {
                 logFromEngine("Report: too many name errors, stopping further checks", TraceLevel::error);
             }
@@ -512,7 +521,7 @@ EngineEvent UciAdapter::readEvent() {
 
     if (numUnknownCommandError_ <= 5) {
         logFromEngine(line + " Report: unknown command: ", TraceLevel::error);
-        logFromEngine(line, TraceLevel::commands);
+        logFromEngine(line, TraceLevel::command);
         if (numUnknownCommandError_ == 5) {
             logFromEngine("Report: too many unknown command errors, stopping further checks", TraceLevel::error);
         }

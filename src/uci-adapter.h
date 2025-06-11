@@ -40,12 +40,10 @@ public:
 	 * @brief Constructs a UCI adapter for the given engine executable.
 	 * @param enginePath Path to the engine executable.
 	 * @param workingDirectory Optional working directory for the engine.
-	 * @param engineConfigName Name of the engine configuration used to create this adapter.
 	 * @param identifier Unique identifier for this engine instance.
 	 */
     explicit UciAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
-        const std::string engineConfigName,
         const std::string& identifier);
     ~UciAdapter();
 
@@ -74,8 +72,8 @@ public:
     void setPonder(bool enabled) override;
     void ticker() override;
 
-    void ponder(const GameRecord& game, GoLimits& limits) override;
-    int64_t computeMove(const GameRecord& game, const GoLimits& limits) override;
+    int64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
+    int64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -131,8 +129,12 @@ private:
      */
 	std::string computeGoOptions(const GoLimits& limits) const;
 
-
-    void sendPosition(const GameRecord& game);   // Sends position + moves
+	/**
+	 * @brief Sends the current position to the engine.
+	 * @param game The current game record containing the position and moves played.
+	 * @param ponderMove Optional move to ponder on, if any.
+	 */
+    void sendPosition(const GameRecord& game, std::string ponderMove = "");   
 
     EngineEvent parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& originalLine);
 

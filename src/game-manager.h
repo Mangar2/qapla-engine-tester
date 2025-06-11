@@ -45,14 +45,14 @@ public:
      * @brief sets a new engine to play both sides
 	 * @param engine The new engine to be set.
      */
-    void setUniqueEngine(std::shared_ptr<EngineWorker> engine);
+    void setUniqueEngine(std::unique_ptr<EngineWorker> engine);
 
     /**
 	 * @brief sets two engines to play against each other
 	 * @param white The engine to play as white.
 	 * @param black The engine to play as black.
      */
-    void setEngines(std::shared_ptr<EngineWorker> white, std::shared_ptr<EngineWorker> black);
+    void setEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
 
 	/**
 	 * @brief stops the engine if it is running.
@@ -215,8 +215,8 @@ private:
 			blackPlayer_->setFen(useStartPosition, fen);
 		}
         gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove(),
-            whitePlayer_->getEngine()->getEngineConfigName(),
-            blackPlayer_->getEngine()->getEngineConfigName());
+            whitePlayer_->getEngine()->getConfig().getName(),
+            blackPlayer_->getEngine()->getConfig().getName());
 	}
 
 	/**

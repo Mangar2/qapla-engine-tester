@@ -21,7 +21,7 @@
 #include "game-manager-pool.h"
 #include "engine-worker-factory.h"
 
-void GameManagerPool::addTask(GameTaskProvider* taskProvider, const std::string& engineName) {
+void GameManagerPool::addTask(GameTaskProvider* taskProvider, const EngineConfig& engineName) {
     std::lock_guard lock(mutex_);
 
     Task task;
@@ -35,7 +35,8 @@ void GameManagerPool::addTask(GameTaskProvider* taskProvider, const std::string&
     tasks_.push_back(std::move(task));
 }
 
-void GameManagerPool::addTask(GameTaskProvider* taskProvider, const std::string& whiteEngine, const std::string& blackEngine) {
+void GameManagerPool::addTask(GameTaskProvider* taskProvider, 
+    const EngineConfig& whiteEngine, const EngineConfig& blackEngine) {
     std::lock_guard lock(mutex_);
 
     Task task;
@@ -101,8 +102,8 @@ void GameManagerPool::ensureManagerCount(size_t count) {
 
 void GameManagerPool::assignTaskToManagers(Task& task) {
     if (task.engine2.has_value()) {
-        auto whiteEngines = EngineWorkerFactory::createEnginesByName(task.engine1, task.concurrency);
-        auto blackEngines = EngineWorkerFactory::createEnginesByName(*task.engine2, task.concurrency);
+        auto whiteEngines = EngineWorkerFactory::createEngines(task.engine1, task.concurrency);
+        auto blackEngines = EngineWorkerFactory::createEngines(*task.engine2, task.concurrency);
 
         for (size_t i = 0; i < task.concurrency; ++i) {
             GameManager* manager = managers_[i].get();
@@ -112,7 +113,7 @@ void GameManagerPool::assignTaskToManagers(Task& task) {
         }
     }
     else {
-        auto engines = EngineWorkerFactory::createEnginesByName(task.engine1, task.concurrency);
+        auto engines = EngineWorkerFactory::createEngines(task.engine1, task.concurrency);
 
         for (size_t i = 0; i < task.concurrency; ++i) {
             GameManager* manager = managers_[i].get();

@@ -35,7 +35,7 @@
 #include "time-control.h"
 #include "pgn-io.h"
 
-auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::commands) {
+auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
     auto newCode = Checklist::log(traceLevel);
     if (code == AppReturnCode::NoError) {
         code = newCode;
@@ -49,7 +49,7 @@ auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::comman
 auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 	int concurrency = CliSettings::Manager::get<int>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
+    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     EpdManager epdManager;
 	for (auto& epd : epdList) {
         std::string file;
@@ -61,12 +61,12 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 		minTime = epd.get<int>("mintime");
 		seenPlies = epd.get<int>("seenplies");
 		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-            std::string name = engine.name;
+            std::string name = engine.getName();
             std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
 			Logger::testLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
                 + earlyStop);
-            epdManager.analyzeEpd(file, name, concurrency, maxTime, minTime, seenPlies);
+            epdManager.analyzeEpd(file, engine, concurrency, maxTime, minTime, seenPlies);
             epdManager.wait();
 			code = logChecklist(code, TraceLevel::info);
 			auto minSuccess = epd.get<int>("minsuccess");
@@ -85,6 +85,7 @@ AppReturnCode handleGlobalOptions(AppReturnCode code) {
     }
     if (CliSettings::Manager::get<bool>("enginelog")) {
         Logger::engineLogger().setLogFile("qapla-engine-trace");
+        Logger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     }
 
     return code;
@@ -101,11 +102,10 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         Checklist::clear();
-        std::string name = engine.name;
+        std::string name = engine.getName();
         try {
 			Checklist::reportUnderruns = test.get<bool>("underrun");
-            controller.runAllTests(name, 
-                test.get<int>("numgames"));
+            controller.runAllTests(engine, test.get<int>("numgames"));
         }
         catch (const AppError& ex) {
             Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 
@@ -148,7 +148,7 @@ auto runSprt(AppReturnCode code) {
         return AppReturnCode::InvalidParameters;
     }
     Logger::testLogger().setLogFile("sprt-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::results, TraceLevel::results);
+    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     TimeControl tc;
 	tc.fromCliTimeControlString(tcSetting);
     try {
@@ -179,9 +179,7 @@ auto runSprt(AppReturnCode code) {
             manager.runMonteCarloTest(config);
 		}
         else {
-            std::string engineName0 = activeEngines[0].name;
-            std::string engineName1 = activeEngines[1].name;
-            manager.runSprt(engineName0, engineName1, concurrency, config);
+            manager.runSprt(activeEngines[0], activeEngines[1], concurrency, config);
             manager.wait();
             code = logChecklist(code);
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
@@ -242,24 +240,26 @@ void handleEngineOptions() {
 		CliSettings::ValueMap options = engine.getValues();
         options.insert(eachOptions.begin(), eachOptions.end());
         if (!cmd.empty()) {
-            EngineWorkerFactory::getConfigManagerMutable().addOrReplaceConfiguration(options);
-			active = !name.empty() ? name : cmd;
+            EngineConfig config = EngineConfig::createFromValueMap(options);
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
 		}
 		else if (!conf.empty()) {
-			auto engineConfig = EngineWorkerFactory::getConfigManagerMutable().getConfigMutable(conf);
+			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
 			if (!engineConfig) {
 				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
 			}
-            engineConfig->setCommandLineOptions(options, true);
-            active = engineConfig->getName();
+            EngineConfig config(*engineConfig);
+			config.setCommandLineOptions(options, true);
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
 		}
 		else {
             std::string engineName = name.empty() ? "" : " (for " + name + ")";
             throw AppError::makeInvalidParameters("No engine command or configuration provided"
                 + engineName + ".Please specify either 'cmd' or 'conf'.");
 		}
-        EngineWorkerFactory::getActiveEnginesMutable().push_back(ActiveEngine{ .name = active });
     }
+    // Ensure that all active engines have different names
+    EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
 int main(int argc, char** argv) {
@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
     timer.start();
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
-        Logger::testLogger().setTraceLevel(TraceLevel::commands);
+        Logger::testLogger().setTraceLevel(TraceLevel::command);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.3.0 (c) by Volker Boehm\n");
 
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
@@ -292,11 +292,13 @@ int main(int argc, char** argv) {
             { "cmd",       { "Path to executable", false, "", CliSettings::ValueType::PathExists } },
             { "dir",       { "Working directory", false, "", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
+            { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
+            { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
 
@@ -307,7 +309,6 @@ int main(int argc, char** argv) {
             { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
             { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::Int} }
             });
-
 
         CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
             { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, CliSettings::ValueType::Int } },
@@ -331,6 +332,7 @@ int main(int argc, char** argv) {
             { "underrun",   { "Check for movetime underruns", false, false, CliSettings::ValueType::Bool } },
             { "timeusage",  { "Check time usage in test games", false, false, CliSettings::ValueType::Bool } },
             { "numgames",   { "Number of test games to run", false, 20, CliSettings::ValueType::Int } },
+            { "noponder",   { "Skip pondering test", false, false, CliSettings::ValueType::Bool } },
             { "noepd",      { "Skip EPD bestmove test", false, false, CliSettings::ValueType::Bool } },
             { "nomemory",   { "Skip hash table memory usage test", false, false, CliSettings::ValueType::Bool } },
             { "nooption",   { "Skip option crash tests", false, false, CliSettings::ValueType::Bool } },
@@ -355,7 +357,6 @@ int main(int argc, char** argv) {
         handleGlobalOptions(returnCode);
         handlePgnOptions();
 		handleEngineOptions();
-
 
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
             returnCode = runTest(*test, returnCode);

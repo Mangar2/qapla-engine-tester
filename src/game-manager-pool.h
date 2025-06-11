@@ -23,7 +23,9 @@
 #include <vector>
 #include <mutex>
 
+#include "engine-config.h"
 #include "game-manager.h"
+
 class GameTaskProvider;
 
 /**
@@ -35,18 +37,18 @@ public:
      * @brief Adds a new task with one engine per manager.
      *
      * @param taskProvider Task source
-     * @param engineName Engine name
+     * @param engineConfig Engine configuration
      */
-    void addTask(GameTaskProvider* taskProvider, const std::string& engineName);
+    void addTask(GameTaskProvider* taskProvider, const EngineConfig& engine);
 
     /**
      * @brief Adds a new task with two engines per manager.
      *
      * @param taskProvider Task source
-     * @param whiteEngine Name of white engine
-     * @param blackEngine Name of black engine
+     * @param whiteEngine Configuration of the white engine
+     * @param blackEngine Configuration of the black engine
      */
-    void addTask(GameTaskProvider* taskProvider, const std::string& whiteEngine, const std::string& blackEngine);
+    void addTask(GameTaskProvider* taskProvider, const EngineConfig& whiteEngine, const EngineConfig& blackEngine);
 
     /**
      * @brief Sets the global concurrency limit.
@@ -79,8 +81,8 @@ private:
 
     struct Task {
         GameTaskProvider* provider = nullptr;
-        std::string engine1;
-        std::optional<std::string> engine2;
+        EngineConfig engine1;
+        std::optional<EngineConfig> engine2;
         size_t concurrency = 0;
         std::vector<GameManager*> managers;
     };

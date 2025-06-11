@@ -51,10 +51,10 @@ public:
     void addMove(const MoveRecord& move);
 
     /** Returns the current ply index. */
-    uint32_t currentPly() const;
+    uint32_t nextMoveIndex() const;
 
     /** Sets the current ply (0 = before first move). */
-    void setPly(uint32_t ply);
+    void setNextMoveIndex(uint32_t ply);
 
     /** Advances to the next ply if possible. */
     void advance();

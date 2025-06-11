@@ -28,11 +28,7 @@
 #include "engine-config-manager.h"
 
 using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
-struct ActiveEngine {
-	std::string name;
-	bool isGauntlet;
-};
-using ActiveEngines = std::vector<ActiveEngine>;
+using ActiveEngines = std::vector<EngineConfig>;
  /**
   * @brief Factory for creating EngineAdapter instances based on engine type.
   */
@@ -61,18 +57,26 @@ public:
 
 	/**
 	 * @brief Creates a list of EngineWorker instances based on the engine name.
-	 * @param name The name of the engine to create workers for.
+	 * @param config The engine configuration.
 	 * @param count The number of workers to create. Defaults to 1.
 	 * @return A vector of unique pointers to EngineWorker instances.
 	 */
-	static EngineList createEnginesByName(const std::string& name, std::size_t count = 1);
+	static EngineList createEngines(const EngineConfig& config, std::size_t count = 1);
 
 	static void setSuppressInfoLines(bool suppress) {
 		suppressInfoLines_ = suppress;
 	}
 
+	static std::unique_ptr<EngineWorker> restart(const EngineWorker& engine);
+
+	/**
+	 * @brief Assigns unique display names to all active engine configurations.
+	 * If name collisions exist, disambiguating parameters are appended.
+	 */
+	static void assignUniqueDisplayNames();
+
 private:
-	static std::unique_ptr<EngineWorker> createEngineByName(const std::string& name);
+	static std::unique_ptr<EngineWorker> createEngine(const EngineConfig& config);
 	static inline uint32_t identifier_ = 0;
 	static inline EngineConfigManager configManager_;
 	static inline ActiveEngines activeEngines_; // List of currently active engines

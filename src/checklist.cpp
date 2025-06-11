@@ -70,12 +70,14 @@ AppReturnCode Checklist::log(TraceLevel traceLevel) {
         { "No disconnect", Section::Important },
         { "Engine reacts on stop", Section::Important },
         { "Computing a move returns a legal move", Section::Important },
+        { "Correct pondering", Section::Important }
 
         { "Infinite compute move must not exit on its own", Section::Missbehaviour },
         { "No movetime overrun", Section::Missbehaviour },
         { "Search info reports correct PV", Section::Missbehaviour },
 		{ "Search info reports correct current move", Section::Missbehaviour },
-        { "Correct bestmove after immediate stop", Section::Missbehaviour }
+        { "Correct bestmove after immediate stop", Section::Missbehaviour },
+        { "Ponder move is legal", Section::Missbehaviour }
     };
 
 	addMissingTopicsAsFail();

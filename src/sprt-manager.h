@@ -20,6 +20,7 @@
 #pragma once
 
 #include <tuple>
+#include "engine-config.h"
 #include "game-task.h."
 #include "epd-reader.h"
 
@@ -60,14 +61,14 @@ public:
     /**
      * @brief Initializes and starts the SPRT testing procedure between two engines.
      *
-     * @param engineName0 Identifier for the first engine.
-     * @param engineName1 Identifier for the second engine.
+	 * @param engine0 Configuration for the first engine.
+     * @param engine1 Configuration for the second engine.
      * @param concurrency Number of engine instances to run in parallel.
      * @param config All configuration parameters required for the SPRT test.
 	 * @return An optional boolean indicating the result of the SPRT test. 
      *         true, H1 accepted; false, H0 accepted; std::nullopt, inconclusive.
      */
-    void runSprt(const std::string& engineName0, const std::string& engineName1, 
+    void runSprt(const EngineConfig& engine0, const EngineConfig& engine1,
         int concurrency, const SprtConfig& config);
 
     /**

@@ -22,6 +22,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
+#include "engine-config.h"
 #include "game-manager.h"
 #include "engine-worker-factory.h"
 
@@ -35,7 +36,7 @@ public:
 	 * @param engineName The name of the engine to test.
 	 * @param numGames The number of games to run in the compute game test.
      */
-    void runAllTests(std::string engineName, int numGames);
+    void runAllTests(const EngineConfig& engine, int numGames);
 
 private:
     bool startStopSucceeded = false;
@@ -114,6 +115,11 @@ private:
 	 */
     void runComputeGameTest();
 
+    /**
+     * @brief Tests the engine`s ability to ponder
+     */
+    void runPonderGameTest();
+
 	/**
 	 * @brief Tests the engine's ability to compute moves in a game.
 	 *
@@ -130,6 +136,6 @@ private:
     std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
     std::unique_ptr<GameManager> gameManager_;
-    std::string engineName_;
+    EngineConfig engineConfig_;
     int numGames_ = 20;
 };

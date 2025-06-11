@@ -25,7 +25,8 @@
 
 #include <stdexcept>
 
-EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, const OptionValues& optionValues)
+EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, 
+    const EngineConfig& engineConfig)
     : adapter_(std::move(adapter)), identifier_(identifier)
     {
 
@@ -36,7 +37,8 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     adapter_->setProtocolLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
         Logger::engineLogger().log(id, message, isOutput, traceLevel);
         });
-	asyncStartup(optionValues);
+	engineConfig_ = engineConfig;
+	asyncStartup(engineConfig.getOptionValues());
 }
 
 void EngineWorker::asyncStartup(const OptionValues& optionValues) {
@@ -167,6 +169,16 @@ bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
     return waitForHandshake(timeout);
 }
 
+bool EngineWorker::moveNow(bool wait) {
+    post([this, wait](EngineAdapter& adapter) {
+        waitForHandshake_ = wait ? EngineEvent::Type::BestMove : EngineEvent::Type::None;
+        adapter.moveNow();
+        });
+    if (!wait) return true;
+    return waitForHandshake(BestMoveTimeout);
+}
+
+
 bool EngineWorker::setOption(const std::string& name, const std::string& value) {
     post([this, name, value](EngineAdapter& adapter) {
         waitForHandshake_ = EngineEvent::Type::ReadyOk;
@@ -185,16 +197,40 @@ bool EngineWorker::setOptionValues(const OptionValues& optionValues) {
 	return waitForHandshake(ReadyTimeoutOption);
 }
 
-void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits) {
-    post([this, gameRecord, limits](EngineAdapter& adapter) {
+void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits, bool ponderHit) {
+    post([this, gameRecord, limits, ponderHit](EngineAdapter& adapter) {
         try {
-            int64_t sendTimestamp = adapter.computeMove(gameRecord, limits);
+            int64_t sendTimestamp = adapter.computeMove(gameRecord, limits, ponderHit);
             if (eventSink_) {
 				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
             }
         }
         catch (...) {
-            // TODO: Fehlerereignis an GameManager senden
+            if (eventSink_) {
+                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, 
+                    Timer::getCurrentTimeMs());
+				e.errors.push_back({ "I/O Error", "Failed to send compute move command" });
+				eventSink_(std::move(e));
+            }
+        }
+        });
+}
+
+void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& limits, std::string ponderMove) {
+    post([this, gameRecord, limits, ponderMove](EngineAdapter& adapter) {
+        try {
+			int64_t sendTimestamp = adapter.allowPonder(gameRecord, limits, ponderMove);
+            if (eventSink_) {
+                eventSink_(EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, sendTimestamp));
+            }
+        }
+        catch (...) {
+            if (eventSink_) {
+                auto e = EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, 
+                    Timer::getCurrentTimeMs());
+                e.errors.push_back({ "I/O Error", "Failed to send go ponder command" });
+                eventSink_(std::move(e));
+            }
         }
         });
 }
@@ -209,9 +245,13 @@ void EngineWorker::readLoop() {
             if (event.type == waitForHandshake_) {
                 {
                     std::scoped_lock lock(handshakeMutex_);
+                    // We wait for a single handshake. waitForHandshake_ must be set
+                    // again for each new handshake request.
+                    waitForHandshake_ = EngineEvent::Type::None;
                     handshakeReceived_ = true;
                 }
                 handshakeCv_.notify_all();
+                continue;
             }
 
 			if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {

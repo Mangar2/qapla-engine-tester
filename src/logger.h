@@ -30,9 +30,8 @@
 
 enum class TraceLevel : int {
     error,
-    commands,
-    results,
-    handshake,
+    command,
+    result,
     warning,
     info,
     none
@@ -43,7 +42,7 @@ enum class TraceLevel : int {
  */
 class Logger {
 public:
-    Logger() : cliThreshold_(TraceLevel::error), fileThreshold_(TraceLevel::results) {
+    Logger() : cliThreshold_(TraceLevel::error), fileThreshold_(TraceLevel::result) {
     }
 
     ~Logger() {
@@ -76,7 +75,7 @@ public:
      * @param message Log content (no newline required).
      * @param level Trace level of this message for logging t cout (default: info).
      */
-    void log(std::string_view message, TraceLevel level = TraceLevel::commands) {
+    void log(std::string_view message, TraceLevel level = TraceLevel::command) {
 
         std::scoped_lock lock(mutex_);
         if (level <= fileThreshold_ && fileStream_.is_open()) {

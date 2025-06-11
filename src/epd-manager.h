@@ -27,6 +27,7 @@
 #include <iomanip>
 #include "game-task.h"
 #include "epd-reader.h"
+#include "engine-config.h"
 
 class GameManager;
 
@@ -73,13 +74,13 @@ public:
      * @brief Loads all EPD entries from the specified file and starts analysis with the given number of engines.
      *        The method returns immediately; analysis runs asynchronously.
      * @param filepath Path to the EPD file.
-     * @param engineName name of the engine
+     * @param engine engine configuration
      * @param concurrency Number of engine instances to run in parallel.
 	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
 	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      */
-    void analyzeEpd(const std::string& filepath, const std::string& engineName, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
+    void analyzeEpd(const std::string& filepath, const EngineConfig& engine, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
 
     /**
      * @brief Waits for all engines to finish.

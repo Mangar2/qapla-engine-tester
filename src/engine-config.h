@@ -37,6 +37,9 @@
  */
 class EngineConfig {
 public:
+    EngineConfig() = default;
+    EngineConfig(const EngineConfig&) = default;
+
     using Value = std::variant<std::string, int, bool, float>;
     using ValueMap = std::unordered_map<std::string, Value>;
     /**
@@ -57,61 +60,64 @@ public:
 		return config;
     }
     /**
-    * 
+     * 
      * Sets the name of the engine.
      * @param engineName The name to assign.
      */
-    void setName(const std::string& engineName) { name = engineName; }
+    void setName(const std::string& engineName) { name_ = engineName; }
 
     /**
      * Sets the path to the engine executable.
      * @param path The executable path.
      */
     void setExecutablePath(const std::string& path) { 
-        executablePath = path; 
+        executablePath_ = path; 
     }
 
     /**
      * Sets the working directory for the engine.
      * @param path The working directory path.
      */
-    void setWorkingDirectory(const std::string& path) { workingDirectory = path; }
+    void setWorkingDirectory(const std::string& path) { workingDirectory_ = path; }
 
 	/**
 	 * Sets the protocol used by the engine.
 	 * @param proto The protocol to set (Uci, XBoard, etc.).
 	 */
-	void setProtocol(EngineProtocol proto) { protocol = proto; }
+	void setProtocol(EngineProtocol proto) { protocol_ = proto; }
 
     /**
      * Gets the engine name.
      * @return The engine name.
      */
-    const std::string& getName() const { return name; }
+    const std::string& getName() const { return name_; }
 
     /**
      * Gets the path to the engine executable.
      * @return The executable path.
      */
-    const std::string& getExecutablePath() const { return executablePath; }
+    const std::string& getExecutablePath() const { return executablePath_; }
 
     /**
      * Gets the working directory.
      * @return The working directory path.
      */
-    const std::string& getWorkingDirectory() const { return workingDirectory; }
+    const std::string& getWorkingDirectory() const { return workingDirectory_; }
 
 	/**
 	 * Gets the protocol used by the engine.
 	 * @return The engine protocol.
 	 */
-	EngineProtocol getProtocol() const { return protocol; }
+	EngineProtocol getProtocol() const { return protocol_; }
+
+	void setPonder(bool enabled) { ponder_ = enabled; }
+	bool isPonderEnabled() const { return ponder_; }
 
     /**
      * Gets the current option values.
      * @return A map of option names to their values.
      */
-    const std::unordered_map<std::string, std::string>& getOptionValues() const { return optionValues; }
+    const std::unordered_map<std::string, std::string>& getOptionValues() const { return optionValues_; }
 
     /**
      * Sets a specific option value 
@@ -119,7 +125,7 @@ public:
      * @param value The value to assign.
      */
     void setOptionValue(const std::string& key, const std::string& value) {
-        optionValues[key] = value;
+        optionValues_[key] = value;
     }
 
     /**
@@ -131,6 +137,14 @@ public:
 	 *  - if a required key is missing.
      */
     void setCommandLineOptions(const ValueMap& values, bool update = false);
+
+    /**
+     * @brief Returns a map of disambiguation-relevant parameters for external ID generation.
+     * Includes only key fields that distinguish configurations, excluding path or working directory.
+     * @return Map of key-value string pairs relevant for ID disambiguation.
+     */
+    std::unordered_map<std::string, std::string> toDisambiguationMap() const;
+
 
     /**
 	 * @brief Filters the current options based on the available options.
@@ -155,11 +169,12 @@ private:
     void finalizeSetOptions();
 
 
-    std::string to_string(const Value& value);
-    std::string name;
-    std::string executablePath;
-    std::string workingDirectory;
-    EngineProtocol protocol = EngineProtocol::Unknown;
-    std::unordered_map<std::string, std::string> optionValues;
+    std::string toString(const Value& value);
+    std::string name_;
+    std::string executablePath_;
+    std::string workingDirectory_;
+    EngineProtocol protocol_ = EngineProtocol::Unknown;
+    bool ponder_ = false;
+    std::unordered_map<std::string, std::string> optionValues_;
 };
 

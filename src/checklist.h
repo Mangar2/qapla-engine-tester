@@ -82,7 +82,7 @@ public:
     /**
 	 * @brief Logs the results of all tests to the test logger.
      */
-    static AppReturnCode log(TraceLevel traceLevel = TraceLevel::results);
+    static AppReturnCode log(TraceLevel traceLevel = TraceLevel::result);
 
     /**
 	 * @brief Sets the engine name and author.

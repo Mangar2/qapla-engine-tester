@@ -44,7 +44,6 @@ class EngineAdapter {
 public:
     EngineAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
-        const std::string& engineConfigName,
         const std::string& identifier);
     virtual ~EngineAdapter() = default;
 
@@ -102,17 +101,19 @@ public:
      * @brief Informs the engine that pondering is permitted.
      * @param game        Current game state.
      * @param limits      Calculation limits (time, depth, etc.).
+     * @param ponderMove  Move to ponder on
      */
-    virtual void ponder(const GameRecord& game, GoLimits& limits) = 0;
+    virtual int64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) = 0;
 
     /**
      * @brief Requests the engine to calculate a move.
 	 * @param game        Current game state.
 	 * @param limits      Calculation limits (time, depth, etc.).
 	 * @param limitMoves  Optional list of moves to consider.
+	 * @param ponderHit   true, if the engine is currently pondering on the right move.
 	 * @returns the timestamp the calculate move commad has been sent to the engine.
      */
-    virtual int64_t computeMove(const GameRecord& game, const GoLimits& limits) = 0;
+    virtual int64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) = 0;
 
 	/**
 	 * @brief Sends a command to the engine's stdin.
@@ -183,13 +184,6 @@ public:
 	}
 
 	/**
-	 * @brief Returns the name of the engine configuration used to create this adapter.
-	 */
-	std::string getEngineConfigName() const {
-		return engineConfigName_;
-	}
-
-	/**
 	 * @brief Returns the author of the engine.
 	 */
 	std::string getEngineAuthor() const {
@@ -232,7 +226,6 @@ protected:
     std::string engineAuthor_;
     std::string welcomeMessage_;
 
-    std::string engineConfigName_; // Name of the engine configuration used to create this adapter.
     std::string identifier_;
 
 	bool ponderMode_ = false;

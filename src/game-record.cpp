@@ -30,11 +30,11 @@ void GameRecord::addMove(const MoveRecord& move) {
 	isWhiteToMove_ = !isWhiteToMove_;
 }
 
-uint32_t GameRecord::currentPly() const {
+uint32_t GameRecord::nextMoveIndex() const {
     return currentPly_;
 }
 
-void GameRecord::setPly(uint32_t ply) {
+void GameRecord::setNextMoveIndex(uint32_t ply) {
     if (ply <= moves_.size()) {
         currentPly_ = ply;
     }
