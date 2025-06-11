@@ -70,7 +70,7 @@ AppReturnCode Checklist::log(TraceLevel traceLevel) {
         { "No disconnect", Section::Important },
         { "Engine reacts on stop", Section::Important },
         { "Computing a move returns a legal move", Section::Important },
-        { "Correct pondering", Section::Important }
+        { "Correct pondering", Section::Important },
 
         { "Infinite compute move must not exit on its own", Section::Missbehaviour },
         { "No movetime overrun", Section::Missbehaviour },
