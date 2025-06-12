@@ -160,7 +160,7 @@ QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan)
 	Piece promotePiece = charToPiece(whiteToMove ? toupper(promotePieceChar) : tolower(promotePieceChar));
 	Piece movingPiece = charToPiece(whiteToMove ? toupper(movingPieceChar) : tolower(movingPieceChar));
 
-	for (uint16_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
+	for (uint32_t moveNo = 0; moveNo < moveList.getTotalMoveAmount(); moveNo++) {
 		const QaplaBasics::Move move = moveList[moveNo];
 
 		if ((movingPiece == NO_PIECE || move.getMovingPiece() == movingPiece) &&
