@@ -361,7 +361,7 @@ int main(int argc, char** argv) {
 	// Trigger to check, if the new code-ql actions will find these issues. remove after.
 	char* p = new char[255];
     	delete[] p;
-	std::cin >> p;
+	std::cin.getline(p, 255);
 	std::cout << p;
 
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
