@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 
 #include "cli-settings-manager.h"
@@ -106,7 +106,7 @@ namespace CliSettings {
         ParsedParameter result;
         result.original = raw;
 
-        std::string working = to_lowercase(raw);
+        std::string working = raw;
 
         result.hasPrefix = working.rfind("--", 0) == 0;
         if (result.hasPrefix) {
@@ -115,11 +115,11 @@ namespace CliSettings {
 
         auto eqPos = working.find('=');
         if (eqPos == std::string::npos) {
-            result.name = working;
+            result.name = to_lowercase(working);
             result.value = std::nullopt;
         }
         else {
-            result.name = working.substr(0, eqPos);
+            result.name = to_lowercase(working.substr(0, eqPos));
             result.value = working.substr(eqPos + 1);
         }
 
@@ -306,12 +306,13 @@ namespace CliSettings {
     }
     
     Value Manager::parseValue(const ParsedParameter& arg, const Definition& def) {
+        auto lowerValue = to_lowercase(*arg.value);
         if (def.type == ValueType::Bool) {
             if (!arg.value) return true;
-            if (*arg.value == "true" || *arg.value == "1") {
+            if (lowerValue == "true" || lowerValue == "1") {
                 return true;
             }
-            else if (*arg.value == "false" || *arg.value == "0") {
+            else if (lowerValue == "false" || lowerValue == "0") {
                 return false;
             }
             else {
@@ -338,11 +339,14 @@ namespace CliSettings {
             }
         }
         if (def.type == ValueType::PathExists) {
+            std::cout << "Current working directory: " << std::filesystem::current_path() << '\n';
+            std::cout << "Checking path: " << *arg.value << "\n";
             if (!std::filesystem::exists(*arg.value)) {
                 throw AppError::makeInvalidParameters("The path in \"" + arg.original + "\" does not exist");
             }
+            return *arg.value;
         }
 
-        return *arg.value;
+        return lowerValue; // Default case is string;
     }
 }
