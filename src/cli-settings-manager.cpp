@@ -306,7 +306,7 @@ namespace CliSettings {
     }
     
     Value Manager::parseValue(const ParsedParameter& arg, const Definition& def) {
-        auto lowerValue = to_lowercase(*arg.value);
+        auto lowerValue = arg.value ? to_lowercase(*arg.value) : std::string();
         if (def.type == ValueType::Bool) {
             if (!arg.value) return true;
             if (lowerValue == "true" || lowerValue == "1") {
@@ -339,8 +339,6 @@ namespace CliSettings {
             }
         }
         if (def.type == ValueType::PathExists) {
-            std::cout << "Current working directory: " << std::filesystem::current_path() << '\n';
-            std::cout << "Checking path: " << *arg.value << "\n";
             if (!std::filesystem::exists(*arg.value)) {
                 throw AppError::makeInvalidParameters("The path in \"" + arg.original + "\" does not exist");
             }

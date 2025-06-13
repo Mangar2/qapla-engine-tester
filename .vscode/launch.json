@@ -5,7 +5,7 @@
         "name": "Qapla Debug",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/build/qapla-engine-tester",
+        "program": "${workspaceFolder}/build/debug/qapla-engine-tester",
         "args": [
           "--logpath=./test/log",
           "--enginelog",
