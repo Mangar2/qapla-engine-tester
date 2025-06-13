@@ -248,6 +248,9 @@
     <ClInclude Include="src\app-error.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\event-sink-recorder.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

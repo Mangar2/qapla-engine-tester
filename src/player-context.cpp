@@ -233,6 +233,8 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
 		auto success = engine_->moveNow(true);
         if (!Checklist::logCheck("Correct pondering", success,
             "stop command to engine did not return a bestmove while in pondermode in time")) {
+            auto id = engine_->getIdentifier();
+			Logger::engineLogger().log(id + " Pondering did not return a bestmove in time", TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
         }

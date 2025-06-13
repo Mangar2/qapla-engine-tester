@@ -105,6 +105,8 @@ private:
     void runImmediateStopTest();
 	void runInfiniteAnalyzeTest();
 
+    void runUciPonderTest();
+
     /**
      * @brief computes a list of moves for epd test positions
      */

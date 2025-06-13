@@ -107,8 +107,12 @@ public:
 
 	/**
 	 * @brief Sends a command to the engine to stop the current move calculation and send the best move.
+	 * @param wait If true, waits for the best move to be received before returning. 
+	 * Note: the best move is not sent to the GameManager in this case.
+	 * @param timeout The maximum time to wait for the best move response.
+	 * @return true if the best move was received, false if the timeout was reached or the engine is not ready.
 	 */
-	bool moveNow(bool wait = false);
+	bool moveNow(bool wait = false, std::chrono::milliseconds timeout = BestMoveTimeout);
 
 	/**
 	 * @brief Sets the event sink for engine events.
@@ -188,6 +192,23 @@ public:
 		return adapter_->getWelcomeMessage();
 	}
 
+	/**
+	 * @brief Sets the type of handshake to wait for. It is public to be used for testing purposes.
+	 */
+	void setWaitForHandshake(EngineEvent::Type type) {
+		waitForHandshake_ = type;
+	}
+
+	/**
+	 * @brief Waits for the engine to be ready for the next command.
+	 *
+	 * It blocks until the engine is ready or the timeout is reached.
+	 *
+	 * @param timeout The maximum time to wait for the engine to send the handshake (readyok, uciok).
+	 * @return true if the engine is ready, false if the timeout was reached.
+	 */
+	bool waitForHandshake(std::chrono::milliseconds timeout);
+
 	const EngineConfig& getConfig() const {
 		return engineConfig_;
 	}
@@ -229,16 +250,6 @@ private:
 	 * @param task The task to execute.
 	 */
 	void post(std::optional<std::function<void(EngineAdapter&)>> task);
-
-	/**
-	 * @brief Waits for the engine to be ready for the next command.
-	 *
-	 * It blocks until the engine is ready or the timeout is reached.
-	 *
-	 * @param timeout The maximum time to wait for the engine to send the handshake (readyok, uciok).
-	 * @return true if the engine is ready, false if the timeout was reached.
-	 */
-	bool waitForHandshake(std::chrono::milliseconds timeout);
 
 	/**
 	 * @brief loop to get engine output.

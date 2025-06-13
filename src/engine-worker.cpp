@@ -150,10 +150,14 @@ void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task)
 
 bool EngineWorker::waitForHandshake(std::chrono::milliseconds timeout) {
     std::unique_lock lock(handshakeMutex_);
+    if (!handshakeReceived_) {
+        handshakeCv_.wait_for(lock, timeout, [this] {
+            return handshakeReceived_;
+            });
+    }
+    bool received = handshakeReceived_;
     handshakeReceived_ = false;
-    return handshakeCv_.wait_for(lock, timeout, [this] {
-        return handshakeReceived_;
-    });
+    return received;
 }
 
 bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
@@ -164,13 +168,13 @@ bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
     return waitForHandshake(timeout);
 }
 
-bool EngineWorker::moveNow(bool wait) {
+bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
     post([this, wait](EngineAdapter& adapter) {
         waitForHandshake_ = wait ? EngineEvent::Type::BestMove : EngineEvent::Type::None;
         adapter.moveNow();
         });
     if (!wait) return true;
-    return waitForHandshake(BestMoveTimeout);
+    return waitForHandshake(timeout);
 }
 
 

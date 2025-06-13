@@ -180,6 +180,7 @@
     <ClInclude Include="src\epd-test-manager.h" />
     <ClInclude Include="src\epd-reader.h" />
     <ClInclude Include="src\evalvalue.h" />
+    <ClInclude Include="src\event-sink-recorder.h" />
     <ClInclude Include="src\fenscanner.h" />
     <ClInclude Include="src\game-manager-pool.h" />
     <ClInclude Include="src\game-manager.h" />

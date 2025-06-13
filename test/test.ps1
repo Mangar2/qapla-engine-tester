@@ -1,5 +1,6 @@
 ﻿$tests = @(
     @{ args = "--help"; expectedCode = 0 }
+    ,@{ args = "--logpath=log --concurrency=10 --pgnoutput file=log/debug.pgn append=false --enginelog --tc=10+0.02 --sprt elolower=50 eloupper=60 alpha=0.05 beta=0.05 maxgames=3000 --engine conf=""Qapla 0.3.2"" ponder --engine conf=""Qapla 0.3.2"" --openings file=book8ply.raw format=raw --enginesfile=engines.ini"; expectedCode = 10 }
     ,@{ args = "--invalid"; expectedCode = 2 }
     ,@{ args = "--logpath=log"; expectedCode = 0 }
     ,@{ args = "--logpath=log --enginelog --test numgames=0 nostop nooption --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini"; expectedCode = 0 }

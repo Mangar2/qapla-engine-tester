@@ -21,12 +21,15 @@
 #include <chrono>
 #include <sstream>
 #include <string>
+#include <thread>
+
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
 #include "checklist.h"
 #include "cli-settings-manager.h"
 #include "epd-test-manager.h"
 #include "game-manager-pool.h"
+#include "event-sink-recorder.h"
 
 void EngineTestController::createGameManager(bool singleEngine) {
     gameManager_ = std::make_unique<GameManager>();
@@ -85,9 +88,9 @@ std::string bytesToMB(int64_t bytes) {
 }
 
 void EngineTestController::runAllTests(const EngineConfig& engine, int numGames) {
+    engineConfig_ = engine;
     try {
         auto testSettings = *CliSettings::Manager::getGroupInstance("test");
-        engineConfig_ = engine;
         numGames_ = numGames;
         createGameManager(true);
         runStartStopTest();
@@ -111,6 +114,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
 		}
         runComputeGameTest();
         if (!testSettings.get<bool>("noponder")) {
+            runUciPonderTest();
             runPonderGameTest();
         }
         runMultipleGamesTest();
@@ -485,6 +489,84 @@ void EngineTestController::runInfiniteAnalyzeTest() {
         gameManager_->getFinishedFuture().wait();
         return { true, "" };
         });
+}
+
+void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine, 
+    const std::string ponderMove, const std::string testname,
+    std::chrono::milliseconds sleep = std::chrono::seconds{ 1 }) {
+    static constexpr auto TIMEOUT = std::chrono::milliseconds(2000);
+
+    EventSinkRecorder recorder;
+    engine->setEventSink(recorder.getCallback());
+    engine->newGame();
+    bool success;
+    TimeControl t;
+    t.addTimeSegment({ 0, 2000, 0 });
+    GoLimits goLimits = createGoLimits(t, t, 0, 0, 0, true);
+    engine->allowPonder(gameRecord, goLimits, ponderMove);
+    std::this_thread::sleep_for(sleep);
+    success = recorder.count(EngineEvent::Type::BestMove) == 0;
+    Checklist::logCheck(testname, success, "Engine sent a bestmove while in ponder mode. ");
+    engine->setWaitForHandshake(EngineEvent::Type::BestMove);
+    engine->computeMove(gameRecord, goLimits, true);
+    success = engine->waitForHandshake(TIMEOUT);
+    Checklist::logCheck(testname, success, "Engine did not send a bestmove after compute move in ponder mode.");
+}
+
+void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
+    const std::string ponderMove, const std::string testname,
+    std::chrono::milliseconds sleep = std::chrono::seconds{1}) {
+    static constexpr auto TIMEOUT = std::chrono::milliseconds(5000);
+
+    EventSinkRecorder recorder;
+    engine->setEventSink(recorder.getCallback());
+    engine->newGame();
+    bool success;
+    TimeControl t;
+    t.addTimeSegment({ 0, 2000, 0 });
+    GoLimits goLimits = createGoLimits(t, t, 0, 0, 0, true);
+    engine->allowPonder(gameRecord, goLimits, ponderMove);
+    std::this_thread::sleep_for(sleep);
+    success = recorder.count(EngineEvent::Type::BestMove) == 0;
+    Checklist::logCheck(testname, success, "Engine sent a bestmove while in ponder mode. ");
+    success = engine->moveNow(true, std::chrono::milliseconds(500));
+    Checklist::logCheck(testname, success, "Engine did not send a bestmove fast after receiving stop in ponder mode.");
+    if (!success) {
+        success = engine->waitForHandshake(TIMEOUT);
+        Checklist::logCheck(testname, success, "Engine never sent a bestmove after receiving stop in ponder mode.");
+    }
+}
+
+void EngineTestController::runUciPonderTest() {
+    const std::string testname = "Correct pondering";
+    try {
+        Timer timer;
+        timer.start();
+        Logger::testLogger().log("Testing uci pondering", TraceLevel::command);
+        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
+		auto name = engineConfig_.getName();
+        auto engine = list[0].get();
+        GameRecord gameRecord;
+		testPonderHit(gameRecord, engine, "e2e4", testname);
+        testPonderHit(gameRecord, engine, "e2e4", testname, std::chrono::milliseconds{ 0 });
+		testPonderMiss(gameRecord, engine, "e2e4", testname);
+        testPonderMiss(gameRecord, engine, "e2e4", testname, std::chrono::milliseconds{ 0 });
+        gameRecord.setStartPosition(false, "K7/8/8/4Q3/5Q1k/8/8/8 b - - 2 68", false, name, name);
+		testPonderHit(gameRecord, engine, "h4h3", testname);
+        testPonderHit(gameRecord, engine, "h4h3", testname, std::chrono::milliseconds{ 0 });
+        testPonderMiss(gameRecord, engine, "h4h3", testname);
+        testPonderMiss(gameRecord, engine, "h4h3", testname, std::chrono::milliseconds{ 0 });
+    }
+	catch (const std::exception& e) {
+		Logger::testLogger().log("Exception during uci ponder test: " + std::string(e.what()), TraceLevel::error);
+		Checklist::logCheck(testname, false, "Exception during uci ponder test: " + std::string(e.what()));
+		return;
+	}
+	catch (...) {
+		Logger::testLogger().log("Unknown exception during uci ponder test.", TraceLevel::error);
+		Checklist::logCheck(testname, false, "Unknown exception during uci ponder test.");
+		return;
+	}
 }
 
 
