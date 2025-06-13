@@ -73,12 +73,6 @@ public:
 	void stop(bool wait = true);
 
 	/**
-	 * @brief Restarts the engine process and reinitializes communication.
-	 * @throws std::runtime_error if the process cannot be restarted.
-	 */
-	void restart();
-
-	/**
 	 * @brief Führt isready/readyok durch. 
 	 * @param timeout Zeitspanne, die maximal gewartet werden soll.
 	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).

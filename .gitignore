@@ -9,9 +9,21 @@
 *.user
 *.userosscache
 *.sln.docstates
+*.exe
+*.pgn
+*.raw
+
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+
+# Linux CMake build files
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+cmake_install.cmake
+Makefile
+a.out
 
 # Mono auto generated files
 mono_crash.*

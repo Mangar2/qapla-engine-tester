@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 #pragma once
 
@@ -51,12 +51,6 @@ public:
      * @brief Starts the engine protokoll.
      */
     void startProtocol() override;
-
-    /**
-     * @brief Restarts the engine process and reinitializes communication.
-     * @return true if the engine was restarted successfully.
-     */
-    void restartEngine() override;
 
     /**
      * Attempts to gracefully terminate the UCI engine. If the engine is already

@@ -40,7 +40,15 @@ void EngineTestController::startEngine() {
         gameManager_->setUniqueEngine(std::move(list[0]));
         success = gameManager_->getEngine()->requestReady();
     }
-    catch (...) {}
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Configuration error during engine test for " + 
+            engineConfig_.getName() + ": " + std::string(e.what()), 
+            TraceLevel::error);
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during engine test for " + engineConfig_.getName(), 
+        TraceLevel::error);
+    }
     Checklist::logCheck("Engine starts and stops fast and without problems", success, "  engine did not respond to isReady after startup in time");
     if (!success) {
 		Logger::testLogger().log("Engine did not start successfully", TraceLevel::error);

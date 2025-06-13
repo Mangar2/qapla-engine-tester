@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 #pragma once
 
@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <optional>
 #include <functional>
+#include <atomic>
 #include <mutex>
 
 #include "time-control.h"
@@ -51,12 +52,6 @@ public:
      * @brief Starts the engine protokoll.
      */
     virtual void startProtocol() = 0;
-
-	/**
-	 * @brief Restarts the engine process and reinitializes communication.
-	 * @return true if the engine was restarted successfully.
-	 */ 
-    virtual void restartEngine() = 0;
 
     /**
      * @brief Forcefully terminates the engine process and performs cleanup.
