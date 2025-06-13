@@ -231,9 +231,9 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
         // moveNow with option true will wait until bestmove received and consider the bestmove as
         // handshake. The bestmove is then not send to the GameManager
 		auto success = engine_->moveNow(true);
+        auto id = engine_->getIdentifier();
         if (!Checklist::logCheck("Correct pondering", success,
-            "stop command to engine did not return a bestmove while in pondermode in time")) {
-            auto id = engine_->getIdentifier();
+            "stop command to engine " + id + " did not return a bestmove while in pondermode in time")) {
 			Logger::engineLogger().log(id + " Pondering did not return a bestmove in time", TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
