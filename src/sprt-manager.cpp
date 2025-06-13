@@ -20,6 +20,7 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include "epd-reader.h"
 #include "sprt-manager.h"
 #include "game-manager-pool.h"
 #include "logger.h"
@@ -30,7 +31,7 @@ bool SprtManager::wait() {
     return true;
 };
 
-void SprtManager::runSprt(
+void SprtManager::run(
     const EngineConfig& engine0, const EngineConfig& engine1, int concurrency, const SprtConfig& config) {
 	config_ = config;
 	engineP1Name_ = engine0.getName();

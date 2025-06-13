@@ -179,7 +179,7 @@ auto runSprt(AppReturnCode code) {
             manager.runMonteCarloTest(config);
 		}
         else {
-            manager.runSprt(activeEngines[0], activeEngines[1], concurrency, config);
+            manager.run(activeEngines[0], activeEngines[1], concurrency, config);
             manager.wait();
             code = logChecklist(code);
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
@@ -293,6 +293,7 @@ int main(int argc, char** argv) {
             { "dir",       { "Working directory", false, "", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
+            { "gauntlet", { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool }},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
@@ -350,6 +351,15 @@ int main(int argc, char** argv) {
             { "eval", { "Include evaluation values in the PGN output", false, true, CliSettings::ValueType::Bool } },
             { "depth", { "Include search depth in the PGN output", false, true, CliSettings::ValueType::Bool } },
             { "pv", { "Include principal variation in the PGN output", false, false, CliSettings::ValueType::Bool } }
+            });
+
+        CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
+            { "type", { "Tournament type: gauntlet", true, "", CliSettings::ValueType::String } },
+            { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
+            { "games", { "Number of games per pairing (total games = games × rounds)", false, 2, CliSettings::ValueType::Int } },
+            { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
+            { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
+            { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } }
             });
 
 

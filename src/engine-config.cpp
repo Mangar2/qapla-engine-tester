@@ -54,6 +54,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
             continue;
         if (key == "conf") continue;
         if (key == "ponder") setPonder(std::get<bool>(value));
+        else if (key == "gauntlet") setGauntlet(std::get<bool>(value));
         else if (key == "name") {
             if (!update) setName(std::get<std::string>(value));
         } else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
@@ -159,6 +160,9 @@ std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap()
 
     if (ponder_)
         result["ponder"] = "";
+
+	if (gauntlet_)
+		result["gauntlet"] = "";
 
     for (const auto& [key, value] : optionValues_) {
         result[key] = value;

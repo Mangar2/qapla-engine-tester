@@ -96,6 +96,9 @@
     <ClCompile Include="src\pgn-io.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\gauntlet-tournament.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -249,6 +252,12 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\event-sink-recorder.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\openings.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gauntlet-tournament.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

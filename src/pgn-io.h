@@ -52,7 +52,7 @@ public:
      * @brief Initializes the PGN output file depending on append mode.
      *        Clears file if append is false.
      */
-    void initialize();
+    void initialize(const std::string& event = "");
 
     /**
      * @brief Saves the given game record to the PGN file.
@@ -102,4 +102,5 @@ private:
 
     Options options_;
     std::mutex fileMutex_;
+    std::string event_ = "";
 };

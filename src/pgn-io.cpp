@@ -24,7 +24,8 @@
 #include "time-control.h"
 #include "game-state.h"
 
-void PgnIO::initialize() {
+void PgnIO::initialize(const std::string& event) {
+    event_ = event;
     if (!options_.append) {
         std::lock_guard<std::mutex> lock(fileMutex_);
         std::ofstream out(options_.file, std::ios::trunc);
@@ -42,6 +43,9 @@ void PgnIO::saveTags(std::ostream& out, const GameRecord& game) {
     }
     else {
 		out << "[SetUp \"0\"]\n";
+    }
+    if (!event_.empty()) {
+        out << "[Event \"" << event_ << "\"]\n";
     }
 
     if (!options_.minimalTags) {

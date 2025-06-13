@@ -22,19 +22,7 @@
 #include <tuple>
 #include "engine-config.h"
 #include "game-task.h"
-#include "epd-reader.h"
-
- /**
-  * @brief Configuration for loading and selecting opening positions.
-  */
-struct Openings {
-    std::string file;
-    std::string format;
-    std::string order;
-    int plies;
-    int start;
-    std::string policy;
-};
+#include "openings.h"
 
 /**
  * @brief Configuration parameters for a SPRT test run.
@@ -68,7 +56,7 @@ public:
 	 * @return An optional boolean indicating the result of the SPRT test. 
      *         true, H1 accepted; false, H0 accepted; std::nullopt, inconclusive.
      */
-    void runSprt(const EngineConfig& engine0, const EngineConfig& engine1,
+    void run(const EngineConfig& engine0, const EngineConfig& engine1,
         int concurrency, const SprtConfig& config);
 
     /**

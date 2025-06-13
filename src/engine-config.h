@@ -113,6 +113,9 @@ public:
 	void setPonder(bool enabled) { ponder_ = enabled; }
 	bool isPonderEnabled() const { return ponder_; }
 
+	void setGauntlet(bool enabled) { gauntlet_ = enabled; }
+	bool isGauntlet() const { return gauntlet_; }
+
     /**
      * Gets the current option values.
      * @return A map of option names to their values.
@@ -175,6 +178,7 @@ private:
     std::string workingDirectory_;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     bool ponder_ = false;
+	bool gauntlet_ = false;
     std::unordered_map<std::string, std::string> optionValues_;
 };
 
