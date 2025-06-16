@@ -184,7 +184,7 @@ std::string PairTournament::toString() const {
             oss << (aWhite ? '0' : '1');
             break;
         case GameResult::Draw:
-            oss << '½';
+            oss << '=';
             break;
         case GameResult::Unterminated:
             oss << '?';

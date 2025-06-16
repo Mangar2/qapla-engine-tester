@@ -43,7 +43,8 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
         Logger::testLogger().log("Unsupported openings format: " + config.openings.format, TraceLevel::error);
         return;
     }
-
+	engineConfig_ = engines;
+    config_ = config;
     EpdReader reader(config.openings.file);
     for (const auto& entry : reader.all()) {
         if (!entry.fen.empty()) {
@@ -128,4 +129,48 @@ void Tournament::scheduleAll(int concurrency) {
 		pairing->schedule();
 	}
 }
+
+void Tournament::saveAll(std::ostream& out) const {
+    out << "[meta]\n";
+    out << "type=" << config_.type << "\n";
+    out << "rounds=" << config_.rounds << "\n";
+    out << "gamesPerRound=" << config_.games << "\n\n";
+
+    for (const auto& config : engineConfig_) {
+        out << config << "\n";
+    }
+
+    const int pairingsPerRound = static_cast<int>(pairings_.size()) / config_.rounds;
+
+    for (size_t i = 0; i < pairings_.size(); ++i) {
+		auto pairing = pairings_[i];
+        const std::string line = pairing->toString();
+        const auto sep = line.find(':');
+        if (sep == std::string::npos) continue;
+
+        const std::string engineNames = line.substr(0, sep - 1);
+        const std::string result = line.substr(sep + 2);
+        const int roundIndex = static_cast<int>(i) / pairingsPerRound + 1;
+
+        out << "[round " << roundIndex << ": " << engineNames << "]\n";
+        out << "games: " << result << "\n";
+
+        const EngineDuelResult& resultData = pairing->getResult();
+        bool hasCauses = std::any_of(resultData.causeCounters.begin(), resultData.causeCounters.end(),
+            [](int count) { return count > 0; });
+
+        if (hasCauses) {
+            out << "endReasons: ";
+            std::string separator;
+            for (size_t i = 0; i < resultData.causeCounters.size(); ++i) {
+                int count = resultData.causeCounters[i];
+                if (count == 0) continue;
+                out << separator << to_string(static_cast<GameEndCause>(i)) << ":" << count;
+				separator = ",";
+            }
+            out << "\n\n";
+        }
+    }
+}
+
 

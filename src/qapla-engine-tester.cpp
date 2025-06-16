@@ -239,6 +239,7 @@ AppReturnCode runTournament(AppReturnCode code) {
         tournament.createTournament(activeEngines, config);
         tournament.scheduleAll(concurrency);
         tournament.wait();
+		tournament.saveAll(std::cout);
         code = logChecklist(code);
     }
     catch (const std::exception& e) {

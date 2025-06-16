@@ -75,7 +75,7 @@ public:
     /**
      * @brief Saves the state of all pairings to a stream.
      */
-    void saveAll(std::ostream& out) const {}
+    void saveAll(std::ostream& out) const;
 
     /**
      * @brief Loads the state of all pairings from a stream.
@@ -94,6 +94,8 @@ private:
     void createRoundRobinPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 
+    std::vector<EngineConfig> engineConfig_;
+	TournamentConfig config_;
     std::shared_ptr<std::vector<std::string>> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
 };
