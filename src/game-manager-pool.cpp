@@ -21,40 +21,37 @@
 #include "game-manager-pool.h"
 #include "engine-worker-factory.h"
 
-void GameManagerPool::addTask(GameTaskProvider* taskProvider, const EngineConfig& engineName) {
+void GameManagerPool::addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& engineName, int maxManagers) {
     std::lock_guard lock(mutex_);
 
-    Task task;
+    TaskAssignment task;
     task.provider = taskProvider;
     task.engine1 = engineName;
-    task.concurrency = maxConcurrency_;
+    task.maxManagers = maxManagers;
 
-    ensureManagerCount(maxConcurrency_);
     assignTaskToManagers(task);
 
-    tasks_.push_back(std::move(task));
+    taskAssignments_.push_back(std::move(task));
 }
 
-void GameManagerPool::addTask(GameTaskProvider* taskProvider, 
-    const EngineConfig& whiteEngine, const EngineConfig& blackEngine) {
+void GameManagerPool::addTaskProvider(GameTaskProvider* taskProvider, 
+    const EngineConfig& whiteEngine, const EngineConfig& blackEngine, int maxManagers) {
     std::lock_guard lock(mutex_);
 
-    Task task;
+    TaskAssignment task;
     task.provider = taskProvider;
     task.engine1 = whiteEngine;
     task.engine2 = blackEngine;
-    task.concurrency = maxConcurrency_;
-
-    ensureManagerCount(maxConcurrency_);
+    task.maxManagers = maxManagers;
+    taskAssignments_.push_back(std::move(task));
     assignTaskToManagers(task);
-
-    tasks_.push_back(std::move(task));
 }
 
-void GameManagerPool::setConcurrency(size_t count, bool nice) {
+void GameManagerPool::setConcurrency(int count, bool nice) {
     std::lock_guard lock(mutex_);
     maxConcurrency_ = count;
     niceMode_ = nice;
+    ensureManagerCount(maxConcurrency_);
 }
 
 void GameManagerPool::clearAll() {
@@ -69,15 +66,18 @@ void GameManagerPool::waitForTask(GameTaskProvider* taskProvider) {
     std::vector<GameManager*> managers;
     {
         std::lock_guard lock(mutex_);
-        auto it = std::find_if(tasks_.begin(), tasks_.end(), [&](const Task& task) {
-            return task.provider == taskProvider;
-            });
-        if (it == tasks_.end()) {
-            return;
-        }
-
-        for (GameManager* manager : it->managers) {
-            managers.push_back(manager);
+        for (const auto& managerPtr : managers_) {
+            GameManager* manager = managerPtr.get();
+            if (taskProvider) {
+                if (manager->getTaskProvider() == taskProvider) {
+                    managers.push_back(manager);
+                }
+            }
+            else {
+                if (manager->getTaskProvider() != nullptr) {
+                    managers.push_back(manager);
+                }
+            }
         }
     }
 
@@ -86,8 +86,8 @@ void GameManagerPool::waitForTask(GameTaskProvider* taskProvider) {
     }
 
     std::lock_guard lock(mutex_);
-    std::erase_if(tasks_, [&](const Task& task) {
-        return task.provider == taskProvider;
+    std::erase_if(taskAssignments_, [&](const TaskAssignment& task) {
+        return task.provider == taskProvider || (!taskProvider && task.provider != nullptr);
         });
 }
 
@@ -100,26 +100,77 @@ void GameManagerPool::ensureManagerCount(size_t count) {
     }
 }
 
-void GameManagerPool::assignTaskToManagers(Task& task) {
-    if (task.engine2.has_value()) {
-        auto whiteEngines = EngineWorkerFactory::createEngines(task.engine1, task.concurrency);
-        auto blackEngines = EngineWorkerFactory::createEngines(*task.engine2, task.concurrency);
-
-        for (size_t i = 0; i < task.concurrency; ++i) {
-            GameManager* manager = managers_[i].get();
-            manager->setEngines(std::move(whiteEngines[i]), std::move(blackEngines[i]));
-            manager->computeTasks(task.provider);
-            task.managers.push_back(manager);
+std::vector<GameManager*> GameManagerPool::collectAvailableManagers() {
+    std::vector<GameManager*> available;
+    for (const auto& managerPtr : managers_) {
+        GameManager* manager = managerPtr.get();
+        if (manager->getTaskProvider() == nullptr) {
+            available.push_back(manager);
         }
     }
-    else {
-        auto engines = EngineWorkerFactory::createEngines(task.engine1, task.concurrency);
+    return available;
+}
 
-        for (size_t i = 0; i < task.concurrency; ++i) {
-            GameManager* manager = managers_[i].get();
+void GameManagerPool::assignTaskToManagers(TaskAssignment& task) {
+	auto availableManagers = collectAvailableManagers();
+	auto assignCount = std::min(task.maxManagers, availableManagers.size());
+	if (assignCount == 0) {
+		return;
+	}
+
+    if (task.engine1 && task.engine2) {
+        auto whiteEngines = EngineWorkerFactory::createEngines(*task.engine1, assignCount);
+        auto blackEngines = EngineWorkerFactory::createEngines(*task.engine2, assignCount);
+
+        for (size_t i = 0; i < assignCount; ++i) {
+            GameManager* manager = availableManagers[i];
+            manager->setEngines(std::move(whiteEngines[i]), std::move(blackEngines[i]));
+            manager->computeTasks(task.provider);
+        }
+    }
+    else if (task.engine1) {
+        auto engines = EngineWorkerFactory::createEngines(*task.engine1, assignCount);
+
+        for (size_t i = 0; i < assignCount; ++i) {
+            GameManager* manager = availableManagers[i];
             manager->setUniqueEngine(std::move(engines[i]));
             manager->computeTasks(task.provider);
-            task.managers.push_back(manager);
         }
     }
 }
+
+std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
+    std::lock_guard lock(mutex_);
+
+    for (auto& assignment : taskAssignments_) {
+        if (!assignment.engine1) continue;
+        if (!assignment.provider) continue;
+
+        auto taskOpt = assignment.provider->nextTask(
+            assignment.engine1->getName(), 
+            assignment.engine2 ? assignment.engine2->getName(): assignment.engine1->getName());
+        if (!taskOpt.has_value())
+            continue;
+
+        GameManager::ExtendedTask result;
+        result.task = std::move(taskOpt.value());
+        result.provider = assignment.provider;
+
+        if (assignment.engine1 && assignment.engine2) {
+            auto whiteEngines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);
+            auto blackEngines = EngineWorkerFactory::createEngines(*assignment.engine2, 1);
+
+            result.white = std::move(whiteEngines.front());
+            result.black = std::move(blackEngines.front());
+        }
+        else if (assignment.engine1) {
+            auto engines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);
+            result.white = std::move(engines.front());
+        }
+
+        return result;
+    }
+
+    return std::nullopt;
+}
+

@@ -42,7 +42,7 @@ enum class TraceLevel : int {
  */
 class Logger {
 public:
-    Logger() : cliThreshold_(TraceLevel::error), fileThreshold_(TraceLevel::result) {
+    Logger() : cliThreshold_(TraceLevel::error) {
     }
 
     ~Logger() {
@@ -56,12 +56,14 @@ public:
      * @param prefix Logical source (e.g. engine identifier).
      * @param message Log content (no newline required).
      * @param isOutput true if engine output, false if input.
+	 * @param fileThreshold Trace level threshold for file logging.
      * @param level Trace level of this message for logging t cout (default: info).
      */
-    void log(std::string_view prefix, std::string_view message, bool isOutput, TraceLevel level = TraceLevel::info) {
+    void log(std::string_view prefix, std::string_view message, bool isOutput, TraceLevel fileThreshold,
+        TraceLevel level = TraceLevel::info) {
 
         std::scoped_lock lock(mutex_);
-        if (level <= fileThreshold_ && fileStream_.is_open()) {
+        if (level <= fileThreshold && fileStream_.is_open()) {
             fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
         }
         
@@ -160,7 +162,7 @@ private:
     std::mutex mutex_;
     std::ofstream fileStream_;
     TraceLevel cliThreshold_;
-	TraceLevel fileThreshold_;
+	TraceLevel fileThreshold_ = TraceLevel::info;
 	std::string filename_;
     static inline std::string logPath_ = "";
 };

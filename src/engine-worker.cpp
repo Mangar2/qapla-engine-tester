@@ -32,11 +32,13 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     if (!adapter_) {
         throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
     }
+    engineConfig_ = engineConfig;
 
-    adapter_->setProtocolLogger([id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
-        Logger::engineLogger().log(id, message, isOutput, traceLevel);
+    adapter_->setProtocolLogger([this, id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
+        Logger::engineLogger().log(id, message, isOutput, engineConfig_.getTraceLevel(), traceLevel);
+        
         });
-	engineConfig_ = engineConfig;
+    
 	asyncStartup(engineConfig.getOptionValues());
 }
 

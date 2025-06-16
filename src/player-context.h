@@ -56,6 +56,16 @@ public:
         return engine_.get();
     }
 
+	/**
+	 * @brief Returns the identifier of the engine.
+     */
+	std::string getIdentifier() const {
+		if (engine_) {
+			return engine_->getIdentifier();
+		}
+		return "";
+	}
+
     /**
 	 * @brief Tells the engine to compute a new move
      */
@@ -77,17 +87,15 @@ public:
 	 * If the engine responds with a move, it will be ignored.
 	 */
     void cancelCompute() {
+        if (!engine_) return;
         constexpr auto readyTimeout = std::chrono::seconds{ 1 };
-        if (computingMove_) {
-            computingMove_ = false; 
+        if (computingMove_ || (pondering_ && !ponderMove_.empty())) {
             engine_->moveNow(true);
+            engine_->requestReady(readyTimeout);
         }
-		if (pondering_ && !ponderMove_.empty()) {
-			pondering_ = false;
-			ponderMove_ = "";
-            engine_->moveNow(true);
-        }
-        engine_->requestReady(readyTimeout);
+        computingMove_ = false;
+        pondering_ = false;
+        ponderMove_ = "";
     }
 
 	/**

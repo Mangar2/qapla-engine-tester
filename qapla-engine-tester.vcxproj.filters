@@ -96,7 +96,10 @@
     <ClCompile Include="src\pgn-io.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="src\gauntlet-tournament.cpp">
+    <ClCompile Include="src\tournament.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pair-tournament.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
@@ -257,7 +260,10 @@
     <ClInclude Include="src\openings.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\gauntlet-tournament.h">
+    <ClInclude Include="src\tournament.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pair-tournament.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

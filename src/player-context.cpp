@@ -158,6 +158,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
 bool PlayerContext::checkEngineTimeout() {
     if (!computingMove_) return false;
+    if (!engine_) return false;
 	const int64_t GRACE_MS = 1000;
     const int64_t OVERRUN_TIMEOUT = 5000;
 
@@ -199,6 +200,9 @@ void PlayerContext::handleDisconnect(bool isWhitePlayer) {
 }
 
 void PlayerContext::restart() {
+	if (!engine_) {
+		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
+	}
     computingMove_ = false;
     // Create a fully initialized new engine instance (incl. UCI handshake)
     engine_ = std::move(EngineWorkerFactory::restart(*engine_));
@@ -216,6 +220,9 @@ bool PlayerContext::restartIfNotReady() {
 void PlayerContext::doMove(QaplaBasics::Move move) {
 	if (move.isEmpty()) {
 		throw AppError::make("PlayerContext::doMove; Illegal move in for doMove");
+	}
+	if (!engine_) {
+		throw AppError::make("PlayerContext::doMove; Cannot do move without an engine.");
 	}
     // This method is only called with a checked move thus beeing empty should never happen
     std::string lan = move.getLAN();
@@ -250,6 +257,12 @@ bool PlayerContext::isLegalMove(const std::string& moveText) {
 }
 
 void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits) {
+	if (!engine_) {
+		throw AppError::make("PlayerContext::computeMove; Cannot compute move without an engine.");
+	}
+	if (computingMove_) {
+		throw AppError::make("PlayerContext::computeMove; Cannot compute move while already computing a move.");
+	}
 	bool ponderHit = pondering_ && ponderMove_ != "";
 
     goLimits_ = goLimits;
@@ -265,6 +278,9 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
 
 void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
     const std::optional<EngineEvent>& event) {
+	if (!engine_) {
+		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering without an engine.");
+	}
     if (!engine_->getConfig().isPonderEnabled()) return;
     if (!event) return;
 

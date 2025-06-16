@@ -159,7 +159,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& eng
     tc.setMoveTime(maxTimeInS * 1000);
     printHeaderLine();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTask(this, engine);
+	GameManagerPool::getInstance().addTaskProvider(this, engine, static_cast<int>(reader_->all().size()));
 }
 
 bool EpdManager::wait() {
@@ -175,7 +175,7 @@ bool EpdManager::wait() {
 std::optional<GameTask> EpdManager::nextTask(const std::string& whiteId, const std::string& blackId) {
     assert(whiteId == blackId); 
     std::lock_guard<std::mutex> lock(taskMutex_);
-    if (currentIndex_ >= tests_.size()) {
+    if (currentIndex_ >= static_cast<int>(tests_.size())) {
         return std::nullopt;
     }
 

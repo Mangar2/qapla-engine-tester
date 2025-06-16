@@ -29,6 +29,7 @@
 #include <variant>
 
 #include "engine-option.h"
+#include "logger.h"
 
 
 /**
@@ -116,6 +117,9 @@ public:
 	void setGauntlet(bool enabled) { gauntlet_ = enabled; }
 	bool isGauntlet() const { return gauntlet_; }
 
+    void setTraceLevel(const std::string& level);
+	TraceLevel getTraceLevel() const { return traceLevel_; }
+
     /**
      * Gets the current option values.
      * @return A map of option names to their values.
@@ -171,11 +175,11 @@ private:
     void readHeader(std::istream& in);
     void finalizeSetOptions();
 
-
     std::string toString(const Value& value);
     std::string name_;
     std::string executablePath_;
     std::string workingDirectory_;
+	TraceLevel traceLevel_ = TraceLevel::command;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     bool ponder_ = false;
 	bool gauntlet_ = false;

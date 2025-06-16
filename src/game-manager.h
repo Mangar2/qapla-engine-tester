@@ -38,6 +38,14 @@
   */
 class GameManager {
 public:
+    struct ExtendedTask {
+        GameTask task;
+        GameTaskProvider* provider = nullptr;
+        std::unique_ptr<EngineWorker> white;
+        std::unique_ptr<EngineWorker> black;
+    };
+
+public:
 	GameManager();
 	~GameManager();
 
@@ -146,6 +154,16 @@ public:
     EngineWorker* getEngine(bool white = true) {
         return white ? whitePlayer_->getEngine() : blackPlayer_->getEngine();
     }
+
+	/**
+	 * @brief Returns the task provider used by this GameManager.
+	 *
+	 * @return A reference to the used GameTaskProvider.
+	 */
+    const GameTaskProvider* getTaskProvider() {
+		return taskProvider_;
+    }
+
 private:
     /**
      * Adds a new engine event to the processing queue.
@@ -248,12 +266,19 @@ private:
     /**
      * Callback to get new tasks
      */
-    GameTaskProvider* taskProvider_;
+    GameTaskProvider* taskProvider_ = nullptr;
 
     /**
 	 * Computes the next task from the task provider
      */
 	void computeNextTask();
+
+    /**
+	 * @brief Attempts to organize a new assignment by fetching the next task from the task provider or 
+	 * from the GameManagerPool, if the task proivder has no more tasks available.
+	 * @return the new GameTask or std::nullopt if no more tasks are available.
+     */
+    std::optional<GameTask> organizeNewAssignment();
 
     /**
      * @brief True if finishedPromise_ is valid and has not yet been set.

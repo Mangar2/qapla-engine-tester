@@ -64,13 +64,13 @@ void SprtManager::run(
 	nextIndex_ = 0;
     PgnIO::tournament().initialize();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTask(this, engine0, engine1);
+	GameManagerPool::getInstance().addTaskProvider(this, engine0, engine1, config.maxGames);
 
 }
 
 std::optional<GameTask> SprtManager::nextTask(
-    const std::string& whiteId,
-    const std::string& blackId) {
+    [[maybe_unused]] const std::string& whiteId,
+    [[maybe_unused]] const std::string& blackId) {
     if (startPositions_.empty()) return std::nullopt;
     if (config_.maxGames > 0 && gamesStarted_ >= static_cast<uint32_t>(config_.maxGames)) return std::nullopt;
     auto result = computeSprt().first;

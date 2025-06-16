@@ -147,10 +147,11 @@
     <ClCompile Include="src\game-manager.cpp" />
     <ClCompile Include="src\game-record.cpp" />
     <ClCompile Include="src\game-state.cpp" />
-    <ClCompile Include="src\gauntlet-tournament.cpp" />
+    <ClCompile Include="src\tournament.cpp" />
     <ClCompile Include="src\hashconstants.cpp" />
     <ClCompile Include="src\magics.cpp" />
     <ClCompile Include="src\movegenerator.cpp" />
+    <ClCompile Include="src\pair-tournament.cpp" />
     <ClCompile Include="src\pgn-io.cpp" />
     <ClCompile Include="src\piecesignature.cpp" />
     <ClCompile Include="src\player-context.cpp" />
@@ -190,7 +191,7 @@
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\game-task.h" />
-    <ClInclude Include="src\gauntlet-tournament.h" />
+    <ClInclude Include="src\tournament.h" />
     <ClInclude Include="src\hashconstants.h" />
     <ClInclude Include="src\heart-beat.h" />
     <ClInclude Include="src\logger.h" />
@@ -202,6 +203,7 @@
     <ClInclude Include="src\movelist.h" />
     <ClInclude Include="src\movescanner.h" />
     <ClInclude Include="src\openings.h" />
+    <ClInclude Include="src\pair-tournament.h" />
     <ClInclude Include="src\pgn-io.h" />
     <ClInclude Include="src\piecesignature.h" />
     <ClInclude Include="src\player-context.h" />

@@ -19,6 +19,7 @@
  
 #include "engine-config.h"
 #include "engine-option.h"
+#include "app-error.h"
 
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
@@ -44,6 +45,21 @@ std::string EngineConfig::toString(const Value& value) {
         }, value);
 }
 
+void EngineConfig::setTraceLevel(const std::string& level) {
+	if (level == "none") {
+		traceLevel_ = TraceLevel::none;
+	}
+	else if (level == "all") {
+		traceLevel_ = TraceLevel::info;
+	}
+	else if (level == "command") {
+		traceLevel_ = TraceLevel::command;
+	}
+	else {
+		throw AppError::makeInvalidParameters("Unknown trace level: " + level + " for engine " + getName());
+	}
+}
+
 void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     std::unordered_set<std::string> seenKeys;
 
@@ -55,6 +71,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         if (key == "conf") continue;
         if (key == "ponder") setPonder(std::get<bool>(value));
         else if (key == "gauntlet") setGauntlet(std::get<bool>(value));
+        else if (key == "trace") setTraceLevel(std::get<std::string>(value));
         else if (key == "name") {
             if (!update) setName(std::get<std::string>(value));
         } else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
@@ -69,7 +86,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
             optionValues_[key.substr(7)] = toString(value);
         }
         else {
-            throw std::runtime_error("Unknown engine option key: " + key);
+			throw AppError::makeInvalidParameters("Unknown engine option key: " + key + " for engine " + getName());
         }
     }
     if (!update) finalizeSetOptions();

@@ -644,7 +644,7 @@ void EngineTestController::runMultipleGamesTest() {
     TestTournament tournament(numGames_);
 
     try {
-        GameManagerPool::getInstance().addTask(&tournament, engineConfig_);
+        GameManagerPool::getInstance().addTaskProvider(&tournament, engineConfig_, numGames_);
         GameManagerPool::getInstance().waitForTask(&tournament);
         Logger::testLogger().log("All games completed.");
     }

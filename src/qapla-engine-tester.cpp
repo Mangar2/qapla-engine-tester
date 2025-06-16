@@ -31,6 +31,7 @@
 #include "cli-settings-manager.h"
 #include "epd-manager.h"
 #include "sprt-manager.h"
+#include "tournament.h"
 #include "timer.h"
 #include "time-control.h"
 #include "pgn-io.h"
@@ -126,14 +127,35 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
     return code;
 }
 
+std::optional<Openings> readOpenings() {
+    auto opening = CliSettings::Manager::getGroupInstance("openings");
+    if (!opening) {
+        Logger::testLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
+		return std::nullopt;
+    }
+    Openings openings{
+        .file = opening->get<std::string>("file"),
+        .format = opening->get<std::string>("format"),
+        .order = opening->get<std::string>("order"),
+        .plies = opening->get<int>("plies"),
+        .start = opening->get<int>("start"),
+        .policy = opening->get<std::string>("policy")
+    };
+    return openings;
+}
+
 auto runSprt(AppReturnCode code) {
     auto sprt = CliSettings::Manager::getGroupInstance("sprt");
-	auto opening = CliSettings::Manager::getGroupInstance("openings");    
+	auto opening = CliSettings::Manager::getGroupInstance("openings");  
+    Openings openings;
     if (!sprt) return code;
     auto isMontecarlo = sprt->get<bool>("montecarlo");
     if (!opening && !isMontecarlo) {
 		Logger::testLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
+    }
+    else {
+		openings = *readOpenings();
     }
 	auto tcSetting = CliSettings::Manager::get<std::string>("tc");
 	if (tcSetting.empty() && !isMontecarlo) {
@@ -152,17 +174,6 @@ auto runSprt(AppReturnCode code) {
     TimeControl tc;
 	tc.fromCliTimeControlString(tcSetting);
     try {
-        Openings openings;
-        if (opening) {
-            openings = Openings{
-                .file = opening->get<std::string>("file"),
-                .format = opening->get<std::string>("format"),
-                .order = opening->get<std::string>("order"),
-                .plies = opening->get<int>("plies"),
-                .start = opening->get<int>("start"),
-                .policy = opening->get<std::string>("policy")
-            };
-        }
         SprtConfig config{
             .eloUpper = sprt->get<int>("eloUpper"),
             .eloLower = sprt->get<int>("eloLower"),
@@ -199,6 +210,68 @@ auto runSprt(AppReturnCode code) {
     }
     return code;
 }
+
+AppReturnCode runTournament(AppReturnCode code) {
+    auto tournamentGroup = CliSettings::Manager::getGroupInstance("tournament");
+
+    if (!tournamentGroup) return code;
+
+    auto tcSetting = CliSettings::Manager::get<std::string>("tc");
+    if (tcSetting.empty()) {
+        Logger::testLogger().log("No time control defined. Please define a time control, see --help for more info.", TraceLevel::error);
+        return AppReturnCode::InvalidParameters;
+    }
+
+    auto activeEngines = EngineWorkerFactory::getActiveEngines();
+    if (activeEngines.size() < 2) {
+        Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
+        return AppReturnCode::InvalidParameters;
+    }
+
+    std::optional<Openings> openings = readOpenings();
+    if (!openings) {
+        return AppReturnCode::InvalidParameters;
+    }
+
+    Logger::testLogger().setLogFile("tournament-report");
+    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+
+    TimeControl tc;
+    tc.fromCliTimeControlString(tcSetting);
+
+    try {
+
+        TournamentConfig config = {
+            .event = tournamentGroup->get<std::string>("event"),
+            .type = tournamentGroup->get<std::string>("type"),
+            .games = tournamentGroup->get<int>("games"),
+            .rounds = tournamentGroup->get<int>("rounds"),
+            .repeat = tournamentGroup->get<int>("repeat"),
+            .noSwap = tournamentGroup->get<bool>("noswap"),
+            .tc = tc,
+            .openings = *openings
+        };
+
+        int concurrency = CliSettings::Manager::get<int>("concurrency");
+
+        Tournament tournament;
+        tournament.createTournament(activeEngines, config);
+        tournament.scheduleAll(concurrency);
+        tournament.wait();
+        code = logChecklist(code);
+    }
+    catch (const std::exception& e) {
+        Logger::testLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+    catch (...) {
+        Logger::testLogger().log("Unknown exception during tournament run.", TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+
+    return code;
+}
+
 
 void handlePgnOptions() {
     auto pgnOptionInstance = CliSettings::Manager::getGroupInstance("pgnoutput");
@@ -293,13 +366,17 @@ int main(int argc, char** argv) {
             { "dir",       { "Working directory", false, "", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
-            { "gauntlet", { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool }},
+            { "gauntlet",  { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool }},
+			{ "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
+                false, "command", CliSettings::ValueType::String}},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
             { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
+            { "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
+                false, "command", CliSettings::ValueType::String}},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
 
@@ -343,7 +420,7 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerGroup("pgnoutput", "PGN output settings", true, {
             { "file", { "Path to the output PGN file", true, "", CliSettings::ValueType::String } },
-            { "append", { "Append to existing file instead of overwriting it", false, true, CliSettings::ValueType::Bool } },
+            { "append", { "Append to existing file instead of overwriting it", false, false, CliSettings::ValueType::Bool } },
             { "fi", { "Only save finished games", false, true, CliSettings::ValueType::Bool } },
             { "min", { "Only save minimal tag information in the PGN output", false, false, CliSettings::ValueType::Bool } },
             //{ "aftermove", { "Save after every move", false, false, CliSettings::ValueType::Bool } },
@@ -354,7 +431,7 @@ int main(int argc, char** argv) {
             });
 
         CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
-            { "type", { "Tournament type: gauntlet", true, "", CliSettings::ValueType::String } },
+            { "type", { "Tournament type: gauntlet", true, "gauntlet", CliSettings::ValueType::String } },
             { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
             { "games", { "Number of games per pairing (total games = games × rounds)", false, 2, CliSettings::ValueType::Int } },
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
@@ -376,6 +453,11 @@ int main(int argc, char** argv) {
         if (!epdList.empty()) {
             returnCode = runEpd(epdList, returnCode);
         }
+
+		auto tournament = CliSettings::Manager::getGroupInstance("tournament");
+		if (tournament) {
+			returnCode = runTournament(returnCode);
+		}
         
         returnCode = runSprt(returnCode);
 			

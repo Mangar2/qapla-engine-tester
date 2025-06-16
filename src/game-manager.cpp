@@ -20,6 +20,7 @@
 #include "game-manager.h"
 #include "checklist.h"
 #include <iostream>
+#include "game-manager-pool.h"
 
 GameManager::GameManager(): taskProvider_(nullptr) {
     eventThread_ = std::thread(&GameManager::processQueue, this);
@@ -347,6 +348,36 @@ void GameManager::computeGame(bool useStartPosition, const std::string fen, bool
     computeNextMove();
 }
 
+std::optional<GameTask> GameManager::organizeNewAssignment() {
+    auto whiteId = whitePlayer_->getIdentifier();
+    auto blackId = blackPlayer_->getIdentifier();
+
+    auto task = taskProvider_->nextTask(whiteId, blackId);
+    if (task) {
+        return task;
+    }
+
+    auto extendedTask = GameManagerPool::getInstance().tryAssignNewTask();
+    if (!extendedTask) {
+        taskType_ = GameTask::Type::None;
+        finishedPromise_.set_value();
+        return std::nullopt;
+    }
+
+    taskProvider_ = extendedTask->provider;
+
+    if (extendedTask->black) {
+        setEngines(
+            std::move(extendedTask->white),
+            std::move(extendedTask->black));
+    }
+    else {
+        setUniqueEngine(std::move(extendedTask->white));
+    }
+
+    return extendedTask->task;
+}
+
 void GameManager::computeNextTask() {
     if (taskType_ == GameTask::Type::None) {
         // Already processed to end
@@ -366,26 +397,22 @@ void GameManager::computeNextTask() {
         finishedPromise_.set_value();
 		return;
 	}
-	auto whiteId = whitePlayer_->getEngine()->getIdentifier();
-	auto blackId = blackPlayer_->getEngine()->getIdentifier();
+	auto whiteId = whitePlayer_->getIdentifier();
+	auto blackId = blackPlayer_->getIdentifier();
     if (gameRecord_.nextMoveIndex() > 0) {
         taskProvider_->setGameRecord(whiteId, blackId, gameRecord_);
     }
-    auto newTask = taskProvider_->nextTask(whiteId, blackId);
-	if (!newTask) {
-        taskType_ = GameTask::Type::None;
-		finishedPromise_.set_value();
-		return;
-	}
-	auto task = *newTask;
-	if (task.switchSide != switchedSide_) {
+    auto task = organizeNewAssignment();
+    if (!task) return; 
+
+	if (task->switchSide != switchedSide_) {
 		switchSide();
 	}
-	setStartPosition(task.useStartPosition, task.fen);
-	gameRecord_.setTimeControl(task.whiteTimeControl, task.blackTimeControl);
-	gameRecord_.setRound(task.round);
-	setTimeControls(task.whiteTimeControl, task.blackTimeControl);
-    taskType_ = task.taskType;
+	setStartPosition(task->useStartPosition, task->fen);
+	gameRecord_.setTimeControl(task->whiteTimeControl, task->blackTimeControl);
+	gameRecord_.setRound(task->round);
+	setTimeControls(task->whiteTimeControl, task->blackTimeControl);
+    taskType_ = task->taskType;
 
     computeNextMove();
 }

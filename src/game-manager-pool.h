@@ -38,8 +38,9 @@ public:
      *
      * @param taskProvider Task source
      * @param engineConfig Engine configuration
+	 * @param maxManagers maximum number of managers to use for this task
      */
-    void addTask(GameTaskProvider* taskProvider, const EngineConfig& engine);
+    void addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& engine, int maxManagers);
 
     /**
      * @brief Adds a new task with two engines per manager.
@@ -47,8 +48,10 @@ public:
      * @param taskProvider Task source
      * @param whiteEngine Configuration of the white engine
      * @param blackEngine Configuration of the black engine
+     * @param maxManagers maximum number of managers to use for this task
      */
-    void addTask(GameTaskProvider* taskProvider, const EngineConfig& whiteEngine, const EngineConfig& blackEngine);
+    void addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& whiteEngine, 
+        const EngineConfig& blackEngine, int maxManagers);
 
     /**
      * @brief Sets the global concurrency limit.
@@ -56,7 +59,7 @@ public:
      * @param count Maximum number of concurrent managers
      * @param nice If true, idle managers are reduced gradually
      */
-    void setConcurrency(size_t count, bool nice);
+    void setConcurrency(int count, bool nice);
 
     /**
      * @brief Stops all managers and clears all resources.
@@ -65,9 +68,10 @@ public:
 
     /**
      * @brief Blocks until all managers for the given task have completed their current task.
+	 * if taskProvider is nullptr, waits for all tasks in the pool.
      * @param taskProvider The task to wait for.
      */
-    void waitForTask(GameTaskProvider* taskProvider);
+    void waitForTask(GameTaskProvider* taskProvider = nullptr);
 
     /**
      * @brief Returns the singleton instance of the GameManagerPool.
@@ -77,22 +81,39 @@ public:
 		return instance;
 	}
 
+    /**
+     * @brief Attempts to assign a new task to a free GameManager.
+     *
+     * Iterates over all task assignments and requests a concrete GameTask.
+     * If a task is available, constructs the appropriate engines and returns an ExtendedTask.
+     *
+     * @return An optional ExtendedTask if a task was available, otherwise std::nullopt.
+     */
+    std::optional<GameManager::ExtendedTask> tryAssignNewTask();
+
 private:
 
-    struct Task {
+    struct TaskAssignment {
         GameTaskProvider* provider = nullptr;
-        EngineConfig engine1;
+        std::optional<EngineConfig> engine1;
         std::optional<EngineConfig> engine2;
-        size_t concurrency = 0;
-        std::vector<GameManager*> managers;
+        size_t maxManagers = 0;
     };
 
-    void ensureManagerCount(size_t count);
-    void assignTaskToManagers(Task& task);
+    /**
+     * @brief Collects all GameManager instances that are currently unassigned.
+     *
+     * @return A vector of pointers to available GameManagers.
+     */
+    std::vector<GameManager*> collectAvailableManagers();
 
-    std::vector<Task> tasks_;
+
+    void ensureManagerCount(size_t count);
+    void assignTaskToManagers(TaskAssignment& task);
+
+    std::vector<TaskAssignment> taskAssignments_;
     std::vector<std::unique_ptr<GameManager>> managers_;
-    size_t maxConcurrency_ = 0;
+    int maxConcurrency_ = 0;
     bool niceMode_ = false;
     std::mutex mutex_;
 };
