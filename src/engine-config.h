@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <variant>
 
+#include "time-control.h"
 #include "engine-option.h"
 #include "logger.h"
 
@@ -117,6 +118,9 @@ public:
 	void setGauntlet(bool enabled) { gauntlet_ = enabled; }
 	bool isGauntlet() const { return gauntlet_; }
 
+    void setTimeControl(const std::string& tc);
+	const TimeControl& getTimeControl() const { return tc_; }
+
     void setTraceLevel(const std::string& level);
 	TraceLevel getTraceLevel() const { return traceLevel_; }
 
@@ -179,6 +183,7 @@ private:
     std::string name_;
     std::string executablePath_;
     std::string workingDirectory_;
+    TimeControl tc_;
 	TraceLevel traceLevel_ = TraceLevel::command;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     bool ponder_ = false;

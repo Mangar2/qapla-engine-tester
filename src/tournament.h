@@ -38,7 +38,6 @@ struct TournamentConfig {
     int rounds = 1;
     int repeat = 2;
     bool noSwap = false;
-    TimeControl tc;
     Openings openings;
 };
 
@@ -90,6 +89,9 @@ public:
 
 private:
     void createGauntletPairings(const std::vector<EngineConfig>& engines,
+        const TournamentConfig& config);
+
+    void createRoundRobinPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 
     std::shared_ptr<std::vector<std::string>> startPositions_;

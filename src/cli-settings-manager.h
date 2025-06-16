@@ -35,7 +35,7 @@ namespace CliSettings {
     struct Definition {
         std::string description;
         bool isRequired;
-        Value defaultValue;
+        std::optional<Value> defaultValue;
         ValueType type;
     };
     struct GroupDefinition {
@@ -75,10 +75,10 @@ namespace CliSettings {
 			auto& keyDefs = definition_.keys;
             if (it == values_.end()) {
                 auto defIt = keyDefs.find(key);
-                if (defIt == keyDefs.end()) {
+                if (defIt == keyDefs.end() || !defIt->second.defaultValue) {
                     throw AppError::makeInvalidParameters("Access to undefined group setting: " + name);
                 }
-                return std::get<T>(defIt->second.defaultValue);
+                return std::get<T>(*defIt->second.defaultValue);
             }
             if (!std::holds_alternative<T>(it->second)) {
                 if constexpr (std::is_same_v<T, int>) {
@@ -131,7 +131,7 @@ namespace CliSettings {
         static void registerSetting(const std::string& name,
             const std::string& description,
             bool isRequired,
-            Value defaultValue,
+            std::optional<Value> defaultValue,
             ValueType type = ValueType::String);
 
         /**
@@ -165,10 +165,11 @@ namespace CliSettings {
             auto it = values_.find(key);
             if (it == values_.end()) {
                 auto defIt = definitions_.find(key);
-                if (defIt == definitions_.end()) {
+                if (defIt == definitions_.end() || !defIt->second.defaultValue) {
                     throw std::runtime_error("Access to undefined setting: " + name);
                 }
-                return std::get<T>(defIt->second.defaultValue);
+
+                return std::get<T>(*defIt->second.defaultValue);
             }
             return std::get<T>(it->second);
         }

@@ -34,6 +34,8 @@ bool SprtManager::wait() {
 void SprtManager::run(
     const EngineConfig& engine0, const EngineConfig& engine1, int concurrency, const SprtConfig& config) {
 	config_ = config;
+	engine0_ = engine0;
+	engine1_ = engine1;
 	engineP1Name_ = engine0.getName();
 	engineP2Name_ = engine1.getName();
 
@@ -89,8 +91,8 @@ std::optional<GameTask> SprtManager::nextTask(
     task.taskType = GameTask::Type::PlayGame;
     task.useStartPosition = false;
     task.fen = correctedFen;
-    task.whiteTimeControl = config_.tc;
-    task.blackTimeControl = config_.tc;
+    task.whiteTimeControl = engine0_.getTimeControl();
+    task.blackTimeControl = engine1_.getTimeControl();
     task.switchSide = (gamesStarted_ % 2) == 1;
     task.round = gamesStarted_ + 1;
 

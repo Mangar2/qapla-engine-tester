@@ -24,6 +24,7 @@
 #include "engine-config.h"
 #include "time-control.h"
 #include "openings.h"
+#include "tournament-result.h"
 #include <vector>
 #include <memory>
 #include <optional>
@@ -31,12 +32,13 @@
 #include <istream>
 #include <ostream>
 #include <mutex>
+#include <array>
+#include <sstream>
 
 /**
 * @brief Configuration parameters for a PairTournament.
 */
 struct PairTournamentConfig {
-    TimeControl timeControl;
     int games = 0;
     int repeat = 2;
     bool swapColors = true;
@@ -116,9 +118,11 @@ public:
 
 
     /**
-     * @brief Returns a printable status summary (e.g. 5.5/10).
+	 * @brief Returns the result of the duel between the two engines.
      */
-    std::string status() const;
+    EngineDuelResult getResult() const {
+		return duelResult_;
+    }
 
 private:
     EngineConfig engineA_;
@@ -128,9 +132,7 @@ private:
     std::string curStartPosition_;
 
     std::vector<GameResult> results_;
-	int winsEngineA_ = 0;
-	int winsEngineB_ = 0;
-	int draws_ = 0;
+	EngineDuelResult duelResult_;
     mutable std::mutex mutex_;
     size_t nextIndex_ = 0;
     bool started_ = false;

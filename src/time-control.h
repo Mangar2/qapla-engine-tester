@@ -62,6 +62,11 @@ class TimeControl {
 public:
     bool operator==(const TimeControl& other) const = default;
 
+    bool isValid() const {
+		return !timeSegments_.empty() || infinite_.value_or(false) ||
+			movetimeMs_.has_value() || depth_.has_value() || nodes_.has_value() || mateIn_.has_value();
+    }
+
     void setMoveTime(int64_t ms) { movetimeMs_ = ms; }
     void setDepth(int d) { depth_ = d; }
     void setNodes(int n) { nodes_ = n; }
@@ -95,6 +100,19 @@ public:
             }
         }
         return oss.str();
+    }
+
+    static TimeControl parse(const std::string tc) {
+        TimeControl timeControl;
+        if (tc.empty()) {
+            return timeControl;
+        }
+        if (tc == "inf") {
+            timeControl.setInfinite(true);
+            return timeControl;
+        }
+        timeControl.fromPgnTimeControlString(tc);
+		return timeControl;
     }
 
     void fromPgnTimeControlString(const std::string& pgnString) {

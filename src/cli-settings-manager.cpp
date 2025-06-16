@@ -58,10 +58,12 @@ namespace CliSettings {
     void Manager::registerSetting(const std::string& name,
         const std::string& description,
         bool isRequired,
-        Value defaultValue,
+        std::optional<Value> defaultValue,
         ValueType type) {
 
-        validateDefaultValue(name, defaultValue, type);
+        if (defaultValue) {
+            validateDefaultValue(name, *defaultValue, type);
+        }
 
         std::string key = to_lowercase(name);
         definitions_[key] = { description, isRequired, defaultValue, type };
@@ -74,7 +76,8 @@ namespace CliSettings {
         const std::unordered_map<std::string, Definition>& keys)
     {
         for (const auto& [name, def] : keys) {
-            validateDefaultValue(name, def.defaultValue, def.type);
+            if (!def.defaultValue) continue;
+            validateDefaultValue(name, *def.defaultValue, def.type);
         }
 
         std::string key = to_lowercase(groupName);
@@ -216,8 +219,8 @@ namespace CliSettings {
             if (def.isRequired)
                 throw AppError::makeInvalidParameters(
                     "Missing required parameter \"" + key + "\" in section \"" + groupArg.name + "\"");
-            if (!def.defaultValue.valueless_by_exception())
-                group[key] = def.defaultValue;
+            if (def.defaultValue)
+                group[key] = *def.defaultValue;
         }
 
         groupInstances_[groupArg.name].emplace_back(group, groupDefinition);
@@ -228,18 +231,18 @@ namespace CliSettings {
         for (const auto& [key, def] : definitions_) {
             if (values_.contains(key)) continue;
 
-            if (def.isRequired && def.defaultValue.valueless_by_exception()) {
+            if (def.isRequired && !def.defaultValue) {
                 std::string input;
                 std::cout << key << " (required): ";
                 std::getline(std::cin, input);
                 values_[key] = parseValue(
                     ParsedParameter{ .hasPrefix = false, .name = key, .value = input }, def);
             }
-            else if (!def.isRequired && !def.defaultValue.valueless_by_exception()) {
-                values_[key] = def.defaultValue;
+            else if (!def.isRequired && def.defaultValue) {
+                values_[key] = *def.defaultValue;
             }
             else if (def.isRequired) {
-                values_[key] = def.defaultValue;
+                values_[key] = *def.defaultValue;
             }
         }
     }
@@ -268,9 +271,11 @@ namespace CliSettings {
             std::cout << def.description;
             if (def.isRequired) std::cout << " [required]";
             else {
-                std::cout << " (default: ";
-                std::visit([](auto&& v) { std::cout << v; }, def.defaultValue);
-                std::cout << ")";
+                if (def.defaultValue) {
+                    std::cout << " (default: ";
+                    std::visit([](auto&& v) { std::cout << v; }, *def.defaultValue);
+                    std::cout << ")";
+                }
             }
             std::cout << "\n";
         }
@@ -296,9 +301,11 @@ namespace CliSettings {
                 std::cout << meta.description;
                 if (meta.isRequired) std::cout << " [required]";
                 else {
-                    std::cout << " (default: ";
-                    std::visit([](auto&& v) { std::cout << v; }, meta.defaultValue);
-                    std::cout << ")";
+                    if (meta.defaultValue) {
+                        std::cout << " (default: ";
+                        std::visit([](auto&& v) { std::cout << v; }, *meta.defaultValue);
+                        std::cout << ")";
+                    }
                 }
                 std::cout << "\n";
             }

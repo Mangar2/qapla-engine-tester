@@ -60,7 +60,10 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
 	if (config.type == "gauntlet") {
         createGauntletPairings(engines, config);
 	}
-	else {
+    else if (config.type == "round-robin") {
+        createRoundRobinPairings(engines, config);
+    }
+    else {
 		Logger::testLogger().log("Unsupported tournament type: " + config.type, TraceLevel::error);
 		return;
 	}
@@ -84,7 +87,6 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
     ptc.games = config.games * config.rounds;
     ptc.repeat = config.repeat;
     ptc.swapColors = !config.noSwap;
-    ptc.timeControl = config.tc;
     ptc.openings = config.openings;
 
     for (const auto& g : gauntlets) {
@@ -95,6 +97,30 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
         }
     }
 }
+
+void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engines,
+    const TournamentConfig& config) {
+
+    if (engines.size() < 2) {
+        Logger::testLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
+        return;
+    }
+
+    PairTournamentConfig ptc;
+    ptc.games = config.games * config.rounds;
+    ptc.repeat = config.repeat;
+    ptc.swapColors = !config.noSwap;
+    ptc.openings = config.openings;
+
+    for (size_t i = 0; i < engines.size(); ++i) {
+        for (size_t j = i + 1; j < engines.size(); ++j) {
+            auto pt = std::make_shared<PairTournament>();
+            pt->initialize(engines[i], engines[j], ptc, startPositions_);
+            pairings_.push_back(std::move(pt));
+        }
+    }
+}
+
 
 void Tournament::scheduleAll(int concurrency) {
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);

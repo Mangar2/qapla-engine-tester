@@ -33,7 +33,6 @@ struct SprtConfig {
     float alpha;
     float beta;
     int maxGames;
-    TimeControl tc;
     Openings openings;
 };
 
@@ -119,5 +118,7 @@ private:
 
     std::string engineP1Name_;
     std::string engineP2Name_;
+    EngineConfig engine0_;
+	EngineConfig engine1_;
 
 };

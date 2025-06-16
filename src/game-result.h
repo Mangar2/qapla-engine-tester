@@ -41,7 +41,8 @@ enum class GameEndCause {
 	Adjudication,          // Tester or supervisor declared a result externally
 	Forfeit,               // Forfeit due to rule violation or technical fault
 	TerminatedByTester,    // Game was aborted or terminated by the test system
-	Disconnected		   // Game was aborted due to engine not responding
+	Disconnected,		   // Game was aborted due to engine not responding
+	Count
 };
 
 enum class GameResult { WhiteWins, BlackWins, Draw, Unterminated };

@@ -38,9 +38,8 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
     config_ = config;
 	startPositions_ = std::move(startPositions);
 
-    winsEngineA_ = 0;
-    winsEngineB_ = 0;
-    draws_ = 0;
+	duelResult_.engineA = engineA_.getName();
+	duelResult_.engineB = engineB_.getName();
 
     for (const auto& r : results_) {
         bool aWhite = true;
@@ -51,13 +50,13 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
 
         switch (r) {
         case GameResult::WhiteWins:
-            aWhite ? ++winsEngineA_ : ++winsEngineB_;
+            aWhite ? ++duelResult_.winsEngineA : ++duelResult_.winsEngineB;
             break;
         case GameResult::BlackWins:
-            aWhite ? ++winsEngineB_ : ++winsEngineA_;
+			aWhite ? ++duelResult_.winsEngineB : ++duelResult_.winsEngineA;
             break;
         case GameResult::Draw:
-            ++draws_;
+			++duelResult_.draws;
             break;
         default:
             break;
@@ -135,8 +134,8 @@ std::optional<GameTask> PairTournament::nextTask(
         task.taskType = GameTask::Type::PlayGame;
         task.useStartPosition = false;
         task.fen = curStartPosition_;
-        task.whiteTimeControl = config_.timeControl;
-        task.blackTimeControl = config_.timeControl;
+        task.whiteTimeControl = engineA_.getTimeControl();
+        task.blackTimeControl = engineB_.getTimeControl();
         task.switchSide = config_.swapColors && (i % 2 == 1);
         task.round = static_cast<uint32_t>(i + 1);
 
@@ -156,6 +155,7 @@ void PairTournament::setGameRecord(const std::string& whiteId,
 
     auto [cause, result] = record.getGameResult();
     uint32_t round = record.getRound();
+    
 
     if (round == 0 || round > results_.size()) {
 		Logger::testLogger().log("Invalid round number in GameRecord: Round " + std::to_string(round) 
@@ -166,59 +166,34 @@ void PairTournament::setGameRecord(const std::string& whiteId,
     // Speichern
     results_[round - 1] = result;
     PgnIO::tournament().saveGame(record);
-    bool whiteIsEngine0 = engineA_.getName() == record.getWhiteEngineName();
-    std::string resultText;
-
-    switch (result) {
-    case GameResult::WhiteWins:
-        if (whiteIsEngine0) {
-            ++winsEngineA_;
-            resultText = engineA_.getName() + " (White) wins";
-        }
-        else {
-            ++winsEngineB_;
-            resultText = engineB_.getName() + " (White) wins";
-        }
-        break;
-    case GameResult::BlackWins:
-        if (whiteIsEngine0) {
-            ++winsEngineB_;
-            resultText = engineB_.getName() + " (Black) wins";
-        }
-        else {
-            ++winsEngineA_;
-            resultText = engineA_.getName() + " (Black) wins";
-        }
-        break;
-    case GameResult::Draw:
-        ++draws_;
-        resultText = "Draw";
-        break;
-    case GameResult::Unterminated:
-        resultText = "Unterminated game";
-        break;
-    }
-    std::ostringstream oss;
-	oss << engineA_.getName() << " vs " << engineB_.getName()
-        << " W:" << winsEngineA_ << " D:" << draws_ << " L:" << winsEngineB_
-        << " " << to_string(cause);
-    Logger::testLogger().log(oss.str(), TraceLevel::result);
+	duelResult_.addResult(record);
+    Logger::testLogger().log(duelResult_.toString() + " " + to_string(cause), TraceLevel::result);
 }
 
 std::string PairTournament::toString() const {
     std::lock_guard lock(mutex_);
-	std::ostringstream oss;
+    std::ostringstream oss;
     oss << engineA_.getName() << " vs " << engineB_.getName() << " : ";
-    for (const auto& result : results_) {
-        switch (result) {
-        case GameResult::WhiteWins: oss << '1'; break;
-        case GameResult::BlackWins: oss << '0'; break;
-        case GameResult::Draw:      oss << '½'; break;
-        case GameResult::Unterminated: oss << '?'; break;
+    for (size_t i = 0; i < results_.size(); ++i) {
+        bool aWhite = !config_.swapColors || (i % 2 == 0);
+        switch (results_[i]) {
+        case GameResult::WhiteWins:
+            oss << (aWhite ? '1' : '0');
+            break;
+        case GameResult::BlackWins:
+            oss << (aWhite ? '0' : '1');
+            break;
+        case GameResult::Draw:
+            oss << '½';
+            break;
+        case GameResult::Unterminated:
+            oss << '?';
+            break;
         }
     }
-	return oss.str();
+    return oss.str();
 }
+
 
 void PairTournament::fromString(const std::string& line) {
     std::lock_guard lock(mutex_);
@@ -231,41 +206,34 @@ void PairTournament::fromString(const std::string& line) {
     if (pos == std::string::npos) return;
 
     std::string resultString = line.substr(pos + 3);
+	duelResult_.clear();
     results_.clear();
     results_.reserve(resultString.size());
 
-    for (char ch : resultString) {
-        switch (ch) {
-        case '1': results_.emplace_back(GameResult::WhiteWins); break;
-        case '0': results_.emplace_back(GameResult::BlackWins); break;
-        case '½': results_.emplace_back(GameResult::Draw);      break;
-        case '?': results_.emplace_back(GameResult::Unterminated); break;
-        default:  results_.emplace_back(GameResult::Unterminated); break;
-        }
-    }
-
-    winsEngineA_ = 0;
-    winsEngineB_ = 0;
-    draws_ = 0;
-
-    for (size_t i = 0; i < results_.size(); ++i) {
-        const auto& r = results_[i];
+    for (size_t i = 0; i < resultString.size(); ++i) {
+        char ch = resultString[i];
         bool aWhite = !config_.swapColors || (i % 2 == 0);
 
-        switch (r) {
-        case GameResult::WhiteWins:
-            aWhite ? ++winsEngineA_ : ++winsEngineB_;
+        switch (ch) {
+        case '1':
+            results_.emplace_back(aWhite ? GameResult::WhiteWins : GameResult::BlackWins);
+            ++duelResult_.winsEngineA;
             break;
-        case GameResult::BlackWins:
-            aWhite ? ++winsEngineB_ : ++winsEngineA_;
+        case '0':
+            results_.emplace_back(aWhite ? GameResult::BlackWins : GameResult::WhiteWins);
+            ++duelResult_.winsEngineB;
             break;
-        case GameResult::Draw:
-            ++draws_;
+        case '½':
+            results_.emplace_back(GameResult::Draw);
+            ++duelResult_.draws;
             break;
+        case '?':
         default:
+            results_.emplace_back(GameResult::Unterminated);
             break;
         }
     }
+
 }
 
 

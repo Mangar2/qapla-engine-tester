@@ -157,12 +157,6 @@ auto runSprt(AppReturnCode code) {
     else {
 		openings = *readOpenings();
     }
-	auto tcSetting = CliSettings::Manager::get<std::string>("tc");
-	if (tcSetting.empty() && !isMontecarlo) {
-		Logger::testLogger().log("No time control defined for SPRT tests. Please define a time control, see --help for more info.", 
-            TraceLevel::error);
-		return AppReturnCode::InvalidParameters;
-	}
 	auto activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2 && !isMontecarlo) {
         Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
@@ -171,8 +165,6 @@ auto runSprt(AppReturnCode code) {
     }
     Logger::testLogger().setLogFile("sprt-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
-    TimeControl tc;
-	tc.fromCliTimeControlString(tcSetting);
     try {
         SprtConfig config{
             .eloUpper = sprt->get<int>("eloUpper"),
@@ -180,7 +172,6 @@ auto runSprt(AppReturnCode code) {
             .alpha = sprt->get<float>("alpha"),
             .beta = sprt->get<float>("beta"),
             .maxGames = sprt->get<int>("maxgames"),
-            .tc = tc, 
             .openings = openings
         };
         int concurrency = CliSettings::Manager::get<int>("concurrency");
@@ -216,12 +207,6 @@ AppReturnCode runTournament(AppReturnCode code) {
 
     if (!tournamentGroup) return code;
 
-    auto tcSetting = CliSettings::Manager::get<std::string>("tc");
-    if (tcSetting.empty()) {
-        Logger::testLogger().log("No time control defined. Please define a time control, see --help for more info.", TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
-    }
-
     auto activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2) {
         Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
@@ -236,9 +221,6 @@ AppReturnCode runTournament(AppReturnCode code) {
     Logger::testLogger().setLogFile("tournament-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 
-    TimeControl tc;
-    tc.fromCliTimeControlString(tcSetting);
-
     try {
 
         TournamentConfig config = {
@@ -248,7 +230,6 @@ AppReturnCode runTournament(AppReturnCode code) {
             .rounds = tournamentGroup->get<int>("rounds"),
             .repeat = tournamentGroup->get<int>("repeat"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
-            .tc = tc,
             .openings = *openings
         };
 
@@ -304,16 +285,18 @@ void handleEngineOptions() {
 	if (eachSetting) {
 		eachOptions = eachSetting->getValues();
 	}
+    EngineConfig config;
 
     for (auto engine : engineSettings) {
         std::string cmd = engine.get<std::string>("cmd");
         std::string conf = engine.get<std::string>("conf");
         std::string name = engine.get<std::string>("name");
-        std::string active = "";
-		CliSettings::ValueMap options = engine.getValues();
+
+        CliSettings::ValueMap options = engine.getValues();
         options.insert(eachOptions.begin(), eachOptions.end());
+
         if (!cmd.empty()) {
-            EngineConfig config = EngineConfig::createFromValueMap(options);
+            config = EngineConfig::createFromValueMap(options);
             EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
 		}
 		else if (!conf.empty()) {
@@ -321,8 +304,9 @@ void handleEngineOptions() {
 			if (!engineConfig) {
 				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
 			}
-            EngineConfig config(*engineConfig);
+            config = *engineConfig;
 			config.setCommandLineOptions(options, true);
+            name = config.getName();
             EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
 		}
 		else {
@@ -330,6 +314,11 @@ void handleEngineOptions() {
             throw AppError::makeInvalidParameters("No engine command or configuration provided"
                 + engineName + ".Please specify either 'cmd' or 'conf'.");
 		}
+
+        if (!config.getTimeControl().isValid()) {
+            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + config.getName()
+                + "'. Please specify a time control using 'tc' option.");
+        }
     }
     // Ensure that all active engines have different names
     EngineWorkerFactory::assignUniqueDisplayNames();
@@ -356,24 +345,25 @@ int main(int argc, char** argv) {
 			CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string(""), 
             CliSettings::ValueType::PathExists);
-        CliSettings::Manager::registerSetting("tc", "Time control in format moves/time+inc or 'inf'", false, "", 
-            CliSettings::ValueType::String);
+
 
         CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", false, {
             { "conf",      { "Name of an engine from the configuration file", false, "", CliSettings::ValueType::String } },
             { "name",      { "Name of the engine", false, "", CliSettings::ValueType::String } },
             { "cmd",       { "Path to executable", false, "", CliSettings::ValueType::PathExists } },
-            { "dir",       { "Working directory", false, "", CliSettings::ValueType::PathExists } },
-            { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
-            { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
-            { "gauntlet",  { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool }},
+            { "dir",       { "Working directory", false, std::nullopt, CliSettings::ValueType::PathExists}},
+            { "proto",     { "Protocol (uci/xboard)", false, std::nullopt, CliSettings::ValueType::String } },
+            { "tc",        { "Time control in format moves/time+inc or 'inf'", false, std::nullopt, CliSettings::ValueType::String } },
+            { "ponder",    { "Enable pondering, if the engine supports it", false, std::nullopt, CliSettings::ValueType::Bool } },
+            { "gauntlet",  { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool } },
 			{ "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
-                false, "command", CliSettings::ValueType::String}},
+                false,std::nullopt, CliSettings::ValueType::String}},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
             { "dir",       { "Working directory", false, ".", CliSettings::ValueType::PathExists } },
             { "proto",     { "Protocol (uci/xboard)", false, "uci", CliSettings::ValueType::String } },
+            { "tc",        { "Time control in format moves/time+inc or 'inf'", false, "", CliSettings::ValueType::String } },
             { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
             { "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
                 false, "command", CliSettings::ValueType::String}},
@@ -431,7 +421,7 @@ int main(int argc, char** argv) {
             });
 
         CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
-            { "type", { "Tournament type: gauntlet", true, "gauntlet", CliSettings::ValueType::String } },
+            { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", CliSettings::ValueType::String } },
             { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
             { "games", { "Number of games per pairing (total games = games × rounds)", false, 2, CliSettings::ValueType::Int } },
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },

@@ -45,6 +45,18 @@ std::string EngineConfig::toString(const Value& value) {
         }, value);
 }
 
+void EngineConfig::setTimeControl(const std::string& tc) {
+	if (tc.empty()) {
+		throw AppError::makeInvalidParameters("Time control cannot be empty for engine " + getName());
+	}
+	try {
+		tc_ = TimeControl::parse(tc);
+	}
+	catch (const std::exception& e) {
+		throw AppError::makeInvalidParameters("Invalid time control format: " + tc + " for engine " + getName() + ". " + e.what());
+	}
+}
+
 void EngineConfig::setTraceLevel(const std::string& level) {
 	if (level == "none") {
 		traceLevel_ = TraceLevel::none;
@@ -70,6 +82,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
             continue;
         if (key == "conf") continue;
         if (key == "ponder") setPonder(std::get<bool>(value));
+        else if (key == "tc") setTimeControl(std::get<std::string>(value));
         else if (key == "gauntlet") setGauntlet(std::get<bool>(value));
         else if (key == "trace") setTraceLevel(std::get<std::string>(value));
         else if (key == "name") {
