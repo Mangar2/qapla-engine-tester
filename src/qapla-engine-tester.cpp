@@ -37,7 +37,7 @@
 #include "pgn-io.h"
 
 auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
-    auto newCode = Checklist::log(traceLevel);
+    auto newCode = Checklist::logAll(traceLevel);
     if (code == AppReturnCode::NoError) {
         code = newCode;
     }
@@ -102,7 +102,6 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
 
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-        Checklist::clear();
         std::string name = engine.getName();
         try {
 			Checklist::reportUnderruns = test.get<bool>("underrun");

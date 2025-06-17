@@ -28,6 +28,54 @@
 #include <algorithm>
 #include "checklist.h"
 
+void Checklist::addTopic(const CheckTopic& topic) {
+    std::lock_guard lock(statsMutex_);
+    auto [it, inserted] = knownTopics_.emplace(topic.id, topic);
+    if (!inserted) {
+        const auto& existing = it->second;
+        if (existing.group != topic.group ||
+            existing.text != topic.text ||
+            existing.section != topic.section) {
+            Logger::testLogger().log("Topic redefinition conflict for ID: " + topic.id, TraceLevel::error);
+            throw std::runtime_error("Conflicting topic definition: " + topic.id);
+        }
+    }
+}
+
+AppReturnCode Checklist::logAll(TraceLevel traceLevel) {
+    AppReturnCode worst = AppReturnCode::NoError;
+    for (const auto& [name, checklist] : checklists_) {
+        AppReturnCode code = checklist->log(traceLevel);
+		if (code == AppReturnCode::NoError) {
+			continue;
+		}
+        if (static_cast<int>(code) < static_cast<int>(worst)) {
+            worst = code;
+        }
+    }
+    return worst;
+}
+
+bool Checklist::logReport(const std::string& topicId, bool passed, std::string_view detail,
+    TraceLevel traceLevel) {
+    report(topicId, passed);
+    if (!passed) {
+        const auto& entry = stats_[topicId];
+        if (entry.failures > MAX_CLI_LOGS_PER_ERROR && traceLevel < TraceLevel::error) {
+            return false;
+        }
+        Logger::testLogger().log("\n[Report for topic \"" + topicId + "\"] " + std::string(detail),
+            entry.failures > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
+        if (entry.failures == MAX_CLI_LOGS_PER_ERROR) {
+            Logger::testLogger().log("Too many similar reports. Further reports of this type will be suppressed.", traceLevel);
+        }
+    }
+    return passed;
+}
+
+
+
+
 void Checklist::addMissingTopicsAsFail() {
     const std::vector<std::string> missingSearchInfoTopics = {
         "Search info reports correct depth",
@@ -46,12 +94,12 @@ void Checklist::addMissingTopicsAsFail() {
 
     for (const auto& topic : missingSearchInfoTopics) {
         if (!stats_.contains(topic)) {
-            report(topic, true);
+            reportOld(topic, true);
         }
     }
 }
 
-AppReturnCode Checklist::log(TraceLevel traceLevel) {
+AppReturnCode Checklist::logOld(TraceLevel traceLevel) {
 	AppReturnCode code = AppReturnCode::NoError;
     Logger::testLogger().log("\n== Summary ==\n");
 	Logger::testLogger().log(name_ + " by " + author_ + "\n");
@@ -132,4 +180,116 @@ AppReturnCode Checklist::log(TraceLevel traceLevel) {
     return code;
 }
 
+AppReturnCode Checklist::log(TraceLevel traceLevel) {
+    AppReturnCode result = AppReturnCode::NoError;
+    Logger::testLogger().log("\n== Summary ==\n");
+    Logger::testLogger().log(engineName_ + " by " + engineAuthor_ + "\n");
 
+    std::map<CheckSection, std::vector<std::pair<const CheckTopic*, CheckEntry>>> grouped;
+
+    for (const auto& [topicId, entry] : entries_) {
+        auto it = knownTopics_.find(topicId);
+        if (it != knownTopics_.end()) {
+            const CheckTopic& topic = it->second;
+            grouped[topic.section].emplace_back(&topic, entry);
+        }
+        else {
+            Logger::testLogger().log("[Unknown topic: " + topicId + "]", traceLevel);
+        }
+    }
+
+    const std::map<CheckSection, std::string> sectionTitles = {
+        { CheckSection::Important, "Important" },
+        { CheckSection::Missbehaviour, "Missbehaviour" },
+        { CheckSection::Notes, "Notes" }
+    };
+
+    const std::map<CheckSection, AppReturnCode> sectionCodes = {
+        { CheckSection::Important, AppReturnCode::EngineError },
+        { CheckSection::Missbehaviour, AppReturnCode::EngineMissbehaviour },
+        { CheckSection::Notes, AppReturnCode::EngineNote },
+		{ CheckSection::Report, AppReturnCode::NoError  }
+    };
+
+    for (const auto& [section, entries] : sectionTitles) {
+        Logger::testLogger().log("[" + entries + "]", traceLevel);
+
+        auto& items = grouped[section];
+        std::sort(items.begin(), items.end(), [](const auto& a, const auto& b) {
+            const bool aFail = a.second.total > 0 && a.second.failures > 0;
+            const bool bFail = b.second.total > 0 && b.second.failures > 0;
+            return aFail > bFail;
+            });
+
+        size_t maxTopicLength = 0;
+        for (const auto& [topic, _] : items) {
+            maxTopicLength = std::max(maxTopicLength, topic->text.size());
+        }
+
+        bool lastWasFail = false;
+        for (const auto& [topic, stat] : items) {
+            const bool passed = stat.total > 0 && stat.failures == 0;
+            if (result == AppReturnCode::NoError && !passed) {
+                result = sectionCodes.at(section);
+            }
+            if (passed && lastWasFail) {
+                Logger::testLogger().log("", traceLevel);
+            }
+            std::ostringstream line;
+            line << (passed ? "PASS " : "FAIL ");
+            line << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << topic->text;
+            if (!passed) {
+                line << "(" << stat.failures << " failed)";
+            }
+            lastWasFail = !passed;
+            Logger::testLogger().log(line.str(), traceLevel);
+        }
+
+        Logger::testLogger().log("", traceLevel);
+    }
+
+    return result;
+}
+
+const bool uciSearchInfoTopicsRegistered = [] {
+    using enum Checklist::CheckSection;
+    // Common bounded int/64 topics (readBoundedInt)
+    Checklist::addTopic({ "SearchInfo", "score cp", "Search info reports correct score cp", Missbehaviour });
+    Checklist::addTopic({ "SearchInfo", "score mate", "Search info reports correct score mate", Missbehaviour });
+    Checklist::addTopic({ "SearchInfo", "depth", "Search info reports correct depth", Missbehaviour });
+    Checklist::addTopic({ "SearchInfo", "seldepth", "Search info reports correct selective depth", Notes });
+    Checklist::addTopic({ "SearchInfo", "multipv", "Search info reports correct multipv", Notes });
+    Checklist::addTopic({ "SearchInfo", "time", "Search info reports correct time", Notes });
+    Checklist::addTopic({ "SearchInfo", "nodes", "Search info reports correct nodes", Notes });
+    Checklist::addTopic({ "SearchInfo", "nps", "Search info reports correct nps", Notes });
+    Checklist::addTopic({ "SearchInfo", "hashfull", "Search info reports correct hashfull", Notes });
+    Checklist::addTopic({ "SearchInfo", "tbhits", "Search info reports correct tbhits", Notes });
+    Checklist::addTopic({ "SearchInfo", "sbhits", "Search info reports correct sbhits", Notes });
+    Checklist::addTopic({ "SearchInfo", "cpuload", "Search info reports correct cpuload", Notes });
+    Checklist::addTopic({ "SearchInfo", "currmovenumber", "Search info reports correct current move number", Notes });
+
+    // Structural or semantic info parsing issues
+    Checklist::addTopic({ "SearchInfo", "duplicate-info-field", "Search info field reported multiple times", Notes });
+    Checklist::addTopic({ "SearchInfo", "unexpected-move-token", "Unexpected move token in info line", Notes });
+    Checklist::addTopic({ "SearchInfo", "wrong-token-in-info-line", "Unrecognized token in info line", Notes });
+    Checklist::addTopic({ "SearchInfo", "parsing-exception", "Search info parsing threw exception", Notes });
+
+    Checklist::addTopic({ "BestMove", "bestmove", "Bestmove is followed by correct optional 'ponder' token", Missbehaviour });
+    Checklist::addTopic({ "SearchInfo", "currmove", "Search info reports correct current move", Notes });
+    Checklist::addTopic({ "SearchInfo", "pv", "Search info reports correct PV", Missbehaviour });
+    Checklist::addTopic({ "BestMove", "legalmove", "Computing a move returns a legal move", Important });
+    Checklist::addTopic({ "Time", "no-loss-on-time", "No loss on time", Important });
+    Checklist::addTopic({ "Time", "no-movetime-overrun", "No movetime overrun", Missbehaviour });
+    Checklist::addTopic({ "Time", "no-movetime-underrun", "No movetime underrun", Notes });
+    Checklist::addTopic({ "SearchInfo", "no-depth-overrun", "No depth overrun", Notes });
+    Checklist::addTopic({ "SearchInfo", "no-depth-underrun", "No depth underrun", Notes });
+    Checklist::addTopic({ "SearchInfo", "no-nodes-overrun", "No nodes overrun", Notes });
+    Checklist::addTopic({ "SearchInfo", "no-nodes-underrun", "No nodes underrun", Notes });
+    Checklist::addTopic({ "Stability", "no-disconnect", "No disconnect", Important });
+    Checklist::addTopic({ "Pondering", "legal-pondermove", "Ponder move is legal", Important });
+
+
+
+    return true;
+    }();
+    

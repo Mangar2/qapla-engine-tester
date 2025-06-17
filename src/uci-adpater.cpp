@@ -232,7 +232,7 @@ void readBoundedInt32(std::istringstream& iss,
     int value;
     if (!(iss >> value)) {
         errors.push_back({
-            "Search info reports correct  " + fieldName,
+            fieldName,
             "Expected an integer after '" + fieldName + "'"
             });
         iss.clear();
@@ -241,7 +241,7 @@ void readBoundedInt32(std::istringstream& iss,
 
     if (value < min || value > max) {
         errors.push_back({
-            "Search info reports correct " + fieldName,
+            fieldName,
             "Reported value " + std::to_string(value) +
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
@@ -266,7 +266,7 @@ void readBoundedInt64(std::istringstream& iss,
     int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
-            "Search info reports correct " + fieldName,
+            fieldName,
             "Expected an integer after '" + fieldName + "'"
             });
         iss.clear();
@@ -275,7 +275,7 @@ void readBoundedInt64(std::istringstream& iss,
 
     if (value < min || value > max) {
         errors.push_back({
-            "Search info reports correct " + fieldName,
+            fieldName,
             "Reported value " + std::to_string(value) +
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
@@ -369,7 +369,7 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
             else if (token == "cpuload") readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
             else if (token == "currmovenumber") readBoundedInt32(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
             else {
-                event.errors.push_back({ "Wrong token in info line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
+                event.errors.push_back({ "wrong-token-in-info-line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
             }
             parent = token;
         }

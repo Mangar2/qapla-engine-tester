@@ -155,10 +155,6 @@ void GameManager::markFinished() {
 
 void GameManager::processEvent(const EngineEvent& event) {
     try {
-
-        for (auto& error : event.errors) {
-            Checklist::logCheck(error.name, false, error.detail, TraceLevel::info);
-        }
 		bool isWhitePlayer = event.engineIdentifier == whitePlayer_->getEngine()->getIdentifier();
 		bool isBlackPlayer = event.engineIdentifier == blackPlayer_->getEngine()->getIdentifier();
         if (!isWhitePlayer && !isBlackPlayer) {
@@ -167,6 +163,13 @@ void GameManager::processEvent(const EngineEvent& event) {
             return;
         }
         PlayerContext* player = isWhitePlayer ? whitePlayer_ : blackPlayer_;
+
+        // Error reporting
+		std::string name = player->getEngine()->getConfig().getName();
+		Checklist* checklist = Checklist::getChecklist(name);
+        for (auto& error : event.errors) {
+            checklist->logReport(error.name, false, error.detail, TraceLevel::info);
+        }
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {
             player->handleDisconnect(isWhitePlayer);
@@ -428,3 +431,4 @@ void GameManager::computeTasks(GameTaskProvider* taskProvider) {
 
 void GameManager::run() {
 }
+

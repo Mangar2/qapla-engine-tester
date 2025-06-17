@@ -33,7 +33,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 
     if (searchInfo.currMove) {
         const auto move = gameState_.stringToMove(*searchInfo.currMove, requireLan_);
-        Checklist::logCheck("Search info reports correct current move", !move.isEmpty(),
+        checklist_->logReport("currmove", !move.isEmpty(),
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
 	}
 
@@ -49,8 +49,9 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
                 if (!fullPv.empty()) fullPv.pop_back();
 				std::string stateStr = computingMove_ ? "computing move" : 
 					pondering_ ? "pondering" : "inactive";
-                Checklist::logCheck("Search info reports correct PV", false,
-                    "Encountered illegal move "  + moveStr + " while " + stateStr + " in pv " + fullPv);
+                checklist_->logReport("pv", false,
+                    "Encountered illegal move " + moveStr + " while " + stateStr + " in pv " + fullPv);
+
                 break;
             }
             gameState_.doMove(move);
@@ -62,28 +63,30 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 
     }
 
-    if (searchInfo.depth) Checklist::logCheck("Search info reports correct depth", true);
-    if (searchInfo.selDepth) Checklist::logCheck("Search info reports correct selective depth", true);
-    if (searchInfo.multipv) Checklist::logCheck("Search info reports correct multipv", true);
-    if (searchInfo.scoreCp) Checklist::logCheck("Search info reports correct score", true);
-    if (searchInfo.timeMs) Checklist::logCheck("Search info reports correct time", true);
-    if (searchInfo.nodes) Checklist::logCheck("Search info reports correct nodes", true);
-    if (searchInfo.nps) Checklist::logCheck("Search info reports correct nps", true);
-    if (searchInfo.hashFull) Checklist::logCheck("Search info reports correct hashfull", true);
-    if (searchInfo.cpuload) Checklist::logCheck("Search info reports correct cpuload", true);
-    if (searchInfo.currMoveNumber) Checklist::logCheck("Search info reports correct move number", true);
+    if (searchInfo.depth)            checklist_->report("depth", true);
+    if (searchInfo.selDepth)         checklist_->report("seldepth", true);
+    if (searchInfo.multipv)          checklist_->report("multipv", true);
+    if (searchInfo.scoreCp)          checklist_->report("score cp", true);
+    if (searchInfo.scoreMate)        checklist_->report("score mate", true);
+    if (searchInfo.timeMs)           checklist_->report("time", true);
+    if (searchInfo.nodes)            checklist_->report("nodes", true);
+    if (searchInfo.nps)              checklist_->report("nps", true);
+    if (searchInfo.hashFull)         checklist_->report("hashfull", true);
+    if (searchInfo.cpuload)          checklist_->report("cpuload", true);
+    if (searchInfo.currMoveNumber)   checklist_->report("currmovenumber", true);
+
 }
 
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     computingMove_ = false;
-    if (!Checklist::logCheck("Computing a move returns a legal move", event.bestMove.has_value())) {
+    if (!checklist_->logReport("legalmove", event.bestMove.has_value())) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
 		currentMove_ = MoveRecord{};
         return QaplaBasics::Move::EMPTY_MOVE;
     }
     const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
-    if (!Checklist::logCheck("Computing a move returns a legal move", !move.isEmpty(),
+    if (!checklist_->logReport("legalmove", !move.isEmpty(),
         "Encountered illegal move \"" + *event.bestMove + "\" in currMove, raw info line \"" + event.rawLine + "\"")) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
@@ -110,7 +113,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (timeLeft > 0) {
 		timeControl_.toPgnTimeControlString();
-        if (!Checklist::logCheck("No loss on time", moveElapsedMs <= timeLeft,
+        if (!checklist_->logReport("no-loss-on-time", moveElapsedMs <= timeLeft,
             "Timecontrol: " + timeControl_.toPgnTimeControlString() + " Used time: " + 
             std::to_string(moveElapsedMs) + " ms. Available Time: " + std::to_string(timeLeft) + " ms")) {
             gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
@@ -118,11 +121,11 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 
     if (goLimits_.movetimeMs.has_value()) {
-        Checklist::logCheck("No movetime overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
+        checklist_->logReport("no-move-time-overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
             "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms", 
             TraceLevel::warning);
         if (numLimits == 1 && Checklist::reportUnderruns) {
-            Checklist::logCheck("No movetime underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
+            checklist_->logReport("no-move-time-underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +
                 " ms but took " + std::to_string(moveElapsedMs), 
                 TraceLevel::info);
@@ -131,29 +134,31 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (!event.searchInfo.has_value()) return;
 
-    if (Checklist::logCheck("Engine provides search depth info", event.searchInfo->depth.has_value())) {
+    if (checklist_->logReport("depth", event.searchInfo->depth.has_value())) {
         if (goLimits_.depth.has_value()) {
             int depth = *event.searchInfo->depth;
-            Checklist::logCheck("No depth overrun", depth <= *goLimits_.depth,
+            checklist_->logReport("no-depth-overrun", depth <= *goLimits_.depth,
                 std::to_string(depth) + " > " + std::to_string(*goLimits_.depth));
             if (numLimits == 1) {
-                Checklist::logCheck("No depth underrun", depth >= *goLimits_.depth,
+                checklist_->logReport("no-depth-underrun", depth >= *goLimits_.depth,
                     std::to_string(depth) + " > " + std::to_string(*goLimits_.depth));
             }
         }
     }
 
-    if (Checklist::logCheck("Engine provides nodes info", event.searchInfo->nodes.has_value())) {
+    if (checklist_->logReport("nodes", event.searchInfo->nodes.has_value())) {
         if (goLimits_.nodes.has_value()) {
             int64_t nodes = *event.searchInfo->nodes;
-            Checklist::logCheck("No nodes overrun", nodes <= *goLimits_.nodes + GRACE_NODES,
+            checklist_->logReport("no-nodes-overrun", nodes <= *goLimits_.nodes + GRACE_NODES,
                 std::to_string(nodes) + " > " + std::to_string(*goLimits_.nodes));
             if (numLimits == 1) {
-                Checklist::logCheck("No nodes underrun", nodes > *goLimits_.nodes * 9 / 10,
+                checklist_->logReport("no-nodes-underrun", nodes > *goLimits_.nodes * 9 / 10,
                     std::to_string(nodes) + " > " + std::to_string(*goLimits_.nodes));
             }
         }
     }
+
+
 }
 
 bool PlayerContext::checkEngineTimeout() {
@@ -188,14 +193,14 @@ bool PlayerContext::checkEngineTimeout() {
         restarted = true;
 	}
     if (restarted) {
-        Checklist::logCheck("No disconnect", !restarted, "Engine timeout and not reacting to isready, restarted ");
+        checklist_->logReport("no-disconnect", !restarted, "Engine timeout and not reacting to isready, restarted ");
     }
     return restarted;
 }
 
 void PlayerContext::handleDisconnect(bool isWhitePlayer) {
     gameState_.setGameResult(GameEndCause::Disconnected, isWhitePlayer ? GameResult::BlackWins : GameResult::WhiteWins);
-    Checklist::logCheck("No disconnect", false, "Engine disconnected unexpectedly.");
+    checklist_->logReport("no-disconnect", false, "Engine disconnected unexpectedly.");
     restart();
 }
 
@@ -239,7 +244,7 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
         // handshake. The bestmove is then not send to the GameManager
 		auto success = engine_->moveNow(true);
         auto id = engine_->getIdentifier();
-        if (!Checklist::logCheck("Correct pondering", success,
+        if (!checklist_->logReport("correct-pondering", success,
             "stop command to engine " + id + " did not return a bestmove while in pondermode in time")) {
 			Logger::engineLogger().log(id + " Pondering did not return a bestmove in time", TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
@@ -295,7 +300,7 @@ void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& go
 
     if (ponderMove_ != "") {
         const auto move = gameState_.stringToMove(ponderMove_, requireLan_);
-        if (Checklist::logCheck("Ponder move is legal", !move.isEmpty(),
+        if (checklist_->logReport("legal-pondermove", !move.isEmpty(),
             "Encountered illegal ponder move \"" + ponderMove_ + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
             gameState_.doMove(move);
 			auto [cause, result] = gameState_.getGameResult();
