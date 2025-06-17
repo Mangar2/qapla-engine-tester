@@ -92,7 +92,7 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
     std::vector<std::future<void>> futures;
     engines.reserve(count);
     constexpr int RETRY = 3;
-
+	Checklist* checklist = Checklist::getChecklist(config.getName());
     for (int retry = 0; retry < RETRY; retry++) {
         futures.clear();
         for (std::size_t i = 0; i < count; ++i) {
@@ -113,10 +113,10 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
                 f.get();
             }
             catch (const std::exception& e) {
-                Checklist::logCheck("Engine starts and stops fast and without problems", false, std::string(e.what()));
+                checklist->logReport("starts-and-stops-cleanly", false, std::string(e.what()));
             }
             catch (...) {
-                Checklist::logCheck("Engine starts and stops fast and without problems", false, "Unknown error");
+                checklist->logReport("starts-and-stops-cleanly", false, "Unknown error");
             }
         }
     }

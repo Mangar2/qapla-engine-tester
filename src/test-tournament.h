@@ -31,8 +31,8 @@
 
 class TestTournament : public GameTaskProvider {
 public:
-    explicit TestTournament(int totalGames)
-        : maxGames_(totalGames), current_(0) {
+    explicit TestTournament(int totalGames, Checklist* checklist)
+        : maxGames_(totalGames), current_(0), checklist_(checklist) {
         timePairs_ = {
             {{0, 20000, 500}, {0, 10000, 100}},
             {{0, 10000, 500}, {0,  5000, 100}},
@@ -89,7 +89,7 @@ public:
 		std::string whiteTimeControl = record.getWhiteTimeControl().toPgnTimeControlString();
 		std::string blackTimeControl = record.getBlackTimeControl().toPgnTimeControlString();
 
-        Checklist::logCheck("No loss on time", success, " looses on time with time control " +
+        checklist_->logReport("no-loss-on-time", success, " looses on time with time control " +
             (result == GameResult::WhiteWins ? blackTimeControl : whiteTimeControl) );
 
         timeUsageReasonable(record.timeUsed().first,
@@ -166,10 +166,9 @@ public:
             + ", " + std::to_string(maxRatio) + "], move count " + std::to_string(moveCount)
             + " time left: " + std::to_string(timeLeft) + "ms";
 
-        // Checklist::logCheck("Uses enough time from time control", inMinRange, detail);
         if (checkTimeLimits) {
-            Checklist::logCheck("Keeps reserve time", inMaxRange, detail);
-            Checklist::logCheck("Does not drop below 1s clock time", timeLeft >= 1000,
+            checklist_->logReport("keeps-reserve-time", inMaxRange, detail);
+            checklist_->logReport("not-below-one-second", timeLeft >= 1000,
                 " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
         }
     }
@@ -218,4 +217,5 @@ private:
     std::vector<GameRecord> gameRecords_;
     std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;
     std::vector<int> usageCount_;
+    Checklist* checklist_;
 };

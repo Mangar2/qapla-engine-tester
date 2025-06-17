@@ -43,8 +43,8 @@ public:
      */
     struct CheckTopic {
         std::string group;     
-        std::string id;        
-        std::string text;      
+        std::string id;
+        std::string text;
         CheckSection section;
     };
 
@@ -116,102 +116,24 @@ public:
      */
     static AppReturnCode logAll(TraceLevel traceLevel);
 
-    /**
-     * Reports the result of a single evaluation point for a topic.
-     *
-     * @param topic Logical topic name (e.g., "Move legality")
-     * @param passed True if the check passed; false if it failed.
-     */
-    static void reportOld(const std::string topic, bool passed) {
-        std::lock_guard lock(statsMutex_);
-        auto& stat = stats_[topic];
-        ++stat.total;
-        if (!passed) ++stat.failures;
-    }
-
-    /**
-	 * @brief Returns the number of errors for a given topic.
-	 * @param topic The topic to check.
-     */
-    static int getNumErrors(const std::string& topic) {
-        std::lock_guard lock(statsMutex_);
-		auto& stat = stats_[topic];
-		return stat.failures;
-    }
-
-	/**
-	 * @brief Logs the result of a test and its details.
-	 * @param name The name of the test.
-	 * @param success True if the test passed; false if it failed.
-	 * @param detail Additional details about the test that is logged on fail.
-	 * @param traceLevel The trace level for the log entry (default is error).
-     */ 
-    static bool logCheck(const std::string name, bool success, std::string_view detail = "", 
-        TraceLevel traceLevel = TraceLevel::error) {
-        reportOld(name, success);
-        if (!success) {
-            auto numErrors = getNumErrors(name);
-            if (numErrors > MAX_CLI_LOGS_PER_ERROR && traceLevel < TraceLevel::error) {
-				return false; 
-			}
-            Logger::testLogger().log("[Report for topic \"" + std::string(name) + "\"] " + std::string(detail),
-                numErrors > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
-            if (numErrors == MAX_CLI_LOGS_PER_ERROR) {
-                Logger::testLogger().log("Too many similar reports. Further reports of this type will be suppressed. ", traceLevel);
-            }
-        }
-        return success;
-    }
-
-    /**
-	 * @brief Logs the results of all tests to the test logger.
-     */
-    static AppReturnCode logOld(TraceLevel traceLevel = TraceLevel::result);
-
-    /**
-	 * @brief Sets the engine name and author.
-     */ 
-	static void setEngine(const std::string& name, const std::string& author) {
-		name_ = name;
-		author_ = author;
-	}
-
-	/**
-      * @brief Clears all stored statistics.
-      */
-	static void clear() {
-		std::lock_guard lock(statsMutex_);
-		stats_.clear();
-        name_.clear();
-		author_.clear();
+	void setAuthor(const std::string& author) {
+		engineAuthor_ = author;
 	}
 
 	static inline bool reportUnderruns = false;
 
 private:
 
-
-    static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 5;
+    static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 2;
     static constexpr uint32_t MAX_FILE_LOGS_PER_ERROR = 10;
-    struct Stat {
-        int total = 0;
-        int failures = 0;
-    };
-
-    static void addMissingTopicsAsFail();
-
-    static inline std::string name_;
-    static inline std::string author_;
     static inline std::mutex statsMutex_;
-    static inline std::unordered_map<std::string, Stat> stats_;
-
 
     struct CheckEntry {
         int total = 0;
         int failures = 0;
     };
 
-    static inline std::unordered_map<std::string, CheckTopic> knownTopics_;
+    static inline std::vector<CheckTopic> registeredTopics_;
     static inline std::unordered_map<std::string, std::unique_ptr<Checklist>> checklists_;
     std::string engineName_;
     std::string engineAuthor_;

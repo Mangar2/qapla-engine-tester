@@ -105,6 +105,12 @@ private:
     void runImmediateStopTest();
 	void runInfiniteAnalyzeTest();
 
+    void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
+        const std::string ponderMove, const std::string testname,
+        std::chrono::milliseconds sleep = std::chrono::seconds{ 1 });
+    void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
+        const std::string ponderMove, const std::string testname,
+        std::chrono::milliseconds sleep = std::chrono::seconds{ 1 });
     void runUciPonderTest();
 
     /**
@@ -137,6 +143,7 @@ private:
      */
     std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
+    Checklist* checklist_;
     std::unique_ptr<GameManager> gameManager_;
     EngineConfig engineConfig_;
     int numGames_ = 20;

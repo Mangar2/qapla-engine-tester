@@ -43,7 +43,7 @@ struct EpdTest {
  */
 class EpdTestManager : public GameTaskProvider {
 public:
-    EpdTestManager() {
+    EpdTestManager(Checklist* checklist) : checklist_(checklist) {
         tests_ = {
             { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
             { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
@@ -118,11 +118,12 @@ public:
                 << ", Depth: " << lastMove.depth
                 << ", Time: " << lastMove.timeMs << "ms\n";
             
-            Checklist::logCheck("Simple EPD tests, expected moves found", success, oss.str());
+            checklist_->logReport("epd-expected-moves", success, oss.str());
         }
     }
 
 private:
     std::vector<EpdTest> tests_;
     size_t currentIndex_ = 0;
+    Checklist* checklist_;
 };

@@ -52,7 +52,7 @@ void EngineTestController::startEngine() {
         Logger::testLogger().log("Unknown exception during engine test for " + engineConfig_.getName(), 
         TraceLevel::error);
     }
-    Checklist::logCheck("Engine starts and stops fast and without problems", success, "  engine did not respond to isReady after startup in time");
+    checklist_->logReport("starts-and-stops-cleanly", success, "  engine did not respond to isReady after startup in time");
     if (!success) {
 		Logger::testLogger().log("Engine did not start successfully", TraceLevel::error);
 		throw(std::runtime_error("Engine did not start successfully"));
@@ -73,7 +73,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
         return f.get();
         });
 
-    Checklist::logCheck("Engine starts and stops fast and without problems", allReady, "  one or more engines did not respond to isReady in time");
+    checklist_->logReport("starts-and-stops-cleanly", allReady, "  one or more engines did not respond to isReady in time");
     if (!allReady) {
         Logger::testLogger().log("Engines did not start successfully", TraceLevel::error);
     }
@@ -89,6 +89,7 @@ std::string bytesToMB(int64_t bytes) {
 
 void EngineTestController::runAllTests(const EngineConfig& engine, int numGames) {
     engineConfig_ = engine;
+	checklist_ = Checklist::getChecklist(engineConfig_.getName());
     try {
         auto testSettings = *CliSettings::Manager::getGroupInstance("test");
         numGames_ = numGames;
@@ -155,7 +156,7 @@ void EngineTestController::runTest(
 
         const auto [success, errorMessage] = testCallback();
         if (testName != "") {
-            Checklist::logCheck(testName, success, errorMessage);
+            checklist_->logReport(testName, success, errorMessage);
         }
     }
     catch (const std::exception& e) {
@@ -167,7 +168,7 @@ void EngineTestController::runTest(
 }
 
 void EngineTestController::runStartStopTest() {
-    runTest("Engine starts and stops fast and without problems", [this]() -> std::pair<bool, std::string> {
+    runTest("starts-and-stops-cleanly", [this]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
@@ -186,7 +187,7 @@ void EngineTestController::runStartStopTest() {
         if (!engine->getEngineName().empty()) {
             Logger::testLogger().log("Name: " + engine->getEngineName() + ", Author: " + engine->getEngineAuthor());
         }
-		Checklist::setEngine(engine->getEngineName(), engine->getEngineAuthor());
+		checklist_->setAuthor(engine->getEngineAuthor());
         Logger::testLogger().log("Engine started in " + std::to_string(startTime) + " ms, stopped in " +
             std::to_string(stopTime) + " ms, memory usage: " + bytesToMB(memoryInBytes) + " MB");
 
@@ -199,7 +200,7 @@ void EngineTestController::runStartStopTest() {
 }
 
 void EngineTestController::runMultipleStartStopTest(int numEngines) {
-    runTest("Engine starts and stops fast and without problems", [this, numEngines]() -> std::pair<bool, std::string> {
+    runTest("starts-and-stops-cleanly", [this, numEngines]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
 		int64_t startTime = 0;
@@ -232,15 +233,15 @@ void EngineTestController::runGoLimitsTests() {
     Logger::testLogger().log("\nTesting compute moves with different time limits, node limits and/or depth limits.");
 
     std::vector<std::pair<std::string, TimeControl>> testCases = {
-        { "No loss on time", [] {
+        { "no-loss-on-time", [] {
             TimeControl t; t.addTimeSegment({0, 1000, 500}); return t;
         }() },
-        { "No loss on time", [] {
+        { "no-loss-on-time", [] {
             TimeControl t; t.addTimeSegment({0, 100, 2000}); return t;
         }() },
-        { "Supports movetime", [] { TimeControl t; t.setMoveTime(1000); return t; }() },
-        { "Supports depth limit", [] { TimeControl t; t.setDepth(4); return t; }() },
-        { "Supports node limit", [] { TimeControl t; t.setNodes(10000); return t; }() }
+        { "supports-movetime", [] { TimeControl t; t.setMoveTime(1000); return t; }() },
+        { "supports-depth-limit", [] { TimeControl t; t.setDepth(4); return t; }() },
+        { "supports-node-limit", [] { TimeControl t; t.setNodes(10000); return t; }() }
     };
 
     for (const auto& [name, timeControl] : testCases) {
@@ -266,7 +267,7 @@ void EngineTestController::runGoLimitsTests() {
 }
 
 void EngineTestController::runHashTableMemoryTest() {
-    runTest("Engine Memory shrinks if hash tables shrinks", [this]() -> std::pair<bool, std::string> {
+    runTest("shrinks-with-hash", [this]() -> std::pair<bool, std::string> {
         setOption("Hash", "512");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t memHigh = gameManager_->getEngine()->getEngineMemoryUsage();
@@ -391,7 +392,7 @@ void EngineTestController::runEngineOptionTests() {
 
         for (const auto& value : testValues) {
             const std::string testName = "Option '" + name + "' = '" + value + "'";
-            runTest("Engine Options works safely", [this, name, value, &errors]() -> std::pair<bool, std::string> {
+            runTest("options-safe", [this, name, value, &errors]() -> std::pair<bool, std::string> {
                 const auto [success, message] = setOption(name, value);
                 if (!success) errors++;
                 return { success, message };
@@ -405,7 +406,7 @@ void EngineTestController::runEngineOptionTests() {
 
         if (!opt.defaultValue.empty()) {
             const std::string testName = "Option '" + name + "' reset to default";
-            runTest("Engine Options works safely", [this, name, def = opt.defaultValue, &errors]() -> std::pair<bool, std::string> {
+            runTest("options-safe", [this, name, def = opt.defaultValue, &errors]() -> std::pair<bool, std::string> {
                 const auto [success, message] = setOption(name, def);
                 if (!success) errors++;
                 return { success, message };
@@ -426,7 +427,7 @@ void EngineTestController::runAnalyzeTest() {
     static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
 
-    runTest("Engine reacts on stop", [this]() -> std::pair<bool, std::string> {
+    runTest("reacts-on-stop", [this]() -> std::pair<bool, std::string> {
         gameManager_->newGame();
         TimeControl t;
         t.setInfinite();
@@ -454,7 +455,7 @@ void EngineTestController::runAnalyzeTest() {
 void EngineTestController::runImmediateStopTest() {
     static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
-    runTest("Correct bestmove after immediate stop", [this]() -> std::pair<bool, std::string> {
+    runTest("correct-after-immediate-stop", [this]() -> std::pair<bool, std::string> {
         gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
         gameManager_->moveNow();
         bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
@@ -473,7 +474,7 @@ void EngineTestController::runInfiniteAnalyzeTest() {
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
     static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
 
-    runTest("Infinite compute move must not exit on its own", [this]() -> std::pair<bool, std::string> {
+    runTest("infinite-move-does-not-exit", [this]() -> std::pair<bool, std::string> {
         Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::command);
         gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
         bool exited = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
@@ -491,9 +492,9 @@ void EngineTestController::runInfiniteAnalyzeTest() {
         });
 }
 
-void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine, 
+void EngineTestController::testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
     const std::string ponderMove, const std::string testname,
-    std::chrono::milliseconds sleep = std::chrono::seconds{ 1 }) {
+    std::chrono::milliseconds sleep) {
     static constexpr auto TIMEOUT = std::chrono::milliseconds(2000);
 
     EventSinkRecorder recorder;
@@ -506,16 +507,16 @@ void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
     engine->allowPonder(gameRecord, goLimits, ponderMove);
     std::this_thread::sleep_for(sleep);
     success = recorder.count(EngineEvent::Type::BestMove) == 0;
-    Checklist::logCheck(testname, success, "Engine sent a bestmove while in ponder mode. ");
+    checklist_->logReport("Pondering", success, "Engine sent a bestmove while in ponder mode. ");
     engine->setWaitForHandshake(EngineEvent::Type::BestMove);
     engine->computeMove(gameRecord, goLimits, true);
     success = engine->waitForHandshake(TIMEOUT);
-    Checklist::logCheck(testname, success, "Engine did not send a bestmove after compute move in ponder mode.");
+    checklist_->logReport("Pondering", success, "Engine did not send a bestmove after compute move in ponder mode.");
 }
 
-void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
+void EngineTestController::testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
     const std::string ponderMove, const std::string testname,
-    std::chrono::milliseconds sleep = std::chrono::seconds{1}) {
+    std::chrono::milliseconds sleep) {
     static constexpr auto TIMEOUT = std::chrono::milliseconds(5000);
 
     EventSinkRecorder recorder;
@@ -528,17 +529,17 @@ void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
     engine->allowPonder(gameRecord, goLimits, ponderMove);
     std::this_thread::sleep_for(sleep);
     success = recorder.count(EngineEvent::Type::BestMove) == 0;
-    Checklist::logCheck(testname, success, "Engine sent a bestmove while in ponder mode. ");
+    checklist_->logReport("Pondering", success, "Engine sent a bestmove while in ponder mode. ");
     success = engine->moveNow(true, std::chrono::milliseconds(500));
-    Checklist::logCheck(testname, success, "Engine did not send a bestmove fast after receiving stop in ponder mode.");
+    checklist_->logReport("Pondering", success, "Engine did not send a bestmove fast after receiving stop in ponder mode.");
     if (!success) {
         success = engine->waitForHandshake(TIMEOUT);
-        Checklist::logCheck(testname, success, "Engine never sent a bestmove after receiving stop in ponder mode.");
+        checklist_->logReport("Pondering", success, "Engine never sent a bestmove after receiving stop in ponder mode.");
     }
 }
 
 void EngineTestController::runUciPonderTest() {
-    const std::string testname = "Correct pondering";
+    const std::string testname = "correct-pondering";
     try {
         Timer timer;
         timer.start();
@@ -559,12 +560,12 @@ void EngineTestController::runUciPonderTest() {
     }
 	catch (const std::exception& e) {
 		Logger::testLogger().log("Exception during uci ponder test: " + std::string(e.what()), TraceLevel::error);
-		Checklist::logCheck(testname, false, "Exception during uci ponder test: " + std::string(e.what()));
+		checklist_->logReport(testname, false, "Exception during uci ponder test: " + std::string(e.what()));
 		return;
 	}
 	catch (...) {
 		Logger::testLogger().log("Unknown exception during uci ponder test.", TraceLevel::error);
-		Checklist::logCheck(testname, false, "Unknown exception during uci ponder test.");
+        checklist_->logReport(testname, false, "Unknown exception during uci ponder test.");
 		return;
 	}
 }
@@ -574,8 +575,8 @@ void EngineTestController::runEpdTests() {
 	Logger::testLogger().log("\nTesting simple EPD positions.");
     try {
         EngineList engines = startEngines(1);
+        EpdTestManager epdManager(Checklist::getChecklist(engines[0]->getConfig().getName()));
         gameManager_->setUniqueEngine(std::move(engines[0]));
-        EpdTestManager epdManager;
         gameManager_->computeTasks(&epdManager);
 		gameManager_->getFinishedFuture().wait();
 
@@ -641,7 +642,7 @@ void EngineTestController::runMultipleGamesTest() {
     Logger::testLogger().log("Please wait a moment before first game results occur.");
 
 	GameManagerPool::getInstance().setConcurrency(parallelGames, true);
-    TestTournament tournament(numGames_);
+    TestTournament tournament(numGames_, checklist_);
 
     try {
         GameManagerPool::getInstance().addTaskProvider(&tournament, engineConfig_, numGames_);
