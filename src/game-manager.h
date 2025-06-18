@@ -22,7 +22,7 @@
 #include <future>
 #include <mutex>
 
-#include "checklist.h"
+#include "engine-report.h"
 #include "engine-worker.h"
 #include "timer.h"
 #include "time-control.h"

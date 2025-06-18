@@ -24,7 +24,7 @@
 #include <iostream>
 
 #include "app-error.h"
-#include "checklist.h"
+#include "engine-report.h"
 #include "engine-test-controller.h"
 #include "logger.h"
 #include "engine-worker-factory.h"
@@ -36,8 +36,18 @@
 #include "time-control.h"
 #include "pgn-io.h"
 
+auto updateCode(AppReturnCode code, AppReturnCode newCode) {
+	if (code == AppReturnCode::NoError) {
+		return newCode;
+	}
+	else if (code >= AppReturnCode::EngineError) {
+		return std::min(code, newCode);
+	}
+	return code;
+}
+
 auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
-    auto newCode = Checklist::logAll(traceLevel);
+    auto newCode = EngineReport::logAll(traceLevel);
     if (code == AppReturnCode::NoError) {
         code = newCode;
     }
@@ -110,7 +120,7 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         std::string name = engine.getName();
         try {
-			Checklist::reportUnderruns = test.get<bool>("underrun");
+			EngineReport::reportUnderruns = test.get<bool>("underrun");
             controller.runAllTests(engine, test.get<int>("numgames"));
         }
         catch (const AppError& ex) {
@@ -256,8 +266,11 @@ AppReturnCode runTournament(AppReturnCode code) {
         tournament.createTournament(activeEngines, config);
         tournament.scheduleAll(concurrency);
         tournament.wait();
-		tournament.saveAll(std::cout);
-        code = logChecklist(code);
+		auto filename = tournamentGroup->get<std::string>("resultfile");
+		if (!filename.empty()) {
+			tournament.saveAll(filename);
+		}
+ 		code = updateCode(code, EngineReport::logAll(TraceLevel::command, tournament.getResult()));
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);
@@ -435,8 +448,10 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
             { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", CliSettings::ValueType::String } },
+            { "resultfile", { "File to save tournament outcome", false, "", CliSettings::ValueType::PathParentExists } },
+            { "append", { "Append to result file instead of overwriting it", false, false, CliSettings::ValueType::Bool } },
             { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
-            { "games", { "Number of games per pairing (total games = games × rounds)", false, 2, CliSettings::ValueType::Int } },
+            { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, CliSettings::ValueType::Int } },
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
             { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } }

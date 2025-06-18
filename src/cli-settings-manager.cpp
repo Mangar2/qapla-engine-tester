@@ -351,6 +351,15 @@ namespace CliSettings {
             }
             return *arg.value;
         }
+        if (def.type == ValueType::PathParentExists) {
+            std::filesystem::path path(*arg.value);
+            std::filesystem::path parent = path.parent_path();
+            if (!std::filesystem::exists(parent)) {
+                throw AppError::makeInvalidParameters("The parent directory of \"" + arg.original + "\" does not exist");
+            }
+            return *arg.value;
+        }
+
 
         return lowerValue; // Default case is string;
     }

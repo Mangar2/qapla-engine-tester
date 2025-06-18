@@ -43,7 +43,7 @@ struct EpdTest {
  */
 class EpdTestManager : public GameTaskProvider {
 public:
-    EpdTestManager(Checklist* checklist) : checklist_(checklist) {
+    EpdTestManager(EngineReport* checklist) : checklist_(checklist) {
         tests_ = {
             { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
             { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
@@ -125,5 +125,5 @@ public:
 private:
     std::vector<EpdTest> tests_;
     size_t currentIndex_ = 0;
-    Checklist* checklist_;
+    EngineReport* checklist_;
 };

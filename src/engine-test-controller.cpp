@@ -25,7 +25,7 @@
 
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
-#include "checklist.h"
+#include "engine-report.h"
 #include "cli-settings-manager.h"
 #include "epd-test-manager.h"
 #include "game-manager-pool.h"
@@ -89,7 +89,7 @@ std::string bytesToMB(int64_t bytes) {
 
 void EngineTestController::runAllTests(const EngineConfig& engine, int numGames) {
     engineConfig_ = engine;
-	checklist_ = Checklist::getChecklist(engineConfig_.getName());
+	checklist_ = EngineReport::getChecklist(engineConfig_.getName());
     try {
         auto testSettings = *CliSettings::Manager::getGroupInstance("test");
         numGames_ = numGames;
@@ -580,7 +580,7 @@ void EngineTestController::runEpdTests() {
 	std::cout.flush();
     try {
         EngineList engines = startEngines(1);
-        EpdTestManager epdManager(Checklist::getChecklist(engines[0]->getConfig().getName()));
+        EpdTestManager epdManager(EngineReport::getChecklist(engines[0]->getConfig().getName()));
         gameManager_->setUniqueEngine(std::move(engines[0]));
         gameManager_->computeTasks(&epdManager);
 		gameManager_->getFinishedFuture().wait();

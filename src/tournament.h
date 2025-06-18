@@ -76,16 +76,38 @@ public:
      * @brief Saves the state of all pairings to a stream.
      */
     void saveAll(std::ostream& out) const;
+	void saveAll(const std::string& filename) const {
+		std::ofstream out(filename);
+		if (!out) {
+			throw std::runtime_error("Failed to open file for saving tournament results: " + filename);
+		}
+		saveAll(out);
+	}
 
     /**
      * @brief Loads the state of all pairings from a stream.
      */
     void loadAll(std::istream& in) {}
+	void loadAll(const std::string& filename) {
+		std::ifstream in(filename);
+		if (!in) {
+			throw std::runtime_error("Failed to open file for loading tournament results: " + filename);
+		}
+		loadAll(in);
+	}
 
     /**
      * @brief Returns a compact status summary of all pairings.
      */
     std::string statusSummary() const { return {}; }
+
+	TournamentResult getResult() const {
+		TournamentResult result;
+		for (const auto& pairing : pairings_) {
+			result.add(pairing->getResult());
+		}
+		return result;
+	}
 
 private:
     void createGauntletPairings(const std::vector<EngineConfig>& engines,

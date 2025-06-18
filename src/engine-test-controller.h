@@ -143,7 +143,7 @@ private:
      */
     std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
-    Checklist* checklist_;
+    EngineReport* checklist_;
     std::unique_ptr<GameManager> gameManager_;
     EngineConfig engineConfig_;
     int numGames_ = 20;

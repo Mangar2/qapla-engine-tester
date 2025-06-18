@@ -72,7 +72,7 @@
     <ClCompile Include="src\player-context.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="src\checklist.cpp">
+    <ClCompile Include="src\engine-report.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\epd-manager.cpp">
@@ -100,6 +100,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="src\pair-tournament.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tournament-result.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
@@ -179,7 +182,7 @@
     <ClInclude Include="src\game-manager.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\checklist.h">
+    <ClInclude Include="src\engine-report.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\timer.h">

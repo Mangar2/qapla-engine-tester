@@ -26,12 +26,12 @@
 #include "time-control.h"
 #include "game-record.h"
 #include "game-result.h"
-#include "checklist.h"
+#include "engine-report.h"
 #include "game-task.h"
 
 class TestTournament : public GameTaskProvider {
 public:
-    explicit TestTournament(int totalGames, Checklist* checklist)
+    explicit TestTournament(int totalGames, EngineReport* checklist)
         : maxGames_(totalGames), current_(0), checklist_(checklist) {
         timePairs_ = {
             {{0, 20000, 500}, {0, 10000, 100}},
@@ -217,5 +217,5 @@ private:
     std::vector<GameRecord> gameRecords_;
     std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;
     std::vector<int> usageCount_;
-    Checklist* checklist_;
+    EngineReport* checklist_;
 };

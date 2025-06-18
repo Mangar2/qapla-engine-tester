@@ -29,8 +29,9 @@
 #include <unordered_map>
 #include "logger.h"
 #include "app-error.h"
+#include "tournament-result.h"
 
-class Checklist {
+class EngineReport {
 public:
 
     /**
@@ -62,10 +63,10 @@ public:
      * @param engineName The name of the engine to retrieve the checklist for.
      * @return Pointer to the corresponding Checklist instance.
      */
-    static inline Checklist* getChecklist(const std::string& engineName) {
+    static inline EngineReport* getChecklist(const std::string& engineName) {
         auto& ptr = checklists_[engineName];
         if (!ptr) {
-            ptr = std::make_unique<Checklist>();
+            ptr = std::make_unique<EngineReport>();
             ptr->engineName_ = engineName;
         }
         return ptr.get();
@@ -106,15 +107,16 @@ public:
      * @param traceLevel The minimum log level to output.
      * @return AppReturnCode indicating the most severe issue found.
      */
-    AppReturnCode log(TraceLevel traceLevel);
+    AppReturnCode log(TraceLevel traceLevel, const std::optional<EngineResult>& result);
 
     /**
      * @brief Logs the results of all engine checklists.
      *        Each engine is logged separately in registration order.
      * @param traceLevel The minimum log level to output.
+	 * @param result The TournamentResult containing all engine results.
      * @return The most severe AppReturnCode encountered across all engines.
      */
-    static AppReturnCode logAll(TraceLevel traceLevel);
+    static AppReturnCode logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result = std::nullopt);
 
 	void setAuthor(const std::string& author) {
 		engineAuthor_ = author;
@@ -122,6 +124,9 @@ public:
 
 	static inline bool reportUnderruns = false;
 
+    void setTournamentResult(const EngineResult& result) {
+        engineResult_ = result;
+    }
 private:
 
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 2;
@@ -134,8 +139,10 @@ private:
     };
 
     static inline std::vector<CheckTopic> registeredTopics_;
-    static inline std::unordered_map<std::string, std::unique_ptr<Checklist>> checklists_;
+    static inline std::unordered_map<std::string, std::unique_ptr<EngineReport>> checklists_;
     std::string engineName_;
     std::string engineAuthor_;
     std::unordered_map<std::string, CheckEntry> entries_;
+
+    EngineResult engineResult_;
 };

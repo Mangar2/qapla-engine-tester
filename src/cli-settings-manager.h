@@ -28,7 +28,7 @@
 
 namespace CliSettings {
 
-    enum class ValueType { String, Int, Float, Bool, PathExists };
+    enum class ValueType { String, Int, Float, Bool, PathExists, PathParentExists };
     using Value = std::variant<std::string, int, bool, float>;
     using ValueMap = std::unordered_map<std::string, Value>;
     

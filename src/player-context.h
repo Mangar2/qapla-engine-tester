@@ -22,7 +22,7 @@
 #include "time-control.h"
 #include "game-state.h"
 #include "game-record.h"
-#include "checklist.h"
+#include "engine-report.h"
 
 class PlayerContext {
 public:
@@ -47,7 +47,7 @@ public:
 		if (!engineWorker) {
 			throw AppError::makeInvalidParameters("Cannot set a null engine worker");
 		}
-		checklist_ = Checklist::getChecklist(engineWorker->getConfig().getName());
+		checklist_ = EngineReport::getChecklist(engineWorker->getConfig().getName());
         engine_ = std::move(engineWorker);
 
 		requireLan_ = requireLan;
@@ -235,5 +235,5 @@ private:
 	std::string ponderMove_ = "";
     std::atomic<bool> computingMove_ = false;
     MoveRecord currentMove_;
-	Checklist* checklist_ = nullptr; 
+	EngineReport* checklist_ = nullptr; 
 };

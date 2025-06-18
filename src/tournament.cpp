@@ -131,10 +131,6 @@ void Tournament::scheduleAll(int concurrency) {
 }
 
 void Tournament::saveAll(std::ostream& out) const {
-    out << "[meta]\n";
-    out << "type=" << config_.type << "\n";
-    out << "rounds=" << config_.rounds << "\n";
-    out << "gamesPerRound=" << config_.games << "\n\n";
 
     for (const auto& config : engineConfig_) {
         out << config << "\n";

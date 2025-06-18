@@ -19,7 +19,7 @@
 
 #include "engine-worker-factory.h"
 #include "uci-adapter.h"
-#include "checklist.h"
+#include "engine-report.h"
 
 void EngineWorkerFactory::assignUniqueDisplayNames() {
     auto& engines = getActiveEnginesMutable();
@@ -92,7 +92,7 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
     std::vector<std::future<void>> futures;
     engines.reserve(count);
     constexpr int RETRY = 3;
-	Checklist* checklist = Checklist::getChecklist(config.getName());
+	EngineReport* checklist = EngineReport::getChecklist(config.getName());
     for (int retry = 0; retry < RETRY; retry++) {
         futures.clear();
         for (std::size_t i = 0; i < count; ++i) {

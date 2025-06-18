@@ -73,6 +73,8 @@ struct EngineDuelResult {
 		++causeCounters[static_cast<size_t>(cause)];
 	}
 
+	EngineDuelResult switchedSides() const;
+
 	std::string toString() const {
         std::ostringstream oss;
         oss << engineA << " vs " << engineB
@@ -81,4 +83,63 @@ struct EngineDuelResult {
             << " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
 		return oss.str();
 	}
+
+	std::string toResultString() const {
+		std::ostringstream oss;
+		oss << std::fixed << std::setprecision(2)
+			<< " ( " << engineARate() << " ) "
+			<< " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
+		return oss.str();
+	}
+
+	EngineDuelResult& operator+=(const EngineDuelResult& other);
+};
+
+/**
+ * @brief Holds all duel results of one engine and computes an aggregate over them.
+ */
+struct EngineResult {
+	std::vector<EngineDuelResult> duels;
+	std::string engineName;
+
+	/**
+	 * @brief Returns a single aggregated result across all duels.
+	 *        engineA is set, engineB is empty.
+	 * @param targetEngine The name of the engine to aggregate results for.
+	 */
+	EngineDuelResult aggregate(const std::string& targetEngine) const;
+
+
+	void writeTo(std::ostream& os) const;
+
+};
+
+/**
+ * @brief Collects duel results between engines and provides aggregated statistics per engine.
+ *        Used to analyze tournament-level performance data.
+ */
+class TournamentResult {
+public:
+	/**
+	 * @brief Adds a single EngineDuelResult to the internal collection.
+	 *        Can include matches between any engine pair.
+	 * @param result A duel result to include.
+	 */
+	void add(const EngineDuelResult& result);
+
+	/**
+	 * @brief Returns the names of all engines for which results have been recorded.
+	 * @return A vector of unique engine names.
+	 */
+	std::vector<std::string> engineNames() const;
+
+	/**
+	 * @brief Computes and returns all duel results for the given engine.
+	 * @param name The engine name.
+	 * @return An EngineResult object with individual duels and aggregate data, or std::nullopt if unknown.
+	 */
+	std::optional<EngineResult> forEngine(const std::string& name) const;
+
+private:
+	std::vector<EngineDuelResult> results_;
 };

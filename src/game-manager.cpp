@@ -18,7 +18,7 @@
  */
 
 #include "game-manager.h"
-#include "checklist.h"
+#include "engine-report.h"
 #include <iostream>
 #include "game-manager-pool.h"
 
@@ -166,7 +166,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         // Error reporting
 		std::string name = player->getEngine()->getConfig().getName();
-		Checklist* checklist = Checklist::getChecklist(name);
+		EngineReport* checklist = EngineReport::getChecklist(name);
         for (auto& error : event.errors) {
             checklist->logReport(error.name, false, error.detail, TraceLevel::info);
         }

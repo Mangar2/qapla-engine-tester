@@ -20,7 +20,7 @@
 #include <iostream>
 #include <chrono>
 #include "player-context.h"
-#include "checklist.h"
+#include "engine-report.h"
 #include "timer.h"
 #include "engine-worker-factory.h"
 #include "app-error.h"
@@ -124,7 +124,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
         checklist_->logReport("no-move-time-overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
             "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms", 
             TraceLevel::warning);
-        if (numLimits == 1 && Checklist::reportUnderruns) {
+        if (numLimits == 1 && EngineReport::reportUnderruns) {
             checklist_->logReport("no-move-time-underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +
                 " ms but took " + std::to_string(moveElapsedMs), 
