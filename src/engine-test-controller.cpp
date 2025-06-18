@@ -180,16 +180,12 @@ void EngineTestController::runStartStopTest() {
 
         startStopSucceeded = true;
 
-        Logger::testLogger().log("Engine startup test - welcome message, name, author:");
-        if (!engine->getWelcomeMessage().empty()) {
-            Logger::testLogger().log(engine->getWelcomeMessage());
-        }
-        if (!engine->getEngineName().empty()) {
-            Logger::testLogger().log("Name: " + engine->getEngineName() + ", Author: " + engine->getEngineAuthor());
-        }
-		checklist_->setAuthor(engine->getEngineAuthor());
-        Logger::testLogger().log("Engine started in " + std::to_string(startTime) + " ms, stopped in " +
-            std::to_string(stopTime) + " ms, memory usage: " + bytesToMB(memoryInBytes) + " MB");
+        Logger::testLogger().logAligned("Engine startup test:",
+            "Name: " + engine->getEngineName() + ", Author: " + engine->getEngineAuthor());
+
+        checklist_->setAuthor(engine->getEngineAuthor());
+        Logger::testLogger().logAligned("Start/Stop timing:", "Started in " + std::to_string(startTime) + " ms, shutdown in " +
+            std::to_string(stopTime) + " ms, memory usage " + bytesToMB(memoryInBytes) + " MB");
 
         return { true, "" };
         });
@@ -213,12 +209,11 @@ void EngineTestController::runMultipleStartStopTest(int numEngines) {
         }
         auto stopTime = timer.elapsedMs();
 
-        Logger::testLogger().log("Parallel start/stop test for " + std::to_string(numEngines) + " engines");
-        Logger::testLogger().log("Startup time: " + std::to_string(startTime) +
-            " ms, Shutdown time: " + std::to_string(stopTime));
+        Logger::testLogger().logAligned("Parallel start/stop (" + std::to_string(numEngines) + "):", 
+            "Started in " + std::to_string(startTime) + " ms, shutdown in " + std::to_string(stopTime) + " ms");
 
         return { startTime < 2000 && stopTime < 5000, 
-            "Start/Stop takes too long, Startup time : " + std::to_string(startTime) + " ms, Shutdown time: " + std::to_string(stopTime) };
+            "Start/Stop takes too long, started in: " + std::to_string(startTime) + " ms, shutdown in " + std::to_string(stopTime) + " ms"};
     });
 }
 
@@ -229,8 +224,6 @@ void EngineTestController::runGoLimitsTests() {
         std::string name;
         TimeControl timeControl;
     };
-
-    Logger::testLogger().log("\nTesting compute moves with different time limits, node limits and/or depth limits.");
 
     std::vector<std::pair<std::string, TimeControl>> testCases = {
         { "no-loss-on-time", [] {
@@ -243,15 +236,16 @@ void EngineTestController::runGoLimitsTests() {
         { "supports-depth-limit", [] { TimeControl t; t.setDepth(4); return t; }() },
         { "supports-node-limit", [] { TimeControl t; t.setNodes(10000); return t; }() }
     };
-
+	int errors = 0;
     for (const auto& [name, timeControl] : testCases) {
-        runTest(name, [this, name, timeControl]() -> std::pair<bool, std::string> {
+        runTest(name, [this, name, timeControl, &errors]() -> std::pair<bool, std::string> {
             gameManager_->newGame();
             gameManager_->setUniqueTimeControl(timeControl);
             gameManager_->computeMove(true);
             bool success = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
 			if (!success) {
 				gameManager_->getEngine()->moveNow();
+                errors++;
 			}
             bool finished = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
 			if (!finished) {
@@ -264,6 +258,8 @@ void EngineTestController::runGoLimitsTests() {
             return { success, "Compute move did not return with bestmove in time when testing " + name + timeStr};
         });
     }
+    Logger::testLogger().logAligned("Testing compute moves:", 
+        errors == 0 ? "Time limits, node limits and depth limits works well": std::to_string(errors) + " errors");
 }
 
 void EngineTestController::runHashTableMemoryTest() {
@@ -280,9 +276,9 @@ void EngineTestController::runHashTableMemoryTest() {
 
         gameManager_->getEngine()->setOption("Hash", "32");
 
-        Logger::testLogger().log("Testing memory shrink. Memory usage with 512MB Hash: " +
-            bytesToMB(memHigh) + " MB; with 1MB Hash: " + bytesToMB(memLow) + " MB" +
-            (success ? " (as expected)" : " (not as expected)"));
+        Logger::testLogger().logAligned("Test if memory shrinks:", "Usage with 512MB hash " +
+            bytesToMB(memHigh) + " MB and with 1MB hash " + bytesToMB(memLow) + " MB" +
+            (success ? " (shrinked)" : " (did not shrink enough)"));
 
         std::string errorMsg;
         if (!success) {
@@ -365,7 +361,7 @@ void EngineTestController::runEngineOptionTests() {
 
     auto engine = gameManager_->getEngine();
     const EngineOptions& options = engine->getSupportedOptions();
-
+	std::cout << "Setting engine options to random values to test engine stability. This may lead to crashes, please wait...\r";
     for (const auto& [name, opt] : options) {
         if (name == "Hash" || opt.type == EngineOption::Type::Button) {
             continue;
@@ -419,7 +415,7 @@ void EngineTestController::runEngineOptionTests() {
         }
     }
 
-    Logger::testLogger().log("\nTried to stress engine with valid and edge-case options. " +
+    Logger::testLogger().logAligned("Edge case options: ",
         (errors == 0 ? "No issues encountered." : std::to_string(errors) + " failures detected. See log for details."));
 }
 
@@ -444,10 +440,12 @@ void EngineTestController::runAnalyzeTest() {
                 bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
                     startEngine();
+					Logger::testLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
                     return { false, "Timeout after stop command (even after extended wait)" };
                 }
             }
         }
+		Logger::testLogger().logAligned("Testing stop command:", "Engine correctly handled stop command and sent bestmove");
         return { true, "" };
         });
 }
@@ -463,9 +461,11 @@ void EngineTestController::runImmediateStopTest() {
             bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
             if (!extended) {
                 startEngine();
+				Logger::testLogger().logAligned("Testing immediate stop:", "Timeout after immediate stop");
                 return { false, "Timeout after immediate stop" };
             }
         }
+		Logger::testLogger().logAligned("Testing immediate stop:", "Engine correctly handled immediate stop and sent bestmove");
         return { true, "" };
         });
 }
@@ -475,19 +475,24 @@ void EngineTestController::runInfiniteAnalyzeTest() {
     static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
 
     runTest("infinite-move-does-not-exit", [this]() -> std::pair<bool, std::string> {
-        Logger::testLogger().log("Testing that infinite mode never stops alone, ...wait for 10 seconds", TraceLevel::command);
+		std::cout << "Testing infinite mode: takes about 10 seconds, please wait...";
+		std::cout.flush();
+        std::cout << "\r";
         gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
         bool exited = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
         if (exited) {
+            Logger::testLogger().logAligned("Testing infinite mode:", "Engine sent bestmove without receiving 'stop'", TraceLevel::command);
             return { false, "Engine sent bestmove in infinite mode without receiving 'stop'" };
         }
         gameManager_->moveNow();
         bool stopped = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
         if (!stopped) {
             createGameManager(true);
+            Logger::testLogger().logAligned("Testing infinite mode:", "Timeout after stop command", TraceLevel::command);
             return { false, "Timeout after stop command in infinite mode" };
         }
         gameManager_->getFinishedFuture().wait();
+        Logger::testLogger().logAligned("Testing infinite mode:", "Correctly waited for stop and then sent bestmove", TraceLevel::command);
         return { true, "" };
         });
 }
@@ -543,7 +548,6 @@ void EngineTestController::runUciPonderTest() {
     try {
         Timer timer;
         timer.start();
-        Logger::testLogger().log("Testing uci pondering", TraceLevel::command);
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
 		auto name = engineConfig_.getName();
         auto engine = list[0].get();
@@ -572,7 +576,8 @@ void EngineTestController::runUciPonderTest() {
 
 
 void EngineTestController::runEpdTests() {
-	Logger::testLogger().log("\nTesting simple EPD positions.");
+	std::cout << "Testing positions, this will take a while ... \r";
+	std::cout.flush();
     try {
         EngineList engines = startEngines(1);
         EpdTestManager epdManager(Checklist::getChecklist(engines[0]->getConfig().getName()));
@@ -580,7 +585,7 @@ void EngineTestController::runEpdTests() {
         gameManager_->computeTasks(&epdManager);
 		gameManager_->getFinishedFuture().wait();
 
-        Logger::testLogger().log("All epd computed.");
+        Logger::testLogger().logAligned("Testing positions:", "All positions computed.");
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Exception during compute epd test: " + std::string(e.what()), TraceLevel::error);

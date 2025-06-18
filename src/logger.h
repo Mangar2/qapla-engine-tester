@@ -89,6 +89,18 @@ public:
     }
 
     /**
+     * @brief Logs a message
+     * @param message Log content (no newline required).
+     * @param level Trace level of this message for logging t cout (default: info).
+     */
+    void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command) {
+		std::ostringstream oss;
+        oss << std::left << std::setw(30) << topic
+            << message;
+		log(oss.str(), level);
+    }
+
+    /**
      * @brief Sets the output log file.
      * @param filename Path to target file.
      */

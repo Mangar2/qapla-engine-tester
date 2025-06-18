@@ -1,16 +1,18 @@
 ﻿$tests = @(
     @{ args = "--help"; expectedCode = 0 }
-    ,@{ args = "--logpath=log --concurrency=10 --pgnoutput file=log/debug.pgn append=false --enginelog --tc=10+0.02 --sprt elolower=50 eloupper=60 alpha=0.05 beta=0.05 maxgames=3000 --engine conf=""Qapla 0.3.2"" ponder --engine conf=""Qapla 0.3.2"" --openings file=book8ply.raw format=raw --enginesfile=engines.ini"; expectedCode = 10 }
     ,@{ args = "--invalid"; expectedCode = 2 }
     ,@{ args = "--logpath=log"; expectedCode = 0 }
     ,@{ args = "--logpath=log --enginelog --test numgames=0 nostop nooption --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini"; expectedCode = 0 }
     ,@{ args = "--logpath=log --enginelog --test numgames=0 nostop --engine conf=""Qapla 0.3.1"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 10 }
     ,@{ args = "--logpath=log --enginelog --test numgames=20 nostop --engine conf=""Qapla 0.3.2"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 0 }
     ,@{ args = "--logpath=log --test numgames=20 --engine name=Qapla0.3.2 cmd=C:\Chess\delivery\Qapla0.3.2\Qapla0.3.2-win-x86.exe"; expectedCode = 10 }
-    ,@{ args = "--logpath=log --enginelog --concurrency=20 --epd file=wmtest.epd maxtime=20 mintime=1 seenplies=3 minsuccess=80 --engine conf=""Qapla 0.3.2"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 13 }
-    ,@{ args = "--logpath=log --concurrency=20 --tc=10+0.02 --sprt elolower=0 eloupper=10 alpha=0.05 beta=0.05 maxgames=300 --engine conf=""Qapla 0.3.1"" --engine conf=""Qapla 0.3.2"" --openings file=""book8ply.raw"" format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 16 }
-    ,@{ args = "--logpath=log --concurrency=20 --tc=10+0.02 --pgnoutput file=log/test.pgn append=false pv --sprt elolower=0 eloupper=40 alpha=0.05 beta=0.05 maxgames=3000 --engine conf=""Qapla 0.3.2"" --engine conf=""Spike 1.4""  --openings file=""book8ply.raw"" order=random format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 15 }
-    ,@{ args = "--logpath=log --concurrency=20 --tc=10+0.02 --pgnoutput file=log/test.pgn append pv --sprt elolower=0 eloupper=30 alpha=0.05 beta=0.02 maxgames=3000 --engine conf=""Spike 1.4"" --engine conf=""Qapla 0.3.2"" --openings file=""book8ply.raw"" format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 14 }
+    ,@{ args = "--logpath=log --enginelog --pgnoutput file=log/test.pgn --each tc=10+0.02 --openings order=random file=book8ply.raw format=raw --tournament type=gauntlet games=8 repeat=2 --engine conf=""Qapla 0.3.2"" gauntlet --engine conf=""Qapla 0.3.2"" trace=all --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini"; expectedGode = 0 },
+    ,@{ args = "--logpath=log --enginelog --concurrency=20 --each tc=10+0.02 --epd file=wmtest.epd maxtime=20 mintime=1 seenplies=3 minsuccess=80 --engine conf=""Qapla 0.3.2"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 13 }
+    ,@{ args = "--logpath=log --concurrency=20 --each tc=10+0.02 --sprt elolower=0 eloupper=10 alpha=0.05 beta=0.05 maxgames=300 --engine conf=""Qapla 0.3.1"" --engine conf=""Qapla 0.3.2"" --openings file=""book8ply.raw"" format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 16 }
+    ,@{ args = "--logpath=log --concurrency=20 --each tc=10+0.02 --pgnoutput file=log/test.pgn append=false pv --sprt elolower=0 eloupper=40 alpha=0.05 beta=0.05 maxgames=3000 --engine conf=""Qapla 0.3.2"" --engine conf=""Spike 1.4""  --openings file=""book8ply.raw"" order=random format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 15 }
+    ,@{ args = "--logpath=log --concurrency=20 --each tc=10+0.02 --pgnoutput file=log/test.pgn append pv --sprt elolower=0 eloupper=30 alpha=0.05 beta=0.02 maxgames=3000 --engine conf=""Spike 1.4"" --engine conf=""Qapla 0.3.2"" --openings file=""book8ply.raw"" format=raw --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 14 },
+    ,@{ args = "--logpath=log --concurrency=10 --each tc=10+0.02 --pgnoutput file=log/debug.pgn append=false --enginelog --sprt elolower=50 eloupper=60 alpha=0.05 beta=0.05 maxgames=3000 --engine conf=""Qapla 0.3.2"" ponder --engine conf=""Qapla 0.3.2"" --openings file=book8ply.raw format=raw --enginesfile=engines.ini"; expectedCode = 10 }
+
 )
 
 $results = @()

@@ -61,6 +61,12 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 		maxTime = epd.get<int>("maxtime");
 		minTime = epd.get<int>("mintime");
 		seenPlies = epd.get<int>("seenplies");
+        for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
+            if (!engine.getTimeControl().isValid()) {
+                throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
+                    + "'. Please specify a time control using 'tc' option.");
+            }
+        }
 		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
             std::string name = engine.getName();
             std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
@@ -96,9 +102,9 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
     Logger::testLogger().setLogFile("engine-report");
     Logger::testLogger().setTraceLevel(TraceLevel::warning);
     if (!Logger::engineLogger().getFilename().empty()) {
-        Logger::testLogger().log("Detailed engine communication log: " + Logger::engineLogger().getFilename());
+        Logger::testLogger().logAligned("Engine communication log: ", Logger::engineLogger().getFilename());
     }
-    Logger::testLogger().log("Summary test report log: " + Logger::testLogger().getFilename());
+    Logger::testLogger().logAligned("Summary test report log: ", Logger::testLogger().getFilename());
 
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -162,6 +168,12 @@ auto runSprt(AppReturnCode code) {
             TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
+    for (auto& engine : activeEngines) {
+        if (!engine.getTimeControl().isValid()) {
+            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
+                + "'. Please specify a time control using 'tc' option.");
+        }
+    }
     Logger::testLogger().setLogFile("sprt-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     try {
@@ -210,6 +222,12 @@ AppReturnCode runTournament(AppReturnCode code) {
     if (activeEngines.size() < 2) {
         Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
+    }
+    for (auto& engine : activeEngines) {
+        if (!engine.getTimeControl().isValid()) {
+            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
+                + "'. Please specify a time control using 'tc' option.");
+        }
     }
 
     std::optional<Openings> openings = readOpenings();
@@ -315,17 +333,12 @@ void handleEngineOptions() {
                 + engineName + ".Please specify either 'cmd' or 'conf'.");
 		}
 
-        if (!config.getTimeControl().isValid()) {
-            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + config.getName()
-                + "'. Please specify a time control using 'tc' option.");
-        }
     }
     // Ensure that all active engines have different names
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
 int main(int argc, char** argv) {
-    // example: ./qapla-engine-tester --concurrency=20 --enginelog=true --enginesfile="engines.ini" --test --epd file="c:\Chess\epd\speelman Endgame.epd" maxtime=60 mintime=2 seenplies=3
     bool isEngineTest = false;
     Timer timer;
     timer.start();
