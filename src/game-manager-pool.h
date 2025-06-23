@@ -71,7 +71,7 @@ public:
 	 * if taskProvider is nullptr, waits for all tasks in the pool.
      * @param taskProvider The task to wait for.
      */
-    void waitForTask(GameTaskProvider* taskProvider = nullptr);
+    void waitForTask();
 
     /**
      * @brief Returns the singleton instance of the GameManagerPool.

@@ -20,28 +20,26 @@
 #include "engine-config-manager.h"
 #include "cli-settings-manager.h"
 
-void EngineConfigManager::loadFromFile(const std::string& filePath) {
-    std::ifstream file(filePath);
-    if (!file.is_open()) throw std::runtime_error("Unable to open file: " + filePath);
+void EngineConfigManager::loadFromStream(std::istream& in) {
 
     errors.clear();
 
-    while (file) {
-        std::streampos startPos = file.tellg();
+    while (in) {
+        std::streampos startPos = in.tellg();
         EngineConfig config;
 
         try {
-            file >> config;
+            in >> config;
             addOrReplaceConfig(config);
         }
         catch (const std::exception& e) {
-            file.clear();
-            file.seekg(startPos);
+            in.clear();
+            in.seekg(startPos);
             std::string line;
-            while (std::getline(file, line)) {
+            while (std::getline(in, line)) {
                 if (line.empty()) continue;
                 if (line[0] == '[' && line.back() == ']') {
-                    file.seekg(-(std::streamoff)line.length() - 1, std::ios_base::cur);
+                    in.seekg(-(std::streamoff)line.length() - 1, std::ios_base::cur);
                     break;
                 }
             }

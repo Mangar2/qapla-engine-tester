@@ -129,6 +129,17 @@ void EngineConfig::readHeader(std::istream& in) {
     throw std::runtime_error("Expected section header");
 }
 
+bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
+    return lhs.name_ == rhs.name_
+        && lhs.executablePath_ == rhs.executablePath_
+        && lhs.workingDirectory_ == rhs.workingDirectory_
+        && lhs.tc_ == rhs.tc_
+        && lhs.protocol_ == rhs.protocol_
+        && lhs.ponder_ == rhs.ponder_
+        && lhs.gauntlet_ == rhs.gauntlet_
+        && lhs.optionValues_ == rhs.optionValues_;
+}
+
 std::istream& operator>>(std::istream& in, EngineConfig& config) {
     config.readHeader(in);
 

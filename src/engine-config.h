@@ -168,6 +168,14 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const EngineConfig& config);
 
+    /**
+     * @brief Compares two EngineConfig instances for equality.
+     *        All members except traceLevel_ are considered.
+     * @param lhs First EngineConfig.
+     * @param rhs Second EngineConfig.
+     * @return True if all relevant configuration fields match.
+     */
+    friend bool operator==(const EngineConfig& lhs, const EngineConfig& rhs);
 
 private:
 

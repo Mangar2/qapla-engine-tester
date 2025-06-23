@@ -20,6 +20,8 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
+#include <optional>
 
 /**
  * @brief Enumerates all meaningful game termination types.
@@ -65,6 +67,32 @@ inline std::string gameEndCauseToPgnTermination(GameEndCause cause) {
 	default: return "unknown";
 	}
 }
+/**
+ * @brief Attempts to parse a PGN-style termination string into a GameEndCause enum.
+ * @param str The input string to parse.
+ * @return Optional GameEndCause if recognized; std::nullopt otherwise.
+ */
+inline std::optional<GameEndCause> tryParseGameEndCause(std::string_view str) {
+	static const std::unordered_map<std::string_view, GameEndCause> map = {
+		{"checkmate", GameEndCause::Checkmate},
+		{"stalemate", GameEndCause::Stalemate},
+		{"threefold repetition", GameEndCause::DrawByRepetition},
+		{"50-move rule", GameEndCause::DrawByFiftyMoveRule},
+		{"insufficient material", GameEndCause::DrawByInsufficientMaterial},
+		{"draw agreement", GameEndCause::DrawByAgreement},
+		{"resignation", GameEndCause::Resignation},
+		{"time forfeit", GameEndCause::Timeout},
+		{"illegal move", GameEndCause::IllegalMove},
+		{"adjudication", GameEndCause::Adjudication},
+		{"forfeit", GameEndCause::Forfeit},
+		{"terminated", GameEndCause::TerminatedByTester},
+		{"disconnected", GameEndCause::Disconnected}
+	};
+
+	auto it = map.find(str);
+	return it != map.end() ? std::optional<GameEndCause>(it->second) : std::nullopt;
+}
+
 inline std::string to_string(GameEndCause cause) { return gameEndCauseToPgnTermination(cause); }
 
 inline std::string gameResultToPgnResult(GameResult result) {

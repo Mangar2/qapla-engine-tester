@@ -103,14 +103,16 @@ AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<Engin
     };
 
     for (const auto& [section, entries] : sectionTitles) {
-        Logger::testLogger().log("[" + entries + "]", traceLevel);
 
 		if (section == CheckSection::Report) {
 			if (engineResult) {
+                Logger::testLogger().log("[" + entries + "]", traceLevel);
                 engineResult->writeTo(std::cout);
 			}
 			continue;
 		}
+
+        Logger::testLogger().log("[" + entries + "]", traceLevel);
 
         auto& items = grouped[section];
         std::sort(items.begin(), items.end(), [](const auto& a, const auto& b) {

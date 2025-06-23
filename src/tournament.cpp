@@ -25,6 +25,7 @@
 #include "logger.h"
 #include "tournament.h"
 #include "pgn-io.h"
+#include "engine-config-manager.h"
 
 bool Tournament::wait() {
     GameManagerPool::getInstance().waitForTask();
@@ -131,7 +132,6 @@ void Tournament::scheduleAll(int concurrency) {
 }
 
 void Tournament::saveAll(std::ostream& out) const {
-
     for (const auto& config : engineConfig_) {
         out << config << "\n";
     }
@@ -139,7 +139,7 @@ void Tournament::saveAll(std::ostream& out) const {
     const int pairingsPerRound = static_cast<int>(pairings_.size()) / config_.rounds;
 
     for (size_t i = 0; i < pairings_.size(); ++i) {
-		auto pairing = pairings_[i];
+        auto pairing = pairings_[i];
         const std::string line = pairing->toString();
         const auto sep = line.find(':');
         if (sep == std::string::npos) continue;
@@ -152,21 +152,203 @@ void Tournament::saveAll(std::ostream& out) const {
         out << "games: " << result << "\n";
 
         const EngineDuelResult& resultData = pairing->getResult();
-        bool hasCauses = std::any_of(resultData.causeCounters.begin(), resultData.causeCounters.end(),
-            [](int count) { return count > 0; });
+        const auto& stats = resultData.causeStats;
 
-        if (hasCauses) {
-            out << "endReasons: ";
-            std::string separator;
-            for (size_t i = 0; i < resultData.causeCounters.size(); ++i) {
-                int count = resultData.causeCounters[i];
-                if (count == 0) continue;
-                out << separator << to_string(static_cast<GameEndCause>(i)) << ":" << count;
-				separator = ",";
+        bool hasAny = std::any_of(stats.begin(), stats.end(), [](const CauseStats& s) {
+            return s.win > 0 || s.draw > 0 || s.loss > 0;
+            });
+
+        if (!hasAny) continue;
+
+        std::string seperator;
+
+        out << "winCauses: ";
+        for (size_t i = 0; i < stats.size(); ++i) {
+            if (stats[i].win > 0) {
+                out << seperator << to_string(static_cast<GameEndCause>(i)) << ":" << stats[i].win;
+                seperator = ",";
             }
-            out << "\n\n";
+        }
+        out << "\n";
+
+        seperator.clear();
+        out << "drawCauses: ";
+        for (size_t i = 0; i < stats.size(); ++i) {
+            if (stats[i].draw > 0) {
+                out << seperator << to_string(static_cast<GameEndCause>(i)) << ":" << stats[i].draw;
+                seperator = ",";
+            }
+        }
+        out << "\n";
+
+        seperator.clear();
+        out << "lossCauses: ";
+        for (size_t i = 0; i < stats.size(); ++i) {
+            if (stats[i].loss > 0) {
+                out << seperator << to_string(static_cast<GameEndCause>(i)) << ":" << stats[i].loss;
+                seperator = ",";
+            }
+        }
+        out << "\n";
+    }
+}
+
+std::unordered_set<std::string> Tournament::parseValidEngineNamesFromConfigs(std::istream& in) const {
+    EngineConfigManager configLoader;
+    configLoader.loadFromStream(in);
+    const auto& loadedConfigs = configLoader.getAllConfigs();
+
+    std::unordered_set<std::string> valid;
+
+    for (const auto& loaded : loadedConfigs) {
+        for (const auto& existing : engineConfig_) {
+            if (loaded == existing) {
+                valid.insert(loaded.getName());
+                break;
+            }
+        }
+    }
+
+    return valid;
+}
+
+inline std::string trim(std::string_view sv) {
+    const auto begin = sv.find_first_not_of(" \t\r\n");
+    const auto end = sv.find_last_not_of(" \t\r\n");
+    if (begin == std::string_view::npos) return {};
+    return std::string(sv.substr(begin, end - begin + 1));
+}
+
+std::pair<std::string, std::string> parseEngineNamesFromRoundLine(const std::string& line) {
+    const auto colonPos = line.find(':');
+    const auto vsPos = line.find(" vs ", colonPos);
+    const auto closePos = line.find(']', vsPos);
+
+    if (colonPos == std::string::npos || vsPos == std::string::npos || closePos == std::string::npos) {
+        throw std::runtime_error("Invalid round header format: " + line);
+    }
+
+    const std::string engineA = trim(line.substr(colonPos + 1, vsPos - colonPos - 1));
+    const std::string engineB = trim(line.substr(vsPos + 4, closePos - vsPos - 4));
+
+    return { engineA, engineB };
+}
+
+PairTournament* Tournament::findMatchingPairing(const std::string& engineA, const std::string& engineB) const {
+    for (const auto& pairing : pairings_) {
+        const auto& p = pairing->getResult();
+        const bool matchDirect = p.engineA == engineA && p.engineB == engineB;
+        const bool matchReverse = p.engineA == engineB && p.engineB == engineA;
+        if (matchDirect || matchReverse) return pairing.get();
+    }
+    return nullptr;
+}
+
+/**
+ * @brief Parses a summary string like "W:3 D:1 L:2" and updates the result counts.
+ * @param text The summary portion of the line after "games: ".
+ * @param result The result object to update.
+ */
+void parseGameSummary(std::string_view text, EngineDuelResult& result) {
+    std::istringstream iss(std::string{ text });
+    std::string token;
+
+    while (iss >> token) {
+        if (token.starts_with("W:")) {
+            result.winsEngineA = std::stoi(token.substr(2));
+        }
+        else if (token.starts_with("D:")) {
+            result.draws = std::stoi(token.substr(2));
+        }
+        else if (token.starts_with("L:")) {
+            result.winsEngineB = std::stoi(token.substr(2));
         }
     }
 }
+
+/**
+ * @brief Parses a list of end causes in the format "cause1:count,cause2:count,..."
+ *        and updates the specified field in each CauseStats entry.
+ * @param text Comma-separated list of cause:count entries.
+ * @param result EngineDuelResult to update.
+ * @param field Pointer to the CauseStats member to increment (win/draw/loss).
+ */
+void parseEndCauses(std::string_view text, EngineDuelResult& result, int CauseStats::* field) {
+    std::istringstream ss(std::string{ text });
+    std::string token;
+
+    while (std::getline(ss, token, ',')) {
+        const auto sep = token.find(':');
+        if (sep == std::string::npos) continue;
+
+        const std::string causeStr = trim(token.substr(0, sep));
+        const int count = std::stoi(token.substr(sep + 1));
+
+        const auto causeOpt = tryParseGameEndCause(causeStr);
+        if (!causeOpt) continue;
+
+        result.causeStats[static_cast<size_t>(*causeOpt)].*field += count;
+    }
+}
+
+
+std::string Tournament::parseRound(std::istream& in, const std::string& roundHeader,
+    const std::unordered_set<std::string>& validEngines) {
+	auto [engineA, engineB] = parseEngineNamesFromRoundLine(roundHeader);
+
+    EngineDuelResult parsedResult;
+    parsedResult.engineA = engineA;
+    parsedResult.engineB = engineB;
+
+    std::string line;
+    while (std::getline(in, line)) {
+        if (line.starts_with("[round ")) {
+            break;
+        }
+        if (line.starts_with("games: ")) {
+            parseGameSummary(line.substr(7), parsedResult);
+        }
+        else if (line.starts_with("winReasons: ")) {
+            parseEndCauses(line.substr(12), parsedResult, &CauseStats::win);
+        }
+        else if (line.starts_with("drawReasons: ")) {
+            parseEndCauses(line.substr(13), parsedResult, &CauseStats::draw);
+        }
+        else if (line.starts_with("lossReasons: ")) {
+            parseEndCauses(line.substr(13), parsedResult, &CauseStats::loss);
+        }
+    }
+
+    if (validEngines.contains(engineA) && validEngines.contains(engineB)) {
+        if (auto* pairing = findMatchingPairing(engineA, engineB)) {
+            pairing->getResult() += parsedResult;
+        }
+    }
+
+    return line;
+}
+
+
+
+void Tournament::loadAll(std::istream& in) {
+    std::stringstream configStream;
+    std::string line;
+
+    // Lese alle Konfig-Zeilen bis zur ersten Rundendefinition
+    while (std::getline(in, line)) {
+        if (line.starts_with("[round ")) break;
+        configStream << line << "\n";
+    }
+
+    // Ermittle gültige Engines aus Konfig-Block
+    const std::unordered_set<std::string> validEngines =
+        parseValidEngineNamesFromConfigs(configStream);
+
+    // Runde für Runde einlesen
+    while (!line.empty()) {
+        line = parseRound(in, line, validEngines);
+    }
+}
+
 
 

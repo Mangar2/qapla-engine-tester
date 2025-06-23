@@ -27,7 +27,7 @@
 #include "pgn-io.h"
 
 bool SprtManager::wait() {
-    GameManagerPool::getInstance().waitForTask(this);
+    GameManagerPool::getInstance().waitForTask();
     return true;
 };
 

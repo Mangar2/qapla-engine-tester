@@ -40,11 +40,25 @@ class EngineConfigManager {
 public:
 
     /**
-     * Loads engine configurations from an INI file.
-     * Each configuration starts with a blank line followed by its key-value pairs.
-     * @param filePath Path to the INI file.
+     * @brief Loads engine configurations from a file.
+     *        Only valid EngineConfig entries are added; parsing stops at the first [section] header.
+     * @param filePath Path to the tournament or config file.
+     * @throws std::runtime_error if the file cannot be opened.
      */
-    void loadFromFile(const std::string& filePath);
+    void loadFromFile(const std::string& filePath) {
+        std::ifstream file(filePath);
+        if (!file.is_open()) {
+            throw std::runtime_error("Unable to open file: " + filePath);
+        }
+        loadFromStream(file);
+    }
+
+    /**
+     * @brief Loads engine configurations from a stream.
+     *        Stops parsing at the first non-config section (e.g., [round...]).
+     * @param in The input stream containing engine configuration lines.
+     */
+    void loadFromStream(std::istream& in);
 
     /**
      * Saves all configurations to an INI file.

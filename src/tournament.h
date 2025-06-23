@@ -87,7 +87,7 @@ public:
     /**
      * @brief Loads the state of all pairings from a stream.
      */
-    void loadAll(std::istream& in) {}
+    void loadAll(std::istream& in);
 	void loadAll(const std::string& filename) {
 		std::ifstream in(filename);
 		if (!in) {
@@ -110,6 +110,31 @@ public:
 	}
 
 private:
+    /**
+     * @brief Parses engine configurations from stream and returns names of those matching this tournament.
+     * @param in Stream containing config section.
+     * @return Set of valid engine names that match the tournament configuration.
+     */
+    std::unordered_set<std::string> parseValidEngineNamesFromConfigs(std::istream& in) const;
+
+    /**
+     * @brief Parses a single round block from the input and updates results if engines are valid.
+     * @param in Stream positioned after the current round header.
+     * @param roundHeader The header line (e.g., "[round 1: EngineA vs EngineB]").
+     * @param validEngines Set of engine names that are part of this tournament.
+     * @return The next round header line or empty if end of input is reached.
+     */
+	std::string parseRound(std::istream& in, const std::string& roundHeader,
+		const std::unordered_set<std::string>& validEngines);
+
+    /**
+     * @brief Finds a pairing between two engine names, regardless of order.
+     * @param engineA Name of one engine.
+     * @param engineB Name of the other engine.
+     * @return Pointer to the matching PairTournament, or nullptr if not found.
+     */
+    PairTournament* findMatchingPairing(const std::string& engineA, const std::string& engineB) const;
+
     void createGauntletPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 

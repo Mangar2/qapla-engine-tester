@@ -21,6 +21,26 @@
 #include <unordered_map>
 #include <unordered_set>
 
+void EngineDuelResult::addResult(const GameRecord& record) {
+    bool engineAIsWhite = engineA == record.getWhiteEngineName();
+    auto [cause, result] = record.getGameResult();
+
+    if ((result == GameResult::WhiteWins && engineAIsWhite) ||
+        (result == GameResult::BlackWins && !engineAIsWhite)) {
+        ++winsEngineA;
+        ++causeStats[static_cast<size_t>(cause)].win;
+    }
+    else if ((result == GameResult::WhiteWins && !engineAIsWhite) ||
+        (result == GameResult::BlackWins && engineAIsWhite)) {
+        ++winsEngineB;
+        ++causeStats[static_cast<size_t>(cause)].loss;
+    }
+    else if (result == GameResult::Draw) {
+        ++draws;
+        ++causeStats[static_cast<size_t>(cause)].draw;
+    }
+}
+
 EngineDuelResult EngineDuelResult::switchedSides() const {
     EngineDuelResult result;
     result.engineA = engineB;
@@ -28,12 +48,16 @@ EngineDuelResult EngineDuelResult::switchedSides() const {
     result.winsEngineA = winsEngineB;
     result.winsEngineB = winsEngineA;
     result.draws = draws;
-    result.causeCounters = causeCounters;
+
+    for (size_t i = 0; i < static_cast<size_t>(GameEndCause::Count); ++i) {
+        result.causeStats[i].win = causeStats[i].loss;
+        result.causeStats[i].loss = causeStats[i].win;
+        result.causeStats[i].draw = causeStats[i].draw;
+    }
     return result;
 }
 
 EngineDuelResult& EngineDuelResult::operator+=(const EngineDuelResult& other) {
-    // Engines müssen gleichwertig sein (unabhängig von A/B Reihenfolge)
     const bool sameDirect = engineA == other.engineA && engineB == other.engineB;
     const bool sameReverse = engineA == other.engineB && engineB == other.engineA;
 
@@ -44,18 +68,23 @@ EngineDuelResult& EngineDuelResult::operator+=(const EngineDuelResult& other) {
     if (sameDirect) {
         winsEngineA += other.winsEngineA;
         winsEngineB += other.winsEngineB;
+        for (size_t i = 0; i < causeStats.size(); ++i) {
+            causeStats[i].win += other.causeStats[i].win;
+            causeStats[i].loss += other.causeStats[i].loss;
+            causeStats[i].draw += other.causeStats[i].draw;
+        }
     }
     else {
         winsEngineA += other.winsEngineB;
         winsEngineB += other.winsEngineA;
+        for (size_t i = 0; i < causeStats.size(); ++i) {
+            causeStats[i].win += other.causeStats[i].loss;
+            causeStats[i].loss += other.causeStats[i].win;
+            causeStats[i].draw += other.causeStats[i].draw;
+        }
     }
 
     draws += other.draws;
-
-    for (size_t i = 0; i < causeCounters.size(); ++i) {
-        causeCounters[i] += other.causeCounters[i];
-    }
-
     return *this;
 }
 
@@ -78,22 +107,39 @@ EngineDuelResult EngineResult::aggregate(const std::string& targetEngine) const 
 void EngineResult::writeTo(std::ostream& os) const {
     EngineDuelResult total = aggregate(engineName);
 
-    os  << std::left << std::setw(30) << "Overall:"
+    os << std::left << std::setw(30) << "Overall:"
         << " " << total.toResultString() << "\n";
 
     for (const auto& duel : duels) {
-        os  << std::left << std::setw(30) << duel.engineB 
+        os << std::left << std::setw(30) << duel.engineB
             << " " << duel.toResultString() << "\n";
     }
 
-    os << "\nGame End Causes:\n";
-    for (size_t i = 0; i < total.causeCounters.size(); ++i) {
-        if (total.causeCounters[i] > 0) {
+    os << "\nWin Causes:\n";
+    for (size_t i = 0; i < total.causeStats.size(); ++i) {
+        if (total.causeStats[i].win > 0) {
             os << " - " << to_string(static_cast<GameEndCause>(i))
-                << ": " << total.causeCounters[i] << "\n";
+                << ": " << total.causeStats[i].win << "\n";
+        }
+    }
+
+    os << "\nDraw Causes:\n";
+    for (size_t i = 0; i < total.causeStats.size(); ++i) {
+        if (total.causeStats[i].draw > 0) {
+            os << " - " << to_string(static_cast<GameEndCause>(i))
+                << ": " << total.causeStats[i].draw << "\n";
+        }
+    }
+
+    os << "\nLoss Causes:\n";
+    for (size_t i = 0; i < total.causeStats.size(); ++i) {
+        if (total.causeStats[i].loss > 0) {
+            os << " - " << to_string(static_cast<GameEndCause>(i))
+                << ": " << total.causeStats[i].loss << "\n";
         }
     }
 }
+
 
 void TournamentResult::add(const EngineDuelResult& result) {
     results_.push_back(result);

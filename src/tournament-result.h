@@ -32,67 +32,97 @@
 #include "game-result.h"
 #include "game-record.h"
 
+ /**
+  * @brief Stores result breakdowns per game termination cause.
+  */
+struct CauseStats {
+    int win = 0;   ///< Number of wins by this cause (from engineA's perspective)
+    int loss = 0;  ///< Number of losses by this cause (from engineA's perspective)
+    int draw = 0;  ///< Number of draws by this cause
+};
 
+/**
+ * @brief Aggregates duel results between two engines, tracking win/draw/loss counts and termination causes.
+ */
 struct EngineDuelResult {
-    std::string engineA;
-    std::string engineB;
-    int winsEngineA = 0;
-    int winsEngineB = 0;
-    int draws = 0;
-    std::array<int, static_cast<size_t>(GameEndCause::Count)> causeCounters{};
+    std::string engineA; ///< First engine name
+    std::string engineB; ///< Second engine name
+    int winsEngineA = 0; ///< Wins by engineA
+    int winsEngineB = 0; ///< Wins by engineB
+    int draws = 0;       ///< Draw count
+    std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)> causeStats; ///< Stats per end cause
 
-	void clear() {
-		winsEngineA = 0;
-		winsEngineB = 0;
-		draws = 0;
-		causeCounters.fill(0);
-	}
-    
-    double engineARate() const {
-		double totalGames = winsEngineA + winsEngineB + draws;
-		return totalGames > 0 ? (winsEngineA * 1.0 + draws * 0.5)  / totalGames : 0.0;
+    /**
+     * @brief Resets all counters to zero.
+     */
+    inline void clear() {
+        winsEngineA = 0;
+        winsEngineB = 0;
+        draws = 0;
+        for (auto& cs : causeStats) cs = {};
     }
-	double engineBRate() const {
-		double totalGames = winsEngineA + winsEngineB + draws;
-		return totalGames > 0 ? (winsEngineB * 1.0 + draws * 0.5) / totalGames : 0.0;
-	}
-	void addResult(const GameRecord& record) {
-        bool whiteIsEngineA = engineA == record.getWhiteEngineName();
-		auto [cause, result] = record.getGameResult();
-		if (result == GameResult::Draw) {
-			++draws;
-		}
-		if (result == GameResult::WhiteWins) {
-			winsEngineA += whiteIsEngineA;
-			winsEngineB += !whiteIsEngineA;
-		}
-		else if (result == GameResult::BlackWins) {
-			winsEngineB += whiteIsEngineA;
-			winsEngineA += !whiteIsEngineA;
-		}
-		++causeCounters[static_cast<size_t>(cause)];
-	}
 
-	EngineDuelResult switchedSides() const;
+    /**
+     * @brief Computes the normalized score for engineA.
+     * @return Score between 0.0 and 1.0
+     */
+    inline double engineARate() const {
+        double totalGames = winsEngineA + winsEngineB + draws;
+        return totalGames > 0 ? (winsEngineA * 1.0 + draws * 0.5) / totalGames : 0.0;
+    }
 
-	std::string toString() const {
+    /**
+     * @brief Computes the normalized score for engineB.
+     * @return Score between 0.0 and 1.0
+     */
+    inline double engineBRate() const {
+        double totalGames = winsEngineA + winsEngineB + draws;
+        return totalGames > 0 ? (winsEngineB * 1.0 + draws * 0.5) / totalGames : 0.0;
+    }
+
+    /**
+     * @brief Adds a game result to the duel statistics.
+     * @param record Game record to evaluate
+     */
+    void addResult(const GameRecord& record);
+
+    /**
+     * @brief Returns a version of this result with sides switched.
+     * @return Reversed EngineDuelResult
+     */
+    EngineDuelResult switchedSides() const;
+
+    /**
+     * @brief Produces a string summary including player names and score.
+     * @return Human-readable result string
+     */
+    inline std::string toString() const {
         std::ostringstream oss;
         oss << engineA << " vs " << engineB
-			<< std::fixed << std::setprecision(2)
+            << std::fixed << std::setprecision(2)
             << " ( " << engineARate() << " ) "
             << " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
-		return oss.str();
-	}
+        return oss.str();
+    }
 
-	std::string toResultString() const {
-		std::ostringstream oss;
-		oss << std::fixed << std::setprecision(2)
-			<< " ( " << engineARate() << " ) "
-			<< " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
-		return oss.str();
-	}
+    /**
+     * @brief Returns a compact string with only the score portion.
+     * @return Result string with W/D/L only
+     */
+    inline std::string toResultString() const {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2)
+            << " ( " << engineARate() << " ) "
+            << " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
+        return oss.str();
+    }
 
-	EngineDuelResult& operator+=(const EngineDuelResult& other);
+    /**
+     * @brief Adds the stats from another duel result.
+     * @param other The result to accumulate
+     * @return Reference to this object
+     */
+    EngineDuelResult& operator+=(const EngineDuelResult& other);
 };
 
 /**

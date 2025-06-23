@@ -651,7 +651,7 @@ void EngineTestController::runMultipleGamesTest() {
 
     try {
         GameManagerPool::getInstance().addTaskProvider(&tournament, engineConfig_, numGames_);
-        GameManagerPool::getInstance().waitForTask(&tournament);
+        GameManagerPool::getInstance().waitForTask();
         Logger::testLogger().log("All games completed.");
     }
     catch (const std::exception& e) {

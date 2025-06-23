@@ -163,7 +163,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& eng
 }
 
 bool EpdManager::wait() {
-    GameManagerPool::getInstance().waitForTask(this);
+    GameManagerPool::getInstance().waitForTask();
     results_.push_back({
         engineName_,
         epdFileName_,

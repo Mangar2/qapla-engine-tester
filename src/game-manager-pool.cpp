@@ -62,21 +62,14 @@ void GameManagerPool::clearAll() {
     managers_.clear();
 }
 
-void GameManagerPool::waitForTask(GameTaskProvider* taskProvider) {
+void GameManagerPool::waitForTask() {
     std::vector<GameManager*> managers;
     {
         std::lock_guard lock(mutex_);
         for (const auto& managerPtr : managers_) {
             GameManager* manager = managerPtr.get();
-            if (taskProvider) {
-                if (manager->getTaskProvider() == taskProvider) {
-                    managers.push_back(manager);
-                }
-            }
-            else {
-                if (manager->getTaskProvider() != nullptr) {
-                    managers.push_back(manager);
-                }
+            if (manager->getTaskProvider() != nullptr) {
+                managers.push_back(manager);
             }
         }
     }
@@ -86,9 +79,7 @@ void GameManagerPool::waitForTask(GameTaskProvider* taskProvider) {
     }
 
     std::lock_guard lock(mutex_);
-    std::erase_if(taskAssignments_, [&](const TaskAssignment& task) {
-        return task.provider == taskProvider || (!taskProvider && task.provider != nullptr);
-        });
+    taskAssignments_.clear();
 }
 
 void GameManagerPool::ensureManagerCount(size_t count) {
