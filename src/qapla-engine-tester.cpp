@@ -35,6 +35,7 @@
 #include "timer.h"
 #include "time-control.h"
 #include "pgn-io.h"
+#include "input-handler.h"
 
 auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
@@ -355,6 +356,10 @@ int main(int argc, char** argv) {
     bool isEngineTest = false;
     Timer timer;
     timer.start();
+
+    InputHandler handler;
+    InputHandler::setInstance(&handler);
+
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::command);

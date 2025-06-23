@@ -85,19 +85,7 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
         return;
     }
 
-    PairTournamentConfig ptc;
-    ptc.games = config.games * config.rounds;
-    ptc.repeat = config.repeat;
-    ptc.swapColors = !config.noSwap;
-    ptc.openings = config.openings;
-
-    for (const auto& g : gauntlets) {
-        for (const auto& o : opponents) {
-            auto pt = std::make_shared<PairTournament>();
-            pt->initialize(g, o, ptc, startPositions_);
-            pairings_.push_back(std::move(pt));
-        }
-    }
+	createPairings(gauntlets, opponents, config, false);
 }
 
 void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engines,
@@ -108,19 +96,36 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
         return;
     }
 
-    PairTournamentConfig ptc;
-    ptc.games = config.games * config.rounds;
-    ptc.repeat = config.repeat;
-    ptc.swapColors = !config.noSwap;
-    ptc.openings = config.openings;
+	createPairings(engines, engines, config, true);
+}
 
-    for (size_t i = 0; i < engines.size(); ++i) {
-        for (size_t j = i + 1; j < engines.size(); ++j) {
-            auto pt = std::make_shared<PairTournament>();
-            pt->initialize(engines[i], engines[j], ptc, startPositions_);
-            pairings_.push_back(std::move(pt));
+void Tournament::createPairings(const std::vector<EngineConfig>& players, const std::vector<EngineConfig>& opponents,
+    const TournamentConfig& config, bool symmetric) {
+    int openingOffset = config.openings.start;
+
+    for (int round = 0; round < config.rounds; ++round) {
+        PairTournamentConfig ptc;
+        ptc.games = config.games;
+        ptc.repeat = config.repeat;
+        ptc.swapColors = !config.noSwap;
+        ptc.openings = config.openings;
+
+        if (ptc.openings.order != "random") {
+            int size = static_cast<int>(startPositions_->size());
+            ptc.openings.start = openingOffset;
+            int openingCount = (ptc.games + ptc.repeat - 1) / ptc.repeat;
+            openingOffset = (openingOffset + openingCount) % size;
+        }
+
+        for (size_t i = 0; i < players.size(); ++i) {
+            for (size_t j = symmetric ? i + 1 : 0; j < opponents.size(); ++j) {
+                auto pt = std::make_shared<PairTournament>();
+                pt->initialize(players[i], opponents[j], ptc, startPositions_);
+                pairings_.push_back(std::move(pt));
+            }
         }
     }
+
 }
 
 

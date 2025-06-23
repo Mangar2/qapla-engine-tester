@@ -21,6 +21,9 @@
 
 #include <string>
 #include <optional>
+#include <assert.h>
+#include <sstream>
+#include <iomanip>
 #include "engine-event.h"
 
 struct MoveRecord {
@@ -38,7 +41,19 @@ struct MoveRecord {
     uint64_t nodes = 0;
     std::string pv;
 
-
+    void clear() {
+		lan.clear();
+		comment.clear();
+		nag.clear();
+		timeMs = 0;
+		scoreCp.reset();
+		scoreMate.reset();
+		depth = 0;
+		seldepth = 0;
+		multipv = 1;
+		nodes = 0;
+		pv.clear();
+    }
 
     /**
      * Updates the move record with the best move and time taken from an EngineEvent.
@@ -63,8 +78,14 @@ struct MoveRecord {
         if (info.multipv) multipv = *info.multipv;
         if (info.nodes) nodes = static_cast<uint64_t>(*info.nodes);
 
-        if (info.scoreCp) scoreCp = *info.scoreCp;
-        if (info.scoreMate) scoreMate = *info.scoreMate;
+        if (info.scoreCp) {
+            scoreCp = *info.scoreCp;
+            scoreMate.reset();
+		}
+		else if (info.scoreMate) {
+			scoreMate = *info.scoreMate;
+			scoreCp.reset();
+		}
 
         if (!info.pv.empty()) {
             pv.clear();
@@ -81,11 +102,15 @@ struct MoveRecord {
 	 * @return A string representing the score in centipawns or mate value.
 	 */
     std::string evalString() const {
+		assert(!(scoreCp && scoreMate));
         if (scoreMate) {
             return *scoreMate > 0 ? "M" + std::to_string(*scoreMate) : "-M" + std::to_string(-*scoreMate);
         }
         if (scoreCp) {
-            return (*scoreCp >= 0 ? "+" : "") + std::to_string(*scoreCp);
+            std::ostringstream oss;
+            oss << (*scoreCp >= 0 ? "+" : "")
+                << std::fixed << std::setprecision(2) << (*scoreCp / 100.0);
+            return oss.str();
         }
         return "?";
     }

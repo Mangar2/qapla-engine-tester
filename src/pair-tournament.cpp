@@ -115,14 +115,8 @@ std::optional<GameTask> PairTournament::nextTask(
                 openingIndex = static_cast<size_t>(std::rand()) % startPositions_->size();
             }
             else {
-				int size = static_cast<int>(startPositions_->size()) - config_.openings.start;
-                if (size <= 0) {
-					Logger::testLogger().log("Invalid start position configuration: openings.start is too high.", 
-                        TraceLevel::warning);
-                    config_.openings.start = 0;
-					size = static_cast<int>(startPositions_->size());
-                }
-                openingIndex = ((i / config_.repeat) % size) + config_.openings.start;
+				int size = static_cast<int>(startPositions_->size());
+                openingIndex = (i / config_.repeat + config_.openings.start) % size;
             }
             curStartPosition_ = (*startPositions_)[openingIndex];
             GameState gameState;

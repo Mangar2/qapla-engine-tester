@@ -21,6 +21,7 @@
 #include "engine-report.h"
 #include <iostream>
 #include "game-manager-pool.h"
+#include "input-handler.h"
 
 GameManager::GameManager(): taskProvider_(nullptr) {
     eventThread_ = std::thread(&GameManager::processQueue, this);
@@ -384,6 +385,11 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
 void GameManager::computeNextTask() {
     if (taskType_ == GameTask::Type::None) {
         // Already processed to end
+        return;
+    }
+    if (InputHandler::getInstance().quitRequested()) {
+        taskType_ = GameTask::Type::None;
+        finishedPromise_.set_value();
         return;
     }
     taskType_ = GameTask::Type::None;

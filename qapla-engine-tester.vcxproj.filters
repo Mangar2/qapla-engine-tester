@@ -272,6 +272,9 @@
     <ClInclude Include="src\tournament-result.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\input-handler.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

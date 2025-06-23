@@ -270,6 +270,7 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
 	}
 	bool ponderHit = pondering_ && ponderMove_ != "";
 
+    currentMove_.clear();
     goLimits_ = goLimits;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
     // the compute move string to the engine. As it is asynchronous, we might get a bestmove event before receiving the
@@ -296,6 +297,7 @@ void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& go
 		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering while already computing a move.");
 	}
 	goLimits_ = goLimits;
+    currentMove_.clear();
     ponderMove_ = event->ponderMove ? *event->ponderMove : "";
 
     if (ponderMove_ != "") {

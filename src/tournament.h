@@ -141,6 +141,9 @@ private:
     void createRoundRobinPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 
+	void createPairings(const std::vector<EngineConfig>& players, const std::vector<EngineConfig>& opponents,
+		const TournamentConfig& config, bool symmetric);
+
     std::vector<EngineConfig> engineConfig_;
 	TournamentConfig config_;
     std::shared_ptr<std::vector<std::string>> startPositions_;

@@ -377,7 +377,7 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
             event.errors.push_back({ "parsing-exception", e.what() });
         }
     }
-
+    assert(!info.scoreCp || !info.scoreMate);
     event.searchInfo = std::move(info);
     return event;
 }
