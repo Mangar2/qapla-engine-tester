@@ -20,6 +20,7 @@
 #include "tournament-result.h"
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
 
 void EngineDuelResult::addResult(const GameRecord& record) {
     bool engineAIsWhite = engineA == record.getWhiteEngineName();
@@ -42,9 +43,7 @@ void EngineDuelResult::addResult(const GameRecord& record) {
 }
 
 EngineDuelResult EngineDuelResult::switchedSides() const {
-    EngineDuelResult result;
-    result.engineA = engineB;
-    result.engineB = engineA;
+    EngineDuelResult result(engineB, engineA);
     result.winsEngineA = winsEngineB;
     result.winsEngineB = winsEngineA;
     result.draws = draws;
@@ -58,8 +57,8 @@ EngineDuelResult EngineDuelResult::switchedSides() const {
 }
 
 EngineDuelResult& EngineDuelResult::operator+=(const EngineDuelResult& other) {
-    const bool sameDirect = engineA == other.engineA && engineB == other.engineB;
-    const bool sameReverse = engineA == other.engineB && engineB == other.engineA;
+    const bool sameDirect = engineA == other.engineA && (engineB == other.engineB || engineB == ANY_ENGINE);
+    const bool sameReverse = engineA == other.engineB && (engineB == other.engineA || engineB == ANY_ENGINE);
 
     if (!sameDirect && !sameReverse) {
         throw std::invalid_argument("Cannot add EngineDuelResult: mismatched engine pairs.");
@@ -91,13 +90,10 @@ EngineDuelResult& EngineDuelResult::operator+=(const EngineDuelResult& other) {
 EngineDuelResult EngineResult::aggregate(const std::string& targetEngine) const {
     if (duels.empty()) return {};
 
-    EngineDuelResult result;
-    result.engineA = targetEngine;
-    result.engineB = "";
+    EngineDuelResult result(targetEngine, std::string(EngineDuelResult::ANY_ENGINE));
 
     for (const auto& duel : duels) {
-        EngineDuelResult aligned = (duel.engineA == targetEngine) ? duel : duel.switchedSides();
-        aligned.engineB = "";  // Gegner irrelevant im Aggregat
+        EngineDuelResult aligned = (duel.getEngineA() == targetEngine) ? duel : duel.switchedSides();
         result += aligned;
     }
 
@@ -111,7 +107,7 @@ void EngineResult::writeTo(std::ostream& os) const {
         << " " << total.toResultString() << "\n";
 
     for (const auto& duel : duels) {
-        os << std::left << std::setw(30) << duel.engineB
+        os << std::left << std::setw(30) << duel.getEngineB()
             << " " << duel.toResultString() << "\n";
     }
 
@@ -148,8 +144,8 @@ void TournamentResult::add(const EngineDuelResult& result) {
 std::vector<std::string> TournamentResult::engineNames() const {
     std::unordered_set<std::string> names;
     for (const auto& duel : results_) {
-        names.insert(duel.engineA);
-        names.insert(duel.engineB);
+        names.insert(duel.getEngineA());
+        names.insert(duel.getEngineB());
     }
     return std::vector<std::string>(names.begin(), names.end());
 }
@@ -158,11 +154,11 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string& name)
     std::unordered_map<std::string, EngineDuelResult> aggregated;
 
     for (const auto& duel : results_) {
-        if (duel.engineA == name || duel.engineB == name) {
-            EngineDuelResult aligned = (duel.engineA == name) ? duel : duel.switchedSides();
-            auto it = aggregated.find(aligned.engineB);
+        if (duel.getEngineA() == name || duel.getEngineB() == name) {
+            EngineDuelResult aligned = (duel.getEngineA() == name) ? duel : duel.switchedSides();
+            auto it = aggregated.find(aligned.getEngineB());
             if (it == aggregated.end()) {
-                aggregated[aligned.engineB] = aligned;
+                aggregated[aligned.getEngineB()] = aligned;
             }
             else {
                 it->second += aligned;
@@ -174,12 +170,47 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string& name)
 
     EngineResult result;
 	result.engineName = name;
-    for (auto& [opponent, duel] : aggregated) {
-        duel.engineA = name;
-        duel.engineB = opponent;
+    for (auto& [_, duel] : aggregated) {
         result.duels.push_back(std::move(duel));
     }
 
     return result;
 }
+
+void TournamentResult::printSummary(std::ostream& os) const {
+    os << "\nTournament result:\n";
+
+    std::vector<std::pair<double, std::string>> lines;
+
+    for (const auto& name : engineNames()) {
+        auto optResult = forEngine(name);
+        if (!optResult) continue;
+
+        EngineDuelResult agg = optResult->aggregate(name);
+        int wins = agg.winsEngineA;
+        int losses = agg.winsEngineB;
+        int draws = agg.draws;
+        int total = wins + losses + draws;
+
+        double score = total > 0 ? (wins + 0.5 * draws) / total : 0.0;
+
+        std::ostringstream line;
+        line << std::fixed << std::setprecision(2)
+            << std::setw(30) << std::left << name
+            << " " << score
+            << "  W:" << wins << " D:" << draws << " L:" << losses;
+
+        lines.emplace_back(score, line.str());
+    }
+
+    std::sort(lines.begin(), lines.end(), [](const auto& a, const auto& b) {
+        return b.first < a.first; // descending
+        });
+
+    for (const auto& entry : lines) {
+        os << entry.second << "\n";
+    }
+    os << std::endl;
+}
+
 

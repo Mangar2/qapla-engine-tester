@@ -45,13 +45,26 @@ struct CauseStats {
  * @brief Aggregates duel results between two engines, tracking win/draw/loss counts and termination causes.
  */
 struct EngineDuelResult {
+private:
     std::string engineA; ///< First engine name
     std::string engineB; ///< Second engine name
+public:
+	EngineDuelResult(const std::string& a, const std::string& b)
+		: engineA(a), engineB(b), causeStats{} {
+	}
+    EngineDuelResult() = default;
+
     int winsEngineA = 0; ///< Wins by engineA
     int winsEngineB = 0; ///< Wins by engineB
     int draws = 0;       ///< Draw count
     std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)> causeStats; ///< Stats per end cause
 
+	const std::string& getEngineA() const {
+		return engineA;
+	}
+    const std::string& getEngineB() const {
+        return engineB;
+    }
     /**
      * @brief Resets all counters to zero.
      */
@@ -123,6 +136,8 @@ struct EngineDuelResult {
      * @return Reference to this object
      */
     EngineDuelResult& operator+=(const EngineDuelResult& other);
+
+    static constexpr std::string_view ANY_ENGINE = "";
 };
 
 /**
@@ -169,6 +184,9 @@ public:
 	 * @return An EngineResult object with individual duels and aggregate data, or std::nullopt if unknown.
 	 */
 	std::optional<EngineResult> forEngine(const std::string& name) const;
+
+
+    void printSummary(std::ostream& os) const;
 
 private:
 	std::vector<EngineDuelResult> results_;

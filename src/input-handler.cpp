@@ -21,11 +21,23 @@
 #include "input-handler.h"
 #include "cli-settings-manager.h"
 
+InputHandler::CallbackRegistration::CallbackRegistration(InputHandler& handler, ImmediateCommand command, size_t id)
+    : handler_(&handler), command_(command), callbackId_(id) {
+}
+
+InputHandler::CallbackRegistration::~CallbackRegistration() {
+    if (handler_) {
+        handler_->unregisterCallback(command_, callbackId_);
+    }
+}
+
 
 void InputHandler::inputLoop() {
     std::string line;
     while (!quitFlag) {
         if (!std::getline(std::cin, line)) break;
+        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		//line = "?"; // Simulate input for testing purposes
         handleLine(line);
     }
 }
@@ -35,15 +47,10 @@ void InputHandler::handleLine(const std::string& line) {
     std::string command;
     iss >> command;
 
-    if (command == "quit") {
-        quitFlag = true;
-    }
-    else if (command == "set") {
-        handleSetCommand(iss);
-    }
-    else if (command == "help") {
-        CliSettings::Manager::showHelp();
-    }
+    if (command == "quit" || command == "q")  quitFlag = true;
+    else if (command == "set" || command == "s") handleSetCommand(iss);
+    else if (command == "info" || command == "?") dispatchImmediate(ImmediateCommand::Info);
+    else if (command == "help" || command == "h") CliSettings::Manager::showHelp();
     else {
         std::cout << "Unknown command: " << command << "\n";
     }
@@ -65,11 +72,24 @@ void InputHandler::handleSetCommand(std::istringstream& iss) {
 }
 
 void InputHandler::dispatchImmediate(ImmediateCommand cmd, CommandValue value) {
-    std::scoped_lock lock(callbacksMutex_);
-    auto it = commandCallbacks_.find(cmd);
-    if (it != commandCallbacks_.end()) {
-        for (const auto& cb : it->second) {
-            cb(cmd, value);
-        }
+    for (const auto& entry : callbacks_) {
+        if (entry.command == cmd)
+            entry.callback(cmd, value);
     }
+}
+
+
+std::unique_ptr<InputHandler::CallbackRegistration>
+InputHandler::registerCommandCallback(ImmediateCommand cmd, CommandCallback callback) {
+    std::scoped_lock lock(callbacksMutex_);
+    size_t id = nextCallbackId_++;
+    callbacks_.emplace_back(CallbackEntry{ cmd, id, std::move(callback) });
+    return std::make_unique<CallbackRegistration>(*this, cmd, id);
+}
+
+void InputHandler::unregisterCallback(ImmediateCommand cmd, size_t id) {
+    std::scoped_lock lock(callbacksMutex_);
+    std::erase_if(callbacks_, [&](const CallbackEntry& e) {
+        return e.command == cmd && e.id == id;
+        });
 }

@@ -39,8 +39,7 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
     config_ = config;
 	startPositions_ = std::move(startPositions);
 
-	duelResult_.engineA = engineA_.getName();
-	duelResult_.engineB = engineB_.getName();
+	duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
 
     for (const auto& r : results_) {
         bool aWhite = true;

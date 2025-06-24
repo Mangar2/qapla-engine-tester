@@ -26,6 +26,7 @@
 #include "tournament.h"
 #include "pgn-io.h"
 #include "engine-config-manager.h"
+#include "input-handler.h"
 
 bool Tournament::wait() {
     GameManagerPool::getInstance().waitForTask();
@@ -131,6 +132,12 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 
 void Tournament::scheduleAll(int concurrency) {
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
+    tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
+        InputHandler::ImmediateCommand::Info,
+        [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
+			auto result = getResult();
+            result.printSummary(std::cout);
+        });
 	for (const auto& pairing : pairings_) {
 		pairing->schedule();
 	}
@@ -242,8 +249,8 @@ std::pair<std::string, std::string> parseEngineNamesFromRoundLine(const std::str
 PairTournament* Tournament::findMatchingPairing(const std::string& engineA, const std::string& engineB) const {
     for (const auto& pairing : pairings_) {
         const auto& p = pairing->getResult();
-        const bool matchDirect = p.engineA == engineA && p.engineB == engineB;
-        const bool matchReverse = p.engineA == engineB && p.engineB == engineA;
+        const bool matchDirect = p.getEngineA() == engineA && p.getEngineB() == engineB;
+        const bool matchReverse = p.getEngineA() == engineB && p.getEngineB() == engineA;
         if (matchDirect || matchReverse) return pairing.get();
     }
     return nullptr;
@@ -301,9 +308,7 @@ std::string Tournament::parseRound(std::istream& in, const std::string& roundHea
     const std::unordered_set<std::string>& validEngines) {
 	auto [engineA, engineB] = parseEngineNamesFromRoundLine(roundHeader);
 
-    EngineDuelResult parsedResult;
-    parsedResult.engineA = engineA;
-    parsedResult.engineB = engineB;
+    EngineDuelResult parsedResult(engineA, engineB);
 
     std::string line;
     while (std::getline(in, line)) {

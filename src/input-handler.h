@@ -24,6 +24,8 @@
 #include <mutex>
 #include <iostream>
 #include <functional>
+#include <optional>
+#include <variant>
 
  /**
   * @brief Handles asynchronous user input for runtime commands.
@@ -37,6 +39,17 @@ public:
         Info,
         SetTraceLevel,       // Programmintern
         SetEngineTraceLevel  // Per Engine
+    };
+
+    class CallbackRegistration {
+    public:
+        ~CallbackRegistration();
+        CallbackRegistration(InputHandler& handler, ImmediateCommand command, size_t id);
+
+    private:
+        InputHandler* handler_;
+        ImmediateCommand command_;
+        size_t callbackId_;
     };
 
 	using CommandValue = std::optional<std::variant<std::string, int, bool>>;
@@ -87,10 +100,7 @@ public:
         }
     }
 
-    void registerCommandCallback(ImmediateCommand cmd, CommandCallback callback) {
-        std::scoped_lock lock(callbacksMutex_);
-        commandCallbacks_[cmd].emplace_back(std::move(callback));
-    }
+    std::unique_ptr<CallbackRegistration> registerCommandCallback(ImmediateCommand cmd, CommandCallback callback);
 
     void dispatchImmediate(ImmediateCommand cmd, CommandValue value = std::nullopt);
 
@@ -109,6 +119,13 @@ private:
     std::thread inputThread;
 
     // Notification
-    std::unordered_map<ImmediateCommand, std::vector<CommandCallback>> commandCallbacks_;
+    void unregisterCallback(ImmediateCommand cmd, size_t id);
+    size_t nextCallbackId_ = 1;
+    struct CallbackEntry {
+        ImmediateCommand command;
+        size_t id;
+        CommandCallback callback;
+    };
+    std::vector<CallbackEntry> callbacks_;
     std::mutex callbacksMutex_;
 };

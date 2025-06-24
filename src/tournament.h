@@ -22,6 +22,7 @@
 #include "pair-tournament.h"
 #include "engine-config.h"
 #include "time-control.h"
+#include "input-handler.h"
 #include <vector>
 #include <memory>
 #include <ostream>
@@ -148,6 +149,9 @@ private:
 	TournamentConfig config_;
     std::shared_ptr<std::vector<std::string>> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
+    
+    // Registration
+    std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;
 };
 
 
