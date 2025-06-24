@@ -387,11 +387,13 @@ void GameManager::computeNextTask() {
         // Already processed to end
         return;
     }
+    /*
     if (InputHandler::getInstance().quitRequested()) {
         taskType_ = GameTask::Type::None;
         finishedPromise_.set_value();
         return;
     }
+    */
     taskType_ = GameTask::Type::None;
 
     whitePlayer_->cancelCompute();

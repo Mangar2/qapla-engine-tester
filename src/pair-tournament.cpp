@@ -17,6 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include <random>
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
 #include "pgn-io.h"
@@ -112,7 +113,8 @@ std::optional<GameTask> PairTournament::nextTask(
         int openingIndex;
         if (i % config_.repeat == 0) {
             if (config_.openings.order == "random") {
-                openingIndex = static_cast<size_t>(std::rand()) % startPositions_->size();
+                std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
+                openingIndex = static_cast<int>(dist(rng_));
             }
             else {
 				int size = static_cast<int>(startPositions_->size());

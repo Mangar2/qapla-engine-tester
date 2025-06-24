@@ -169,6 +169,22 @@ namespace CliSettings {
         return index + 1;
     }
 
+    SetResult Manager::setGlobalValue(const std::string& name, const std::string& value) {
+        auto it = definitions_.find(name);
+        if (it == definitions_.end()) {
+            return { SetResult::Status::UnknownName, "Unknown setting: \"" + name + "\"" };
+        }
+
+        try {
+            values_[name] = parseValue({ .original = name + "=" + value, .hasPrefix = true, .name = name, .value = value }, it->second);
+        }
+        catch (const AppError& ex) {
+            return { SetResult::Status::InvalidValue, ex.what() };
+        }
+
+        return { SetResult::Status::Success, {} };
+    }
+
     const Definition* Manager::resolveGroupedKey(const GroupDefinition& group, const std::string& name) {
         auto it = group.keys.find(name);
         if (it != group.keys.end()) return &it->second;

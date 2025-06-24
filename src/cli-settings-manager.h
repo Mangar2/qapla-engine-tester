@@ -113,6 +113,17 @@ namespace CliSettings {
 	using GroupInstances = std::vector<GroupInstance>;
     using GroupInstancesMap = std::unordered_map<std::string, GroupInstances>;
 
+    struct SetResult {
+        enum class Status {
+            Success,
+            UnknownName,
+            InvalidValue
+        };
+
+        Status status;
+        std::string errorMessage; // empty if success
+    };
+
     /**
      * @brief Manages CLI parameters including types, validation, and interactive fallback.
      */
@@ -185,6 +196,19 @@ namespace CliSettings {
 
         static const std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
 
+        /**
+		 * @brief Displays help information for all registered settings and groups.
+         */
+        static void showHelp();
+
+        /**
+         * @brief Sets a global CLI setting programmatically (e.g., from interactive input).
+         * @param name The parameter name (must match a registered global setting).
+         * @param value The value to assign, in string form.
+         * @return SetResult indicating success or error type.
+         */
+        static SetResult setGlobalValue(const std::string& name, const std::string& value);
+
     private:
 
         struct ParsedParameter {
@@ -249,7 +273,7 @@ namespace CliSettings {
          */
         static inline GroupInstancesMap groupInstances_;
 
-        static void showHelp();
+        
         static Value parseValue(const ParsedParameter& arg, const Definition& def);
     };
 }

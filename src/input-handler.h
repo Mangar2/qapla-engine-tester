@@ -23,14 +23,7 @@
 #include <string>
 #include <mutex>
 #include <iostream>
-
-#pragma once
-
-#include <thread>
-#include <atomic>
-#include <string>
-#include <mutex>
-#include <iostream>
+#include <functional>
 
  /**
   * @brief Handles asynchronous user input for runtime commands.
@@ -39,6 +32,16 @@
   */
 class InputHandler {
 public:
+    enum class ImmediateCommand {
+        Abort,
+        Info,
+        SetTraceLevel,       // Programmintern
+        SetEngineTraceLevel  // Per Engine
+    };
+
+	using CommandValue = std::optional<std::variant<std::string, int, bool>>;
+    using CommandCallback = std::function<void(ImmediateCommand, CommandValue)>;
+
     /**
      * @brief Registers global access to a stack-allocated InputHandler instance.
      * @param instance Pointer to existing InputHandler.
@@ -55,11 +58,15 @@ public:
         return *getGlobalInstance();
     }
 
+    InputHandler() = default;
+
     /**
-     * @brief Constructs and starts the input handling thread.
+     * @brief Starts the input handling thread.
      */
-    InputHandler() {
-        inputThread = std::thread(&InputHandler::inputLoop, this);
+    void start() {
+        if (!inputThread.joinable()) {
+            inputThread = std::thread(&InputHandler::inputLoop, this);
+        }
     }
 
     /**
@@ -80,19 +87,17 @@ public:
         }
     }
 
-private:
-    void inputLoop() {
-        std::string line;
-        while (!stopFlag) {
-            if (!std::getline(std::cin, line)) {
-                break;
-            }
-            if (line == "quit") {
-                quitFlag = true;
-                break;
-            }
-        }
+    void registerCommandCallback(ImmediateCommand cmd, CommandCallback callback) {
+        std::scoped_lock lock(callbacksMutex_);
+        commandCallbacks_[cmd].emplace_back(std::move(callback));
     }
+
+    void dispatchImmediate(ImmediateCommand cmd, CommandValue value = std::nullopt);
+
+private:
+    void inputLoop();
+    void handleSetCommand(std::istringstream& iss);
+    void handleLine(const std::string& line);
 
     static InputHandler*& getGlobalInstance() {
         static InputHandler* instance = nullptr;
@@ -102,4 +107,8 @@ private:
     std::atomic<bool> quitFlag{ false };
     std::atomic<bool> stopFlag{ false };
     std::thread inputThread;
+
+    // Notification
+    std::unordered_map<ImmediateCommand, std::vector<CommandCallback>> commandCallbacks_;
+    std::mutex callbacksMutex_;
 };

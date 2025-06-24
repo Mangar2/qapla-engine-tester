@@ -34,6 +34,7 @@
 #include <mutex>
 #include <array>
 #include <sstream>
+#include <random>
 
 /**
 * @brief Configuration parameters for a PairTournament.
@@ -53,7 +54,7 @@ struct PairTournamentConfig {
   */
 class PairTournament : public GameTaskProvider {
 public:
-    PairTournament() = default;
+    PairTournament(): rng_(std::random_device{}()) {};
 
     /**
      * @brief Initializes the tournament configuration and internal state.
@@ -134,6 +135,7 @@ private:
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;
     mutable std::mutex mutex_;
+    std::mt19937 rng_;
     size_t nextIndex_ = 0;
     bool started_ = false;
 };

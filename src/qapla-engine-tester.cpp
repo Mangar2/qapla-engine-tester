@@ -356,19 +356,19 @@ int main(int argc, char** argv) {
     bool isEngineTest = false;
     Timer timer;
     timer.start();
-
     InputHandler handler;
     InputHandler::setInstance(&handler);
+
 
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::command);
         Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.3.0 (c) by Volker Boehm\n");
 
+        CliSettings::Manager::registerSetting("interactive", "Enables interactive mode", false, false,  CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettings::ValueType::Int);
-        CliSettings::Manager::registerSetting("noinfo",
-            "Ignore engine info output. Use this option for extremely fast games (e.g., 2s+10ms per move) to minimize the tester's impact on performance.",
+        CliSettings::Manager::registerSetting("noinfo", "Ignores engine info output. Speeds up games with <10s total compute time",
             false, false, CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
 			CliSettings::ValueType::PathExists);
@@ -468,6 +468,11 @@ int main(int argc, char** argv) {
         handlePgnOptions();
 		handleEngineOptions();
 
+        if (argc == 1 || CliSettings::Manager::get<bool>("interactive")) {
+            std::cout << "Interactive mode! Enter h or help for help, q or quit to quit" << std::endl;
+            InputHandler::getInstance().start();
+        }
+
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
             returnCode = runTest(*test, returnCode);
         }
@@ -497,12 +502,10 @@ int main(int argc, char** argv) {
 		Logger::testLogger().log("Unknown exception, program terminated.", TraceLevel::error);
 		returnCode = AppReturnCode::GeneralError;
 	}
-    
+	while (!InputHandler::getInstance().quitRequested()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 	timer.printElapsed("Total runtime: ");
-    if (argc == 1) {
-        std::cout << "Press Enter to quit...";
-        std::cin.get();
-    }
     return static_cast<int>(returnCode);
 }
 
