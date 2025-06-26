@@ -23,9 +23,10 @@
 
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
-    for (const auto& [key, value] : optionValues_) {
-        if (availableOptions.find(key) != availableOptions.end()) {
-            filteredOptions[key] = value;
+    for (const auto& option : availableOptions) {
+		auto it = optionValues_.find(to_lowercase(option.name));
+        if (it != optionValues_.end()) {
+            filteredOptions[option.name] = it->second.value;
         }
     }
     return filteredOptions;
@@ -96,7 +97,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
             else throw std::runtime_error("Unknown protocol: " + valueStr);
         }
         else if (key.starts_with("option.")) {
-            optionValues_[key.substr(7)] = toString(value);
+            setOptionValue(key.substr(7), toString(value));
         }
         else {
 			throw AppError::makeInvalidParameters("Unknown engine option key: " + key + " for engine " + getName());
@@ -184,8 +185,8 @@ std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
     out << "executablePath=" << config.executablePath_ << '\n';
     out << "workingDirectory=" << config.workingDirectory_ << '\n';
 
-    for (const auto& [key, value] : config.optionValues_) {
-        out << key << "=" << value << '\n';
+    for (const auto& [_, value] : config.optionValues_) {
+        out << value.originalName << "=" << value.value << '\n';
     }
 
     return out;
@@ -205,8 +206,8 @@ std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap()
 	if (gauntlet_)
 		result["gauntlet"] = "";
 
-    for (const auto& [key, value] : optionValues_) {
-        result[key] = value;
+    for (const auto& [_, value] : optionValues_) {
+        result[value.originalName] = value.value;
     }
 
     return result;

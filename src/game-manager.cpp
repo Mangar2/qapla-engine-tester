@@ -353,6 +353,23 @@ void GameManager::computeGame(bool useStartPosition, const std::string fen, bool
 }
 
 std::optional<GameTask> GameManager::organizeNewAssignment() {
+    // The GameManagerPool may reduce the number of active GameManagers (e.g. from 10 to 8).
+    // To do this, it checks how many GameManagers are currently active,
+    // where "active" is defined as having a non-null taskProvider_.
+    // If there are too many, the pool deactivates individual GameManagers by setting their
+    // taskProvider_ to nullptr.
+    //
+    // This deactivation is performed via GameManagerPool::clearIfNecessary(), which ensures
+    // that the counting of active GameManagers and the selection of those to be cleared
+    // is done atomically. A mutex guards this process to prevent multiple GameManagers from
+    // being deactivated concurrently due to a race in active-count evaluation.
+    //
+    // Note: taskProvider_ itself is only accessed by the owning GameManager and does not
+    // require internal synchronization. However, the pool must synchronize the decision-making
+    // process across GameManagers to avoid clearing more instances than intended.
+	if (GameManagerPool::getInstance().maybeDeactivateManager(taskProvider_)) {
+        return std::nullopt;
+    }
     auto whiteId = whitePlayer_->getIdentifier();
     auto blackId = blackPlayer_->getIdentifier();
 
@@ -363,8 +380,6 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
 
     auto extendedTask = GameManagerPool::getInstance().tryAssignNewTask();
     if (!extendedTask) {
-        taskType_ = GameTask::Type::None;
-        finishedPromise_.set_value();
         return std::nullopt;
     }
 
@@ -387,13 +402,6 @@ void GameManager::computeNextTask() {
         // Already processed to end
         return;
     }
-    /*
-    if (InputHandler::getInstance().quitRequested()) {
-        taskType_ = GameTask::Type::None;
-        finishedPromise_.set_value();
-        return;
-    }
-    */
     taskType_ = GameTask::Type::None;
 
     whitePlayer_->cancelCompute();
@@ -414,7 +422,10 @@ void GameManager::computeNextTask() {
         taskProvider_->setGameRecord(whiteId, blackId, gameRecord_);
     }
     auto task = organizeNewAssignment();
-    if (!task) return; 
+    if (!task) {
+        finishedPromise_.set_value();
+        return;
+    }
 
 	if (task->switchSide != switchedSide_) {
 		switchSide();

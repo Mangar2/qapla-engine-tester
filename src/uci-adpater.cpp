@@ -89,7 +89,8 @@ void UciAdapter::moveNow() {
 
 void UciAdapter::setPonder(bool enabled) {
 	EngineAdapter::setPonder(enabled);
-	if (supportedOptions_.find("Ponder") == supportedOptions_.end()) {
+
+	if (!getSupportedOption("Ponder")) {
 		return; // Ponder option not supported
 	}
     writeCommand(std::string("setoption name Ponder value ") + (enabled ? "true" : "false"));
@@ -170,11 +171,12 @@ void UciAdapter::setTestOption(const std::string& name, const std::string& value
 void UciAdapter::setOptionValues(const OptionValues& optionValues) {
     for (const auto& [name, value] : optionValues) {
         try {
-            if (supportedOptions_.find(name) == supportedOptions_.end()) {
+			auto opt = getSupportedOption(name);
+            if (!opt) {
                 Logger::testLogger().log("Unsupported option: " + name, TraceLevel::info);
                 continue;
             }
-			auto supportedOption = supportedOptions_.at(name);
+			auto supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
@@ -201,7 +203,7 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
 					continue;
 				}
 			}
-            std::string command = "setoption name " + name + " value " + value;
+            std::string command = "setoption name " + supportedOption.name + " value " + value;
             writeCommand(command);
         }
         catch (...) {
@@ -405,7 +407,7 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
         logFromEngine(line, TraceLevel::info);
         try {
             EngineOption opt = parseUciOptionLine(line);
-            supportedOptions_[opt.name] = std::move(opt);
+            supportedOptions_.push_back(std::move(opt));
         }
         catch (const std::exception& e) {
 			EngineEvent event = EngineEvent::create(EngineEvent::Type::Error, identifier_, engineLine.timestampMs, line);

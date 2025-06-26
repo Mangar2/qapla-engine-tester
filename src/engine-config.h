@@ -27,7 +27,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <variant>
-
+#include "string-helper.h"
 #include "time-control.h"
 #include "engine-option.h"
 #include "logger.h"
@@ -128,15 +128,22 @@ public:
      * Gets the current option values.
      * @return A map of option names to their values.
      */
-    const std::unordered_map<std::string, std::string>& getOptionValues() const { return optionValues_; }
+    std::unordered_map<std::string, std::string> getOptionValues() const {
+        std::unordered_map<std::string, std::string> result;
+        for (const auto& [_, opt] : optionValues_) {
+            result[opt.originalName] = opt.value;
+        }
+        return result;
+    }
 
     /**
      * Sets a specific option value 
-     * @param key The option name.
+     * @param name The option name.
      * @param value The value to assign.
      */
-    void setOptionValue(const std::string& key, const std::string& value) {
-        optionValues_[key] = value;
+    void setOptionValue(const std::string& name, const std::string& value) {
+        std::string key = to_lowercase(name);
+        optionValues_[key] = OptionValue{ name, value };
     }
 
     /**
@@ -179,6 +186,12 @@ public:
 
 private:
 
+    struct OptionValue {
+        std::string originalName;
+        std::string value;
+        bool operator==(const OptionValue&) const = default;
+    };
+
     /**
      * @brief Reads the section header line from the input stream and sets the engine name.
      * @param in The input stream positioned at a section header line.
@@ -196,6 +209,6 @@ private:
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     bool ponder_ = false;
 	bool gauntlet_ = false;
-    std::unordered_map<std::string, std::string> optionValues_;
+    std::unordered_map<std::string, OptionValue> optionValues_;
 };
 

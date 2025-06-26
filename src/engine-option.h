@@ -19,7 +19,7 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 enum class EngineProtocol {
 	Uci,
@@ -48,4 +48,4 @@ struct EngineOption {
     std::vector<std::string> vars;
 };
 
-using EngineOptions = std::unordered_map<std::string, EngineOption>;
+using EngineOptions = std::vector<EngineOption>;

@@ -263,12 +263,6 @@ namespace CliSettings {
         }
     }
 
-    std::string to_lowercase(const std::string& name) {
-        std::string lower = name;
-        transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-        return lower;
-    }
-
     void Manager::showHelp() {
         constexpr int nameWidth = 30;
 

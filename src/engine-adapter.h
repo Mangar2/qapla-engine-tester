@@ -34,6 +34,7 @@
 #include "engine-event.h"
 #include "logger.h"
 #include "engine-option.h"
+#include "string-helper.h"
 
 using OptionValues = std::unordered_map<std::string, std::string>;
 
@@ -210,6 +211,15 @@ protected:
 		if (logger_) {
 			logger_(message, false, level);
 		}
+	}
+	const std::optional<EngineOption> getSupportedOption(const std::string& name) const {
+        auto key = to_lowercase(name);
+		for (auto& option : supportedOptions_) {
+			if (to_lowercase(option.name) == key) {
+				return option;
+			}
+		}
+		return std::nullopt;
 	}
     EngineOptions supportedOptions_;
     mutable std::function<void(std::string_view, bool, TraceLevel)> logger_;

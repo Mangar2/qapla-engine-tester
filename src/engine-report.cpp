@@ -203,13 +203,13 @@ const bool uciSearchInfoTopicsRegistered = [] {
 
     EngineReport::addTopic({ "Currmove", "currmovenumber", "Search info reports correct current move number", Notes });
     EngineReport::addTopic({ "Currmove", "currmove", "Search info reports correct current move", Notes });
-    EngineReport::addTopic({ "SearchInfo", "pv", "Search info provides valid principal variation (PV)", Missbehaviour });
 
+    EngineReport::addTopic({ "SearchInfo", "pv", "Search info provides valid principal variation (PV)", Notes });
     EngineReport::addTopic({ "SearchInfo", "duplicate-info-field", "Search info field is reported more than once", Notes });
     EngineReport::addTopic({ "SearchInfo", "unexpected-move-token", "Unexpected move token in info line", Notes });
     EngineReport::addTopic({ "SearchInfo", "wrong-token-in-info-line", "Unrecognized or misplaced token in info line", Notes });
     EngineReport::addTopic({ "SearchInfo", "parsing-exception", "Parsing of search info threw an exception", Notes });
-
+	EngineReport::addTopic({ "SearchInfo", "lower-case-option", "Engine accepts lower case option names", Notes });
     EngineReport::addTopic({ "EPD", "epd-expected-moves", "Simple EPD tests: expected moves found", Notes });
 
     return true;

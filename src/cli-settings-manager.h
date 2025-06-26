@@ -25,6 +25,7 @@
 #include <iostream>
 #include <vector>
 #include "app-error.h"
+#include "string-helper.h"
 
 namespace CliSettings {
 
@@ -44,7 +45,6 @@ namespace CliSettings {
         std::unordered_map<std::string, Definition> keys;
     };
 
-    std::string to_lowercase(const std::string& name);
 
     /**
      * @brief Represents a single instance of a grouped CLI setting block (e.g., one --engine block).

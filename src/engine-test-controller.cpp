@@ -100,6 +100,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
             runHashTableMemoryTest();
         }
         if (!testSettings.get<bool>("nooption")) {
+            runLowerCaseOptionTest();
             runEngineOptionTests();
         }
         runAnalyzeTest();
@@ -291,6 +292,24 @@ void EngineTestController::runHashTableMemoryTest() {
         });
 }
 
+void EngineTestController::runLowerCaseOptionTest() {
+    runTest("lower-case-option", [this]() -> std::pair<bool, std::string> {
+        setOption("hash", "512");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::size_t lMem = gameManager_->getEngine()->getEngineMemoryUsage();
+
+        setOption("Hash", "512");
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::size_t uMem = gameManager_->getEngine()->getEngineMemoryUsage();
+
+        bool success = (lMem + 1000 > uMem && lMem - 1000 < uMem);
+
+        Logger::testLogger().logAligned("Test lowercase option:", std::string("Tried \"setoption name hash value 512\", ") +
+            (success ? "lowercase option is accepted" : "lowercase option is not accepted"));
+
+        return { success, success ? "" : "setoption is case sensitive."};
+        });
+}
 
 std::vector<std::string> generateCheckValues() {
     return { "true", "false" };
@@ -362,8 +381,8 @@ void EngineTestController::runEngineOptionTests() {
     auto engine = gameManager_->getEngine();
     const EngineOptions& options = engine->getSupportedOptions();
 	std::cout << "Setting engine options to random values to test engine stability. This may lead to crashes, please wait...\r";
-    for (const auto& [name, opt] : options) {
-        if (name == "Hash" || opt.type == EngineOption::Type::Button) {
+    for (const auto opt : options) {
+        if (opt.name == "Hash" || opt.type == EngineOption::Type::Button) {
             continue;
         }
 
@@ -387,9 +406,9 @@ void EngineTestController::runEngineOptionTests() {
         }
 
         for (const auto& value : testValues) {
-            const std::string testName = "Option '" + name + "' = '" + value + "'";
-            runTest("options-safe", [this, name, value, &errors]() -> std::pair<bool, std::string> {
-                const auto [success, message] = setOption(name, value);
+            const std::string testName = "Option '" + opt.name + "' = '" + value + "'";
+            runTest("options-safe", [this, opt, value, &errors]() -> std::pair<bool, std::string> {
+                const auto [success, message] = setOption(opt.name, value);
                 if (!success) errors++;
                 return { success, message };
                 });
@@ -401,9 +420,9 @@ void EngineTestController::runEngineOptionTests() {
         }
 
         if (!opt.defaultValue.empty()) {
-            const std::string testName = "Option '" + name + "' reset to default";
-            runTest("options-safe", [this, name, def = opt.defaultValue, &errors]() -> std::pair<bool, std::string> {
-                const auto [success, message] = setOption(name, def);
+            const std::string testName = "Option '" + opt.name + "' reset to default";
+            runTest("options-safe", [this, opt, def = opt.defaultValue, &errors]() -> std::pair<bool, std::string> {
+                const auto [success, message] = setOption(opt.name, def);
                 if (!success) errors++;
                 return { success, message };
                 });

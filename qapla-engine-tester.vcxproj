@@ -194,6 +194,7 @@
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\game-task.h" />
     <ClInclude Include="src\input-handler.h" />
+    <ClInclude Include="src\string-helper.h" />
     <ClInclude Include="src\tournament-result.h" />
     <ClInclude Include="src\tournament.h" />
     <ClInclude Include="src\hashconstants.h" />

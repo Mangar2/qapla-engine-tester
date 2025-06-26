@@ -91,6 +91,16 @@ public:
      */
     std::optional<GameManager::ExtendedTask> tryAssignNewTask();
 
+
+	/**
+	 * @brief Deactivates a GameManager if we have too many running managers.
+	 * To be thread safe, this is done here by setting taskProvider to nullptr
+     * 
+	 * @param taskProvider Reference to the GameTaskProvider pointer to clear.
+	 * @return True if the manager was deactivated, false otherwise.
+	 */
+	bool maybeDeactivateManager(GameTaskProvider*& taskProvider);
+
 private:
 
     struct TaskAssignment {
@@ -106,6 +116,13 @@ private:
      * @return A vector of pointers to available GameManagers.
      */
     std::vector<GameManager*> collectAvailableManagers();
+
+	/**
+	 * @brief Counts the number of active GameManager instances.
+	 *
+	 * @return The number of currently active managers.
+	 */
+    int countActiveManagers() const;
 
 
     void ensureManagerCount(size_t count);

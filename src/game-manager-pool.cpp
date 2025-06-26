@@ -102,6 +102,17 @@ std::vector<GameManager*> GameManagerPool::collectAvailableManagers() {
     return available;
 }
 
+int GameManagerPool::countActiveManagers() const {
+    int count = 0;
+    for (const auto& managerPtr : managers_) {
+        GameManager* manager = managerPtr.get();
+        if (manager->getTaskProvider() != nullptr) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 void GameManagerPool::assignTaskToManagers(TaskAssignment& task) {
 	auto availableManagers = collectAvailableManagers();
 	auto assignCount = std::min(task.maxManagers, availableManagers.size());
@@ -165,3 +176,13 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
     return std::nullopt;
 }
 
+bool GameManagerPool::maybeDeactivateManager(GameTaskProvider*& taskProvider) {
+    std::lock_guard lock(mutex_);
+	if (taskProvider == nullptr)
+		return false;
+	bool tooMany = countActiveManagers() > maxConcurrency_;
+	if (tooMany) {
+		taskProvider = nullptr;
+	}
+    return tooMany;
+}

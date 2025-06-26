@@ -19,6 +19,7 @@
 
 #include "engine-config-manager.h"
 #include "cli-settings-manager.h"
+#include "string-helper.h"
 
 void EngineConfigManager::loadFromStream(std::istream& in) {
 
@@ -65,14 +66,14 @@ std::vector<EngineConfig> EngineConfigManager::getAllConfigs() const {
 
 const EngineConfig* EngineConfigManager::getConfig(const std::string& name) const {
     for (auto& config : configs) {
-        if (CliSettings::to_lowercase(config.getName()) == CliSettings::to_lowercase(name)) return &config;
+        if (to_lowercase(config.getName()) == to_lowercase(name)) return &config;
     }
     return nullptr;
 }
 
 EngineConfig* EngineConfigManager::getConfigMutable(const std::string& name)  {
     for (auto& config : configs) {
-        if (CliSettings::to_lowercase(config.getName()) == CliSettings::to_lowercase(name)) return &config;
+        if (to_lowercase(config.getName()) == to_lowercase(name)) return &config;
     }
     return nullptr;
 }

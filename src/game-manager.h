@@ -290,9 +290,6 @@ private:
 	GameRecord gameRecord_;
     bool logMoves_ = false;
 
-	// Mutex to protect access to the event queue and state
-    std::mutex eventMutex_;
-
     // Queue management
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };

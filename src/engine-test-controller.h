@@ -93,6 +93,11 @@ private:
     void runHashTableMemoryTest();
 
     /**
+     * @brief Tests wether the UCI engine recognizes a lower case option "hash"
+     */
+    void runLowerCaseOptionTest();
+
+    /**
      * Runs a set of generic tests to verify the engine's correct handling of option changes.
      * This test assumes no knowledge of specific options beyond basic types and behaviors.
      */
