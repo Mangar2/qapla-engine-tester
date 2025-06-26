@@ -36,6 +36,7 @@
 #include "time-control.h"
 #include "pgn-io.h"
 #include "input-handler.h"
+#include "game-manager-pool.h"
 
 auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
@@ -506,6 +507,10 @@ int main(int argc, char** argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	timer.printElapsed("Total runtime: ");
+	
+    // Unregisters the input handler callback before destruction of the input handler
+	GameManagerPool::resetInstance();
+
     return static_cast<int>(returnCode);
 }
 

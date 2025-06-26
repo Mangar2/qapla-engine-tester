@@ -25,6 +25,7 @@
 
 #include "engine-config.h"
 #include "game-manager.h"
+#include "input-handler.h"
 
 class GameTaskProvider;
 
@@ -33,6 +34,8 @@ class GameTaskProvider;
  */
 class GameManagerPool {
 public:
+    GameManagerPool();
+
     /**
      * @brief Adds a new task with one engine per manager.
      *
@@ -59,7 +62,9 @@ public:
      * @param count Maximum number of concurrent managers
      * @param nice If true, idle managers are reduced gradually
      */
-    void setConcurrency(int count, bool nice);
+	void setConcurrency(int count, bool nice) {
+		setConcurrency(count, nice, false);
+	}
 
     /**
      * @brief Stops all managers and clears all resources.
@@ -77,9 +82,15 @@ public:
      * @brief Returns the singleton instance of the GameManagerPool.
      */
 	static GameManagerPool& getInstance() {
-		static GameManagerPool instance;
-		return instance;
+		return *getInstanceUniquePtr();
 	}
+
+    /**
+     * @brief destructs the singleton instance
+     */
+    static void resetInstance() {
+        getInstanceUniquePtr().reset();
+    }
 
     /**
      * @brief Attempts to assign a new task to a free GameManager.
@@ -102,6 +113,15 @@ public:
 	bool maybeDeactivateManager(GameTaskProvider*& taskProvider);
 
 private:
+    void setConcurrency(int count, bool nice, bool start);
+
+    /**
+     * @brief Returns the singleton instance of the GameManagerPool.
+     */
+    static std::unique_ptr<GameManagerPool>& getInstanceUniquePtr() {
+        static std::unique_ptr<GameManagerPool> instance = std::make_unique<GameManagerPool>();
+        return instance;
+    }
 
     struct TaskAssignment {
         GameTaskProvider* provider = nullptr;
@@ -124,13 +144,18 @@ private:
 	 */
     int countActiveManagers() const;
 
-
-    void ensureManagerCount(size_t count);
+    void tryReactivateManagers();
+    void ensureManagerCount(size_t count, bool start = false);
     void assignTaskToManagers(TaskAssignment& task);
 
     std::vector<TaskAssignment> taskAssignments_;
     std::vector<std::unique_ptr<GameManager>> managers_;
     int maxConcurrency_ = 0;
     bool niceMode_ = false;
-    std::mutex mutex_;
+    std::mutex taskMutex_;
+    std::mutex taskAssignmentMutex_;
+    std::mutex deactivateMutex_;
+
+	// InputHandler
+    std::unique_ptr<InputHandler::CallbackRegistration> inputCallback_;
 };

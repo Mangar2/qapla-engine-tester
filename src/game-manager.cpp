@@ -143,6 +143,7 @@ void GameManager::switchSide() {
 }
 
 void GameManager::markFinished() {
+	taskProvider_ = nullptr; 
     if (finishedPromiseValid_) {
         try {
             finishedPromise_.set_value();
@@ -152,6 +153,14 @@ void GameManager::markFinished() {
         }
         finishedPromiseValid_ = false;
     }
+}
+
+void GameManager::markRunning() {
+	if (!finishedPromiseValid_) {
+		finishedPromise_ = std::promise<void>();
+		finishedFuture_ = finishedPromise_.get_future();
+		finishedPromiseValid_ = true;
+	}
 }
 
 void GameManager::processEvent(const EngineEvent& event) {
@@ -317,8 +326,7 @@ void GameManager::moveNow() {
 }
 
 void GameManager::computeMove(bool useStartPosition, const std::string fen) {
-    finishedPromise_ = std::promise<void>{};
-    finishedFuture_ = finishedPromise_.get_future();
+    markRunning();
 	taskProvider_ = nullptr;
 	setStartPosition(useStartPosition, fen);
 	gameRecord_.setTimeControl(whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl());
@@ -343,13 +351,32 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
 }
 
 void GameManager::computeGame(bool useStartPosition, const std::string fen, bool logMoves) {
-    finishedPromise_ = std::promise<void>{};
-    finishedFuture_ = finishedPromise_.get_future();
+    markRunning();
 	taskProvider_ = nullptr;
 	setStartPosition(useStartPosition, fen);
     taskType_ = GameTask::Type::PlayGame;
 	logMoves_ = logMoves;
     computeNextMove();
+}
+
+std::optional<GameTask> GameManager::tryGetReplacementTask() {
+    auto extendedTask = GameManagerPool::getInstance().tryAssignNewTask();
+    if (!extendedTask) {
+        return std::nullopt;
+    }
+
+    taskProvider_ = extendedTask->provider;
+
+    if (extendedTask->black) {
+        setEngines(
+            std::move(extendedTask->white),
+            std::move(extendedTask->black));
+    }
+    else {
+        setUniqueEngine(std::move(extendedTask->white));
+    }
+
+    return extendedTask->task;
 }
 
 std::optional<GameTask> GameManager::organizeNewAssignment() {
@@ -378,23 +405,23 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
         return task;
     }
 
-    auto extendedTask = GameManagerPool::getInstance().tryAssignNewTask();
-    if (!extendedTask) {
-        return std::nullopt;
-    }
+    return tryGetReplacementTask();
+}
 
-    taskProvider_ = extendedTask->provider;
-
-    if (extendedTask->black) {
-        setEngines(
-            std::move(extendedTask->white),
-            std::move(extendedTask->black));
+void GameManager::computeTask(std::optional<GameTask> task) {
+    if (!task) {
+        markFinished();
+        return;
     }
-    else {
-        setUniqueEngine(std::move(extendedTask->white));
-    }
-
-    return extendedTask->task;
+	if (task->switchSide != switchedSide_) {
+		switchSide();
+	}
+	setStartPosition(task->useStartPosition, task->fen);
+	gameRecord_.setTimeControl(task->whiteTimeControl, task->blackTimeControl);
+	gameRecord_.setRound(task->round);
+	setTimeControls(task->whiteTimeControl, task->blackTimeControl);
+	taskType_ = task->taskType;
+	computeNextMove();
 }
 
 void GameManager::computeNextTask() {
@@ -413,7 +440,7 @@ void GameManager::computeNextTask() {
     }
 
 	if (!taskProvider_) {
-        finishedPromise_.set_value();
+        markFinished();
 		return;
 	}
 	auto whiteId = whitePlayer_->getIdentifier();
@@ -423,31 +450,27 @@ void GameManager::computeNextTask() {
     }
     auto task = organizeNewAssignment();
     if (!task) {
-        finishedPromise_.set_value();
+        markFinished();
         return;
     }
 
-	if (task->switchSide != switchedSide_) {
-		switchSide();
-	}
-	setStartPosition(task->useStartPosition, task->fen);
-	gameRecord_.setTimeControl(task->whiteTimeControl, task->blackTimeControl);
-	gameRecord_.setRound(task->round);
-	setTimeControls(task->whiteTimeControl, task->blackTimeControl);
-    taskType_ = task->taskType;
-
-    computeNextMove();
+	computeTask(std::move(task));
 }
 
 void GameManager::computeTasks(GameTaskProvider* taskProvider) {
-    finishedPromise_ = std::promise<void>{};
-    finishedFuture_ = finishedPromise_.get_future();
-	taskProvider_ = std::move(taskProvider);
+    markRunning();
     logMoves_ = false;
-	taskType_ = GameTask::Type::FetchNextTask;
-    computeNextTask();
+
+	if (taskProvider == nullptr) {
+		auto task = tryGetReplacementTask();
+        computeTask(task);
+    }
+    else {
+        taskProvider_ = std::move(taskProvider);
+        taskType_ = GameTask::Type::FetchNextTask;
+        computeNextTask();
+    }
 }
 
-void GameManager::run() {
-}
+
 

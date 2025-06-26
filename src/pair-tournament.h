@@ -42,6 +42,7 @@
 struct PairTournamentConfig {
     int games = 0;
     int repeat = 2;
+    int round = 0;
     bool swapColors = true;
     Openings openings;
 };

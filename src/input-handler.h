@@ -36,7 +36,9 @@ class InputHandler {
 public:
     enum class ImmediateCommand {
         Abort,
+        Concurrency,
         Info,
+        Quit,
         SetTraceLevel,       // Programmintern
         SetEngineTraceLevel  // Per Engine
     };
@@ -44,15 +46,14 @@ public:
     class CallbackRegistration {
     public:
         ~CallbackRegistration();
-        CallbackRegistration(InputHandler& handler, ImmediateCommand command, size_t id);
+        CallbackRegistration(InputHandler& handler, size_t id);
 
     private:
         InputHandler* handler_;
-        ImmediateCommand command_;
         size_t callbackId_;
     };
 
-	using CommandValue = std::optional<std::variant<std::string, int, bool>>;
+	using CommandValue = std::optional<std::string>;
     using CommandCallback = std::function<void(ImmediateCommand, CommandValue)>;
 
     /**
@@ -101,12 +102,14 @@ public:
     }
 
     std::unique_ptr<CallbackRegistration> registerCommandCallback(ImmediateCommand cmd, CommandCallback callback);
+    std::unique_ptr<CallbackRegistration> 
+        registerCommandCallback(std::vector<ImmediateCommand> cmds, CommandCallback callback);
 
-    void dispatchImmediate(ImmediateCommand cmd, CommandValue value = std::nullopt);
+    void dispatchImmediate(ImmediateCommand cmd, const std::vector<std::string>& args);
 
 private:
     void inputLoop();
-    void handleSetCommand(std::istringstream& iss);
+    void handleSetCommand(const std::vector<std::string>& args);
     void handleLine(const std::string& line);
 
     static InputHandler*& getGlobalInstance() {
@@ -119,10 +122,10 @@ private:
     std::thread inputThread;
 
     // Notification
-    void unregisterCallback(ImmediateCommand cmd, size_t id);
+    void unregisterCallback(size_t id);
     size_t nextCallbackId_ = 1;
     struct CallbackEntry {
-        ImmediateCommand command;
+        std::vector<ImmediateCommand> commands;
         size_t id;
         CommandCallback callback;
     };

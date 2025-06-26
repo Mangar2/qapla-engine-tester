@@ -162,7 +162,8 @@ void PairTournament::setGameRecord(const std::string& whiteId,
     results_[round - 1] = result;
     PgnIO::tournament().saveGame(record);
 	duelResult_.addResult(record);
-    Logger::testLogger().log(duelResult_.toString() + " " + to_string(cause), TraceLevel::result);
+    Logger::testLogger().log("result round " + std::to_string(config_.round + 1) + " game " + std::to_string(round) + 
+        " " + duelResult_.toString() + " " + to_string(cause), TraceLevel::result);
 }
 
 std::string PairTournament::toString() const {

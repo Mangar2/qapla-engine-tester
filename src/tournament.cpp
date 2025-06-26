@@ -110,6 +110,7 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
         ptc.repeat = config.repeat;
         ptc.swapColors = !config.noSwap;
         ptc.openings = config.openings;
+        ptc.round = round;
 
         if (ptc.openings.order != "random") {
             int size = static_cast<int>(startPositions_->size());

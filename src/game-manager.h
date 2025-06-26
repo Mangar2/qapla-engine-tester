@@ -103,11 +103,6 @@ public:
 	}
 
     /**
-     * @brief Starts the game by sending a compute command to the engine.
-     */
-    void run();
-
-    /**
      * @brief Returns a future that becomes ready when the game is complete.
      */
     const std::future<void>& getFinishedFuture() const {
@@ -144,7 +139,7 @@ public:
      *
      * @param taskProvider Function that returns the next Task or std::nullopt if done.
      */
-    void computeTasks(GameTaskProvider* taskProvider);
+    void computeTasks(GameTaskProvider* taskProvider = nullptr);
 
     /**
      * @brief Returns a reference to the EngineWorker instance.
@@ -250,6 +245,7 @@ private:
      * @brief Signals that a computation has completed. Call once per compute cycle.
      */
     void markFinished();
+    void markRunning();
 
     /**
      * Players
@@ -274,11 +270,30 @@ private:
 	void computeNextTask();
 
     /**
+     * @brief Attempts to obtain a replacement task and reassign the GameManager.
+     *
+     * If a new task is available via the GameManagerPool, this method updates the
+     * GameManager's task provider and engine assignments accordingly. Returns the
+     * new task if successful.
+     *
+     * @return An optional GameTask if reassignment was possible; std::nullopt otherwise.
+     */
+    std::optional<GameTask> tryGetReplacementTask();
+
+    /**
 	 * @brief Attempts to organize a new assignment by fetching the next task from the task provider or 
 	 * from the GameManagerPool, if the task proivder has no more tasks available.
 	 * @return the new GameTask or std::nullopt if no more tasks are available.
      */
     std::optional<GameTask> organizeNewAssignment();
+
+	/**
+	 * @brief Computes the task based on the provided GameTask.
+	 * If the task is std::nullopt, it marks the game as finished.
+	 *
+	 * @param task The GameTask to compute.
+	 */
+    void computeTask(std::optional<GameTask> task);
 
     /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
