@@ -28,3 +28,10 @@ inline std::string to_lowercase(const std::string& input) {
         [](unsigned char c) { return std::tolower(c); });
     return result;
 }
+
+inline std::string trim(const std::string& line) {
+	auto start = line.find_first_not_of(" \t\r\n");
+	if (start == std::string::npos) return "";
+	auto end = line.find_last_not_of(" \t\r\n");
+	return line.substr(start, end - start + 1);
+}

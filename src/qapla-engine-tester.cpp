@@ -158,6 +158,9 @@ std::optional<Openings> readOpenings() {
         .start = opening->get<int>("start"),
         .policy = opening->get<std::string>("policy")
     };
+    if (openings.format != "epd" && openings.format != "raw" && openings.format != "pgn") {
+		throw AppError::makeInvalidParameters("Unsupported openings format: " + openings.format);
+    }
     return openings;
 }
 

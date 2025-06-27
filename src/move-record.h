@@ -28,6 +28,7 @@
 
 struct MoveRecord {
     std::string lan;
+    std::string san;
     std::string comment;
     std::string nag;
     uint64_t timeMs = 0;
@@ -43,6 +44,7 @@ struct MoveRecord {
 
     void clear() {
 		lan.clear();
+        san.clear();
 		comment.clear();
 		nag.clear();
 		timeMs = 0;

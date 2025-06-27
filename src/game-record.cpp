@@ -20,6 +20,37 @@
 
 #include "game-record.h"
 
+void GameRecord::setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove,
+    std::string whiteEngineName, std::string blackEngineName) {
+    moves_.clear();
+    isWhiteToMove_ = isWhiteToMove;
+    currentPly_ = 0;
+    startPos_ = startPos;
+    startFen_ = startFen;
+    gameEndCause_ = GameEndCause::Ongoing;
+    gameResult_ = GameResult::Unterminated;
+    whiteEngineName_ = whiteEngineName;
+    blackEngineName_ = blackEngineName;
+}
+
+void GameRecord::setStartPosition(const GameRecord& source, uint32_t toPly, bool isWhiteToMove,
+    const std::string& whiteEngineName, const std::string& blackEngineName) {
+    moves_.clear();
+    const auto& sourceHistory = source.history();
+    moves_.insert(moves_.end(), sourceHistory.begin(), sourceHistory.begin() + 
+        std::min<uint32_t>(toPly, static_cast<uint32_t>(sourceHistory.size())));
+    isWhiteToMove_ = isWhiteToMove;
+    currentPly_ = 0;
+    startPos_ = source.startPos_;
+    startFen_ = source.startFen_;
+    gameEndCause_ = GameEndCause::Ongoing;
+    gameResult_ = GameResult::Unterminated;
+    whiteEngineName_ = whiteEngineName;
+    blackEngineName_ = blackEngineName;
+    round_ = source.round_;
+    tags_ = source.tags_;
+}
+
 void GameRecord::addMove(const MoveRecord& move) {
     if (currentPly_ < moves_.size()) {
         moves_.resize(currentPly_);

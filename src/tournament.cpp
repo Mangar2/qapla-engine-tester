@@ -35,42 +35,51 @@ bool Tournament::wait() {
 
 void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {
-    if (!startPositions_) startPositions_ = std::make_shared<std::vector<std::string>>();
+
+    if (!openings_) openings_ = std::make_shared<TournamentOpenings>();
 
     if (config.openings.file.empty()) {
         Logger::testLogger().log("No openings file provided.", TraceLevel::error);
         return;
     }
-    if (config.openings.format != "epd" && config.openings.format != "raw") {
+
+    engineConfig_ = engines;
+    config_ = config;
+
+    if (config.openings.format == "epd" || config.openings.format == "raw") {
+        EpdReader reader(config.openings.file);
+        for (const auto& entry : reader.all()) {
+            if (!entry.fen.empty()) {
+                openings_->fens.push_back(entry.fen);
+            }
+        }
+    }
+    else if (config.openings.format == "pgn") {
+        openings_->games = std::move(PgnIO::tournament().loadGames());
+    }
+    else {
         Logger::testLogger().log("Unsupported openings format: " + config.openings.format, TraceLevel::error);
         return;
     }
-	engineConfig_ = engines;
-    config_ = config;
-    EpdReader reader(config.openings.file);
-    for (const auto& entry : reader.all()) {
-        if (!entry.fen.empty()) {
-            startPositions_->push_back(entry.fen);
-        }
-    }
 
-    if (startPositions_->empty()) {
+    if (openings_->fens.empty() && openings_->games.empty()) {
         Logger::testLogger().log("No valid openings found in file.", TraceLevel::error);
         return;
     }
 
     PgnIO::tournament().initialize(config.event);
-	if (config.type == "gauntlet") {
+    if (config.type == "gauntlet") {
         createGauntletPairings(engines, config);
-	}
+    }
     else if (config.type == "round-robin") {
         createRoundRobinPairings(engines, config);
     }
     else {
-		Logger::testLogger().log("Unsupported tournament type: " + config.type, TraceLevel::error);
-		return;
-	}
+        Logger::testLogger().log("Unsupported tournament type: " + config.type, TraceLevel::error);
+        return;
+    }
 }
+
 
 void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {

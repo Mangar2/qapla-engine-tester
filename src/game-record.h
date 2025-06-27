@@ -24,6 +24,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
+#include <string>
+#include <map>
 
 #include "move-record.h"
 #include "time-control.h"
@@ -35,18 +37,20 @@
  */
 class GameRecord {
 public:
-    void setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove, 
-        std::string whiteEngineName, std::string blackEngineName) {
-		moves_.clear();
-		isWhiteToMove_ = isWhiteToMove;
-		currentPly_ = 0;
-		startPos_ = startPos;
-		startFen_ = startFen;
-		gameEndCause_ = GameEndCause::Ongoing;
-		gameResult_ = GameResult::Unterminated;
-		whiteEngineName_ = whiteEngineName;
-		blackEngineName_ = blackEngineName;
-    }
+	void setStartPosition(bool startPos, std::string startFen, bool isWhiteToMove,
+		std::string whiteEngineName, std::string blackEngineName);
+
+	/**
+	 * @brief Initializes this GameRecord using another GameRecord (for PGN-based start setup).
+	 * @param source Source GameRecord to extract setup information from.
+	 * @param toPly Number of plies to import from the source game history.
+	 * @param isWhiteToMove True if it is white's turn to move, false for black.
+	 * @param whiteEngineName White engine name to override.
+	 * @param blackEngineName Black engine name to override.
+	 */
+	void setStartPosition(const GameRecord& source, uint32_t toPly, bool isWhiteToMove,
+		const std::string& whiteEngineName, const std::string& blackEngineName);
+
     /** Adds a move at the current ply position, overwriting any future moves. */
     void addMove(const MoveRecord& move);
 
@@ -130,10 +134,16 @@ public:
 	const std::string& getWhiteEngineName() const {
 		return whiteEngineName_;
 	}
+	void setWhiteEngineName(const std::string& name) {
+		whiteEngineName_ = name;
+	}
 
     const std::string& getBlackEngineName() const {
 		return blackEngineName_;
     }
+	void setBlackEngineName(const std::string& name) {
+		blackEngineName_ = name;
+	}
 
 	/**
 	 * @brief Returns the round number of the game.
@@ -148,9 +158,42 @@ public:
 	void setRound(uint32_t r) {
 		round_ = r;
 	}
-    
+
+	/**
+	 * @brief Sets a PGN tag key-value pair.
+	 * @param key The tag name.
+	 * @param value The tag value.
+	 */
+	void setTag(const std::string& key, const std::string& value) {
+		if (value.empty()) {
+			tags_.erase(key);
+		}
+		else {
+			tags_[key] = value;
+		}
+	}
+
+	/**
+	 * @brief Gets the value of a PGN tag by key.
+	 * @param key The tag name.
+	 * @return Tag value or empty string if not found.
+	 */
+	std::string getTag(const std::string& key) const {
+		auto it = tags_.find(key);
+		return it != tags_.end() ? it->second : "";
+	}
+	/**
+	 * @brief Gets all stored PGN tags.
+	 * @return Map of all tag key-value pairs.
+	 */
+	const std::map<std::string, std::string>& getTags() const {
+		return tags_;
+	}
+
 
 private:
+	
+	std::map<std::string, std::string> tags_;
     bool startPos_ = true;
     std::string startFen_;
     std::vector<MoveRecord> moves_;
