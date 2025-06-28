@@ -36,7 +36,7 @@ bool Tournament::wait() {
 void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {
 
-    if (!openings_) openings_ = std::make_shared<TournamentOpenings>();
+    if (!startPositions_) startPositions_ = std::make_shared<StartPositions>();
 
     if (config.openings.file.empty()) {
         Logger::testLogger().log("No openings file provided.", TraceLevel::error);
@@ -50,21 +50,23 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
         EpdReader reader(config.openings.file);
         for (const auto& entry : reader.all()) {
             if (!entry.fen.empty()) {
-                openings_->fens.push_back(entry.fen);
+                startPositions_->fens.push_back(entry.fen);
             }
         }
     }
     else if (config.openings.format == "pgn") {
-        openings_->games = std::move(PgnIO::tournament().loadGames());
+        PgnIO pgnReader;
+        startPositions_->games = std::move(pgnReader.loadGames(config.openings.file));
     }
     else {
-        Logger::testLogger().log("Unsupported openings format: " + config.openings.format, TraceLevel::error);
+		throw AppError::makeInvalidParameters(
+			"Unsupported openings format: " + config.openings.format);
         return;
     }
 
-    if (openings_->fens.empty() && openings_->games.empty()) {
-        Logger::testLogger().log("No valid openings found in file.", TraceLevel::error);
-        return;
+    if (startPositions_->fens.empty() && startPositions_->games.empty()) {
+		throw AppError::makeInvalidParameters(
+			"No valid openings found in file: " + config.openings.file);
     }
 
     PgnIO::tournament().initialize(config.event);

@@ -29,13 +29,9 @@ struct GameTask {
         ComputeMove,
         PlayGame
     };
-    bool useStartPosition;
     bool switchSide = false;
     Type taskType;
-    std::string fen;
-    TimeControl whiteTimeControl;
-    TimeControl blackTimeControl;
-    uint32_t round;
+	GameRecord gameRecord;
 };
 
 class GameTaskProvider {

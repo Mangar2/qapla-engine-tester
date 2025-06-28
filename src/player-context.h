@@ -199,15 +199,23 @@ public:
      */
     void doMove(QaplaBasics::Move move);
     
-	/**
-	 * @brief Sets the game state to a new position.
-	 *
-	 * @param startPosition If true, sets the game to the starting position.
-	 * @param fen The FEN string representing the new position.
-	 */
-	void setFen(bool startPosition, const std::string& fen) {
-		gameState_.setFen(startPosition, fen);
-	}
+    /**
+	 * @brief Sets the game state from a GameRecord.
+	 * @param startPosition The GameRecord to set the game state from.
+     */
+    void setStartPosition(const GameRecord& startPosition) {
+        gameState_.setFromGameRecord(startPosition);
+    }
+
+    /**
+     * @brief Sets the game state to a new position.
+     *
+     * @param startPosition If true, sets the game to the starting position.
+     * @param fen The FEN string representing the new position.
+     */
+    void setStartPosition(bool startPosition, const std::string& fen) {
+        gameState_.setFen(startPosition, fen);
+    }
 
 	const TimeControl& getTimeControl() const {
 		return timeControl_;

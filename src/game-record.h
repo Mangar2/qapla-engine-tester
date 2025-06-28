@@ -116,6 +116,9 @@ public:
     const TimeControl& getWhiteTimeControl() const {
         return whiteTimeControl_;
     }
+	TimeControl& getWhiteTimeControl() {
+		return whiteTimeControl_;
+	}
 
     /**
      * @brief Returns the black side's time control.
@@ -123,6 +126,9 @@ public:
     const TimeControl& getBlackTimeControl() const {
         return blackTimeControl_;
     }
+	TimeControl& getBlackTimeControl() {
+		return blackTimeControl_;
+	}
 
 	/**
 	 * @brief Returns the current side to move.

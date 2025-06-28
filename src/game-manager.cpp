@@ -328,7 +328,7 @@ void GameManager::moveNow() {
 void GameManager::computeMove(bool useStartPosition, const std::string fen) {
     markRunning();
 	taskProvider_ = nullptr;
-	setStartPosition(useStartPosition, fen);
+	setFromFen(useStartPosition, fen);
 	gameRecord_.setTimeControl(whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl());
 	taskType_ = GameTask::Type::ComputeMove;
     logMoves_ = false;
@@ -353,7 +353,7 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
 void GameManager::computeGame(bool useStartPosition, const std::string fen, bool logMoves) {
     markRunning();
 	taskProvider_ = nullptr;
-	setStartPosition(useStartPosition, fen);
+	setFromFen(useStartPosition, fen);
     taskType_ = GameTask::Type::PlayGame;
 	logMoves_ = logMoves;
     computeNextMove();
@@ -408,6 +408,27 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
     return tryGetReplacementTask();
 }
 
+void GameManager::setFromFen(bool useStartPosition, const std::string& fen)
+{
+    whitePlayer_->setStartPosition(useStartPosition, fen);
+    if (whitePlayer_ != blackPlayer_) {
+        blackPlayer_->setStartPosition(useStartPosition, fen);
+    }
+    gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove(),
+        whitePlayer_->getEngine()->getConfig().getName(),
+        blackPlayer_->getEngine()->getConfig().getName());
+}
+
+void GameManager::setFromGameRecord(const GameRecord& game) {
+    gameRecord_ = game;
+    whitePlayer_->setStartPosition(game);
+    if (whitePlayer_ != blackPlayer_) {
+        blackPlayer_->setStartPosition(game);
+    }
+    gameRecord_.setWhiteEngineName(whitePlayer_->getEngine()->getConfig().getName());
+    gameRecord_.setBlackEngineName(blackPlayer_->getEngine()->getConfig().getName());
+}
+
 void GameManager::computeTask(std::optional<GameTask> task) {
     if (!task) {
         markFinished();
@@ -416,10 +437,8 @@ void GameManager::computeTask(std::optional<GameTask> task) {
 	if (task->switchSide != switchedSide_) {
 		switchSide();
 	}
-	setStartPosition(task->useStartPosition, task->fen);
-	gameRecord_.setTimeControl(task->whiteTimeControl, task->blackTimeControl);
-	gameRecord_.setRound(task->round);
-	setTimeControls(task->whiteTimeControl, task->blackTimeControl);
+	setFromGameRecord(task->gameRecord);
+    setTimeControls(gameRecord_.getWhiteTimeControl(), gameRecord_.getBlackTimeControl());
 	taskType_ = task->taskType;
 	computeNextMove();
 }
@@ -453,7 +472,6 @@ void GameManager::computeNextTask() {
         markFinished();
         return;
     }
-
 	computeTask(std::move(task));
 }
 

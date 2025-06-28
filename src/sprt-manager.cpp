@@ -89,12 +89,11 @@ std::optional<GameTask> SprtManager::nextTask(
     auto correctedFen = gameState.getFen();
     GameTask task;
     task.taskType = GameTask::Type::PlayGame;
-    task.useStartPosition = false;
-    task.fen = correctedFen;
-    task.whiteTimeControl = engine0_.getTimeControl();
-    task.blackTimeControl = engine1_.getTimeControl();
+	task.gameRecord.setStartPosition(
+		false, correctedFen, gameState.isWhiteToMove(), engineP1Name_, engineP2Name_);
+	task.gameRecord.setTimeControl(engine0_.getTimeControl(), engine1_.getTimeControl());
+	task.gameRecord.setRound(gamesStarted_ + 1);
     task.switchSide = (gamesStarted_ % 2) == 1;
-    task.round = gamesStarted_ + 1;
 
     ++gamesStarted_;
     if ((gamesStarted_ % 2) == 0 && config_.openings.order != "random") {

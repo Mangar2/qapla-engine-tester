@@ -37,6 +37,20 @@
 #include <random>
 
 /**
+ * @brief Represents a collection of chess openings for a tournament.
+ */
+struct StartPositions {
+    std::vector<std::string> fens;
+    std::vector<GameRecord> games;
+	int32_t size() const {
+		return std::max(static_cast<int32_t>(fens.size()), static_cast<int32_t>(games.size()));
+	}
+	bool empty() const {
+		return fens.empty() && games.empty();
+	}
+};
+
+/**
 * @brief Configuration parameters for a PairTournament.
 */
 struct PairTournamentConfig {
@@ -70,7 +84,7 @@ public:
     void initialize(const EngineConfig& engineA,
         const EngineConfig& engineB,
         const PairTournamentConfig& config,
-        std::shared_ptr<std::vector<std::string>> startPositions);
+        std::shared_ptr<StartPositions> startPositions);
 
     /**
      * @brief Registers this tournament with the GameManagerPool for execution.
@@ -130,8 +144,8 @@ private:
     EngineConfig engineA_;
     EngineConfig engineB_;
 	PairTournamentConfig config_;
-    std::shared_ptr<std::vector<std::string>> startPositions_;
-    std::string curStartPosition_;
+    std::shared_ptr<StartPositions> startPositions_;
+    GameRecord curRecord_;
 
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;

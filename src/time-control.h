@@ -122,21 +122,22 @@ public:
         while (std::getline(iss, segmentStr, ':')) {
             TimeSegment segment;
             size_t slashPos = segmentStr.find('/');
-            size_t plusPos = segmentStr.find('+');
             if (slashPos != std::string::npos) {
                 segment.movesToPlay = std::stoi(segmentStr.substr(0, slashPos));
                 segmentStr = segmentStr.substr(slashPos + 1);
             }
+            size_t plusPos = segmentStr.find('+');
             if (plusPos != std::string::npos) {
-                segment.baseTimeMs = std::stoll(segmentStr.substr(0, plusPos)) * 1000;
-                segment.incrementMs = std::stoll(segmentStr.substr(plusPos + 1)) * 1000;
+                segment.baseTimeMs = static_cast<int64_t>(std::stod(segmentStr.substr(0, plusPos)) * 1000);
+                segment.incrementMs = static_cast<int64_t>(std::stod(segmentStr.substr(plusPos + 1)) * 1000);
             }
             else {
-                segment.baseTimeMs = std::stoll(segmentStr) * 1000;
+                segment.baseTimeMs = static_cast<int64_t>(std::stod(segmentStr) * 1000);
             }
             timeSegments_.push_back(segment);
         }
     }
+
 
     /**
      * @brief Parses a cutechess-cli-style time control string and sets up the time control.
@@ -222,6 +223,18 @@ inline GoLimits createGoLimits(
     int64_t blackTimeUsedMs,
     bool whiteToMove
 ) {
+	if (!white.isValid()) {
+		throw std::invalid_argument("White time control is not valid");
+	}
+	if (!black.isValid()) {
+		throw std::invalid_argument("Black time control is not valid");
+	}
+	if (playedMoves < 0) {
+		throw std::invalid_argument("Played moves cannot be negative");
+	}
+	if (whiteTimeUsedMs < 0 || blackTimeUsedMs < 0) {
+		throw std::invalid_argument("Time used cannot be negative");
+	}
     GoLimits limits;
 
     limits.movetimeMs = white.moveTimeMs();

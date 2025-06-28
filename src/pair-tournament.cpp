@@ -23,7 +23,7 @@
 #include "pgn-io.h"
 
 void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig& engineB,
-	const PairTournamentConfig& config, std::shared_ptr<std::vector<std::string>> startPositions) {
+	const PairTournamentConfig& config, std::shared_ptr<StartPositions> startPositions) {
 
     std::lock_guard lock(mutex_);
     if (started_) {
@@ -108,7 +108,6 @@ std::optional<GameTask> PairTournament::nextTask(
         if (results_[i] != GameResult::Unterminated) {
             continue;
         }
-
         int openingIndex;
         if (i % config_.repeat == 0) {
             if (config_.openings.order == "random") {
@@ -119,20 +118,24 @@ std::optional<GameTask> PairTournament::nextTask(
 				int size = static_cast<int>(startPositions_->size());
                 openingIndex = (i / config_.repeat + config_.openings.start) % size;
             }
-            curStartPosition_ = (*startPositions_)[openingIndex];
             GameState gameState;
-            gameState.setFen(false, curStartPosition_);
-            curStartPosition_ = gameState.getFen();
+            if (startPositions_->fens.empty()) {
+				curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex]);
+			}
+            else {
+				auto fen = startPositions_->fens[openingIndex];
+                gameState.setFen(false, fen);
+				curRecord_.setStartPosition(false, gameState.getFen(),
+					gameState.isWhiteToMove(), engineA_.getName(), engineB_.getName());
+            }
         }
 
         GameTask task;
         task.taskType = GameTask::Type::PlayGame;
-        task.useStartPosition = false;
-        task.fen = curStartPosition_;
-        task.whiteTimeControl = engineA_.getTimeControl();
-        task.blackTimeControl = engineB_.getTimeControl();
+		task.gameRecord = curRecord_;
+		task.gameRecord.setTimeControl(engineA_.getTimeControl(), engineB_.getTimeControl());
+		task.gameRecord.setRound(static_cast<uint32_t>(i + 1));
         task.switchSide = config_.swapColors && (i % 2 == 1);
-        task.round = static_cast<uint32_t>(i + 1);
 
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;

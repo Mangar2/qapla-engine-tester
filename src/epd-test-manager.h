@@ -77,13 +77,12 @@ public:
 
         const auto& test = tests_[currentIndex_];
         GameTask task;
-        task.taskType = GameTask::Type::ComputeMove;
-        task.useStartPosition = false;
-        task.fen = test.fen;
         TimeControl t;
-		t.setMoveTime(5000);
-        task.whiteTimeControl = t;
-        task.blackTimeControl = t;
+        t.setMoveTime(5000);
+        task.taskType = GameTask::Type::ComputeMove;
+		task.gameRecord.setStartPosition(
+			false, test.fen, test.whiteToPlay, "", "");
+        task.gameRecord.setTimeControl(t, t);
         Logger::testLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
         ++currentIndex_;
 

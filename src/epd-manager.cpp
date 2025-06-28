@@ -156,7 +156,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& eng
     initializeTestCases(maxTimeInS, minTimeInS, seenPlies);
     currentIndex_ = 0;
     oldestIndexInUse_ = 0;
-    tc.setMoveTime(maxTimeInS * 1000);
+    tc_.setMoveTime(maxTimeInS * 1000);
     printHeaderLine();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
 	GameManagerPool::getInstance().addTaskProvider(this, engine, static_cast<int>(reader_->all().size()));
@@ -181,15 +181,13 @@ std::optional<GameTask> EpdManager::nextTask(const std::string& whiteId, const s
 
     GameTask task;
     task.taskType = GameTask::Type::ComputeMove;
-    task.useStartPosition = false;
-    task.whiteTimeControl = tc;
-    task.blackTimeControl = tc;
-
+    
 	tests_[currentIndex_].engineId = whiteId;
     GameState gameState;
     gameState.setFen(false, tests_[currentIndex_].fen);
     auto correctedFen = gameState.getFen();
-    task.fen = correctedFen;
+    task.gameRecord.setStartPosition(false, correctedFen, gameState.isWhiteToMove(), "", "");
+    task.gameRecord.setTimeControl(tc_, tc_);
     currentIndex_++;
 
     return task;

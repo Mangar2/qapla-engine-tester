@@ -56,11 +56,10 @@ public:
         ++current_;
 
         GameTask task;
-        task.useStartPosition = true;
-        task.fen = "";
+        task.gameRecord.setStartPosition(true, "", true, "", "");
+		task.gameRecord.getWhiteTimeControl().addTimeSegment(timePairs_[idx].first);
+		task.gameRecord.getBlackTimeControl().addTimeSegment(timePairs_[idx].second);
 		task.taskType = GameTask::Type::PlayGame;
-        task.whiteTimeControl.addTimeSegment(timePairs_[idx].first);
-        task.blackTimeControl.addTimeSegment(timePairs_[idx].second);
         return task;
     }
 

@@ -62,9 +62,11 @@ public:
 
     /**
      * @brief Loads all games from the PGN file.
+     * 
+	 * @param fileName Name of the PGN file to load.
      * @return Vector of parsed GameRecord instances.
      */
-    std::vector<GameRecord> loadGames();
+    std::vector<GameRecord> loadGames(const std::string& fileName);
 
 	/**
 	 * @brief Sets the options for PGN output.
@@ -161,13 +163,6 @@ private:
      * @param game The GameRecord whose tags will be finalized.
      */
     void finalizeParsedTags(GameRecord& game);
-
-    /**
-     * @brief Validates the SAN move list of a GameRecord using GameState.
-     *        Truncates illegal moves and sets game result via GameState.
-     * @param game GameRecord to validate and fix.
-     */
-    void validateAndFixMoveList(GameRecord& game);
 
     Options options_;
     std::mutex fileMutex_;

@@ -42,10 +42,7 @@ struct TournamentConfig {
     Openings openings;
 };
 
-struct TournamentOpenings {
-    std::vector<std::string> fens;
-    std::vector<GameRecord> games;
-};
+
 
  /**
   * @brief Manages and executes a complete tournament composed of multiple PairTournaments.
@@ -152,7 +149,7 @@ private:
 
     std::vector<EngineConfig> engineConfig_;
 	TournamentConfig config_;
-	std::shared_ptr<TournamentOpenings> openings_;
+	std::shared_ptr<StartPositions> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
     
     // Registration

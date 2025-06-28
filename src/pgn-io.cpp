@@ -473,9 +473,9 @@ std::pair<std::vector<MoveRecord>, std::optional<GameResult>> PgnIO::parseMoveLi
     return { moves, result };
 }
 
-std::vector<GameRecord> PgnIO::loadGames() {
+std::vector<GameRecord> PgnIO::loadGames(const std::string& fileName) {
     std::vector<GameRecord> games;
-    std::ifstream inFile(options_.file);
+    std::ifstream inFile(fileName);
     if (!inFile) return games;
 
     GameRecord currentGame;
@@ -518,41 +518,3 @@ std::vector<GameRecord> PgnIO::loadGames() {
     return games;
 }
 
-void PgnIO::validateAndFixMoveList(GameRecord& game) {
-    GameState state;
-    state.setFen(game.getStartPos(), game.getStartFen());
-
-    std::vector<MoveRecord> validMoves;
-    const auto& moves = game.history();
-
-    for (size_t i = 0; i < moves.size(); ++i) {
-        const auto& move = moves[i];
-
-        auto parsed = state.stringToMove(move.san, false);
-		if (parsed.isEmpty()) {
-            game.setGameEnd(GameEndCause::Ongoing, GameResult::Unterminated);
-			break;
-		}
-        state.doMove(parsed);
-
-        MoveRecord copy = move;
-        copy.lan = parsed.getLAN(); 
-        validMoves.push_back(copy);
-
-        auto [cause, result] = state.getGameResult();
-        auto [existingCause, existingResult] = game.getGameResult();
-        if (result != GameResult::Unterminated && existingResult == GameResult::Unterminated) {
-            game.setGameEnd(cause, result);
-            break;
-        }
-    }
-
-    game.setStartPosition(game.getStartPos(), game.getStartFen(),
-        state.isWhiteToMove(),
-        game.getWhiteEngineName(),
-        game.getBlackEngineName());
-
-    for (const auto& m : validMoves) {
-        game.addMove(m);
-    }
-}

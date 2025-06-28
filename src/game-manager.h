@@ -222,15 +222,15 @@ private:
 	 * @param useStartPosition If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
 	 */
-	void setStartPosition(bool useStartPosition, const std::string& fen) {
-        whitePlayer_->setFen(useStartPosition, fen);
-		if (whitePlayer_ != blackPlayer_) {
-			blackPlayer_->setFen(useStartPosition, fen);
-		}
-        gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove(),
-            whitePlayer_->getEngine()->getConfig().getName(),
-            blackPlayer_->getEngine()->getConfig().getName());
-	}
+    void setFromGameRecord(const GameRecord& game);
+
+    /**
+     * @brief Initiates a new game, setting the FEN string for both players and informing the gameRecord.
+     *
+     * @param useStartPosition If true, the game starts from the initial position.
+     * @param fen The FEN string representing the game state.
+     */
+    void setFromFen(bool useStartPosition, const std::string& fen);
 
 	/**
 	 * @brief Checks if the game has ended.

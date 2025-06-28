@@ -163,6 +163,6 @@ private:
     std::mutex taskMutex_;
     int oldestIndexInUse_ = 0;
     int currentIndex_ = 0;
-    TimeControl tc;
+    TimeControl tc_;
 
 };

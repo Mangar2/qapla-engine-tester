@@ -26,7 +26,7 @@ void GameRecord::setStartPosition(bool startPos, std::string startFen, bool isWh
     isWhiteToMove_ = isWhiteToMove;
     currentPly_ = 0;
     startPos_ = startPos;
-    startFen_ = startFen;
+    startFen_ = startPos ? "" : startFen;
     gameEndCause_ = GameEndCause::Ongoing;
     gameResult_ = GameResult::Unterminated;
     whiteEngineName_ = whiteEngineName;

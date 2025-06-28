@@ -181,4 +181,36 @@ QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan)
 
 	return foundMove;
 }
+
+GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<int> plies) {
+	GameRecord copy;
+	setFen(game.getStartPos(), game.getStartFen());
+	copy.setStartPosition(game.getStartPos(), getFen(),
+		isWhiteToMove(), game.getWhiteEngineName(), game.getBlackEngineName());
+	const auto& moves = game.history();
+	int maxPly = static_cast<int>(moves.size());
+	if (plies) {
+		maxPly = std::min(maxPly, *plies);
+	}
+	for (size_t i = 0; i < maxPly; ++i) {
+		auto move = moves[i];
+		auto parsed = stringToMove(move.lan.empty() ? move.san: move.lan, false);
+		if (parsed.isEmpty()) {
+			return copy;
+		}
+		move.lan = parsed.getLAN();
+		move.san = moveToSan(parsed);
+		copy.addMove(move);
+		doMove(parsed);
+	}
+	auto [gameCause, gameResult] = game.getGameResult();
+	auto [cause, result] = getGameResult();
+	if (result == GameResult::Unterminated) {
+		setGameResult(gameCause, gameResult);
+	}
+	auto [sumCause, sumResult] = getGameResult();
+
+	copy.setGameEnd(sumCause, sumResult);
+	return copy;
+}
 	

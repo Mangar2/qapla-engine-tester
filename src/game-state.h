@@ -24,6 +24,7 @@
 #include <cstdint>
 #include "movegenerator.h"
 #include "game-result.h"
+#include "game-record.h"
 
 using MoveStr = std::string;
 using MoveStrList = std::vector<MoveStr>;
@@ -84,6 +85,13 @@ public:
 		gameEndCause_ = cause;
 		gameResult_ = result;
 	}
+
+	/**
+	 * @brief sets the game state from a game record information
+	 * @param record The game record to set the state from.
+	 * @param plies The ply number to set the game state to.
+	 */
+	GameRecord setFromGameRecord(const GameRecord& record, std::optional<int> plies = std::nullopt);
 
 	
 private:
