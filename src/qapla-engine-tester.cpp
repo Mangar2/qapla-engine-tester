@@ -150,14 +150,36 @@ std::optional<Openings> readOpenings() {
         Logger::testLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
 		return std::nullopt;
     }
+
+	const auto pliesStr = opening->get<std::string>("plies");
+    std::optional<int> plies;
+
+    if (pliesStr != "all") {
+        try {
+            int val = std::stoi(pliesStr);
+            if (val < 0) {
+                throw AppError::makeInvalidParameters("Openings: Ply count must be at least 0, but got " + pliesStr);
+            }
+            plies = val - 1; // intern 0-basiert
+        }
+        catch (const std::exception&) {
+            throw AppError::makeInvalidParameters(
+                "Openings: Ply count must be a non-negative integer or \"all\", but got: \"" + pliesStr + "\""); 
+        }
+    }
+
     Openings openings{
         .file = opening->get<std::string>("file"),
         .format = opening->get<std::string>("format"),
         .order = opening->get<std::string>("order"),
-        .plies = opening->get<int>("plies"),
-        .start = opening->get<int>("start"),
+        .plies = plies,
+        .start = opening->get<int>("start") - 1, // 1 based index in gui.
         .policy = opening->get<std::string>("policy")
     };
+    if (openings.start < 0) {
+        throw AppError::makeInvalidParameters("Openings: Start index must be at least 1, but got " +
+            std::to_string(openings.start + 1));
+    }
     if (openings.format != "epd" && openings.format != "raw" && openings.format != "pgn") {
 		throw AppError::makeInvalidParameters("Unsupported openings format: " + openings.format);
     }
@@ -426,7 +448,7 @@ int main(int argc, char** argv) {
             { "file",  { "Path to file with opening positions", true, "", CliSettings::ValueType::PathExists } },
             { "format", { "Format of the file: epd, raw, pgn", false, "epd", CliSettings::ValueType::String } },
             { "order", { "Order of position selection: random, sequential", false, "sequential", CliSettings::ValueType::String } },
-            { "plies", { "Max number of plies per opening (0 = unlimited)", false, 0, CliSettings::ValueType::Int } },
+            { "plies", { "Max number of plies per opening (all = unlimited)", false, "all", CliSettings::ValueType::String}},
             { "start", { "Index of first opening (1-based)", false, 1, CliSettings::ValueType::Int } },
             { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
             });

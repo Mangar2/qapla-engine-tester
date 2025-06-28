@@ -140,6 +140,13 @@ public:
 		return duelResult_;
     }
 
+	const EngineConfig& getEngineA() const {
+		return engineA_;
+	}
+	const EngineConfig& getEngineB() const {
+		return engineB_;
+	}
+	
 private:
     EngineConfig engineA_;
     EngineConfig engineB_;

@@ -23,6 +23,7 @@
 #include "engine-config.h"
 #include "game-task.h"
 #include "openings.h"
+#include "pair-tournament.h"
 
 /**
  * @brief Configuration parameters for a SPRT test run.
@@ -52,11 +53,16 @@ public:
      * @param engine1 Configuration for the second engine.
      * @param concurrency Number of engine instances to run in parallel.
      * @param config All configuration parameters required for the SPRT test.
-	 * @return An optional boolean indicating the result of the SPRT test. 
-     *         true, H1 accepted; false, H0 accepted; std::nullopt, inconclusive.
      */
-    void run(const EngineConfig& engine0, const EngineConfig& engine1,
-        int concurrency, const SprtConfig& config);
+    void createTournament(const EngineConfig& engine0, const EngineConfig& engine1,
+        const SprtConfig& config);
+
+    /**
+     * @brief Schedules the tournament
+     *
+     * @param concurrency Number of parallel workers to use.
+     */
+    void schedule(int concurrency);
 
     /**
      * @brief Waits for all engines to finish.
@@ -92,6 +98,9 @@ public:
 	}
 
 private:
+    std::shared_ptr<PairTournament> tournament_;
+    std::shared_ptr<StartPositions> startPositions_;
+
     /**
      * @brief Evaluates the current SPRT test state and logs result if decision boundary is reached.
      * @return true if the test should be stopped (H0 or H1 accepted), false otherwise.
@@ -108,9 +117,7 @@ private:
 
     uint32_t gamesStarted_ = 0;
     size_t nextIndex_ = 0;
-	std::vector<std::string> startPositions_;
     SprtConfig config_;
-    int concurrency_;
     uint32_t winsP1_ = 0;
     uint32_t winsP2_ = 0;
     uint32_t draws_ = 0;
@@ -118,7 +125,5 @@ private:
 
     std::string engineP1Name_;
     std::string engineP2Name_;
-    EngineConfig engine0_;
-	EngineConfig engine1_;
 
 };

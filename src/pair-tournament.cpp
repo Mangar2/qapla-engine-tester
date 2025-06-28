@@ -120,7 +120,7 @@ std::optional<GameTask> PairTournament::nextTask(
             }
             GameState gameState;
             if (startPositions_->fens.empty()) {
-				curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex]);
+                curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
 			}
             else {
 				auto fen = startPositions_->fens[openingIndex];

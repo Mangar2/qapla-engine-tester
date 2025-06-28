@@ -358,7 +358,7 @@ size_t PgnIO::skipRecursiveVariation(const std::vector<std::string>& tokens, siz
 std::pair<MoveRecord, size_t> PgnIO::parseMove(const std::vector<std::string>& tokens, size_t start) {
     
     size_t pos = skipMoveNumber(tokens, start);
-    if (pos >= tokens.size()) return { {}, start };
+    if (pos >= tokens.size()) return { {}, pos };
 
     MoveRecord move;
     move.san = tokens[pos];
@@ -461,13 +461,11 @@ std::pair<std::vector<MoveRecord>, std::optional<GameResult>> PgnIO::parseMoveLi
         if (tok == "*") return { moves, GameResult::Unterminated };
 
         auto [move, nextPos] = parseMove(tokens, pos);
-        if (nextPos == pos) {
-            ++pos; // Skip unrecognized token
-        }
-        else {
+        if (!move.san.empty()) {
             moves.push_back(move);
-            pos = nextPos;
         }
+        pos = nextPos;
+
     }
 
     return { moves, result };

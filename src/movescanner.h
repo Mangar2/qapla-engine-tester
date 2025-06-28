@@ -151,7 +151,7 @@ namespace QaplaInterface {
             while (curIndex >= 0 && move[static_cast<size_t>(curIndex)] == ' ') {
                 --curIndex;
             }
-
+            legal = true;
             if (!handleCastleNotation(move)) {
                 skipCheckAndMateSigns(move, curIndex);
                 promote = getPiece(move, curIndex);
@@ -172,19 +172,25 @@ namespace QaplaInterface {
         }
 
         bool handleCastleNotation(const std::string& move) {
-            if (move.size() < 3 || !isCastleNotationChar(move[0])) {
-                return false;
+            int count = 0;
+            for (size_t i = 0; i < move.size(); ++i) {
+                if (i % 2 == 0) {
+                    if (!isCastleNotationChar(move[i])) return false;
+                    count++;
+                }
+                else if (move[i] != '-') {
+                    return false;
+                }
             }
+
+            if (count != 2 && count != 3) return false;
 
             departureFile = 4;
             departureRank = NO_POS;
-            destinationFile = NO_POS;
             destinationRank = NO_POS;
             piece = 'K';
+            destinationFile = (count == 2) ? 6 : 2;
 
-            if (move.size() >= 5 && move[1] == '-' && isCastleNotationChar(move[2])) {
-                destinationFile = (move[3] == '-' && isCastleNotationChar(move[4])) ? 2 : 6;
-            }
             return true;
         }
 

@@ -20,6 +20,7 @@
 #pragma once
 
 #include <string>
+#include <optional>
 
  /**
   * @brief Configuration for loading and selecting opening positions.
@@ -28,7 +29,7 @@ struct Openings {
     std::string file;
     std::string format;
     std::string order;
-    int plies;
+    std::optional<int> plies;
     int start;
     std::string policy;
 };

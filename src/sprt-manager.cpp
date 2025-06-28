@@ -31,77 +31,71 @@ bool SprtManager::wait() {
     return true;
 };
 
-void SprtManager::run(
-    const EngineConfig& engine0, const EngineConfig& engine1, int concurrency, const SprtConfig& config) {
+void SprtManager::createTournament(
+    const EngineConfig& engine0, const EngineConfig& engine1, const SprtConfig& config) {
+
 	config_ = config;
-	engine0_ = engine0;
-	engine1_ = engine1;
 	engineP1Name_ = engine0.getName();
 	engineP2Name_ = engine1.getName();
+    PgnIO::tournament().initialize("Sprt");
 
-	if (config.openings.file.empty()) {
-		Logger::testLogger().log("No openings file provided, using default EPD test set.", TraceLevel::error);
-		return;
-	}
-	if (config.openings.format != "epd" && config.openings.format != "raw") {
-		Logger::testLogger().log("Unsupported openings format: " + config.openings.format, TraceLevel::error);
-		return;
-	}
-	EpdReader reader(config.openings.file);
+    if (!startPositions_) startPositions_ = std::make_shared<StartPositions>();
+
+    if (config.openings.file.empty()) {
+        Logger::testLogger().log("No openings file provided.", TraceLevel::error);
+        return;
+    }
+
+    if (config.openings.format == "epd" || config.openings.format == "raw") {
+        EpdReader reader(config.openings.file);
+        for (const auto& entry : reader.all()) {
+            if (!entry.fen.empty()) {
+                startPositions_->fens.push_back(entry.fen);
+            }
+        }
+    }
+    else if (config.openings.format == "pgn") {
+        PgnIO pgnReader;
+        startPositions_->games = std::move(pgnReader.loadGames(config.openings.file));
+    }
+    else {
+        throw AppError::makeInvalidParameters(
+            "Unsupported openings format: " + config.openings.format);
+        return;
+    }
+
+    PairTournamentConfig ptc;
+    ptc.games = config.maxGames;
+    ptc.repeat = 2;
+    ptc.round = 0;
+    ptc.swapColors = true;
+    ptc.openings = config.openings;
+
+    tournament_ = std::make_shared<PairTournament>(); 
+    tournament_->initialize(engine0, engine1, ptc, startPositions_);
+}
+
+void SprtManager::schedule(int concurrency) { 
     std::cout << "Running SPRT: " << engineP1Name_ << " vs " << engineP2Name_
-        << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
-        << " | alpha: " << config.alpha << ", beta: " << config.beta
-        << " | maxGames: " << config.maxGames
+        << " | Elo range: [" << config_.eloLower << ", " << config_.eloUpper << "]"
+        << " | alpha: " << config_.alpha << ", beta: " << config_.beta
+        << " | maxGames: " << config_.maxGames
         << " | concurrency: " << concurrency << std::endl;
-	for (auto& entry : reader.all()) {
-		if (entry.fen.empty()) {
-			continue;
-		}
-		startPositions_.push_back(entry.fen);
-	}
-    winsP1_ = 0;
-	winsP2_ = 0;
-    gamesStarted_ = 0;
-	draws_ = 0;
-	nextIndex_ = 0;
-    PgnIO::tournament().initialize();
-	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTaskProvider(this, engine0, engine1, config.maxGames);
 
+    GameManagerPool::getInstance().setConcurrency(concurrency, true);
+    GameManagerPool::getInstance().addTaskProvider(this, 
+        tournament_->getEngineA(), tournament_->getEngineB(), config_.maxGames);
 }
 
 std::optional<GameTask> SprtManager::nextTask(
-    [[maybe_unused]] const std::string& whiteId,
-    [[maybe_unused]] const std::string& blackId) {
-    if (startPositions_.empty()) return std::nullopt;
-    if (config_.maxGames > 0 && gamesStarted_ >= static_cast<uint32_t>(config_.maxGames)) return std::nullopt;
+    const std::string& whiteId,
+    const std::string& blackId) {
+
     auto result = computeSprt().first;
     rememberStop_ = rememberStop_ || result.has_value();
     if (rememberStop_) return std::nullopt;
-    
-    if (gamesStarted_ % 2 == 0 && config_.openings.order == "random") {
-        nextIndex_ = std::rand() % startPositions_.size();
-    }
-    size_t index = nextIndex_;
 
-    GameState gameState;
-    gameState.setFen(false, startPositions_[index]);
-    auto correctedFen = gameState.getFen();
-    GameTask task;
-    task.taskType = GameTask::Type::PlayGame;
-	task.gameRecord.setStartPosition(
-		false, correctedFen, gameState.isWhiteToMove(), engineP1Name_, engineP2Name_);
-	task.gameRecord.setTimeControl(engine0_.getTimeControl(), engine1_.getTimeControl());
-	task.gameRecord.setRound(gamesStarted_ + 1);
-    task.switchSide = (gamesStarted_ % 2) == 1;
-
-    ++gamesStarted_;
-    if ((gamesStarted_ % 2) == 0 && config_.openings.order != "random") {
-        ++nextIndex_;
-        if (nextIndex_ >= startPositions_.size()) nextIndex_ = 0;
-    }
-
-    return task;
+    return tournament_->nextTask(whiteId, blackId);
 }
 
 void SprtManager::setGameRecord(const std::string& whiteId,
