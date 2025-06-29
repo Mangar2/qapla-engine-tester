@@ -78,25 +78,26 @@ public:
     /**
      * @brief Saves the state of all pairings to a stream.
      */
-    void saveAll(std::ostream& out) const;
-	void saveAll(const std::string& filename) const {
+    void save(std::ostream& out) const;
+	void save(const std::string& filename) const {
 		std::ofstream out(filename);
 		if (!out) {
 			throw std::runtime_error("Failed to open file for saving tournament results: " + filename);
 		}
-		saveAll(out);
+		save(out);
 	}
 
     /**
      * @brief Loads the state of all pairings from a stream.
      */
-    void loadAll(std::istream& in);
-	void loadAll(const std::string& filename) {
+    void load(std::istream& in);
+	void load(const std::string& filename) {
 		std::ifstream in(filename);
 		if (!in) {
-			throw std::runtime_error("Failed to open file for loading tournament results: " + filename);
+            // If the file doesn't exist, we simply return without loading anything.
+			return; 
 		}
-		loadAll(in);
+		load(in);
 	}
 
     /**
@@ -113,13 +114,6 @@ public:
 	}
 
 private:
-    /**
-     * @brief Parses engine configurations from stream and returns names of those matching this tournament.
-     * @param in Stream containing config section.
-     * @return Set of valid engine names that match the tournament configuration.
-     */
-    std::unordered_set<std::string> parseValidEngineNamesFromConfigs(std::istream& in) const;
-
     /**
      * @brief Parses a single round block from the input and updates results if engines are valid.
      * @param in Stream positioned after the current round header.

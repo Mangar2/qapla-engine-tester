@@ -88,3 +88,15 @@ void EngineConfigManager::addOrReplaceConfig(const EngineConfig& config) {
     configs.push_back(config);
 }
 
+std::unordered_set<std::string> EngineConfigManager::findMatchingNames(const std::vector<EngineConfig>& reference) const {
+    std::unordered_set<std::string> valid;
+    for (const auto& loaded : getAllConfigs()) {
+        for (const auto& existing : reference) {
+            if (loaded == existing) {
+                valid.insert(loaded.getName());
+                break;
+            }
+        }
+    }
+    return valid;
+}

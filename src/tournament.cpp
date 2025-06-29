@@ -155,13 +155,13 @@ void Tournament::scheduleAll(int concurrency) {
 	}
 }
 
-void Tournament::saveAll(std::ostream& out) const {
+void Tournament::save(std::ostream& out) const {
     for (const auto& config : engineConfig_) {
         out << config << "\n";
     }
 
     for (auto & pairing : pairings_) {
-        pairing->saveResultBlock(out);
+        pairing->trySaveIfNotEmpty(out);
     }
 }
 
@@ -189,32 +189,13 @@ void parseGameSummary(std::string_view text, EngineDuelResult& result) {
     }
 }
 
-std::unordered_set<std::string> Tournament::parseValidEngineNamesFromConfigs(std::istream& in) const {
-    EngineConfigManager configLoader;
-    configLoader.loadFromStream(in);
-    const auto& loadedConfigs = configLoader.getAllConfigs();
-
-    std::unordered_set<std::string> valid;
-
-    for (const auto& loaded : loadedConfigs) {
-        for (const auto& existing : engineConfig_) {
-            if (loaded == existing) {
-                valid.insert(loaded.getName());
-                break;
-            }
-        }
-    }
-
-    return valid;
-}
-
 std::string Tournament::parseRound(std::istream& in, const std::string& roundHeader,
     const std::unordered_set<std::string>& validEngines) {
     auto [round, engineA, engineB] = PairTournament::parseRoundHeader(roundHeader);
 
     if (validEngines.contains(engineA) && validEngines.contains(engineB)) {
         for (const auto& pairing : pairings_) {
-            if (pairing->matches(round, engineA, engineB)) {
+            if (pairing->matches(round - 1, engineA, engineB)) {
                 return pairing->load(in);
             }
         }
@@ -224,22 +205,22 @@ std::string Tournament::parseRound(std::istream& in, const std::string& roundHea
     return tmp.load(in);
 }
 
-void Tournament::loadAll(std::istream& in) {
+void Tournament::load(std::istream& in) {
     std::stringstream configStream;
     std::string line;
 
-    // Lese alle Konfig-Zeilen bis zur ersten Rundendefinition
     while (std::getline(in, line)) {
         if (line.starts_with("[round ")) break;
         configStream << line << "\n";
     }
 
-    // Ermittle gültige Engines aus Konfig-Block
+    EngineConfigManager configLoader;
+    configLoader.loadFromStream(configStream);
     const std::unordered_set<std::string> validEngines =
-        parseValidEngineNamesFromConfigs(configStream);
+        configLoader.findMatchingNames(engineConfig_);
 
-    // Runde für Runde einlesen
     while (!line.empty()) {
+        // Every loader ensures that we have a round header as next line
         line = parseRound(in, line, validEngines);
     }
 }

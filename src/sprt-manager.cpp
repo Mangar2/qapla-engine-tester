@@ -25,6 +25,7 @@
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "pgn-io.h"
+#include "engine-config-manager.h"
 
 bool SprtManager::wait() {
     GameManagerPool::getInstance().waitForTask();
@@ -119,6 +120,53 @@ void SprtManager::setGameRecord(const std::string& whiteId, const std::string& b
         decision_ = decision;
     }
 }
+
+void SprtManager::save(const std::string& filename) const {
+    std::ofstream out(filename);
+    if (!out) {
+        throw std::runtime_error("Failed to open SPRT result file for saving: " + filename);
+    }
+
+    out << tournament_.getEngineA() << "\n";
+    out << tournament_.getEngineB() << "\n";
+
+    tournament_.trySaveIfNotEmpty(out);
+}
+
+void SprtManager::load(const std::string& filename) {
+    std::ifstream in(filename);
+    if (!in) {
+		return; // If the file doesn't exist, we simply return without loading anything.
+    }
+
+    std::stringstream configStream;
+    std::string line;
+
+    while (std::getline(in, line)) {
+        if (line.starts_with("[round ")) break;
+        configStream << line << "\n";
+    }
+
+    EngineConfigManager configLoader;
+    configLoader.loadFromStream(configStream);
+    const std::unordered_set<std::string> validEngines =
+        configLoader.findMatchingNames({tournament_.getEngineA(), tournament_.getEngineB()});
+
+    while (!line.empty()) {
+        // Every loader ensures that we have a round header as next line
+        auto [round, engineA, engineB] = PairTournament::parseRoundHeader(line);
+        if (validEngines.contains(engineA) && validEngines.contains(engineB)) {
+            if (tournament_.matches(round - 1, engineA, engineB)) {
+                line = tournament_.load(in);
+                continue;
+            }
+        }
+        PairTournament tmp;
+        line = tmp.load(in);
+    }
+}
+
+
 
 /**
  * @brief Computes the decision boundaries for the SPRT test.

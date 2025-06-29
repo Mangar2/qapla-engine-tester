@@ -117,6 +117,15 @@ public:
 		addOrReplaceConfig(config);
 	}
 
+    /**
+     * @brief Compares loaded engine configs with a reference list and returns all matching names.
+     *
+     * @param reference Reference list of known engine configs.
+     * @return Set of engine names that exist identically in both sets.
+     */
+    std::unordered_set<std::string> findMatchingNames(const std::vector<EngineConfig>& reference) const;
+
+
 private:
     std::vector<EngineConfig> configs;
 	std::vector<std::string> errors; // Stores error messages during parsing

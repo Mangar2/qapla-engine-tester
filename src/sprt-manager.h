@@ -97,6 +97,18 @@ public:
 		return decision_;
 	}
 
+    /**
+	 * @brief Saves the current SPRT test state to a stream.
+	 * @param filename The file to save the state to.
+     */
+    void save(const std::string& filename) const;
+
+    /**
+     * @brief Loads the state from a stream - do nothing, if the file cannot be loaded.
+	 * @param filename The file to load the state from.
+     */
+    void load(const std::string& filename);
+
 private:
     PairTournament tournament_;
     std::shared_ptr<StartPositions> startPositions_;

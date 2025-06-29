@@ -107,7 +107,9 @@ AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<Engin
 		if (section == CheckSection::Report) {
 			if (engineResult) {
                 Logger::testLogger().log("[" + entries + "]", traceLevel);
-                engineResult->writeTo(std::cout);
+                std::ostringstream oss;
+                engineResult->writeTo(oss);
+                Logger::testLogger().log(oss.str(), traceLevel);
 			}
 			continue;
 		}

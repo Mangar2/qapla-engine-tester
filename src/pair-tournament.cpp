@@ -72,15 +72,18 @@ void PairTournament::schedule() {
         throw std::logic_error("PairTournament must be initialized before scheduling");
     }
 
-    // Nur verbleibende Spiele berücksichtigen
-    int remainingGames = static_cast<int>(config_.games - results_.size());
-    for (const auto& result : results_) {
-        if (result == GameResult::Unterminated) {
+    int remainingGames = std::max(0, static_cast<int>(config_.games - results_.size()));
+    
+	// We support having more games in results_ than config_.games.
+	// Unfinished games in the first config_.games are played even, if there are more results.
+    for (int i = 0; i < results_.size() && i < config_.games; i++) {
+        if (results_[i] == GameResult::Unterminated) {
             ++remainingGames;
         }
+        i++;
     }
 
-    if (remainingGames == 0) {
+    if (remainingGames <= 0) {
         return; // Nichts zu tun
     }
 
@@ -211,14 +214,10 @@ std::string PairTournament::toString() const {
 void PairTournament::fromString(const std::string& line) {
     std::lock_guard lock(mutex_);
 
-    if (!started_) {
-        throw std::logic_error("PairTournament must be initialized before loading");
-    }
-
-    auto pos = line.find(" : ");
+    auto pos = line.find(": ");
     if (pos == std::string::npos) return;
 
-    std::string resultString = line.substr(pos + 3);
+    std::string resultString = line.substr(pos + 2);
 	duelResult_.clear();
     results_.clear();
     results_.reserve(resultString.size());
@@ -236,7 +235,7 @@ void PairTournament::fromString(const std::string& line) {
             results_.emplace_back(aWhite ? GameResult::BlackWins : GameResult::WhiteWins);
             ++duelResult_.winsEngineB;
             break;
-        case '½':
+        case '=':
             results_.emplace_back(GameResult::Draw);
             ++duelResult_.draws;
             break;
@@ -249,13 +248,14 @@ void PairTournament::fromString(const std::string& line) {
 
 }
 
-void PairTournament::saveResultBlock(std::ostream& out) const {
+void PairTournament::trySaveIfNotEmpty(std::ostream& out) const {
+
+    const auto& stats = duelResult_.causeStats;
+    if (results_.empty()) return;
 
     out << "[round " << (config_.round + 1) << " engines " 
         << getEngineA().getName() << " vs " << getEngineB().getName() << "]\n";
     out << "games: " << getResultSequence() << "\n";
-
-    const auto& stats = duelResult_.causeStats;
 
     auto writeStats = [&](const char* label, auto accessor) {
         out << label << ": ";

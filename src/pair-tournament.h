@@ -160,7 +160,14 @@ public:
 		verbose_ = verbose;
 	}
     
-    void saveResultBlock(std::ostream& out) const;
+	/**
+	 * @brief Saves the current tournament state to the given output stream if it is not empty.
+	 *
+	 * Writes the round header, results, and engine names.
+	 *
+	 * @param out Output stream to write the state to.
+	 */
+    void trySaveIfNotEmpty(std::ostream& out) const;
 
     /**
      * @brief Parses a round header line and extracts round number and engine names.

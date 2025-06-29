@@ -137,7 +137,7 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
         && lhs.tc_ == rhs.tc_
         && lhs.protocol_ == rhs.protocol_
         && lhs.ponder_ == rhs.ponder_
-        && lhs.gauntlet_ == rhs.gauntlet_
+        // && lhs.gauntlet_ == rhs.gauntlet_ decided to not compare gauntlet setting
         && lhs.optionValues_ == rhs.optionValues_;
 }
 
@@ -162,6 +162,12 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
             throw std::runtime_error("name is set in the header and may not be set again");
         else if (key == "executablePath") config.setExecutablePath(value);
         else if (key == "workingDirectory") config.setWorkingDirectory(value);
+		else if (key == "tc") config.setTimeControl(value);
+		else if (key == "ponder") {
+			if (value == "true" || value == "1" || value == "") config.setPonder(true);
+			else if (value == "false" || value == "0") config.setPonder(false);
+			else throw std::runtime_error("Invalid ponder value: " + value);
+		}
         else if (key == "protocol") {
             if (value == "uci") config.protocol_ = EngineProtocol::Uci;
             else if (value == "xboard") config.protocol_ = EngineProtocol::XBoard;
@@ -184,7 +190,8 @@ std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
     out << "protocol=" << to_string(config.protocol_) << '\n';
     out << "executablePath=" << config.executablePath_ << '\n';
     out << "workingDirectory=" << config.workingDirectory_ << '\n';
-
+    out << "tc=" << config.tc_.toPgnTimeControlString() << '\n';
+	if (config.ponder_) out << "ponder=" << (config.ponder_ ? "true" : "false") << '\n';
     for (const auto& [_, value] : config.optionValues_) {
         out << value.originalName << "=" << value.value << '\n';
     }

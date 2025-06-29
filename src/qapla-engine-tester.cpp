@@ -229,9 +229,14 @@ auto runSprt(AppReturnCode code) {
             manager.runMonteCarloTest(config);
 		}
         else {
+            auto filename = sprt->get<std::string>("resultfile");
             manager.createTournament(activeEngines[0], activeEngines[1], config);
-			manager.schedule(concurrency);
+            manager.load(filename);
+            manager.schedule(concurrency);
             manager.wait();
+            if (!filename.empty()) {
+                manager.save(filename);
+            }
             code = logChecklist(code);
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto decision = manager.getDecision();
@@ -291,12 +296,13 @@ AppReturnCode runTournament(AppReturnCode code) {
         int concurrency = CliSettings::Manager::get<int>("concurrency");
 
         Tournament tournament;
+        auto filename = tournamentGroup->get<std::string>("resultfile");
         tournament.createTournament(activeEngines, config);
+		tournament.load(filename);
         tournament.scheduleAll(concurrency);
         tournament.wait();
-		auto filename = tournamentGroup->get<std::string>("resultfile");
 		if (!filename.empty()) {
-			tournament.saveAll(filename);
+			tournament.save(filename);
 		}
  		code = updateCode(code, EngineReport::logAll(TraceLevel::command, tournament.getResult()));
     }
@@ -435,6 +441,7 @@ int main(int argc, char** argv) {
             });
 
         CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
+            { "resultfile", { "File to save tournament outcome", false, "", CliSettings::ValueType::PathParentExists } },
             { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, CliSettings::ValueType::Int } },
             { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, CliSettings::ValueType::Int } },
             { "alpha", { "Type I error threshold", false, 0.05f, CliSettings::ValueType::Float } },

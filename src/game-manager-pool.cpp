@@ -27,6 +27,7 @@ GameManagerPool::GameManagerPool() {
 		  InputHandler::ImmediateCommand::Concurrency },
         [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue value) {
 			if (cmd == InputHandler::ImmediateCommand::Quit) {
+				std::cout << "\n\nQuit received, finishing all games before exiting.\n" << std::endl;
                 this->setConcurrency(0, true);
 			}
 			else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
