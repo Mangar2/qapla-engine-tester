@@ -35,8 +35,6 @@ void SprtManager::createTournament(
     const EngineConfig& engine0, const EngineConfig& engine1, const SprtConfig& config) {
 
 	config_ = config;
-	engineP1Name_ = engine0.getName();
-	engineP2Name_ = engine1.getName();
     PgnIO::tournament().initialize("Sprt");
 
     if (!startPositions_) startPositions_ = std::make_shared<StartPositions>();
@@ -71,84 +69,55 @@ void SprtManager::createTournament(
     ptc.swapColors = true;
     ptc.openings = config.openings;
 
-    tournament_ = std::make_shared<PairTournament>(); 
-    tournament_->initialize(engine0, engine1, ptc, startPositions_);
+    tournament_.initialize(engine0, engine1, ptc, startPositions_);
+	tournament_.setVerbose(false);
 }
 
 void SprtManager::schedule(int concurrency) { 
-    std::cout << "Running SPRT: " << engineP1Name_ << " vs " << engineP2Name_
-        << " | Elo range: [" << config_.eloLower << ", " << config_.eloUpper << "]"
-        << " | alpha: " << config_.alpha << ", beta: " << config_.beta
-        << " | maxGames: " << config_.maxGames
-        << " | concurrency: " << concurrency << std::endl;
+	auto duel = tournament_.getResult();
+    std::cout << "sprt engines " << duel.getEngineA() << " vs " << duel.getEngineB()
+        << " elo [" << config_.eloLower << ", " << config_.eloUpper << "]"
+        << " alpha " << config_.alpha << " beta " << config_.beta
+        << " maxgames " << config_.maxGames
+        << " concurrency " << concurrency << std::endl;
 
     GameManagerPool::getInstance().setConcurrency(concurrency, true);
     GameManagerPool::getInstance().addTaskProvider(this, 
-        tournament_->getEngineA(), tournament_->getEngineB(), config_.maxGames);
+        tournament_.getEngineA(), tournament_.getEngineB(), config_.maxGames);
 }
 
-std::optional<GameTask> SprtManager::nextTask(
-    const std::string& whiteId,
-    const std::string& blackId) {
-
+std::optional<GameTask> SprtManager::nextTask(const std::string& whiteId, const std::string& blackId) {
     auto result = computeSprt().first;
     rememberStop_ = rememberStop_ || result.has_value();
     if (rememberStop_) return std::nullopt;
 
-    return tournament_->nextTask(whiteId, blackId);
+    return tournament_.nextTask(whiteId, blackId);
 }
 
-void SprtManager::setGameRecord(const std::string& whiteId,
-    const std::string& blackId,
+void SprtManager::setGameRecord(const std::string& whiteId, const std::string& blackId,
     const GameRecord& record) {
+
+    tournament_.setGameRecord(whiteId, blackId, record);
+
     auto [cause, result] = record.getGameResult();
+    auto duel = tournament_.getResult();
 
-    bool engine0White = engineP1Name_ == record.getWhiteEngineName();
-
-    std::string resultText;
-
-    switch (result) {
-    case GameResult::WhiteWins:
-        if (engine0White) {
-            ++winsP1_;
-            resultText = engineP1Name_ + " (White) wins";
-        }
-        else {
-            ++winsP2_;
-            resultText = engineP2Name_ + " (White) wins";
-        }
-        break;
-    case GameResult::BlackWins:
-        if (engine0White) {
-            ++winsP2_;
-            resultText = engineP2Name_ + " (Black) wins";
-        }
-        else {
-            ++winsP1_;
-            resultText = engineP1Name_ + " (Black) wins";
-        }
-        break;
-    case GameResult::Draw:
-        ++draws_;
-        resultText = "Draw";
-        break;
-    case GameResult::Unterminated:
-        resultText = "Unterminated game";
-        break;
-    }
     auto [decision, info] = computeSprt();
-    std::ostringstream oss; 
-    oss << engineP1Name_ 
-        << " W:" << winsP1_ << " D:" << draws_ << " L:" << winsP2_
-        << " " << to_string(cause)
-        << " " << info;
+
+    std::ostringstream oss;
+    oss << std::left
+        << "match game " << std::setw(3) << record.getRound()
+        << " result " << std::setw(7) << to_string(result)
+        << " cause " << std::setw(21) << to_string(cause)
+        << " sprt " << info
+        << " engines " << duel.toString();
+
     if (!decision_) {
-        // Only long a decision once
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
-	// Ignore changes of the decision after a decision has been made
-    if (decision) decision_ = decision;
-    PgnIO::tournament().saveGame(record);
+    if (decision) {
+        decision_ = decision;
+    }
 }
 
 /**
@@ -226,12 +195,9 @@ double computeLLR(double wins, double draws, double losses,
 }
 
 
-std::pair<std::optional<bool>, std::string> SprtManager::computeSprt() const {
-    if (winsP1_ < 0 || winsP2_ < 0 || draws_ < 0) {
-        return { std::nullopt, "error" };
-    }
-
-    const double drawElo = computeDrawElo(winsP1_, draws_, winsP2_);
+std::pair<std::optional<bool>, std::string> SprtManager::computeSprt(
+    int winsA, int draws, int winsB, std::string engineA, std::string engineB) const {
+	const double drawElo = computeDrawElo(winsA, draws, winsB);
 
     const double x = std::pow(10.0, -drawElo / 400.0); 
 	const double xSquare = (x + 1.0) * (x + 1.0); 
@@ -240,17 +206,17 @@ std::pair<std::optional<bool>, std::string> SprtManager::computeSprt() const {
     const auto p0 = bayesEloProbabilities(config_.eloLower / scale, drawElo);
     const auto p1 = bayesEloProbabilities(config_.eloUpper / scale, drawElo);
 
-    const double llr = computeLLR(winsP1_, draws_, winsP2_, p0, p1);
+    const double llr = computeLLR(winsA, draws, winsB, p0, p1);
     const auto [lBound, uBound] = sprtBounds(config_.alpha, config_.beta);
 
     if (llr >= uBound) return {
         true,
-        "H1 accepted, " + engineP1Name_ + " is at least " + std::to_string(config_.eloLower)
-        + " elo stronger than " + engineP2Name_
+        "H1 accepted, " + engineA + " is at least " + std::to_string(config_.eloLower)
+        + " elo stronger than " + engineB
     };
 	if (llr <= lBound) return {
 		false,
-		"H0 accepted, " + engineP1Name_ + " is not stronger than " + engineP2Name_ 
+		"H0 accepted, " + engineA + " is not stronger than " + engineB
         + " by at least " + std::to_string(config_.eloUpper) + " elo."
 	};
     std::ostringstream oss;
@@ -259,24 +225,6 @@ std::pair<std::optional<bool>, std::string> SprtManager::computeSprt() const {
         std::nullopt, oss.str()
     };
 }
-
-/*
-void SprtManager::testAgainstConfidenceMethod() {
-    const int n = winsP1_ + winsP2_ + draws_;
-    const double score = (winsP1_ + 0.5 * draws_) / n;
-    const double z = 1.96; // z.B. 95%-Konfidenz – später kalibrierbar
-    const double stddev = std::sqrt(score * (1 - score) / n);
-    const double lower = score - z * stddev;
-    const double upper = score + z * stddev;
-
-    // Umrechnen von Score in Elo-Grenze
-    const double eloLower = 400 * std::log10(lower / (1 - lower));
-    const double eloUpper = 400 * std::log10(upper / (1 - upper));
-
-    std::cout << "[CI-based] Score: " << score
-        << ", EloCI: [" << eloLower << ", " << eloUpper << "]\n";
-}
-*/
 
 void SprtManager::runMonteCarloTest(const SprtConfig& config) {
 	config_ = config;
@@ -289,20 +237,18 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
         << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
         << " | alpha: " << config.alpha << ", beta: " << config.beta
         << " | maxGames: " << config.maxGames << std::endl;
-    engineP1Name_ = "P1";
-	engineP2Name_ = "P2";
 
     for (int elo : eloDiffs) {
         int64_t numH1 = 0;
         int64_t numH0 = 0;
 		int64_t noDecisions = 0;
         int64_t totalGames = 0;
-
+                
         for (int sim = 0; sim < simulationsPerElo; ++sim) {
             // Reset intern
-            winsP1_ = 0;
-            winsP2_ = 0;
-            draws_ = 0;
+            int winsP1 = 0;
+            int winsP2 = 0;
+            int draws = 0;
             /*
 			if (sim % 1000 == 0) {
                 std::cout << "Simulation " << sim << " for Elo " << elo << std::endl;
@@ -319,10 +265,10 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
 
             for (; g < config_.maxGames; ++g) {
                 double r = (double)rand() / RAND_MAX;
-                if (r < winProb) ++winsP1_;
-                else if (r < winProb + drawRate) ++draws_;
-                else ++winsP2_;
-                auto [result, info] = computeSprt();
+                if (r < winProb) ++winsP1;
+                else if (r < winProb + drawRate) ++draws;
+                else ++winsP2;
+				auto [result, info] = computeSprt(winsP1, draws, winsP2, "P1", "P2");
                 if (result.has_value()) {
                     decision = result;
                     break;

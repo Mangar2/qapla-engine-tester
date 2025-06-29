@@ -93,6 +93,15 @@ public:
      */
     void schedule();
 
+    void clear() {
+        std::lock_guard lock(mutex_);
+        started_ = false;
+        results_.clear();
+        duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
+        nextIndex_ = 0;
+        curRecord_ = GameRecord();
+    }
+
     /**
      * @brief Provides the next task for a matching engine pair.
      *
@@ -146,6 +155,10 @@ public:
 	const EngineConfig& getEngineB() const {
 		return engineB_;
 	}
+
+	void setVerbose(bool verbose) {
+		verbose_ = verbose;
+	}
 	
 private:
     EngineConfig engineA_;
@@ -160,4 +173,5 @@ private:
     std::mt19937 rng_;
     size_t nextIndex_ = 0;
     bool started_ = false;
+    bool verbose_ = true;
 };

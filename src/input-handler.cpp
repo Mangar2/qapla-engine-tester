@@ -32,14 +32,27 @@ InputHandler::CallbackRegistration::~CallbackRegistration() {
 }
 
 
-void InputHandler::inputLoop() {
-    std::string line;
-    while (!quitFlag) {
-        if (!std::getline(std::cin, line)) break;
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		//line = "?"; // Simulate input for testing purposes
-        handleLine(line);
+void InputHandler::inputLoop(bool interactive) {
+    static InputHandler inputHandler;
+    if (inputHandler.started.exchange(true)) {
+		throw std::runtime_error("InputHandler is already running");
     }
+    setInstance(&inputHandler);
+	if (!interactive) {
+		// Non-interactive mode, no input thread needed
+		return;
+	}
+    std::cout << "Interactive mode! Enter h or help for help, q or quit to quit" << std::endl;
+    auto loop = [] {
+        std::string line;
+        while (!InputHandler::getInstance().quitRequested()) {
+            if (!std::getline(std::cin, line)) break;
+            InputHandler::getInstance().handleLine(line);
+        }
+        };
+
+    inputHandler.inputThread = std::thread(loop);
+    inputHandler.inputThread.detach();
 }
 
 void InputHandler::handleLine(const std::string& line) {
@@ -57,7 +70,7 @@ void InputHandler::handleLine(const std::string& line) {
         else if (command == "info" || command == "?") dispatchImmediate(ImmediateCommand::Info, args);
         else if (command == "concurrency" || command == "c") dispatchImmediate(ImmediateCommand::Concurrency, args);
         else if (command == "abort" || command == "a") dispatchImmediate(ImmediateCommand::Abort, args);
-        else if (command == "help" || command == "h") CliSettings::Manager::showHelp();
+        else if (command == "help" || command == "h") showHelp();
         else {
             std::cout << "Unknown command: " << command << "\n";
         }
@@ -66,6 +79,17 @@ void InputHandler::handleLine(const std::string& line) {
         std::cout << "Command failed: '" << command << "'. Reason: " << e.what() << "\n";
 	}
 }
+
+void InputHandler::showHelp() {
+    std::cout
+        << "Available commands:\n"
+        << "  quit | q           - Exit the program, waiting for current games to finish\n"
+        << "  info | ?           - Show current engine/game state\n"
+        << "  concurrency | c    - Set number of concurrent games\n"
+        // << "  abort | a          - Abort current games immediately\n"
+        << "  help | h           - Show this help message\n";
+}
+
 
 void InputHandler::handleSetCommand(const std::vector<std::string>& args) {
     if (args.size() < 2) {

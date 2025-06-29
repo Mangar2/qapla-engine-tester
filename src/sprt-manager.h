@@ -98,7 +98,7 @@ public:
 	}
 
 private:
-    std::shared_ptr<PairTournament> tournament_;
+    PairTournament tournament_;
     std::shared_ptr<StartPositions> startPositions_;
 
     /**
@@ -112,18 +112,15 @@ private:
       * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
       * Returns std::optional<bool>: true if H1 accepted, false if H0 accepted, nullopt if inconclusive.
       */
-    std::pair<std::optional<bool>, std::string> computeSprt() const;
+    std::pair<std::optional<bool>, std::string> computeSprt() const {
+		auto duel = tournament_.getResult();
+		return computeSprt(duel.winsEngineA, duel.draws, duel.winsEngineB, duel.getEngineA(), duel.getEngineB());
+    }
+    std::pair<std::optional<bool>, std::string> computeSprt(
+        int winsA, int draws, int winsB, std::string engineA, std::string engineB) const;
 	bool rememberStop_ = false;
 
-    uint32_t gamesStarted_ = 0;
-    size_t nextIndex_ = 0;
     SprtConfig config_;
-    uint32_t winsP1_ = 0;
-    uint32_t winsP2_ = 0;
-    uint32_t draws_ = 0;
 	std::optional<bool> decision_ = std::nullopt;
-
-    std::string engineP1Name_;
-    std::string engineP2Name_;
 
 };

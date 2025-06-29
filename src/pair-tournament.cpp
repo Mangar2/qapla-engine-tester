@@ -18,6 +18,7 @@
  */
 
 #include <random>
+#include <iomanip>
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
 #include "pgn-io.h"
@@ -161,12 +162,21 @@ void PairTournament::setGameRecord(const std::string& whiteId,
         return;
     }
 
-    // Speichern
     results_[round - 1] = result;
     PgnIO::tournament().saveGame(record);
+
 	duelResult_.addResult(record);
-    Logger::testLogger().log("result round " + std::to_string(config_.round + 1) + " game " + std::to_string(round) + 
-        " " + duelResult_.toString() + " " + to_string(cause), TraceLevel::result);
+    if (verbose_) {
+        std::ostringstream oss;
+        oss << std::left
+            << "match round " << std::setw(3) << (config_.round + 1)
+            << " game " << std::setw(3) << round
+            << " result " << std::setw(7) << to_string(result)
+            << " cause " << std::setw(21) << to_string(cause)
+            << " engines " << duelResult_.getEngineA() << " vs " << duelResult_.getEngineB();
+        Logger::testLogger().log(oss.str(), TraceLevel::result);
+    }
+
 }
 
 std::string PairTournament::toString() const {

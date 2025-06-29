@@ -229,7 +229,8 @@ auto runSprt(AppReturnCode code) {
             manager.runMonteCarloTest(config);
 		}
         else {
-            manager.run(activeEngines[0], activeEngines[1], concurrency, config);
+            manager.createTournament(activeEngines[0], activeEngines[1], config);
+			manager.schedule(concurrency);
             manager.wait();
             code = logChecklist(code);
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
@@ -382,9 +383,7 @@ int main(int argc, char** argv) {
     bool isEngineTest = false;
     Timer timer;
     timer.start();
-    InputHandler handler;
-    InputHandler::setInstance(&handler);
-
+    
 
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
@@ -490,14 +489,11 @@ int main(int argc, char** argv) {
 
 
         CliSettings::Manager::parseCommandLine(argc, argv);
+        InputHandler::inputLoop(argc == 1 || CliSettings::Manager::get<bool>("interactive"));
+
         handleGlobalOptions(returnCode);
         handlePgnOptions();
 		handleEngineOptions();
-
-        if (argc == 1 || CliSettings::Manager::get<bool>("interactive")) {
-            std::cout << "Interactive mode! Enter h or help for help, q or quit to quit" << std::endl;
-            InputHandler::getInstance().start();
-        }
 
         if (auto test = CliSettings::Manager::getGroupInstance("test")) {
             returnCode = runTest(*test, returnCode);
@@ -512,8 +508,11 @@ int main(int argc, char** argv) {
 		if (tournament) {
 			returnCode = runTournament(returnCode);
 		}
-        
-        returnCode = runSprt(returnCode);
+
+        auto sprt = CliSettings::Manager::getGroupInstance("sprt");
+        if (sprt) {
+            returnCode = runSprt(returnCode);
+        }
 			
     }
     catch (const AppError& ex) {
@@ -527,9 +526,6 @@ int main(int argc, char** argv) {
 	catch (...) {
 		Logger::testLogger().log("Unknown exception, program terminated.", TraceLevel::error);
 		returnCode = AppReturnCode::GeneralError;
-	}
-	while (!InputHandler::getInstance().quitRequested()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
 	timer.printElapsed("Total runtime: ");
 	

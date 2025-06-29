@@ -34,6 +34,11 @@
   */
 class InputHandler {
 public:
+    InputHandler(const InputHandler&) = delete;
+    InputHandler& operator=(const InputHandler&) = delete;
+    InputHandler(InputHandler&&) = delete;
+    InputHandler& operator=(InputHandler&&) = delete;
+
     enum class ImmediateCommand {
         Abort,
         Concurrency,
@@ -57,30 +62,11 @@ public:
     using CommandCallback = std::function<void(ImmediateCommand, CommandValue)>;
 
     /**
-     * @brief Registers global access to a stack-allocated InputHandler instance.
-     * @param instance Pointer to existing InputHandler.
-     */
-    static void setInstance(InputHandler* instance) {
-        getGlobalInstance() = instance;
-    }
-
-    /**
      * @brief Returns the registered global instance.
      * @return Reference to the registered InputHandler.
      */
     static InputHandler& getInstance() {
         return *getGlobalInstance();
-    }
-
-    InputHandler() = default;
-
-    /**
-     * @brief Starts the input handling thread.
-     */
-    void start() {
-        if (!inputThread.joinable()) {
-            inputThread = std::thread(&InputHandler::inputLoop, this);
-        }
     }
 
     /**
@@ -91,32 +77,34 @@ public:
         return quitFlag.load();
     }
 
-    /**
-     * @brief Destructor stops the thread and cleans up.
-     */
-    ~InputHandler() {
-        stopFlag = true;
-        if (inputThread.joinable()) {
-            inputThread.join();
-        }
-    }
-
     std::unique_ptr<CallbackRegistration> registerCommandCallback(ImmediateCommand cmd, CommandCallback callback);
     std::unique_ptr<CallbackRegistration> 
         registerCommandCallback(std::vector<ImmediateCommand> cmds, CommandCallback callback);
 
     void dispatchImmediate(ImmediateCommand cmd, const std::vector<std::string>& args);
 
+    static void inputLoop(bool interactive);
 private:
-    void inputLoop();
+
+    InputHandler() = default;
+
+    /**
+     * @brief Registers global access to a stack-allocated InputHandler instance.
+     * @param instance Pointer to existing InputHandler.
+     */
+    static void setInstance(InputHandler* instance) {
+        getGlobalInstance() = instance;
+    }
     void handleSetCommand(const std::vector<std::string>& args);
     void handleLine(const std::string& line);
+    void showHelp();
 
     static InputHandler*& getGlobalInstance() {
         static InputHandler* instance = nullptr;
         return instance;
     }
 
+    std::atomic<bool> started{ false };
     std::atomic<bool> quitFlag{ false };
     std::atomic<bool> stopFlag{ false };
     std::thread inputThread;
