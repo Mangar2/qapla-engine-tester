@@ -137,7 +137,7 @@ public:
      *
      * Must be called only after initialize(). Does not validate engine names.
      *
-     * @param line A single line in the format: "<engineA> vs <engineB> : <result-sequence>"
+     * @param line A single line in the format: "games: <result-sequence>"
      */
     void fromString(const std::string& line);
 
@@ -159,8 +159,48 @@ public:
 	void setVerbose(bool verbose) {
 		verbose_ = verbose;
 	}
-	
+    
+    void saveResultBlock(std::ostream& out) const;
+
+    /**
+     * @brief Parses a round header line and extracts round number and engine names.
+     *
+     * Format must be: [round <N> engines <engineA> vs <engineB>]
+     *
+     * @param line Full line including brackets.
+     * @return Tuple with round, engineA, engineB
+     * @throws std::runtime_error if the line is malformed
+     */
+    static std::tuple<int, std::string, std::string> parseRoundHeader(const std::string& line);
+
+    /**
+     * @brief Checks if this pairing matches the given round and engine names.
+     *
+     * @param round Round number to match (0-based).
+     * @param engineA First engine name (must match getEngineA()).
+     * @param engineB Second engine name (must match getEngineB()).
+     * @return true if round and engine names match exactly.
+     */
+    bool matches(int round, const std::string& engineA, const std::string& engineB) const;
+    
+    /**
+     * @brief Loads result block data from input stream (one round).
+     *
+     * Assumes round header has already been parsed.
+     * Reads until next round header or EOF.
+     *
+     * @param in Input stream positioned after round header line.
+	 * @returns The next round header line or an empty string if EOF reached.
+     */
+    std::string load(std::istream& in);
 private:
+    /**
+     * @brief Returns the compact result sequence string (e.g. "1=01?").
+     *
+     * @return String containing encoded results for all games.
+     */
+    std::string getResultSequence() const;
+
     EngineConfig engineA_;
     EngineConfig engineB_;
 	PairTournamentConfig config_;

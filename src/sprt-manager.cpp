@@ -220,7 +220,8 @@ std::pair<std::optional<bool>, std::string> SprtManager::computeSprt(
         + " by at least " + std::to_string(config_.eloUpper) + " elo."
 	};
     std::ostringstream oss;
-    oss << "[ " << std::setprecision(2) << lBound << " < " << llr << " < " << uBound << " ]";
+    oss << "[ " << std::fixed << std::setprecision(2) << lBound << " < " 
+        << std::setw(5) << llr << " < " << uBound << " ]";
     return { 
         std::nullopt, oss.str()
     };
