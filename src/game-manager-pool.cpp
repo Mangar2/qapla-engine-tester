@@ -206,9 +206,7 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
         if (!assignment.engine1) continue;
         if (!assignment.provider) continue;
 
-        auto taskOpt = assignment.provider->nextTask(
-            assignment.engine1->getName(), 
-            assignment.engine2 ? assignment.engine2->getName(): assignment.engine1->getName());
+        auto taskOpt = assignment.provider->nextTask();
         if (!taskOpt.has_value())
             continue;
 

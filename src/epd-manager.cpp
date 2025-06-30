@@ -172,8 +172,7 @@ bool EpdManager::wait() {
 	return true;
 }
 
-std::optional<GameTask> EpdManager::nextTask(const std::string& whiteId, const std::string& blackId) {
-    assert(whiteId == blackId); 
+std::optional<GameTask> EpdManager::nextTask() {
     std::lock_guard<std::mutex> lock(taskMutex_);
     if (currentIndex_ >= static_cast<int>(tests_.size())) {
         return std::nullopt;
@@ -182,18 +181,18 @@ std::optional<GameTask> EpdManager::nextTask(const std::string& whiteId, const s
     GameTask task;
     task.taskType = GameTask::Type::ComputeMove;
     
-	tests_[currentIndex_].engineId = whiteId;
     GameState gameState;
     gameState.setFen(false, tests_[currentIndex_].fen);
     auto correctedFen = gameState.getFen();
     task.gameRecord.setStartPosition(false, correctedFen, gameState.isWhiteToMove(), "", "");
     task.gameRecord.setTimeControl(tc_, tc_);
+    task.taskId = std::to_string(currentIndex_);
     currentIndex_++;
 
     return task;
 }
 
-bool EpdManager::setPV(const std::string& engineId,
+bool EpdManager::setPV(const std::string& taskId,
     const std::vector<std::string>& pv,
     uint64_t timeInMs,
     std::optional<uint32_t> depth,
@@ -204,98 +203,100 @@ bool EpdManager::setPV(const std::string& engineId,
         return false;
     }
 
+    const int index = std::stoi(taskId);
     std::lock_guard<std::mutex> lock(taskMutex_);
-    for (int i = currentIndex_ - 1; i >= oldestIndexInUse_; --i) {
-        auto& test = tests_[i];
-        if (test.engineId != engineId) {
-            continue;
-        }
-        assert(test.playedMove.empty());
 
-        const std::string& firstMove = pv.front();
-        bool found = std::any_of(test.bestMoves.begin(), test.bestMoves.end(),
-            [&](const std::string& bm) {
-                return isSameMove(test.fen, firstMove, bm);
-            });
-
-        if (found) {
-            if (test.correctAtDepth == -1 && depth.has_value()) {
-                test.correctAtDepth = static_cast<int>(depth.value());
-            }
-            if (test.correctAtTimeInMs == 0) {
-                test.correctAtTimeInMs = static_cast<int>(timeInMs);
-            }
-            if (test.correctAtNodeCount == 0 && nodes.has_value()) {
-                test.correctAtNodeCount = static_cast<int>(nodes.value());
-            }
-        }
-        else {
-			test.correctAtDepth = -1;
-			test.correctAtTimeInMs = 0;
-			test.correctAtNodeCount = 0;
-        }
-
-        bool earlyStop =
-			test.seenPlies >= 0 && test.correctAtDepth >= 0 && depth.has_value() &&
-            timeInMs >= test.minTimeInS * 1000 &&
-            static_cast<int>(*depth) - test.correctAtDepth >= test.seenPlies;
-
-        return earlyStop;
+    if (index < 0 || index >= static_cast<int>(tests_.size())) {
+        return false;
     }
 
-    return false;
+    auto& test = tests_[index];
+    assert(test.playedMove.empty());
+
+    const std::string& firstMove = pv.front();
+    bool found = std::any_of(test.bestMoves.begin(), test.bestMoves.end(),
+        [&](const std::string& bm) {
+            return isSameMove(test.fen, firstMove, bm);
+        });
+
+    if (found) {
+        if (test.correctAtDepth == -1 && depth.has_value()) {
+            test.correctAtDepth = static_cast<int>(depth.value());
+        }
+        if (test.correctAtTimeInMs == 0) {
+            test.correctAtTimeInMs = static_cast<int>(timeInMs);
+        }
+        if (test.correctAtNodeCount == 0 && nodes.has_value()) {
+            test.correctAtNodeCount = static_cast<int>(nodes.value());
+        }
+    }
+    else {
+        test.correctAtDepth = -1;
+        test.correctAtTimeInMs = 0;
+        test.correctAtNodeCount = 0;
+    }
+
+    bool earlyStop =
+		test.seenPlies >= 0 && test.correctAtDepth >= 0 && depth.has_value() &&
+        timeInMs >= test.minTimeInS * 1000 &&
+        static_cast<int>(*depth) - test.correctAtDepth >= test.seenPlies;
+
+    return earlyStop;
 }
 
-
-void EpdManager::setGameRecord(const std::string& whiteId, const std::string& blackId, const GameRecord& record) {
-    assert(whiteId == blackId);
+void EpdManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
     const std::string& fen = record.getStartFen();
+
     const auto& moves = record.history();
     if (moves.empty()) return;
 
     const auto& move = moves.back();
     const std::string& played = move.lan;
 
+    const int index = std::stoi(taskId);
     std::lock_guard<std::mutex> lock(taskMutex_);
-    for (int i = currentIndex_ - 1; i >= oldestIndexInUse_; --i) {
-        auto& test = tests_[i];
-        if (test.engineId != whiteId) {
-            continue;
-        }
-        assert(test.playedMove.empty());
 
-        test.playedMove = played;
-        test.correct = std::any_of(
-            test.bestMoves.begin(), test.bestMoves.end(),
-            [&](const std::string& bm) {
-                return isSameMove(fen, played, bm);
-            }
-        );
-        test.timeMs = move.timeMs;
-		test.searchDepth = move.depth;
-        test.nodeCount = move.nodes;
-		// Note: SetPV might have set the correct depth, time, nodes already
-        if (test.correct && test.correctAtDepth == -1) {
-            test.correctAtDepth = move.depth;
-            test.correctAtTimeInMs = move.timeMs;
-			test.correctAtNodeCount = move.nodes;
+    if (index < 0 || index >= static_cast<int>(tests_.size())) {
+        return;
+    }
+
+    auto& test = tests_[index];
+    assert(test.playedMove.empty());
+
+    test.playedMove = played;
+    test.correct = std::any_of(
+        test.bestMoves.begin(), test.bestMoves.end(),
+        [&](const std::string& bm) {
+            return isSameMove(fen, played, bm);
         }
-        // If SetPV saw the correct move but it was finally not played we need to remove the former result
-        if (!test.correct) {
-            test.correctAtDepth = -1;
-            test.correctAtTimeInMs = 0;
-            test.correctAtNodeCount = 0;
+    );
+    test.timeMs = move.timeMs;
+    test.searchDepth = move.depth;
+    test.nodeCount = move.nodes;
+
+    // Note: SetPV might have set the correct depth, time, nodes already
+    if (test.correct && test.correctAtDepth == -1) {
+        test.correctAtDepth = move.depth;
+        test.correctAtTimeInMs = move.timeMs;
+        test.correctAtNodeCount = move.nodes;
+    }
+
+    // If SetPV saw the correct move but it was finally not played, we need to remove the former result
+    if (!test.correct) {
+        test.correctAtDepth = -1;
+        test.correctAtTimeInMs = 0;
+        test.correctAtNodeCount = 0;
+    }
+
+    // Close gap, if oldest
+    if (index == oldestIndexInUse_) {
+        while (oldestIndexInUse_ < tests_.size() && !tests_[oldestIndexInUse_].playedMove.empty()) {
+            printTestResultLine(tests_[oldestIndexInUse_]);
+            ++oldestIndexInUse_;
         }
-        // Close gap, if oldest
-        if (i == oldestIndexInUse_) {
-            while (oldestIndexInUse_ < tests_.size() && !tests_[oldestIndexInUse_].playedMove.empty()) {
-				printTestResultLine(tests_[oldestIndexInUse_]);
-                ++oldestIndexInUse_;
-            }
-        }
-        break;
     }
 }
+
 
 std::optional<EpdTestCase> EpdManager::nextTestCaseFromReader() {
     if (!reader_) {

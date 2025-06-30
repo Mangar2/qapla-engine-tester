@@ -39,7 +39,6 @@ struct EpdTestCase {
     EpdEntry original;
 
     // Result fields
-    std::string engineId;
     std::string playedMove;
     bool correct = false;
     int searchDepth = -1;
@@ -99,26 +98,24 @@ public:
 
     /**
      * @brief Provides the next EPD position to analyze.
-     * @param whiteId The identifier for the white player.
-     * @param blackId The identifier for the black player.
-     * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
+     *
+     * @return A GameTask with a unique taskId or std::nullopt if all positions have been analyzed.
      */
-    std::optional<GameTask> nextTask(const std::string& whiteId, const std::string& blackId) override;
+    std::optional<GameTask> nextTask() override;
 
     /**
-     * @brief Processes the result of a completed analysis.
-     * @param whiteId The identifier for the white player.
-     * @param blackId The identifier for the black player.
+     * @brief Processes the result of a completed analysis, matched via taskId.
+     *
+     * @param taskId The identifier of the task this result belongs to.
      * @param record The result containing the engine's move(s) and evaluation.
      */
-    void setGameRecord(const std::string& whiteId, const std::string& blackId,
-        const GameRecord& record) override;
+    void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     /**
      * @brief Reports a principal variation (PV) found by the engine during search.
      *        Allows the provider to track correct moves and optionally stop the search early.
      *
-     * @param engineId      The id of the engine computing the result.
+     * @param taskId        The id of the task receiving this update.
      * @param pv            The principal variation as a list of LAN moves.
      * @param timeInMs      Elapsed time in milliseconds.
      * @param depth         Current search depth.
@@ -126,7 +123,7 @@ public:
      * @param multipv       MultiPV index (1 = best line).
      * @return true if the engine should stop searching, false to continue.
      */
-    bool setPV(const std::string& engineId,
+    bool setPV(const std::string& taskId,
         const std::vector<std::string>& pv,
         uint64_t timeInMs,
         std::optional<uint32_t> depth,

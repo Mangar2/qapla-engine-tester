@@ -301,7 +301,9 @@ private:
 
     bool requireLan_ = true;
 	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
-	GameRecord gameRecord_;
+    std::string taskId_;
+
+    GameRecord gameRecord_;
     bool logMoves_ = false;
 
     // Queue management

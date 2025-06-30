@@ -103,25 +103,19 @@ public:
     }
 
     /**
-     * @brief Provides the next task for a matching engine pair.
+     * @brief Provides the next available task.
      *
-     * @param whiteId The engine requesting white.
-     * @param blackId The engine requesting black.
-     * @return A task to execute or std::nullopt if complete or non-matching.
+     * @return A GameTask with a unique taskId or std::nullopt if no task is available.
      */
-    std::optional<GameTask> nextTask(const std::string& whiteId,
-        const std::string& blackId) override;
+    std::optional<GameTask> nextTask() override;
 
     /**
-     * @brief Records the result of a finished game.
+     * @brief Records the result of a finished game identified by taskId.
      *
-     * @param whiteId Engine that played white.
-     * @param blackId Engine that played black.
+     * @param taskId Identifier of the task this game result belongs to.
      * @param record Game outcome and metadata.
      */
-    void setGameRecord(const std::string& whiteId,
-        const std::string& blackId,
-        const GameRecord& record) override;
+    void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     /**
      * @brief Serializes the tournament state as a single-line result string.

@@ -87,18 +87,17 @@ void SprtManager::schedule(int concurrency) {
         tournament_.getEngineA(), tournament_.getEngineB(), config_.maxGames);
 }
 
-std::optional<GameTask> SprtManager::nextTask(const std::string& whiteId, const std::string& blackId) {
+std::optional<GameTask> SprtManager::nextTask() {
     auto result = computeSprt().first;
     rememberStop_ = rememberStop_ || result.has_value();
     if (rememberStop_) return std::nullopt;
 
-    return tournament_.nextTask(whiteId, blackId);
+    return tournament_.nextTask();
 }
 
-void SprtManager::setGameRecord(const std::string& whiteId, const std::string& blackId,
-    const GameRecord& record) {
+void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
 
-    tournament_.setGameRecord(whiteId, blackId, record);
+    tournament_.setGameRecord(taskId, record);
 
     auto [cause, result] = record.getGameResult();
     auto duel = tournament_.getResult();

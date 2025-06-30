@@ -17,6 +17,21 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+ /**
+  * GameManager executes tasks such as playing games or calculating moves. Upon task completion, 
+  * it queries its assigned TaskProvider (if any) for a new task.
+  * If no task is available, it requests a new TaskProvider from GameManagerPool.
+  *
+  * The pool manages all GameManagers and a list of active TaskProviders. 
+  * When providing a new TaskProvider, it also returns the first available task.
+  * This ensures that a parallel GameManager cannot intercept the next task before the requesting 
+  * GameManager can retrieve it.
+  *
+  * This coordination avoids race conditions where a new TaskProvider would otherwise appear empty. 
+  * Providers receive result updates to support
+  * dynamic control (e.g., stopping ongoing tasks when target results are achieved).
+  */
+
 #include "game-manager.h"
 #include "engine-report.h"
 #include <iostream>
@@ -272,7 +287,7 @@ void GameManager::informTask(const EngineEvent& event, const PlayerContext* play
 		return; // No principal variation to set
 	}
     auto start = player->getComputeMoveStartTimestamp();
-	bool stopRequired = taskProvider_->setPV(event.engineIdentifier, pv, 
+	bool stopRequired = taskProvider_->setPV(taskId_, pv, 
         event.timestampMs < start ? 0 : event.timestampMs - start, 
         event.searchInfo->depth, event.searchInfo->nodes, event.searchInfo->multipv);
     if (stopRequired) {
@@ -397,10 +412,8 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
 	if (GameManagerPool::getInstance().maybeDeactivateManager(taskProvider_)) {
         return std::nullopt;
     }
-    auto whiteId = whitePlayer_->getIdentifier();
-    auto blackId = blackPlayer_->getIdentifier();
 
-    auto task = taskProvider_->nextTask(whiteId, blackId);
+    auto task = taskProvider_->nextTask();
     if (task) {
         return task;
     }
@@ -440,6 +453,7 @@ void GameManager::computeTask(std::optional<GameTask> task) {
 	setFromGameRecord(task->gameRecord);
     setTimeControls(gameRecord_.getWhiteTimeControl(), gameRecord_.getBlackTimeControl());
 	taskType_ = task->taskType;
+	taskId_ = task->taskId;
     // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
     notifyNewGame();
 	computeNextMove();
@@ -479,7 +493,7 @@ void GameManager::computeNextTask() {
 	auto whiteId = whitePlayer_->getIdentifier();
 	auto blackId = blackPlayer_->getIdentifier();
     if (gameRecord_.nextMoveIndex() > 0) {
-        taskProvider_->setGameRecord(whiteId, blackId, gameRecord_);
+        taskProvider_->setGameRecord(taskId_, gameRecord_);
     }
     auto task = organizeNewAssignment();
     if (!task) {

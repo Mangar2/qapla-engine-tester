@@ -68,9 +68,7 @@ public:
      * @brief Returns the next task for the engine to process.
      * @return Optional GameTask with position and time control, or std::nullopt if done.
      */
-    std::optional<GameTask> nextTask(
-        [[maybe_unused]] const std::string& whiteId, 
-        [[maybe_unused]] const std::string& blackId) override {
+    std::optional<GameTask> nextTask() override {
         if (currentIndex_ >= tests_.size()) {
             return std::nullopt;
         }
@@ -90,14 +88,13 @@ public:
     }
 
     /**
-     * @brief Evaluates the result of a completed task.
-     * @param whiteId The identifier for the white player.
-     * @param blackId The identifier for the black player.
-     * @param record The game record containing the engine's computed moves.
+     * @brief Records the result of a finished task identified by taskId.
+     *
+     * @param taskId Identifier of the task this task result belongs to.
+     * @param record Game outcome and metadata.
      */
     void setGameRecord(
-        [[maybe_unused]] const std::string & whiteId, 
-        [[maybe_unused]] const std::string & blackId,
+        [[maybe_unused]] const std::string & taskId, 
         const GameRecord & record) override 
     {
         if (currentIndex_ == 0 || currentIndex_ > tests_.size()) {

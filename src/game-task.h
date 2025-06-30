@@ -29,37 +29,37 @@ struct GameTask {
         ComputeMove,
         PlayGame
     };
+
+    /** Unique identifier for tracking the task across engine interactions */
+    std::string taskId;
     bool switchSide = false;
     Type taskType;
-	GameRecord gameRecord;
+    GameRecord gameRecord;
 };
 
 class GameTaskProvider {
 public:
-	GameTaskProvider() = default;
-	virtual ~GameTaskProvider() = default;
-	/**
-	 * @brief Provides the next game task.
-	 * @param whiteId The identifier for the white player.
-	 * @param blackId The identifier for the black player.
-	 * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
-	 */
-	virtual std::optional<GameTask> nextTask(const std::string& whiteId, const std::string& blackId) = 0;
+    GameTaskProvider() = default;
+    virtual ~GameTaskProvider() = default;
 
     /**
-	 * @brief Sets the game state for the task.
-  	 * @param whiteId The identifier for the white player.
-	 * @param blackId The identifier for the black player.
-	 * @param state The game state to set.
+     * @brief Provides the next game task.
+     * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
      */
-    virtual void setGameRecord(const std::string& whiteId, const std::string& blackId,
-        const GameRecord& record) = 0;
+    virtual std::optional<GameTask> nextTask() = 0;
+
+    /**
+     * @brief Sets the game record for a given task.
+     * @param taskId The identifier of the task.
+     * @param record The game record to associate with the task.
+     */
+    virtual void setGameRecord(const std::string& taskId, const GameRecord& record) = 0;
 
     /**
      * @brief Reports a principal variation (PV) found by the engine during search.
      *        Allows the provider to track correct moves and optionally stop the search early.
      *
-     * @param engineId      The id of the engine computing the result.
+     * @param taskId        The id of the task receiving this update.
      * @param pv            The principal variation as a list of LAN moves.
      * @param timeInMs      Elapsed time in milliseconds.
      * @param depth         Current search depth.
@@ -68,12 +68,12 @@ public:
      * @return true if the engine should stop searching, false to continue.
      */
     virtual bool setPV(
-        [[maybe_unused]] const std::string& engineId,
-        [[maybe_unused]] const std::vector<std::string>& pv,
-        [[maybe_unused]] uint64_t timeInMs,
-        [[maybe_unused]] std::optional<uint32_t> depth,
-        [[maybe_unused]] std::optional<uint64_t> nodes,
-        [[maybe_unused]] std::optional<uint32_t> multipv)
+        const std::string& taskId,
+        const std::vector<std::string>& pv,
+        uint64_t timeInMs,
+        std::optional<uint32_t> depth,
+        std::optional<uint64_t> nodes,
+        std::optional<uint32_t> multipv)
     {
         return false;
     }

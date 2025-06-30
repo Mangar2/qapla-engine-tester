@@ -71,21 +71,19 @@ public:
     bool wait();
 
     /**
-     * @brief Provides the next Game to play.
-     * @param whiteId The identifier for the white player.
-     * @param blackId The identifier for the black player.
-     * @return An optional GameTask. If no more tasks are available, returns std::nullopt.
+     * @brief Provides the next available task.
+     *
+     * @return A GameTask with a unique taskId or std::nullopt if no task is available.
      */
-    std::optional<GameTask> nextTask(const std::string& whiteId, const std::string& blackId) override;
+    std::optional<GameTask> nextTask() override;
 
     /**
-     * @brief Processes the result of a completed task.
-     * @param whiteId The identifier for the white player.
-     * @param blackId The identifier for the black player.
-     * @param record The result containing the complete game result.
+     * @brief Records the result of a finished game identified by taskId.
+     *
+     * @param taskId Identifier of the task this game result belongs to.
+     * @param record Game outcome and metadata.
      */
-    void setGameRecord(const std::string& whiteId, const std::string& blackId,
-        const GameRecord& record) override;
+    void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     void runMonteCarloTest(const SprtConfig& config);
 
