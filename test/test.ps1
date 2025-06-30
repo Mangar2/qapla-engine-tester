@@ -7,6 +7,8 @@
     # --test numgames=0 nostop --engine conf="Qapla 0.3.2" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini --logpath=log --enginelog
     ,@{ args = "--test numgames=20 nostop --engine conf=""Qapla 0.3.2"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"" --logpath=log --enginelog "; expectedCode = 12 }
     ,@{ args = "--test numgames=20 --engine name=Qapla0.3.2 cmd=C:\Chess\delivery\Qapla0.3.2\Qapla0.3.2-win-x86.exe --logpath=log "; expectedCode = 10 }
+    ,@{ args = "--tournament type=gauntlet games=8 repeat=2 --engine conf=""Qapla 0.3.2"" gauntlet --engine conf=""Qapla 0.3.2"" trace=all --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini --logpath=log --enginelog --pgnoutput file=log/test.pgn --each tc=10+0.02 --openings order=random file=book8ply.raw format=raw"; expectedCode = 0 }
+    ,@{ args = "--tournament type=gauntlet resultfile=log/tournamet.tour games=8 repeat=2 --engine conf=""Qapla 0.3.2"" gauntlet --engine conf=""Qapla 0.3.2"" trace=all --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini --logpath=log --enginelog --pgnoutput file=log/test.pgn --each tc=10+0.02 --openings order=random file=book8ply.raw format=raw"; expectedCode = 0 }
     ,@{ args = "--tournament type=gauntlet resultfile=log/tournamet.tour games=8 repeat=2 --engine conf=""Qapla 0.3.2"" gauntlet --engine conf=""Qapla 0.3.2"" trace=all --engine conf=""Qapla 0.3.1"" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini --logpath=log --enginelog --pgnoutput file=log/test.pgn --each tc=10+0.02 --openings order=random file=book8ply.raw format=raw"; expectedCode = 0 }
     #--tournament type=gauntlet resultfile=log/tournamet.qrtour games=12 repeat=2 rounds=10 --concurrency=1 --interactive --engine conf="Qapla 0.3.2" gauntlet --engine conf="Qapla 0.3.2" trace=all --engine conf="Qapla 0.3.1" --enginesfile=C:\Development\qapla-engine-tester\test\engines.ini --logpath=log --enginelog --pgnoutput file=log/test.pgn --each tc=10+0.02 --openings order=random file=test/book8ply.raw format=raw
     ,@{ args = "--epd file=wmtest.epd maxtime=20 mintime=1 seenplies=3 minsuccess=80 --logpath=log --enginelog --concurrency=20 --each tc=10+0.02 --engine conf=""Qapla 0.3.2"" --enginesfile=""C:\Development\qapla-engine-tester\test\engines.ini"""; expectedCode = 13 }
@@ -20,7 +22,9 @@
 )
 
 $results = @()
-Remove-Item log\* -File
+Remove-Item log\*.log
+Remove-Item log\*.tour
+Remove-Item log\*.pgn 
 
 foreach ($test in $tests) {
     & .\..\x64\Release\qapla-engine-tester.exe $test.args.Split(" ") 

@@ -104,6 +104,15 @@ inline std::string gameResultToPgnResult(GameResult result) {
 	}
 }
 
+inline GameResult switchGameResult(GameResult result) {
+	switch (result) {
+	case GameResult::WhiteWins: return GameResult::BlackWins;
+	case GameResult::BlackWins: return GameResult::WhiteWins;
+	case GameResult::Draw:      return GameResult::Draw;
+	default:                    return GameResult::Unterminated;
+	}
+}
+
 inline std::string to_string(GameResult result) {
 	return gameResultToPgnResult(result);
 }

@@ -96,7 +96,7 @@ std::optional<GameTask> SprtManager::nextTask() {
 }
 
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
-
+	bool engine1IsWhite = tournament_.getEngineA().getName() == record.getWhiteEngineName();
     tournament_.setGameRecord(taskId, record);
 
     auto [cause, result] = record.getGameResult();
@@ -107,7 +107,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     std::ostringstream oss;
     oss << std::left
         << "match game " << std::setw(3) << record.getRound()
-        << " result " << std::setw(7) << to_string(result)
+        << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
         << " cause " << std::setw(21) << to_string(cause)
         << " sprt " << info
         << " engines " << duel.toString();
@@ -116,7 +116,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
     if (decision) {
-		std::cout << "Finishing running games, please wait a moment..." << std::endl;
+		if (!decision_) std::cout << "Finishing running games, please wait a moment..." << std::endl;
         decision_ = decision;
     }
 }

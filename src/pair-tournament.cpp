@@ -173,7 +173,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
             << " game " << std::setw(3) << round
             << " result " << std::setw(7) << to_string(result)
             << " cause " << std::setw(21) << to_string(cause)
-            << " engines " << duelResult_.getEngineA() << " vs " << duelResult_.getEngineB();
+            << " engines " << record.getWhiteEngineName() << " vs " << record.getBlackEngineName();
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
 
