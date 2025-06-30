@@ -30,7 +30,7 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     {
 
     if (!adapter_) {
-        throw std::invalid_argument("EngineWorker requires a valid EngineAdapter");
+        throw std::invalid_argument("Internal Error: EngineWorker requires a valid EngineAdapter");
     }
     engineConfig_ = engineConfig;
 
@@ -56,14 +56,15 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             waitForHandshake_ = EngineEvent::Type::UciOk;
             adapter.startProtocol();
             if (!waitForHandshake(ReadyTimeoutUciOk)) {
-                throw std::runtime_error("Engine failed UCI handshake");
+               
+                throw std::runtime_error("Engine " + getEngineName() + " failed UCI handshake");
             }
             if (!options.empty()) {
                 adapter.setOptionValues(options);
 				waitForHandshake_ = EngineEvent::Type::ReadyOk;
                 adapter.askForReady();
                 if (!waitForHandshake(ReadyTimeoutOption)) {
-                    throw std::runtime_error("Engine failed ready ok handshake after setoptions");
+                    throw std::runtime_error("Engine " + getEngineName() + " failed ready ok handshake after setoptions");
                 }
             }
             startupPromise_.set_value(); 

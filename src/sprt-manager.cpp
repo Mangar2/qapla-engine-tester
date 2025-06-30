@@ -117,6 +117,7 @@ void SprtManager::setGameRecord(const std::string& whiteId, const std::string& b
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
     if (decision) {
+		std::cout << "Finishing running games, please wait a moment..." << std::endl;
         decision_ = decision;
     }
 }

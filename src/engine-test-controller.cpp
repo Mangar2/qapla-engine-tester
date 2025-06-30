@@ -240,7 +240,7 @@ void EngineTestController::runGoLimitsTests() {
 	int errors = 0;
     for (const auto& [name, timeControl] : testCases) {
         runTest(name, [this, name, timeControl, &errors]() -> std::pair<bool, std::string> {
-            gameManager_->newGame();
+            gameManager_->notifyNewGame();
             gameManager_->setUniqueTimeControl(timeControl);
             gameManager_->computeMove(true);
             bool success = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
@@ -380,7 +380,7 @@ void EngineTestController::runEngineOptionTests() {
 
     auto engine = gameManager_->getEngine();
     const EngineOptions& options = engine->getSupportedOptions();
-	std::cout << "Setting engine options to random values to test engine stability. This may lead to crashes, please wait...\r";
+	std::cout << "Randomizing engine settings, please wait...\r";
     for (const auto opt : options) {
         if (opt.name == "Hash" || opt.type == EngineOption::Type::Button) {
             continue;
@@ -443,7 +443,7 @@ void EngineTestController::runAnalyzeTest() {
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
 
     runTest("reacts-on-stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->newGame();
+        gameManager_->notifyNewGame();
         TimeControl t;
         t.setInfinite();
         gameManager_->setUniqueTimeControl(t);
@@ -619,7 +619,7 @@ void EngineTestController::runComputeGameTest() {
     EngineList engines = startEngines(2);
     gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
     try {
-        gameManager_->newGame();
+        gameManager_->notifyNewGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         gameManager_->setTimeControls(t1, t2);
@@ -641,7 +641,7 @@ void EngineTestController::runPonderGameTest() {
 	engines[1]->getConfigMutable().setPonder(true);
     gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
     try {
-        gameManager_->newGame();
+        gameManager_->notifyNewGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         gameManager_->setTimeControls(t1, t2);

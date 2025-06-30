@@ -237,7 +237,8 @@ auto runSprt(AppReturnCode code) {
             if (!filename.empty()) {
                 manager.save(filename);
             }
-            code = logChecklist(code);
+			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager.getResult()));
+
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto decision = manager.getDecision();
 				code = !decision ? AppReturnCode::UndefinedResult : 

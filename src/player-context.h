@@ -73,6 +73,15 @@ public:
 	}
 
     /**
+	 * @brief Informs the engine that a new game is starting.
+     */
+    void notifyNewGame() {
+        if (engine_) {
+            engine_->newGame();
+        }
+    }
+
+    /**
 	 * @brief Tells the engine to compute a new move
      */
     void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits);

@@ -440,7 +440,21 @@ void GameManager::computeTask(std::optional<GameTask> task) {
 	setFromGameRecord(task->gameRecord);
     setTimeControls(gameRecord_.getWhiteTimeControl(), gameRecord_.getBlackTimeControl());
 	taskType_ = task->taskType;
+    // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
+    notifyNewGame();
 	computeNextMove();
+}
+
+void GameManager::stop() {
+    taskType_ = GameTask::Type::None;
+    whitePlayer_->cancelCompute();
+    if (blackPlayer_ != whitePlayer_) {
+        blackPlayer_->cancelCompute();
+    }
+    while (!eventQueue_.empty()) {
+        eventQueue_.pop();
+    }
+    markFinished();
 }
 
 void GameManager::computeNextTask() {

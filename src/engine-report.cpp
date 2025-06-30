@@ -77,8 +77,8 @@ bool EngineReport::logReport(const std::string& topicId, bool passed, std::strin
 
 AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<EngineResult>& engineResult) {
     AppReturnCode result = AppReturnCode::NoError;
-    Logger::testLogger().log("\n== Summary ==\n");
-    Logger::testLogger().log(engineName_ + " by " + engineAuthor_ + "\n");
+    Logger::testLogger().log("\n== Summary ==\n", traceLevel);
+    Logger::testLogger().log(engineName_ + (engineAuthor_.empty() ? "" : " by " + engineAuthor_) + "\n", traceLevel);
 
     std::map<CheckSection, std::vector<std::pair<const CheckTopic*, CheckEntry>>> grouped;
 

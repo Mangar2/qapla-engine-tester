@@ -109,6 +109,12 @@ public:
      */
     void load(const std::string& filename);
 
+    TournamentResult getResult() const {
+        TournamentResult t;
+		t.add(tournament_.getResult());
+        return t;
+    }
+
 private:
     PairTournament tournament_;
     std::shared_ptr<StartPositions> startPositions_;

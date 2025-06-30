@@ -62,22 +62,16 @@ public:
      */
     void setEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
 
-	/**
-	 * @brief stops the engine if it is running.
-	 */
-	void stop() {
-		forEachUniqueEngine([](EngineWorker& engine) {
-			engine.stop();
-			});
-	}
+
 
     /**
 	 * Sends a new game command to the engine(s).
      */
-    void newGame() {
-		forEachUniqueEngine([](EngineWorker& engine) {
-			engine.newGame();
-			});
+    void notifyNewGame() {
+        whitePlayer_->notifyNewGame();
+		if (blackPlayer_ != whitePlayer_) {
+			blackPlayer_->notifyNewGame();
+		}
     }
 
 	/**
@@ -158,8 +152,13 @@ public:
     const GameTaskProvider* getTaskProvider() {
 		return taskProvider_;
     }
-
+    /**
+     * @brief stops the engine if it is running.
+     */
+    void stop();
 private:
+
+
     /**
      * Adds a new engine event to the processing queue.
      * This method is thread-safe and does not block.

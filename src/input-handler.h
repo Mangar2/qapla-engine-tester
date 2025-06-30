@@ -62,14 +62,6 @@ public:
     using CommandCallback = std::function<void(ImmediateCommand, CommandValue)>;
 
     /**
-     * @brief Returns the registered global instance.
-     * @return Reference to the registered InputHandler.
-     */
-    static InputHandler& getInstance() {
-        return *getGlobalInstance();
-    }
-
-    /**
      * @brief Returns true if the user has requested to quit.
      * @return True if "quit" was entered.
      */
@@ -84,25 +76,20 @@ public:
     void dispatchImmediate(ImmediateCommand cmd, const std::vector<std::string>& args);
 
     static void inputLoop(bool interactive);
+
+    static InputHandler& getInstance() {
+        static InputHandler inputHandler;
+        return inputHandler;
+    }
+
 private:
 
     InputHandler() = default;
 
-    /**
-     * @brief Registers global access to a stack-allocated InputHandler instance.
-     * @param instance Pointer to existing InputHandler.
-     */
-    static void setInstance(InputHandler* instance) {
-        getGlobalInstance() = instance;
-    }
     void handleSetCommand(const std::vector<std::string>& args);
     void handleLine(const std::string& line);
     void showHelp();
 
-    static InputHandler*& getGlobalInstance() {
-        static InputHandler* instance = nullptr;
-        return instance;
-    }
 
     std::atomic<bool> started{ false };
     std::atomic<bool> quitFlag{ false };

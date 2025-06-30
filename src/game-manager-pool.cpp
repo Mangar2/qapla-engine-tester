@@ -24,13 +24,18 @@
 GameManagerPool::GameManagerPool() {
     inputCallback_ = InputHandler::getInstance().registerCommandCallback(
 		{ InputHandler::ImmediateCommand::Quit,
+          InputHandler::ImmediateCommand::Abort,
 		  InputHandler::ImmediateCommand::Concurrency },
         [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue value) {
 			if (cmd == InputHandler::ImmediateCommand::Quit) {
-				std::cout << "\n\nQuit received, finishing all games before exiting.\n" << std::endl;
+				std::cout << "\n\nQuit received, finishing all games and analyses before exiting.\n" << std::endl;
                 this->setConcurrency(0, true);
 			}
-			else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
+            else if (cmd == InputHandler::ImmediateCommand::Abort) {
+				std::cout << "\n\nAbort received, terminating all ongoing games and analyses immediately.\n" << std::endl;
+				this->clearAll();
+            } 
+            else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
 				if (value) {
 					int concurrency = std::stoi(*value);
 					this->setConcurrency(concurrency, true, true);

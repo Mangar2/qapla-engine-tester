@@ -33,11 +33,9 @@ InputHandler::CallbackRegistration::~CallbackRegistration() {
 
 
 void InputHandler::inputLoop(bool interactive) {
-    static InputHandler inputHandler;
-    if (inputHandler.started.exchange(true)) {
-		throw std::runtime_error("InputHandler is already running");
+    if (InputHandler::getInstance().started.exchange(true)) {
+        throw std::runtime_error("InputHandler is already running");
     }
-    setInstance(&inputHandler);
 	if (!interactive) {
 		// Non-interactive mode, no input thread needed
 		return;
@@ -51,8 +49,8 @@ void InputHandler::inputLoop(bool interactive) {
         }
         };
 
-    inputHandler.inputThread = std::thread(loop);
-    inputHandler.inputThread.detach();
+    InputHandler::getInstance().inputThread = std::thread(loop);
+    InputHandler::getInstance().inputThread.detach();
 }
 
 void InputHandler::handleLine(const std::string& line) {
@@ -86,7 +84,7 @@ void InputHandler::showHelp() {
         << "  quit | q           - Exit the program, waiting for current games to finish\n"
         << "  info | ?           - Show current engine/game state\n"
         << "  concurrency | c    - Set number of concurrent games\n"
-        // << "  abort | a          - Abort current games immediately\n"
+        << "  abort | a          - Abort current games immediately\n"
         << "  help | h           - Show this help message\n";
 }
 
