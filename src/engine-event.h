@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 #pragma once
 
@@ -43,7 +43,7 @@ struct SearchInfo {
     std::vector<std::string> pv;
 	std::vector<std::string> refutation;
     std::vector<std::string> currline; 
-    std::vector<std::string> errors;  // für Parsing-Fehler oder unklare Angaben
+    std::vector<std::string> errors;  // fÃ¼r Parsing-Fehler oder unklare Angaben
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SearchInfo& info) {

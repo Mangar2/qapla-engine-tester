@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder:qapla-engine-tester}/src",
+        "${workspaceFolder:qapla-engine-tester}/src/**",
+        "/usr/include/c++/13",
+        "/usr/include/x86_64-linux-gnu/c++/13",
+        "/usr/include/c++/13/backward",
+        "/usr/lib/gcc/x86_64-linux-gnu/13/include",
+        "/usr/local/include",
+        "/usr/include/x86_64-linux-gnu",
+        "/usr/include"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/bin/g++",
+      "cStandard": "c17",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "linux-gcc-x64"
+    }
+  ],
+  "version": 4
+}

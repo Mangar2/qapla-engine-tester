@@ -13,17 +13,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker B�hm
- * @copyright Copyright (c) 2025 Volker B�hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "cli-settings-manager.h"
 
+#include <string.h>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <unordered_map>
 
 #include "app-error.h"
 #include "string-helper.h"
@@ -334,12 +336,14 @@ namespace CliSettings {
 
             std::cout << def.description;
             if (def.isRequired) std::cout << " [required]";
-            else {
-                if (def.defaultValue) {
+            else if (def.defaultValue) {
+                bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue)
+                        && std::get<std::string>(*def.defaultValue).empty();
+                if (!isEmptyString){ 
                     std::cout << " (default: ";
                     std::visit([](auto&& v) { std::cout << v; }, *def.defaultValue);
                     std::cout << ")";
-                }
+                } 
             }
             std::cout << "\n";
         }
@@ -364,8 +368,10 @@ namespace CliSettings {
 
                 std::cout << meta.description;
                 if (meta.isRequired) std::cout << " [required]";
-                else {
-                    if (meta.defaultValue) {
+                else if (meta.defaultValue) {
+                    bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue)
+                        && std::get<std::string>(*meta.defaultValue).empty();
+                    if (!isEmptyString){ 
                         std::cout << " (default: ";
                         std::visit([](auto&& v) { std::cout << v; }, *meta.defaultValue);
                         std::cout << ")";

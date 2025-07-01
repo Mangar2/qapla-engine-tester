@@ -18,8 +18,13 @@
  */
 
 #include <sstream>
+#include <iterator>
+#include <ranges>   
+#include <vector>
+
 #include "input-handler.h"
 #include "cli-settings-manager.h"
+
 
 InputHandler::CallbackRegistration::CallbackRegistration(InputHandler& handler, size_t id)
     : handler_(&handler), callbackId_(id) {
