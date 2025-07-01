@@ -130,6 +130,14 @@ namespace CliSettings {
     class Manager {
     public:
 
+        /**
+         * Merges the original command line arguments with settings from a file.
+         * If a settings file is specified, it will be parsed and its contents
+         * will be added to the original arguments.
+         * @param originalArgs Original command line arguments.
+         * @return Merged vector of command line arguments.
+         */
+        static std::vector<std::string> mergeWithSettingsFile(const std::vector<std::string>& originalArgs);
 
         /**
          * @brief Registers a setting with its metadata.
@@ -159,10 +167,9 @@ namespace CliSettings {
 
         /**
          * @brief Parses CLI arguments in the format --name=value.
-         * @param argc Argument count from main().
-         * @param argv Argument vector from main().
+		 * @param args Vector of command line arguments, e.g. {"--name=value", "--option", "value"}.
          */
-        static void parseCommandLine(int argc, char** argv);
+        static void parseCommandLine(const std::vector<std::string>& args);
 
         /**
          * @brief Retrieves the typed value of a setting.
@@ -209,6 +216,11 @@ namespace CliSettings {
          */
         static SetResult setGlobalValue(const std::string& name, const std::string& value);
 
+        static void clearValues() {
+            values_.clear();
+            groupInstances_.clear();
+        }
+
     private:
 
         struct ParsedParameter {
@@ -228,22 +240,29 @@ namespace CliSettings {
         static ParsedParameter parseParameter(const std::string& raw);
 
         /**
+         * Parses an INI-like settings stream into CLI-style arguments.
+         * Section headers (e.g. [engine]) create group switches (--engine),
+         * followed by individual settings as positional parameters.
+         * Top-level keys (without section) are parsed as --key value.
+         */
+        static std::vector<std::string> parseStreamToArgv(std::istream& input);
+
+
+        /**
          * @brief Parses a single global parameter at the given position.
-         * @param index Current index in argv array.
-         * @param argc Total number of arguments.
-         * @param argv Argument vector.
+         * @param index Current index in args vector.
+		 * @param args Vector of command line arguments.
          * @return Index of the next unprocessed argument.
          */
-        static int parseGlobalParameter(int index, int argc, char** argv);
+        static int parseGlobalParameter(int index, const std::vector<std::string>& args);
 
         /**
          * @brief Parses an entire grouped parameter block starting at the given position.
-         * @param index Current index pointing to the group name (--engine etc.).
-         * @param argc Total number of arguments.
-         * @param argv Argument vector.
+         * @param index Current index in args vector.
+         * @param args Vector of command line arguments.
          * @return Index of the next unprocessed argument after the group block.
          */
-        static int parseGroupedParameter(int index, int argc, char** argv);
+        static int parseGroupedParameter(int index, const std::vector<std::string>& args);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
@@ -264,9 +283,21 @@ namespace CliSettings {
          */
         static void finalizeGlobalParameters();
 
-        static inline ValueMap values_;
+		/**
+		 * @brief Parses a single value from a command line argument.
+		 * @param arg The parsed parameter containing the name and optional value.
+		 * @param def The definition of the expected parameter.
+		 * @return The parsed Value, or throws if invalid.
+		 */
+        static Value parseValue(const ParsedParameter& arg, const Definition& def);
+
+
+		// Static storage for definitions and group definitions
         static inline std::unordered_map<std::string, Definition> definitions_;
         static inline std::unordered_map<std::string, GroupDefinition> groupDefs_;
+
+		// Static storage for parsed values and group instances
+        static inline ValueMap values_;
         /**
          * @brief Stores grouped CLI values, organized by group name and ordered appearance.
          *        Each group name maps to a list of key-value maps (i.e., multiple blocks per group).
@@ -274,6 +305,5 @@ namespace CliSettings {
         static inline GroupInstancesMap groupInstances_;
 
         
-        static Value parseValue(const ParsedParameter& arg, const Definition& def);
     };
 }

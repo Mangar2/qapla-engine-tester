@@ -238,6 +238,7 @@ auto runSprt(AppReturnCode code) {
                 manager.save(filename);
             }
 			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager.getResult()));
+			Logger::testLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto decision = manager.getDecision();
@@ -305,6 +306,7 @@ AppReturnCode runTournament(AppReturnCode code) {
 		if (!filename.empty()) {
 			tournament.save(filename);
 		}
+        Logger::testLogger().log("tournament all games completed", TraceLevel::result);
  		code = updateCode(code, EngineReport::logAll(TraceLevel::command, tournament.getResult()));
     }
     catch (const std::exception& e) {
@@ -386,6 +388,48 @@ void handleEngineOptions() {
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
+/**
+ * Converts argc/argv into a vector of strings for easier manipulation.
+ */
+std::vector<std::string> argvToVector(int argc, char* argv[]) {
+    std::vector<std::string> result;
+    for (int i = 0; i < argc; ++i) {
+        result.emplace_back(argv[i]);
+    }
+    return result;
+}
+
+AppReturnCode run(const std::vector<std::string>& args) {
+    AppReturnCode returnCode = AppReturnCode::NoError;
+    auto extendedArgs = CliSettings::Manager::mergeWithSettingsFile(args);
+    CliSettings::Manager::parseCommandLine(extendedArgs);
+    InputHandler::inputLoop(extendedArgs.size() == 1 || CliSettings::Manager::get<bool>("interactive"));
+
+    handleGlobalOptions(returnCode);
+    handlePgnOptions();
+    handleEngineOptions();
+
+    if (auto test = CliSettings::Manager::getGroupInstance("test")) {
+        returnCode = runTest(*test, returnCode);
+    }
+
+    auto epdList = CliSettings::Manager::getGroupInstances("epd");
+    if (!epdList.empty()) {
+        returnCode = runEpd(epdList, returnCode);
+    }
+
+    auto tournament = CliSettings::Manager::getGroupInstance("tournament");
+    if (tournament) {
+        returnCode = runTournament(returnCode);
+    }
+
+    auto sprt = CliSettings::Manager::getGroupInstance("sprt");
+    if (sprt) {
+        returnCode = runSprt(returnCode);
+    }
+    return returnCode;
+}
+
 int main(int argc, char** argv) {
     bool isEngineTest = false;
     Timer timer;
@@ -395,7 +439,7 @@ int main(int argc, char** argv) {
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
         Logger::testLogger().setTraceLevel(TraceLevel::command);
-        Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.3.0 (c) by Volker Boehm\n");
+        Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.4.0 (c) by Volker Boehm\n");
 
         CliSettings::Manager::registerSetting("interactive", "Enables interactive mode", false, false,  CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
@@ -408,6 +452,8 @@ int main(int argc, char** argv) {
 			CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("logpath", "Path to the logging directory", false, std::string(""), 
             CliSettings::ValueType::PathExists);
+		CliSettings::Manager::registerSetting("settingsfile", "Path to a settings file in INI-style format", false, std::string(""),
+			CliSettings::ValueType::PathExists);
 
 
         CliSettings::Manager::registerGroup("engine", "Defines an engine configuration", false, {
@@ -495,32 +541,8 @@ int main(int argc, char** argv) {
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } }
             });
 
-
-        CliSettings::Manager::parseCommandLine(argc, argv);
-        InputHandler::inputLoop(argc == 1 || CliSettings::Manager::get<bool>("interactive"));
-
-        handleGlobalOptions(returnCode);
-        handlePgnOptions();
-		handleEngineOptions();
-
-        if (auto test = CliSettings::Manager::getGroupInstance("test")) {
-            returnCode = runTest(*test, returnCode);
-        }
-
-        auto epdList = CliSettings::Manager::getGroupInstances("epd");
-        if (!epdList.empty()) {
-            returnCode = runEpd(epdList, returnCode);
-        }
-
-		auto tournament = CliSettings::Manager::getGroupInstance("tournament");
-		if (tournament) {
-			returnCode = runTournament(returnCode);
-		}
-
-        auto sprt = CliSettings::Manager::getGroupInstance("sprt");
-        if (sprt) {
-            returnCode = runSprt(returnCode);
-        }
+		auto args = argvToVector(argc, argv); 
+        returnCode = run(args);
 			
     }
     catch (const AppError& ex) {

@@ -23,10 +23,64 @@
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 
 #include "app-error.h"
+#include "string-helper.h"
 
 namespace CliSettings {
+
+    std::vector<std::string> Manager::mergeWithSettingsFile(const std::vector<std::string>& originalArgs) {
+        std::string filePath;
+        for (size_t i = 1; i < originalArgs.size(); ++i) {
+            const std::string& arg = originalArgs[i];
+            if (arg.rfind("--settingsfile=", 0) == 0) {
+                filePath = arg.substr(15);
+                break;
+            }
+        }
+
+        if (filePath.empty()) return originalArgs;
+
+        std::ifstream file(filePath);
+        if (!file.is_open()) {
+            throw AppError::makeInvalidParameters("Failed to open settings file: " + filePath);
+        }
+
+        std::vector<std::string> settingsArgs = { originalArgs[0] }; // preserve program name
+        std::vector<std::string> parsed = parseStreamToArgv(file);
+        settingsArgs.insert(settingsArgs.end(), parsed.begin(), parsed.end());
+        settingsArgs.insert(settingsArgs.end(), originalArgs.begin() + 1, originalArgs.end());
+        return settingsArgs;
+    }
+
+    std::vector<std::string> Manager::parseStreamToArgv(std::istream& input) {
+        std::vector<std::string> args;
+        std::string line, section;
+
+        while (std::getline(input, line)) {
+            line = trim(line);
+            if (line.empty() || line[0] == '#') continue;
+
+            if (auto maybeSection = parseSection(line)) {
+                section = *maybeSection;
+                args.push_back("--" + section);
+                continue;
+            }
+
+            if (auto kv = parseKeyValue(line)) {
+                const auto& [key, value] = *kv;
+                if (!section.empty()) {
+                    args.push_back(key + "=" + value);
+                }
+                else {
+                    args.push_back("--" + key + "=" + value);
+                }
+            }
+        }
+
+        return args;
+    }
 
     void Manager::validateDefaultValue(const std::string& name, const Value& value, ValueType type) {
         auto typeMismatch = [&](const std::string& expected) {
@@ -129,11 +183,11 @@ namespace CliSettings {
         return result;
     }
 
-    void Manager::parseCommandLine(int argc, char** argv) {
+    void Manager::parseCommandLine(const std::vector<std::string>& args) {
         int index = 1;
 
-        while (index < argc) {
-            auto arg = parseParameter(argv[index]);
+        while (index < args.size()) {
+            auto arg = parseParameter(args[index]);
 
             if (arg.original == "--help") {
                 showHelp();
@@ -145,18 +199,18 @@ namespace CliSettings {
             }
 
             if (groupDefs_.find(arg.name) != groupDefs_.end()) {
-                index = parseGroupedParameter(index, argc, argv);
+                index = parseGroupedParameter(index, args);
             }
             else {
-                index = parseGlobalParameter(index, argc, argv);
+                index = parseGlobalParameter(index, args);
             }
         }
 
         finalizeGlobalParameters();
     }
 
-    int Manager::parseGlobalParameter(int index, int argc, char** argv) {
-        auto arg = parseParameter(argv[index]);
+    int Manager::parseGlobalParameter(int index, const std::vector<std::string>& args) {
+        auto arg = parseParameter(args[index]);
 
         if (!arg.hasPrefix)
             throw AppError::makeInvalidParameters("\"" + arg.original + "\" must be in the form --name=value");
@@ -199,8 +253,8 @@ namespace CliSettings {
         return nullptr;
     }
 
-    int Manager::parseGroupedParameter(int index, int argc, char** argv) {
-        auto groupArg = parseParameter(argv[index]);
+    int Manager::parseGroupedParameter(int index, const std::vector<std::string>& args) {
+        auto groupArg = parseParameter(args[index]);
         index++;
 
         auto defIt = groupDefs_.find(groupArg.name);
@@ -214,8 +268,8 @@ namespace CliSettings {
             throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" may only be specified once");
 		}
 
-        while (index < argc) {
-			auto arg = parseParameter(argv[index]);
+        while (index < args.size()) {
+			auto arg = parseParameter(args[index]);
 
 			// this is not a parameter of the group, so we stop parsing
             if (arg.hasPrefix) break;

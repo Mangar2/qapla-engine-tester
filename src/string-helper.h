@@ -35,3 +35,20 @@ inline std::string trim(const std::string& line) {
 	auto end = line.find_last_not_of(" \t\r\n");
 	return line.substr(start, end - start + 1);
 }
+
+inline std::optional<std::string> parseSection(const std::string& line) {
+    if (line.size() > 2 && line.front() == '[' && line.back() == ']') {
+        return trim(line.substr(1, line.size() - 2));
+    }
+    return std::nullopt;
+}
+
+inline std::optional<std::pair<std::string, std::string>> parseKeyValue(const std::string& line) {
+    auto eq = line.find('=');
+    if (eq == std::string::npos) return std::nullopt;
+    std::string key = trim(line.substr(0, eq));
+    std::string value = trim(line.substr(eq + 1));
+    if (key.empty()) return std::nullopt;
+    return std::make_pair(key, value);
+}
+
