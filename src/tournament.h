@@ -113,6 +113,12 @@ public:
 		}
 		return result;
 	}
+    
+    std::string getResultString() const {
+        std::ostringstream oss;
+        getResult().printRatingTableUciStyle(oss);
+        return oss.str();
+    }
 
 private:
     /**

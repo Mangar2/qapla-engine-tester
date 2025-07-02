@@ -308,7 +308,10 @@ AppReturnCode runTournament(AppReturnCode code) {
 			tournament.save(filename);
 		}
         Logger::testLogger().log("tournament all games completed", TraceLevel::result);
- 		code = updateCode(code, EngineReport::logAll(TraceLevel::command, tournament.getResult()));
+        std::string resultString = tournament.getResultString();
+        Logger::testLogger().log(resultString, TraceLevel::result);
+
+ 		code = updateCode(code, EngineReport::logAll(TraceLevel::info, tournament.getResult()));
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);

@@ -47,7 +47,7 @@ inline double phiInv(double p) {
  */
 inline std::pair<int, int> computeEloWithError(int wins, int losses, int draws) {
     const int total = wins + losses + draws;
-    if (total == 0) return { 0, 0 };
+    if (total < 0) return { 0, 0 };
 
     const double w = static_cast<double>(wins) / total;
     const double l = static_cast<double>(losses) / total;
