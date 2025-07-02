@@ -561,7 +561,6 @@ int main(int argc, char** argv) {
 	
     // Unregisters the input handler callback before destruction of the input handler
 	GameManagerPool::resetInstance();
-
     return static_cast<int>(returnCode);
 }
 

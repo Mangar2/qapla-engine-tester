@@ -7,15 +7,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/debug/qapla-engine-tester",
         "args": [
-          "--logpath=./test/log",
-          "--enginelog",
-          "--test",
-          "numgames=0",
-          "nostop",
-          "nooption",
-          "--engine",
-          "conf=Qapla 0.3.2",
-          "--enginesfile=./test/linux-engines.ini"
+          "--settingsfile=./test/sprt-ponder.ini"
         ],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",

@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include <chrono>
@@ -30,7 +30,7 @@ void PgnIO::initialize(const std::string& event) {
     if (!options_.append) {
         std::lock_guard<std::mutex> lock(fileMutex_);
         std::ofstream out(options_.file, std::ios::trunc);
-        // Leert die Datei – kein weiterer Inhalt nötig
+        // Leert die Datei ï¿½ kein weiterer Inhalt nï¿½tig
     }
 }
 
@@ -485,7 +485,7 @@ std::vector<GameRecord> PgnIO::loadGames(const std::string& fileName) {
         if (tokens.size() == 0) continue;
 
         if (tokens[0] == "[") {
-            // Wenn vorher Züge verarbeitet wurden, beginnt jetzt ein neues Spiel
+            // Wenn vorher Zï¿½ge verarbeitet wurden, beginnt jetzt ein neues Spiel
             if (inMoveSection) {
                 finalizeParsedTags(currentGame);
                 games.push_back(std::move(currentGame));

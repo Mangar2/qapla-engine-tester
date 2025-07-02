@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker Bï¿½hm
+ * @copyright Copyright (c) 2025 Volker Bï¿½hm
  */
 
  /**
@@ -164,7 +164,7 @@ void GameManager::markFinished() {
             finishedPromise_.set_value();
         }
         catch (const std::future_error&) {
-            // already satisfied – ignore or log
+            // already satisfied ï¿½ ignore or log
         }
         finishedPromiseValid_ = false;
     }
@@ -395,6 +395,11 @@ std::optional<GameTask> GameManager::tryGetReplacementTask() {
 }
 
 std::optional<GameTask> GameManager::organizeNewAssignment() {
+    if (!taskProvider_) {
+        // No taskProvider_ means no task assignment. And a GameManager without assignment is inactive.
+        // Therefore, no attempt is made to request a new TaskProvider.
+        return std::nullopt;
+    }
     // The GameManagerPool may reduce the number of active GameManagers (e.g. from 10 to 8).
     // To do this, it checks how many GameManagers are currently active,
     // where "active" is defined as having a non-null taskProvider_.
@@ -460,6 +465,7 @@ void GameManager::computeTask(std::optional<GameTask> task) {
 }
 
 void GameManager::stop() {
+    std::unique_lock<std::mutex> lock(queueMutex_);
     taskType_ = GameTask::Type::None;
     whitePlayer_->cancelCompute();
     if (blackPlayer_ != whitePlayer_) {

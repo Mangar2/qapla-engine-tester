@@ -116,7 +116,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
     if (decision) {
-		if (!decision_) GameManagerPool::getInstance().clearAll();
+		if (!decision_) GameManagerPool::getInstance().stopAll();
         decision_ = decision;
     }
 }

@@ -69,7 +69,7 @@ public:
     /**
      * @brief Stops all managers and clears all resources.
      */
-    void clearAll();
+    void stopAll();
 
     /**
      * @brief Blocks until all managers for the given task have completed their current task.

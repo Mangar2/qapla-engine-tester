@@ -33,7 +33,7 @@ GameManagerPool::GameManagerPool() {
 			}
             else if (cmd == InputHandler::ImmediateCommand::Abort) {
 				std::cout << "\n\nAbort received, terminating all ongoing games and analyses immediately.\n" << std::endl;
-				this->clearAll();
+				this->stopAll();
             } 
             else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
 				if (value) {
@@ -80,12 +80,11 @@ void GameManagerPool::setConcurrency(int count, bool nice, bool start) {
     ensureManagerCount(maxConcurrency_, start);
 }
 
-void GameManagerPool::clearAll() {
+void GameManagerPool::stopAll() {
     std::lock_guard lock(taskMutex_);
     for (auto& manager : managers_) {
         manager->stop();
     }
-    managers_.clear();
 }
 
 void GameManagerPool::waitForTask() {
