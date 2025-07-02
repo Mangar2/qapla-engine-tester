@@ -35,6 +35,7 @@
 #include <array>
 #include <sstream>
 #include <random>
+#include <functional>
 
 /**
  * @brief Represents a collection of chess openings for a tournament.
@@ -70,6 +71,22 @@ struct PairTournamentConfig {
 class PairTournament : public GameTaskProvider {
 public:
     PairTournament(): rng_(std::random_device{}()) {};
+
+    /**
+     * @brief Defines the callback type for notifying game completion.
+     *
+     * The callback receives a pointer to this PairTournament instance.
+     */
+    using GameFinishedCallback = std::function<void(PairTournament*)>;
+
+    /**
+     * @brief Sets the callback to be invoked after each completed game.
+     *
+     * @param callback Function to call when a game finishes.
+     */
+    void setGameFinishedCallback(GameFinishedCallback callback) {
+        onGameFinished_ = std::move(callback);
+    }
 
     /**
      * @brief Initializes the tournament configuration and internal state.
@@ -195,6 +212,7 @@ public:
      */
     std::string load(std::istream& in);
 private:
+
     /**
      * @brief Returns the compact result sequence string (e.g. "1=01?").
      *
@@ -204,12 +222,17 @@ private:
 
     std::string getTournamentInfo() const;
 
+    // Inform owner
+    GameFinishedCallback onGameFinished_;
+
+    // Configuration
     EngineConfig engineA_;
     EngineConfig engineB_;
 	PairTournamentConfig config_;
     std::shared_ptr<StartPositions> startPositions_;
-    GameRecord curRecord_;
 
+    // Results
+    GameRecord curRecord_;
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;
     mutable std::mutex mutex_;

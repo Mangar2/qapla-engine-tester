@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #pragma once
@@ -36,7 +36,7 @@ enum class GameEndCause {
 	DrawByRepetition,      // Draw due to threefold repetition
 	DrawByFiftyMoveRule,   // Draw due to the 50-move rule
 	DrawByInsufficientMaterial, // Draw due to insufficient mating material
-	DrawByAgreement,       // Draw by mutual agreement (PGN result: ½–½)
+	DrawByAgreement,       // Draw by mutual agreement (PGN result: ï¿½ï¿½ï¿½)
 	Resignation,           // One side resigns
 	Timeout,               // One side ran out of time
 	IllegalMove,           // A player made an illegal move (e.g. engine bug)

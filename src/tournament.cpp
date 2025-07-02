@@ -136,6 +136,9 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
             for (size_t j = symmetric ? i + 1 : 0; j < opponents.size(); ++j) {
                 auto pt = std::make_shared<PairTournament>();
                 pt->initialize(players[i], opponents[j], ptc, startPositions_);
+                pt->setGameFinishedCallback([this](PairTournament* sender) {
+                    this->onGameFinished(sender);
+                });
                 pairings_.push_back(std::move(pt));
             }
         }
@@ -143,6 +146,15 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 
 }
 
+void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
+    ++completedGameTriggers_;
+
+    if (config_.ratingInterval > 0 && completedGameTriggers_ >= config_.ratingInterval) {
+        completedGameTriggers_ = 0;
+        auto result = getResult();
+        result.printRatingTableUciStyle(std::cout);
+    }
+}
 
 void Tournament::scheduleAll(int concurrency) {
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
@@ -226,6 +238,3 @@ void Tournament::load(std::istream& in) {
         line = parseRound(in, line, validEngines);
     }
 }
-
-
-

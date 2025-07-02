@@ -18,6 +18,7 @@
  */
 
 #include "tournament-result.h"
+#include "elo-helper.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
@@ -175,6 +176,50 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string& name)
     }
 
     return result;
+}
+
+void TournamentResult::printRatingTableUciStyle(std::ostream& os) const {
+    struct Scored {
+        EngineDuelResult result;
+        double score;
+        int elo;
+        int error;
+    };
+
+    std::vector<Scored> list;
+
+    for (const auto& name : engineNames()) {
+        auto opt = forEngine(name);
+        if (!opt) continue;
+
+        EngineDuelResult agg = opt->aggregate(name);
+        const int total = agg.total();
+        if (total == 0) continue;
+
+        double score = (agg.winsEngineA + 0.5 * agg.draws) / total;
+        auto [elo, err] = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws);
+        list.push_back({ std::move(agg), score, elo, err });
+    }
+
+    std::sort(list.begin(), list.end(), [](const auto& a, const auto& b) {
+        return a.score > b.score;
+    });
+
+    int rank = 1;
+    for (const auto& entry : list) {
+        const auto& r = entry.result;
+        const int total = r.total();
+        double drawPct = 100.0 * r.draws / total;
+        double scorePct = 100.0 * entry.score;
+
+        os << "rank " << rank++
+           << " name " << r.getEngineA()
+           << " elo " << entry.elo
+           << " +/- " << entry.error
+           << " games " << total
+           << " score " << std::fixed << std::setprecision(1) << scorePct << "%"
+           << " draw " << drawPct << "%\n";
+    }
 }
 
 void TournamentResult::printSummary(std::ostream& os) const {

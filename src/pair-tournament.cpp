@@ -181,6 +181,10 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
 
+    if (onGameFinished_){
+        onGameFinished_(this);
+    } 
+
 }
 
 std::string PairTournament::getResultSequence() const {

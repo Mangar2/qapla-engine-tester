@@ -495,6 +495,9 @@ To activate tournament mode, use the `[tournament]` section in a settings file o
 - **`noswap`** (Optional, Default: `false`)  
   Disables automatic color swapping after each game.
 
+- **`ratinginterval`** (Optional, Default: `10`)  
+  Print rating table every N games during the tournament.
+
 ---
 
 ## 📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)

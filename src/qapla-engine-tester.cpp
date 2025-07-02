@@ -291,6 +291,7 @@ AppReturnCode runTournament(AppReturnCode code) {
             .games = tournamentGroup->get<int>("games"),
             .rounds = tournamentGroup->get<int>("rounds"),
             .repeat = tournamentGroup->get<int>("repeat"),
+            .ratingInterval = tournamentGroup->get<int>("ratinginterval"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
             .openings = *openings
         };
@@ -538,7 +539,8 @@ int main(int argc, char** argv) {
             { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, CliSettings::ValueType::Int } },
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
             { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
-            { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } }
+            { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } },
+            { "ratinginterval", { "Interval (in games) for printing rating table", false, 10, CliSettings::ValueType::Int } }
             });
 
 		auto args = argvToVector(argc, argv); 

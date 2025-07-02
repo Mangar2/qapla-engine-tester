@@ -75,6 +75,10 @@ public:
         for (auto& cs : causeStats) cs = {};
     }
 
+    int total() const {
+        return winsEngineA + winsEngineB + draws;
+    } 
+
     /**
      * @brief Computes the normalized score for engineA.
      * @return Score between 0.0 and 1.0
@@ -112,9 +116,7 @@ public:
     inline std::string toString() const {
         std::ostringstream oss;
         oss << engineA << " vs " << engineB
-            << std::fixed << std::setprecision(2)
-            << " ( " << engineARate() << " ) "
-            << " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
+            << toResultString();
         return oss.str();
     }
 
@@ -187,6 +189,16 @@ public:
 
 
     void printSummary(std::ostream& os) const;
+
+    /**
+     * @brief Prints the current rating table in UCI-style key-value format.
+     *
+     * Format: rank <n> name <engine> elo <elo> error <error> games <n> score <pct> draw <pct>
+     *
+     * @param os Output stream to write to
+     */
+    void printRatingTableUciStyle(std::ostream& os) const;
+
 
 private:
 	std::vector<EngineDuelResult> results_;

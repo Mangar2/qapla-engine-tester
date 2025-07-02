@@ -38,6 +38,7 @@ struct TournamentConfig {
     int games = 2;
     int rounds = 1;
     int repeat = 2;
+    int ratingInterval = 0;
     bool noSwap = false;
     Openings openings;
 };
@@ -115,6 +116,15 @@ public:
 
 private:
     /**
+    * @brief Called after a game finishes in any PairTournament.
+    *
+    * Used to trigger rating output or progress tracking.
+    *
+    * @param sender Pointer to the PairTournament that just completed a game.
+    */
+    void onGameFinished(PairTournament* sender);
+
+    /**
      * @brief Parses a single round block from the input and updates results if engines are valid.
      * @param in Stream positioned after the current round header.
      * @param roundHeader The header line (e.g., "[round 1: EngineA vs EngineB]").
@@ -145,6 +155,7 @@ private:
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
+    int completedGameTriggers_;
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;
