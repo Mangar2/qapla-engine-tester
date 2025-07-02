@@ -519,6 +519,9 @@ namespace CliSettings
         {
             std::filesystem::path path(*arg.value);
             std::filesystem::path parent = path.parent_path();
+            if (parent.empty()) {
+                parent = std::filesystem::current_path();
+            }
             if (!std::filesystem::exists(parent))
             {
                 throw AppError::makeInvalidParameters("The parent directory of \"" + arg.original + "\" does not exist");

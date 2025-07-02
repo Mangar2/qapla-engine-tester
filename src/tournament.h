@@ -161,7 +161,7 @@ private:
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
-    int completedGameTriggers_;
+    int completedGameTriggers_ = 0;
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;

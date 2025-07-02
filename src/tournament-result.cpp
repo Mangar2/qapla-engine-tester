@@ -265,12 +265,17 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
     }
 
     for (int pass = 0; pass < passes; ++pass) {
+        // It is important to use the same elo rating for all engines in each pass
+        std::unordered_map<std::string, double> nextElo = currentElo;
+
         for (const auto& s : scored) {
             double avgOpponentElo = averageOpponentElo(s, currentElo);
             const auto& agg = s.result.aggregate(s.engineName);
             int eloDiff = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws).first;
-            currentElo[s.engineName] = avgOpponentElo + eloDiff;
+            nextElo[s.engineName] = avgOpponentElo + eloDiff;
         }
+
+        currentElo = std::move(nextElo);
     }
 
     for (auto& s : scored) {
@@ -287,63 +292,37 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
 }
 
 
-void TournamentResult::printRatingTableUciStyle(std::ostream &os) const
-{
+void TournamentResult::printRatingTableUciStyle(std::ostream& os) const {
     os << "\nTournament result:\n";
 
-    struct Scored
-    {
-        EngineDuelResult result;
-        double score;
-        int elo;
-        int error;
-    };
-
-    std::vector<Scored> list;
-
-    for (const auto &name : engineNames())
-    {
-        auto opt = forEngine(name);
-        if (!opt)
-            continue;
-
-        EngineDuelResult agg = opt->aggregate(name);
-        const int total = agg.total();
-        if (total == 0)
-            continue;
-
-        double score = (agg.winsEngineA + 0.5 * agg.draws) / total;
-        auto [elo, err] = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws);
-        list.push_back({std::move(agg), score, elo, err});
-    }
-
-    std::sort(list.begin(), list.end(), [](const auto &a, const auto &b)
-              { return a.score > b.score; });
+    std::vector<Scored> list = computeAllElos();
 
     int rank = 1;
-    for (const auto &entry : list)
-    {
-        const auto &r = entry.result;
+    for (const auto& entry : list) {
+        const auto& r = entry.result.aggregate(entry.engineName);
         const int total = r.total();
         double drawPct = 100.0 * r.draws / total;
         double scorePct = 100.0 * entry.score;
-        if (total < 10 || entry.error == 0)
-        {
+
+        if (total < 10 || entry.error == 0) {
             os << "rank -"
-               << " name " << r.getEngineA()
-               << " not enough games \n";
+               << " name " << entry.engineName
+               << " not enough games\n";
             continue;
         }
+
         os << std::left
            << "rank " << std::setw(3) << rank++
-           << "name " << std::setw(15) << r.getEngineA()
+           << "name " << std::setw(15) << entry.engineName
            << "elo " << std::setw(6) << entry.elo
            << "+/- " << std::setw(5) << entry.error
            << "games " << std::setw(4) << total
            << "score " << std::setw(6) << std::fixed << std::setprecision(1) << scorePct << "%"
            << "draw " << std::fixed << std::setprecision(1) << drawPct << "%\n";
     }
+    os << std::endl;
 }
+
 
 void TournamentResult::printSummary(std::ostream &os) const
 {
