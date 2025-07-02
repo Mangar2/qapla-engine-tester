@@ -102,6 +102,10 @@ std::optional<GameTask> PairTournament::nextTask() {
         return std::nullopt;
     }
 
+    if (nextIndex_ == 0){
+        Logger::testLogger().log(getTournamentInfo(), TraceLevel::result);
+    } 
+
     for (size_t i = nextIndex_; i < config_.games; ++i) {
         if (i >= results_.size()) {
             results_.resize(i + 1, GameResult::Unterminated);
@@ -363,4 +367,13 @@ std::string PairTournament::load(std::istream& in) {
         }
     }
     return "";
+}
+
+std::string PairTournament::getTournamentInfo() const {
+    std::ostringstream oss;
+    oss << "Encounter " << engineA_.getName() << " vs " << engineB_.getName()
+        << " games " << config_.games
+        << " repeat " << config_.repeat
+        << " swap " << (config_.swapColors ? "yes" : "no");
+    return oss.str();
 }

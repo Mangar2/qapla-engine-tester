@@ -93,11 +93,13 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
     }
 
     if (gauntlets.empty() || opponents.empty()) {
-        Logger::testLogger().log("Gauntlet tournament requires both gauntlet and opponent engines.", TraceLevel::error);
-        return;
+        std::string message = "Gauntlet tournament requires both gauntlet and opponent engines. ";
+        message += "Found: " + std::to_string(gauntlets.size()) + " gauntlet(s), ";
+        message += std::to_string(opponents.size()) + " opponent(s).";
+        throw AppError::makeInvalidParameters(message);
     }
 
-	createPairings(gauntlets, opponents, config, false);
+    createPairings(gauntlets, opponents, config, false);
 }
 
 void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engines,

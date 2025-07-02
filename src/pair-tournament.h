@@ -202,6 +202,8 @@ private:
      */
     std::string getResultSequence() const;
 
+    std::string getTournamentInfo() const;
+
     EngineConfig engineA_;
     EngineConfig engineB_;
 	PairTournamentConfig config_;
