@@ -53,14 +53,14 @@ public:
      * @brief sets a new engine to play both sides
 	 * @param engine The new engine to be set.
      */
-    void setUniqueEngine(std::unique_ptr<EngineWorker> engine);
+    void initUniqueEngine(std::unique_ptr<EngineWorker> engine);
 
     /**
 	 * @brief sets two engines to play against each other
 	 * @param white The engine to play as white.
 	 * @param black The engine to play as black.
      */
-    void setEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
+    void initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
 
 
 

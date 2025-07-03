@@ -211,6 +211,13 @@ public:
 	 * @returns The next round header line or an empty string if EOF reached.
      */
     std::string load(std::istream& in);
+
+    /**
+     * @brief Returns the index of the next opening position to use for the given game in the encounter.
+     */
+    int newOpeningIndex(int gameInEncounter);
+
+    void updateOpening(int openingIndex);
 private:
 
     /**
@@ -218,7 +225,7 @@ private:
      *
      * @return String containing encoded results for all games.
      */
-    std::string getResultSequence() const;
+    std::string getResultSequenceEngineView() const;
 
     std::string getTournamentInfo() const;
 

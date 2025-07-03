@@ -39,6 +39,7 @@ struct TournamentConfig {
     int rounds = 1;
     int repeat = 2;
     int ratingInterval = 0;
+    int outcomeInterval = 0; 
     bool noSwap = false;
     Openings openings;
 };
@@ -116,7 +117,9 @@ public:
     
     std::string getResultString() const {
         std::ostringstream oss;
-        getResult().printRatingTableUciStyle(oss);
+        auto result = getResult();
+        result.printRatingTableUciStyle(oss);
+        result.printOutcome(oss);
         return oss.str();
     }
 
@@ -161,7 +164,8 @@ private:
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
-    int completedGameTriggers_ = 0;
+    int raitingTrigger_ = 0;
+    int outcomeTrigger_ = 0;
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;

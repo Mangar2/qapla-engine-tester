@@ -147,12 +147,18 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 }
 
 void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
-    ++completedGameTriggers_;
+    ++raitingTrigger_;
+    ++outcomeTrigger_;
 
-    if (config_.ratingInterval > 0 && completedGameTriggers_ >= config_.ratingInterval) {
-        completedGameTriggers_ = 0;
+    if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
+        raitingTrigger_ = 0;
         auto result = getResult();
         result.printRatingTableUciStyle(std::cout);
+    }
+    if (config_.outcomeInterval > 0 && outcomeTrigger_ >= config_.outcomeInterval) {
+        outcomeTrigger_ = 0;
+        auto result = getResult();
+        result.printOutcome(std::cout);
     }
 }
 
@@ -162,7 +168,7 @@ void Tournament::scheduleAll(int concurrency) {
         InputHandler::ImmediateCommand::Info,
         [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
 			auto result = getResult();
-            result.printSummary(std::cout);
+            result.printRatingTableUciStyle(std::cout);
         });
 	for (const auto& pairing : pairings_) {
 		pairing->schedule();

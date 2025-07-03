@@ -183,6 +183,12 @@ std::optional<Openings> readOpenings() {
     if (openings.format != "epd" && openings.format != "raw" && openings.format != "pgn") {
 		throw AppError::makeInvalidParameters("Unsupported openings format: " + openings.format);
     }
+    if (openings.order != "default" && openings.order != "random") {
+        throw AppError::makeInvalidParameters("Unsupported openings order: " + openings.order);
+    }
+    if (openings.policy != "default" && openings.policy != "encounter" && openings.policy != "round") {
+        throw AppError::makeInvalidParameters("Unsupported openings policy: " + openings.policy);
+    }
     return openings;
 }
 
@@ -292,6 +298,7 @@ AppReturnCode runTournament(AppReturnCode code) {
             .rounds = tournamentGroup->get<int>("rounds"),
             .repeat = tournamentGroup->get<int>("repeat"),
             .ratingInterval = tournamentGroup->get<int>("ratinginterval"),
+            .outcomeInterval = tournamentGroup->get<int>("outcomeinterval"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
             .openings = *openings
         };
@@ -543,7 +550,8 @@ int main(int argc, char** argv) {
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
             { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } },
-            { "ratinginterval", { "Interval (in games) for printing rating table", false, 10, CliSettings::ValueType::Int } }
+            { "ratinginterval", { "Interval (in games) for printing rating table", false, 10, CliSettings::ValueType::Int } },
+            { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 10, CliSettings::ValueType::Int } }
             });
 
 		auto args = argvToVector(argc, argv); 

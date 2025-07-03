@@ -183,7 +183,7 @@ void GameManagerPool::assignTaskToManagers(TaskAssignment& task) {
 
         for (size_t i = 0; i < assignCount; ++i) {
             GameManager* manager = availableManagers[i];
-            manager->setEngines(std::move(whiteEngines[i]), std::move(blackEngines[i]));
+            manager->initEngines(std::move(whiteEngines[i]), std::move(blackEngines[i]));
             manager->computeTasks(task.provider);
         }
     }
@@ -192,7 +192,7 @@ void GameManagerPool::assignTaskToManagers(TaskAssignment& task) {
 
         for (size_t i = 0; i < assignCount; ++i) {
             GameManager* manager = availableManagers[i];
-            manager->setUniqueEngine(std::move(engines[i]));
+            manager->initUniqueEngine(std::move(engines[i]));
             manager->computeTasks(task.provider);
         }
     }

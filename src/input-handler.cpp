@@ -55,7 +55,6 @@ void InputHandler::inputLoop(bool interactive) {
         };
 
     InputHandler::getInstance().inputThread = std::thread(loop);
-    InputHandler::getInstance().inputThread.detach();
 }
 
 void InputHandler::handleLine(const std::string& line) {
@@ -65,14 +64,12 @@ void InputHandler::handleLine(const std::string& line) {
 
     std::vector<std::string> args{ std::istream_iterator<std::string>{iss}, {} };
     try {
-        if (command == "quit" || command == "q") {
-            dispatchImmediate(ImmediateCommand::Quit, args);
-            quitFlag = true;
-        }
+        if (command == "quit" || command == "q") { dispatchImmediate(ImmediateCommand::Quit, args); quitFlag = true; }
         else if (command == "set" || command == "s") handleSetCommand(args);
         else if (command == "info" || command == "?") dispatchImmediate(ImmediateCommand::Info, args);
         else if (command == "concurrency" || command == "c") dispatchImmediate(ImmediateCommand::Concurrency, args);
-        else if (command == "abort" || command == "a") dispatchImmediate(ImmediateCommand::Abort, args);
+        else if (command == "abort" || command == "a"){ dispatchImmediate(ImmediateCommand::Abort, args); quitFlag = true;} 
+        else if (command == "leaveinput"|| command == "l" ) quitFlag = true;
         else if (command == "help" || command == "h") showHelp();
         else {
             std::cout << "Unknown command: " << command << "\n";
@@ -90,6 +87,7 @@ void InputHandler::showHelp() {
         << "  info | ?           - Show current engine/game state\n"
         << "  concurrency | c    - Set number of concurrent games\n"
         << "  abort | a          - Abort current games immediately\n"
+        << "  leaveinput | l     - Leave interactive mode; program keeps running\n"
         << "  help | h           - Show this help message\n";
 }
 

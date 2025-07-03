@@ -39,6 +39,12 @@ public:
     InputHandler(InputHandler&&) = delete;
     InputHandler& operator=(InputHandler&&) = delete;
 
+    ~InputHandler() {
+        if (inputThread.joinable()) {
+            inputThread.join();
+        }
+    }
+
     enum class ImmediateCommand {
         Abort,
         Concurrency,
@@ -66,7 +72,7 @@ public:
      * @return True if "quit" was entered.
      */
     bool quitRequested() const {
-        return quitFlag.load();
+        return quitFlag.load()|| stopFlag.load();
     }
 
     std::unique_ptr<CallbackRegistration> registerCommandCallback(ImmediateCommand cmd, CommandCallback callback);

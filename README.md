@@ -450,10 +450,10 @@ Controls how opening positions are assigned to games. Required for all game-base
   Index of the first position to use (1-based). Useful for splitting test segments.
 
 - **`policy`** (Optional, Default: `default`)  
-  Defines how opening positions are rotated across games:  
-  - `default` — Uses the same opening repeatedly until all engines played both sides  
-  - `encounter` — Ensures every engine pair sees every opening once  
-  - `round` — Picks a new opening every round, rotating through the list
+  Defines when a new opening position is selected from the opening file:  
+  - `default` — Picks a new opening for each new engine pair **and** after the configured number of repetitions. 
+  - `encounter` — Picks a new opening only when the **names of the two engines** change. The player colors do **not** matter. All games between the same engine pair (e.g., Qapla vs. Spike), regardless of side, will use the **same opening**. The `-repeat` setting is ignored in this mode.
+  - `round` — Picks a new opening at the **start of each round**, reusing the same opening for all games in that round, regardless of engines or colors.
 
 ### Example
 

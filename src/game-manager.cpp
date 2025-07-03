@@ -84,16 +84,17 @@ bool GameManager::processNextEvent() {
     return true;
 }
 
-void GameManager::setUniqueEngine(std::unique_ptr<EngineWorker> engine) {
+void GameManager::initUniqueEngine(std::unique_ptr<EngineWorker> engine) {
     engine->setEventSink([this](EngineEvent&& event) {
         enqueueEvent(std::move(event));
         });
     whitePlayer_ = &player1_;
     blackPlayer_ = &player1_;
     whitePlayer_->setEngine(std::move(engine), requireLan_);
+    switchedSide_ = false;
 }
 
-void GameManager::setEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
+void GameManager::initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
     white->setEventSink([this](EngineEvent&& event) {
         enqueueEvent(std::move(event));
         });
@@ -106,6 +107,7 @@ void GameManager::setEngines(std::unique_ptr<EngineWorker> white, std::unique_pt
     blackPlayer_ = &player2_;
 	whitePlayer_->setEngine(std::move(white), requireLan_);
     blackPlayer_->setEngine(std::move(black), requireLan_);
+    switchedSide_ = false;
 }
 
 void GameManager::processQueue() {
@@ -383,12 +385,12 @@ std::optional<GameTask> GameManager::tryGetReplacementTask() {
     taskProvider_ = extendedTask->provider;
 
     if (extendedTask->black) {
-        setEngines(
+        initEngines(
             std::move(extendedTask->white),
             std::move(extendedTask->black));
     }
     else {
-        setUniqueEngine(std::move(extendedTask->white));
+        initUniqueEngine(std::move(extendedTask->white));
     }
 
     return extendedTask->task;

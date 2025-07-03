@@ -95,6 +95,30 @@ void PairTournament::schedule() {
     );
 }
 
+int PairTournament::newOpeningIndex(int gameInEncounter) {
+    if (config_.openings.order == "random") {
+        std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
+        return static_cast<int>(dist(rng_));
+    }
+    else {
+        int size = static_cast<int>(startPositions_->size());
+        return (gameInEncounter / config_.repeat + config_.openings.start) % size;
+    }
+} 
+
+void PairTournament::updateOpening(int openingIndex) {
+    GameState gameState;
+    if (startPositions_->fens.empty()) {
+        curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
+    }
+    else {
+        auto fen = startPositions_->fens[openingIndex];
+        gameState.setFen(false, fen);
+        curRecord_.setStartPosition(false, gameState.getFen(),
+            gameState.isWhiteToMove(), engineA_.getName(), engineB_.getName());
+    }
+}
+
 std::optional<GameTask> PairTournament::nextTask() {
     std::lock_guard lock(mutex_);
 
@@ -106,6 +130,7 @@ std::optional<GameTask> PairTournament::nextTask() {
         Logger::testLogger().log(getTournamentInfo(), TraceLevel::result);
     } 
 
+    // Ensures robustness against unfinished games by scanning results_ instead of relying solely on nextIndex_.
     for (size_t i = nextIndex_; i < config_.games; ++i) {
         if (i >= results_.size()) {
             results_.resize(i + 1, GameResult::Unterminated);
@@ -114,26 +139,14 @@ std::optional<GameTask> PairTournament::nextTask() {
         if (results_[i] != GameResult::Unterminated) {
             continue;
         }
-        int openingIndex;
-        if (i % config_.repeat == 0) {
-            if (config_.openings.order == "random") {
-                std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
-                openingIndex = static_cast<int>(dist(rng_));
-            }
-            else {
-				int size = static_cast<int>(startPositions_->size());
-                openingIndex = (i / config_.repeat + config_.openings.start) % size;
-            }
-            GameState gameState;
-            if (startPositions_->fens.empty()) {
-                curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
-			}
-            else {
-				auto fen = startPositions_->fens[openingIndex];
-                gameState.setFen(false, fen);
-				curRecord_.setStartPosition(false, gameState.getFen(),
-					gameState.isWhiteToMove(), engineA_.getName(), engineB_.getName());
-            }
+        if (config_.openings.policy == "encounter" && i == 0) {
+            updateOpening(newOpeningIndex(0));
+        }
+        else if (config_.openings.policy == "round" && i == 0) {
+            updateOpening(config_.openings.start);
+        } 
+        else if (i % config_.repeat == 0) { 
+            updateOpening(newOpeningIndex(i));
         }
 
         GameTask task;
@@ -166,9 +179,12 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         return;
     }
 
-    bool engineAIsWhite = engineA_.getName() == record.getWhiteEngineName();
-    results_[round - 1] = engineAIsWhite ? result : switchGameResult(result);
-    PgnIO::tournament().saveGame(record);
+    // Result is stored as "white-view", thus not engine-view. To count how often the engines won,
+    // we need to check the color of the engine in this round.
+    results_[round - 1] = result;
+    GameRecord pgnRecord = record;
+    pgnRecord.setRound(round + config_.round * config_.games);
+    PgnIO::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
     if (verbose_) {
@@ -188,7 +204,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
 
 }
 
-std::string PairTournament::getResultSequence() const {
+std::string PairTournament::getResultSequenceEngineView() const {
     std::ostringstream oss;
     for (size_t i = 0; i < results_.size(); ++i) {
         bool aWhite = !config_.swapColors || (i % 2 == 0);
@@ -213,12 +229,17 @@ std::string PairTournament::getResultSequence() const {
 std::string PairTournament::toString() const {
     std::lock_guard lock(mutex_);
     std::ostringstream oss;
-	oss << engineA_.getName() << " vs " << engineB_.getName() << " : " << getResultSequence();
+	oss << engineA_.getName() << " vs " << engineB_.getName() << " : " << getResultSequenceEngineView();
     return oss.str();
 }
 
 void PairTournament::fromString(const std::string& line) {
     std::lock_guard lock(mutex_);
+
+    // The index of the next game to play is derived from the results_ vector, not from nextIndex_.
+    // nextIndex_ is only used to avoid rechecking already completed games in nextTask().
+    // Initializing it to 0 allows nextTask() to scan results_ for unfinished games and schedule them accordingly.
+    nextIndex_ = 0; 
 
     auto pos = line.find(": ");
     if (pos == std::string::npos) return;
@@ -261,7 +282,7 @@ void PairTournament::trySaveIfNotEmpty(std::ostream& out) const {
 
     out << "[round " << (config_.round + 1) << " engines " 
         << getEngineA().getName() << " vs " << getEngineB().getName() << "]\n";
-    out << "games: " << getResultSequence() << "\n";
+    out << "games: " << getResultSequenceEngineView() << "\n";
 
     auto writeStats = [&](const char* label, auto accessor) {
         out << label << ": ";
@@ -376,9 +397,11 @@ std::string PairTournament::load(std::istream& in) {
 
 std::string PairTournament::getTournamentInfo() const {
     std::ostringstream oss;
-    oss << "Encounter " << engineA_.getName() << " vs " << engineB_.getName()
+    oss << "\nEncounter " << engineA_.getName() << " vs " << engineB_.getName()
+        << " round " << (config_.round + 1)
         << " games " << config_.games
         << " repeat " << config_.repeat
-        << " swap " << (config_.swapColors ? "yes" : "no");
+        << " swap " << (config_.swapColors ? "yes" : "no")
+        << "\n";
     return oss.str();
 }

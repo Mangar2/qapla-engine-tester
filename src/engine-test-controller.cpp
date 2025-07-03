@@ -40,7 +40,7 @@ void EngineTestController::startEngine() {
     bool success = false;
     try {
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
-        gameManager_->setUniqueEngine(std::move(list[0]));
+        gameManager_->initUniqueEngine(std::move(list[0]));
         success = gameManager_->getEngine()->requestReady();
     }
     catch (const std::exception& e) {
@@ -600,7 +600,7 @@ void EngineTestController::runEpdTests() {
     try {
         EngineList engines = startEngines(1);
         EpdTestManager epdManager(EngineReport::getChecklist(engines[0]->getConfig().getName()));
-        gameManager_->setUniqueEngine(std::move(engines[0]));
+        gameManager_->initUniqueEngine(std::move(engines[0]));
         gameManager_->computeTasks(&epdManager);
 		gameManager_->getFinishedFuture().wait();
 
@@ -617,7 +617,7 @@ void EngineTestController::runEpdTests() {
 void EngineTestController::runComputeGameTest() {
 	Logger::testLogger().log("\nThe engine now plays against itself. I control all engine output, and check its validity while playing.");
     EngineList engines = startEngines(2);
-    gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
+    gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
     try {
         gameManager_->notifyNewGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
@@ -639,7 +639,7 @@ void EngineTestController::runPonderGameTest() {
     EngineList engines = startEngines(2);
 	engines[0]->getConfigMutable().setPonder(true);
 	engines[1]->getConfigMutable().setPonder(true);
-    gameManager_->setEngines(std::move(engines[0]), std::move(engines[1]));
+    gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
     try {
         gameManager_->notifyNewGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });

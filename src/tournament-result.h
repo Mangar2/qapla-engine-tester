@@ -169,7 +169,8 @@ struct EngineResult
      */
     EngineDuelResult aggregate(const std::string &targetEngine) const;
 
-    void writeTo(std::ostream &os) const;
+    void printResults(std::ostream &os) const;
+    void printOutcome(std::ostream &os) const;
 };
 
 /**
@@ -208,6 +209,12 @@ public:
     std::optional<EngineResult> forEngine(const std::string &name) const;
 
     void printSummary(std::ostream &os) const;
+
+    /**
+     * @brief Prints the outcome (result causes) of the tournament, including all engines and their results.
+     *
+     */
+    void printOutcome(std::ostream &os) const;
 
     /**
      * @brief Prints the current rating table in UCI-style key-value format.
