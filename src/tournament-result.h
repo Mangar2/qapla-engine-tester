@@ -184,7 +184,7 @@ public:
         std::string engineName; ///< The name of the engine
         EngineResult result;    ///< The duel result
         double score;           ///< Normalized score (0.0 to 1.0)
-        int elo;                ///< Computed Elo rating
+        double elo;             ///< Computed Elo rating
         int error;              ///< Error margin for the Elo rating
     };
     /**
@@ -228,7 +228,7 @@ public:
      * @param passes Number of update iterations (e.g. 10)
      * @return Vector of scored engines sorted by descending Elo
      */
-    std::vector<Scored> computeAllElos(int baseElo = 2600, int passes = 10) const;
+    std::vector<Scored> computeAllElos(int baseElo = 2600, int passes = 50) const;
 
 private:
     /**

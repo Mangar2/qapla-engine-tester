@@ -22,6 +22,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
 
 void EngineDuelResult::addResult(const GameRecord &record)
 {
@@ -210,16 +212,20 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string &name)
     return result;
 }
 
-std::vector<TournamentResult::Scored> TournamentResult::initializeScoredEngines() const {
+std::vector<TournamentResult::Scored> TournamentResult::initializeScoredEngines() const
+{
     std::vector<Scored> result;
 
-    for (const auto& name : engineNames()) {
+    for (const auto &name : engineNames())
+    {
         auto opt = forEngine(name);
-        if (!opt) continue;
+        if (!opt)
+            continue;
 
         EngineDuelResult agg = opt->aggregate(name);
         int total = agg.total();
-        if (total == 0) continue;
+        if (total == 0)
+            continue;
 
         double score = (agg.winsEngineA + 0.5 * agg.draws) / total;
 
@@ -228,25 +234,27 @@ std::vector<TournamentResult::Scored> TournamentResult::initializeScoredEngines(
             .result = std::move(*opt),
             .score = score,
             .elo = 0,
-            .error = 0
-        });
+            .error = 0});
     }
 
     return result;
 }
 
-double TournamentResult::averageOpponentElo(const Scored& s, 
-    const std::unordered_map<std::string, double>& currentElo) const {
-    const std::string& name = s.engineName;
-    const auto& duels = s.result.duels;
+double TournamentResult::averageOpponentElo(const Scored &s,
+                                            const std::unordered_map<std::string, double> &currentElo) const
+{
+    const std::string &name = s.engineName;
+    const auto &duels = s.result.duels;
 
     double weightedSum = 0.0;
     int totalGames = 0;
 
-    for (const auto& duel : duels) {
+    for (const auto &duel : duels)
+    {
         std::string opponent = duel.getEngineA() == name ? duel.getEngineB() : duel.getEngineA();
         int games = duel.total();
-        if (games == 0) continue;
+        if (games == 0)
+            continue;
 
         weightedSum += currentElo.at(opponent) * games;
         totalGames += games;
@@ -255,32 +263,114 @@ double TournamentResult::averageOpponentElo(const Scored& s,
     return totalGames > 0 ? weightedSum / totalGames : 0.0;
 }
 
+/*
+std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseElo, int passes) const
+{
+    constexpr double convergenceFactor = 1.0; // tuning parameter
+    constexpr double weightConstant = 50.0;   // controls how quickly weighting approaches 1.0
 
-std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseElo, int passes) const {
     std::vector<Scored> scored = initializeScoredEngines();
     std::unordered_map<std::string, double> currentElo;
 
-    for (const auto& s : scored) {
+    for (const auto &s : scored)
+    {
         currentElo[s.engineName] = baseElo;
     }
 
-    for (int pass = 0; pass < passes; ++pass) {
-        // It is important to use the same elo rating for all engines in each pass
+    for (int pass = 0; pass < passes; ++pass)
+    {
         std::unordered_map<std::string, double> nextElo = currentElo;
 
-        for (const auto& s : scored) {
-            double avgOpponentElo = averageOpponentElo(s, currentElo);
-            const auto& agg = s.result.aggregate(s.engineName);
-            int eloDiff = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws).first;
-            nextElo[s.engineName] = avgOpponentElo + eloDiff;
+        for (const auto &s : scored)
+        {
+            const std::string &name = s.engineName;
+
+            for (const auto &duel : s.result.duels)
+            {
+                std::string opponent = duel.getEngineA() == name ? duel.getEngineB() : duel.getEngineA();
+                EngineDuelResult aligned = duel.getEngineA() == name ? duel : duel.switchedSides();
+
+                int wins = aligned.winsEngineA;
+                int losses = aligned.winsEngineB;
+                int draws = aligned.draws;
+                int total = aligned.total();
+                if (total == 0)
+                    continue;
+
+                double score = (wins + 0.5 * draws) / total;
+                int targetEloDiff = computeEloWithError(wins, losses, draws).first;
+                double currentEloDiff = currentElo[name] - currentElo[opponent];
+                double neededDelta = static_cast<double>(targetEloDiff) - currentEloDiff;
+
+                double weight = static_cast<double>(total) / (total + weightConstant);
+                double delta = weight * convergenceFactor * neededDelta;
+
+                nextElo[name] += 0.5 * delta;
+                nextElo[opponent] -= 0.5 * delta;
+            }
         }
 
         currentElo = std::move(nextElo);
     }
 
+    for (auto &s : scored)
+    {
+        const auto &agg = s.result.aggregate(s.engineName);
+        s.elo = static_cast<int>(std::round(currentElo[s.engineName]));
+        s.error = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws).second;
+    }
+
+    std::sort(scored.begin(), scored.end(), [](const Scored &a, const Scored &b)
+              { return a.elo > b.elo; });
+
+    return scored;
+}
+*/
+
+std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseElo, int passes) const {
+    constexpr double convergenceFactor = 0.5;
+    constexpr double weightConstant = 200.0;
+
+    std::vector<Scored> scored = initializeScoredEngines();
+    std::unordered_map<std::string, Scored*> scoredMap;
+    for (auto& s : scored) {
+        scoredMap[s.engineName] = &s;
+        s.elo = baseElo;
+    }
+
+    for (int pass = 0; pass < passes; ++pass) {
+
+        for (auto& s : scored) {
+            const std::string& name = s.engineName;
+
+            for (const auto& duel : s.result.duels) {
+                if (duel.getEngineA() != name) continue;
+                std::string opponent = duel.getEngineB();
+                auto it = scoredMap.find(opponent);
+                if (it == scoredMap.end()) continue;
+                Scored opponentScore = *it->second;
+
+                int total = duel.total();
+                if (total == 0) continue;
+
+                double score = duel.engineARate();
+
+                int targetEloDiff = computeEloWithError(duel.winsEngineA, duel.winsEngineB, duel.draws).first;
+                double currentEloDiff = s.elo - opponentScore.elo;
+                double neededDelta = static_cast<double>(targetEloDiff) - currentEloDiff;
+
+                double weight = static_cast<double>(total) / (total + weightConstant);
+                double delta = weight * convergenceFactor * neededDelta;
+
+                s.elo    += 0.5 * delta;
+                opponentScore.elo -= 0.5 * delta;
+                
+            }
+        }
+    }
+
     for (auto& s : scored) {
         const auto& agg = s.result.aggregate(s.engineName);
-        s.elo = static_cast<int>(std::round(currentElo.at(s.engineName)));
         s.error = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws).second;
     }
 
@@ -292,37 +382,39 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
 }
 
 
-void TournamentResult::printRatingTableUciStyle(std::ostream& os) const {
+void TournamentResult::printRatingTableUciStyle(std::ostream &os) const
+{
     os << "\nTournament result:\n";
 
     std::vector<Scored> list = computeAllElos();
 
     int rank = 1;
-    for (const auto& entry : list) {
-        const auto& r = entry.result.aggregate(entry.engineName);
+    for (const auto &entry : list)
+    {
+        const auto &r = entry.result.aggregate(entry.engineName);
         const int total = r.total();
         double drawPct = 100.0 * r.draws / total;
         double scorePct = 100.0 * entry.score;
 
-        if (total < 10 || entry.error == 0) {
+        if (total < 10 || entry.error == 0)
+        {
             os << "rank -"
                << " name " << entry.engineName
                << " not enough games\n";
             continue;
         }
 
-        os << std::left
+        os << std::left << std::fixed << std::setprecision(1)
            << "rank " << std::setw(3) << rank++
-           << "name " << std::setw(15) << entry.engineName
-           << "elo " << std::setw(6) << entry.elo
-           << "+/- " << std::setw(5) << entry.error
-           << "games " << std::setw(4) << total
-           << "score " << std::setw(6) << std::fixed << std::setprecision(1) << scorePct << "%"
-           << "draw " << std::fixed << std::setprecision(1) << drawPct << "%\n";
+           << " name " << std::setw(25) << entry.engineName
+           << " elo " << std::setw(5) << entry.elo
+           << " +/- " << std::setw(4) << entry.error
+           << " games " << std::setw(3) << total
+           << " score " << std::setw(5)  << scorePct << "%"
+           << " draw "  << drawPct << "%\n";
     }
     os << std::endl;
 }
-
 
 void TournamentResult::printSummary(std::ostream &os) const
 {
