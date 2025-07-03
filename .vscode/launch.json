@@ -7,7 +7,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/debug/qapla-engine-tester",
         "args": [
-          "--settingsfile=./test/sprt-ponder.ini"
+          "--settingsfile=/home/mangar/chess/release03/tour.ini"
         ],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",

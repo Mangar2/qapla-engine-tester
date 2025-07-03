@@ -166,7 +166,8 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         return;
     }
 
-    results_[round - 1] = result;
+    bool engineAIsWhite = engineA_.getName() == record.getWhiteEngineName();
+    results_[round - 1] = engineAIsWhite ? result : switchGameResult(result);
     PgnIO::tournament().saveGame(record);
 
 	duelResult_.addResult(record);

@@ -187,6 +187,7 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string &name)
         if (duel.getEngineA() == name || duel.getEngineB() == name)
         {
             EngineDuelResult aligned = (duel.getEngineA() == name) ? duel : duel.switchedSides();
+
             auto it = aggregated.find(aligned.getEngineB());
             if (it == aggregated.end())
             {

@@ -231,7 +231,7 @@ private:
 	PairTournamentConfig config_;
     std::shared_ptr<StartPositions> startPositions_;
 
-    // Results
+    // // Results from the engine pairing perspective, not from the white-player view
     GameRecord curRecord_;
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;
