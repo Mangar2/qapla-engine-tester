@@ -168,7 +168,7 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
         auto result = getResult();
-        result.printRatingTableUciStyle(std::cout);
+        result.printRatingTableUciStyle(std::cout, config_.averageElo);
     }
     if (config_.outcomeInterval > 0 && outcomeTrigger_ >= config_.outcomeInterval) {
         outcomeTrigger_ = 0;
@@ -183,7 +183,7 @@ void Tournament::scheduleAll(int concurrency) {
         InputHandler::ImmediateCommand::Info,
         [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
 			auto result = getResult();
-            result.printRatingTableUciStyle(std::cout);
+            result.printRatingTableUciStyle(std::cout, config_.averageElo);
         });
 	for (const auto& pairing : pairings_) {
 		pairing->schedule();

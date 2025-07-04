@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 void EngineDuelResult::addResult(const GameRecord &record)
 {
@@ -268,6 +269,7 @@ std::vector<TournamentResult::Scored> TournamentResult::initializeScoredEngines(
             .result = std::move(*opt),
             .score = score,
             .elo = 0,
+            .total = static_cast<double>(total),
             .error = 0});
     }
 
@@ -318,7 +320,7 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
                 std::string opponent = duel.getEngineB();
                 auto it = scoredMap.find(opponent);
                 if (it == scoredMap.end()) continue;
-                Scored opponentScore = *it->second;
+                Scored* opponentScore = it->second;
 
                 int total = duel.total();
                 if (total == 0) continue;
@@ -326,14 +328,14 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
                 double score = duel.engineARate();
 
                 int targetEloDiff = computeEloWithError(duel.winsEngineA, duel.winsEngineB, duel.draws).first;
-                double currentEloDiff = s.elo - opponentScore.elo;
+                double currentEloDiff = s.elo - opponentScore->elo;
                 double neededDelta = static_cast<double>(targetEloDiff) - currentEloDiff;
 
                 double weight = static_cast<double>(total) / (total + weightConstant);
                 double delta = weight * convergenceFactor * neededDelta;
 
-                s.elo    += 0.5 * delta;
-                opponentScore.elo -= 0.5 * delta;
+                s.elo    += delta * 0.5;
+                opponentScore->elo -= delta * 0.5;
                 
             }
         }
@@ -352,11 +354,11 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
 }
 
 
-void TournamentResult::printRatingTableUciStyle(std::ostream &os) const
+void TournamentResult::printRatingTableUciStyle(std::ostream &os, int averageElo) const
 {
     os << "\nTournament result:\n";
 
-    std::vector<Scored> list = computeAllElos();
+    std::vector<Scored> list = computeAllElos(averageElo);
 
     int rank = 1;
     for (const auto &entry : list)
@@ -374,11 +376,13 @@ void TournamentResult::printRatingTableUciStyle(std::ostream &os) const
             os << " not enough games\n";
             continue;
         }
+        std::stringstream oss;
+        oss << std::fixed << std::setprecision(2) << scorePct << "%";
 
         os << " elo " << std::setw(5) << entry.elo
            << " +/- " << std::setw(4) << entry.error
            << " games " << std::setw(3) << total
-           << " score " << std::setw(5)  << scorePct << "%"
+           << " score " << std::setw(7) << oss.str()
            << " draw "  << drawPct << "%\n";
     }
     os << std::endl;

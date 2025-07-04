@@ -39,12 +39,11 @@ struct TournamentConfig {
     int rounds = 1;
     int repeat = 2;
     int ratingInterval = 0;
+    int averageElo = 2600; 
     int outcomeInterval = 0; 
     bool noSwap = false;
     Openings openings;
 };
-
-
 
  /**
   * @brief Manages and executes a complete tournament composed of multiple PairTournaments.
@@ -118,7 +117,7 @@ public:
     std::string getResultString() const {
         std::ostringstream oss;
         auto result = getResult();
-        result.printRatingTableUciStyle(oss);
+        result.printRatingTableUciStyle(oss, config_.averageElo);
         result.printOutcome(oss);
         return oss.str();
     }

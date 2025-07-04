@@ -109,6 +109,6 @@ private:
 	std::vector<QaplaBasics::Move> moveList_;  // list of moves played so far
 	std::vector<QaplaBasics::BoardState> boardState_; // list of board states
 	std::vector<uint64_t> hashList_; // list of hash values
-	GameEndCause gameEndCause_; // cause of game end
-	GameResult gameResult_; // result of the game
+	GameEndCause gameEndCause_ = GameEndCause::Ongoing; // cause of game end
+	GameResult gameResult_ = GameResult::Unterminated; // result of the game
 };

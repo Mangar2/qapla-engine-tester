@@ -186,6 +186,7 @@ public:
         EngineResult result;    ///< The duel result
         double score;           ///< Normalized score (0.0 to 1.0)
         double elo;             ///< Computed Elo rating
+        double total;           ///< Total number of games played
         int error;              ///< Error margin for the Elo rating
     };
     /**
@@ -222,8 +223,9 @@ public:
      * Format: rank <n> name <engine> elo <elo> error <error> games <n> score <pct> draw <pct>
      *
      * @param os Output stream to write to
+     * @param averageElo Average Elo level for scaling ratings (e.g. 2600)
      */
-    void printRatingTableUciStyle(std::ostream &os) const;
+    void printRatingTableUciStyle(std::ostream &os, int averageElo) const;
 
     /**
      * @brief Computes iterative Elo ratings and error estimates for all engines.

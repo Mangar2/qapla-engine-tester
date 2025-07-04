@@ -204,8 +204,8 @@ private:
     std::string startFen_;
     std::vector<MoveRecord> moves_;
     uint32_t currentPly_ = 0;
-    GameEndCause gameEndCause_;
-	GameResult gameResult_;
+    GameEndCause gameEndCause_ = GameEndCause::Ongoing;
+	GameResult gameResult_ = GameResult::Unterminated;
     TimeControl whiteTimeControl_;
     TimeControl blackTimeControl_;
     std::string whiteEngineName_;

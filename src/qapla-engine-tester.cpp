@@ -298,6 +298,7 @@ AppReturnCode runTournament(AppReturnCode code) {
             .rounds = tournamentGroup->get<int>("rounds"),
             .repeat = tournamentGroup->get<int>("repeat"),
             .ratingInterval = tournamentGroup->get<int>("ratinginterval"),
+            .averageElo = tournamentGroup->get<int>("averageelo"),
             .outcomeInterval = tournamentGroup->get<int>("outcomeinterval"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
             .openings = *openings
@@ -552,6 +553,7 @@ int main(int argc, char** argv) {
             { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } },
             { "ratinginterval", { "Interval (in games) for printing rating table", false, 100, CliSettings::ValueType::Int } },
+            { "averageelo", { "Set average Elo level for scaling rating output", false, 2600, CliSettings::ValueType::Int } },
             { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, CliSettings::ValueType::Int } }
             });
 

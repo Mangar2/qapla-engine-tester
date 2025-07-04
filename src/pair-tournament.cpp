@@ -140,13 +140,14 @@ std::optional<GameTask> PairTournament::nextTask() {
         if (i >= results_.size()) {
             results_.resize(i + 1, GameResult::Unterminated);
         }
-        if (results_[i] != GameResult::Unterminated) {
-            continue;
-        }
+        // Ensures consistent opening assignment for replayed games,  
+        // avoiding mismatches due to skipped entries in rotating schemes.
         if (config_.openings.policy == "default" && i % config_.repeat == 0) { 
             updateOpening(newOpeningIndex(i));
         }
-
+        if (results_[i] != GameResult::Unterminated) {
+            continue;
+        }
         GameTask task;
         task.taskType = GameTask::Type::PlayGame;
 		task.gameRecord = curRecord_;
