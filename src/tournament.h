@@ -140,7 +140,7 @@ private:
      * @param validEngines Set of engine names that are part of this tournament.
      * @return The next round header line or empty if end of input is reached.
      */
-	std::string parseRound(std::istream& in, const std::string& roundHeader,
+	std::string loadRound(std::istream& in, const std::string& roundHeader,
 		const std::unordered_set<std::string>& validEngines);
 
     /**

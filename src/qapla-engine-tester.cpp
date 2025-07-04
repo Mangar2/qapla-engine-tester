@@ -73,12 +73,7 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 		maxTime = epd.get<int>("maxtime");
 		minTime = epd.get<int>("mintime");
 		seenPlies = epd.get<int>("seenplies");
-        for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-            if (!engine.getTimeControl().isValid()) {
-                throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
-                    + "'. Please specify a time control using 'tc' option.");
-            }
-        }
+
 		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
             std::string name = engine.getName();
             std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
@@ -168,12 +163,18 @@ std::optional<Openings> readOpenings() {
         }
     }
 
+    if (opening->get<int>("srand") < 0) {
+        throw AppError::makeInvalidParameters("Openings: Seed must be a non-negative integer, but got " +
+            std::to_string(opening->get<int>("srand")));
+    }
+
     Openings openings{
         .file = opening->get<std::string>("file"),
         .format = opening->get<std::string>("format"),
         .order = opening->get<std::string>("order"),
         .plies = plies,
         .start = opening->get<int>("start") - 1, // 1 based index in gui.
+        .seed = static_cast<size_t>(opening->get<int>("srand")),
         .policy = opening->get<std::string>("policy")
     };
     if (openings.start < 0) {
@@ -183,7 +184,7 @@ std::optional<Openings> readOpenings() {
     if (openings.format != "epd" && openings.format != "raw" && openings.format != "pgn") {
 		throw AppError::makeInvalidParameters("Unsupported openings format: " + openings.format);
     }
-    if (openings.order != "default" && openings.order != "random") {
+    if (openings.order != "sequential" && openings.order != "random") {
         throw AppError::makeInvalidParameters("Unsupported openings order: " + openings.order);
     }
     if (openings.policy != "default" && openings.policy != "encounter" && openings.policy != "round") {
@@ -191,6 +192,15 @@ std::optional<Openings> readOpenings() {
     }
     return openings;
 }
+
+void checkTimeControl() {
+    for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
+        if (!engine.getTimeControl().isValid()) {
+            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
+                + "'. Please specify a time control using 'tc' option.");
+        }
+    }
+} 
 
 auto runSprt(AppReturnCode code) {
     auto sprt = CliSettings::Manager::getGroupInstance("sprt");
@@ -211,12 +221,7 @@ auto runSprt(AppReturnCode code) {
             TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
-    for (auto& engine : activeEngines) {
-        if (!engine.getTimeControl().isValid()) {
-            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
-                + "'. Please specify a time control using 'tc' option.");
-        }
-    }
+    checkTimeControl();
     Logger::testLogger().setLogFile("sprt-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     try {
@@ -274,12 +279,7 @@ AppReturnCode runTournament(AppReturnCode code) {
         Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
-    for (auto& engine : activeEngines) {
-        if (!engine.getTimeControl().isValid()) {
-            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
-                + "'. Please specify a time control using 'tc' option.");
-        }
-    }
+    checkTimeControl();
 
     std::optional<Openings> openings = readOpenings();
     if (!openings) {
@@ -512,6 +512,7 @@ int main(int argc, char** argv) {
             { "file",  { "Path to file with opening positions", true, "", CliSettings::ValueType::PathExists } },
             { "format", { "Format of the file: epd, raw, pgn", false, "epd", CliSettings::ValueType::String } },
             { "order", { "Order of position selection: random, sequential", false, "sequential", CliSettings::ValueType::String } },
+            { "srand", { "Seed for random opening selection", false, 5489, CliSettings::ValueType::Int } },
             { "plies", { "Max number of plies per opening (all = unlimited)", false, "all", CliSettings::ValueType::String}},
             { "start", { "Index of first opening (1-based)", false, 1, CliSettings::ValueType::Int } },
             { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
@@ -550,8 +551,8 @@ int main(int argc, char** argv) {
             { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
             { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } },
-            { "ratinginterval", { "Interval (in games) for printing rating table", false, 10, CliSettings::ValueType::Int } },
-            { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 10, CliSettings::ValueType::Int } }
+            { "ratinginterval", { "Interval (in games) for printing rating table", false, 100, CliSettings::ValueType::Int } },
+            { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, CliSettings::ValueType::Int } }
             });
 
 		auto args = argvToVector(argc, argv); 

@@ -38,7 +38,12 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
     engineA_ = engineA;
     engineB_ = engineB;
     config_ = config;
+    rng_.seed(config_.seed);
 	startPositions_ = std::move(startPositions);
+
+    if (config_.openings.policy == "encounter"|| config_.openings.policy == "round") {
+        updateOpening(newOpeningIndex(0));
+    }
 
 	duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
 
@@ -80,7 +85,6 @@ void PairTournament::schedule() {
         if (results_[i] == GameResult::Unterminated) {
             ++remainingGames;
         }
-        i++;
     }
 
     if (remainingGames <= 0) {
@@ -108,6 +112,7 @@ int PairTournament::newOpeningIndex(int gameInEncounter) {
 
 void PairTournament::updateOpening(int openingIndex) {
     GameState gameState;
+    openingIndex_ = openingIndex;
     if (startPositions_->fens.empty()) {
         curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
     }
@@ -135,17 +140,10 @@ std::optional<GameTask> PairTournament::nextTask() {
         if (i >= results_.size()) {
             results_.resize(i + 1, GameResult::Unterminated);
         }
-
         if (results_[i] != GameResult::Unterminated) {
             continue;
         }
-        if (config_.openings.policy == "encounter" && i == 0) {
-            updateOpening(newOpeningIndex(0));
-        }
-        else if (config_.openings.policy == "round" && i == 0) {
-            updateOpening(config_.openings.start);
-        } 
-        else if (i % config_.repeat == 0) { 
+        if (config_.openings.policy == "default" && i % config_.repeat == 0) { 
             updateOpening(newOpeningIndex(i));
         }
 
@@ -159,6 +157,14 @@ std::optional<GameTask> PairTournament::nextTask() {
 
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
+
+        std::ostringstream oss;
+        std::cout << std::left
+            << "started round " << std::setw(3) << (config_.round + 1)
+            << " game " << std::setw(3) << i + 1
+            << " opening " << std::setw(5) << openingIndex_
+            << " engines " << engineA_.getName() << " vs " << engineB_.getName()
+            << std::endl;
 
         return task;
     }
@@ -183,7 +189,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     // we need to check the color of the engine in this round.
     results_[round - 1] = result;
     GameRecord pgnRecord = record;
-    pgnRecord.setRound(round + config_.round * config_.games);
+    pgnRecord.setRound(round + config_.gameNumberOffset);
     PgnIO::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
@@ -402,6 +408,6 @@ std::string PairTournament::getTournamentInfo() const {
         << " games " << config_.games
         << " repeat " << config_.repeat
         << " swap " << (config_.swapColors ? "yes" : "no")
-        << "\n";
+        << "";
     return oss.str();
 }

@@ -20,6 +20,7 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <random>
 #include "epd-reader.h"
 #include "game-manager-pool.h"
 #include "logger.h"
@@ -116,30 +117,44 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
 void Tournament::createPairings(const std::vector<EngineConfig>& players, const std::vector<EngineConfig>& opponents,
     const TournamentConfig& config, bool symmetric) {
     int openingOffset = config.openings.start;
+    std::mt19937 rng(config.openings.seed);    
+    std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
+    int posSize = static_cast<int>(startPositions_->size());
+
+    PairTournamentConfig ptc;
+    ptc.games = config.games;
+    ptc.repeat = config.repeat;
+    ptc.swapColors = !config.noSwap;
+    ptc.openings = config.openings;
+    ptc.gameNumberOffset = 0;
 
     for (int round = 0; round < config.rounds; ++round) {
-        PairTournamentConfig ptc;
-        ptc.games = config.games;
-        ptc.repeat = config.repeat;
-        ptc.swapColors = !config.noSwap;
-        ptc.openings = config.openings;
         ptc.round = round;
+        ptc.seed = static_cast<int>(dist(rng));
+        openingOffset %= posSize;
+        ptc.openings.start = openingOffset;
 
-        if (ptc.openings.order != "random") {
-            int size = static_cast<int>(startPositions_->size());
-            ptc.openings.start = openingOffset;
-            int openingCount = (ptc.games + ptc.repeat - 1) / ptc.repeat;
-            openingOffset = (openingOffset + openingCount) % size;
+        // In default, all pairings in a round use the same opening offset and the same seed.
+        if (config.openings.policy == "default") { 
+            openingOffset += (ptc.games + ptc.repeat - 1) / ptc.repeat;
+        } else if (config.openings.policy == "round") {
+            openingOffset++;
         }
 
         for (size_t i = 0; i < players.size(); ++i) {
             for (size_t j = symmetric ? i + 1 : 0; j < opponents.size(); ++j) {
                 auto pt = std::make_shared<PairTournament>();
+                if (config.openings.policy == "encounter") {
+                    ptc.openings.start = openingOffset;
+                    openingOffset = (openingOffset + 1) % posSize;
+                    ptc.seed = static_cast<int>(dist(rng));
+                }
                 pt->initialize(players[i], opponents[j], ptc, startPositions_);
                 pt->setGameFinishedCallback([this](PairTournament* sender) {
                     this->onGameFinished(sender);
                 });
                 pairings_.push_back(std::move(pt));
+                ptc.gameNumberOffset += ptc.games;
             }
         }
     }
@@ -209,7 +224,7 @@ void parseGameSummary(std::string_view text, EngineDuelResult& result) {
     }
 }
 
-std::string Tournament::parseRound(std::istream& in, const std::string& roundHeader,
+std::string Tournament::loadRound(std::istream& in, const std::string& roundHeader,
     const std::unordered_set<std::string>& validEngines) {
     auto [round, engineA, engineB] = PairTournament::parseRoundHeader(roundHeader);
 
@@ -241,6 +256,6 @@ void Tournament::load(std::istream& in) {
 
     while (!line.empty()) {
         // Every loader ensures that we have a round header as next line
-        line = parseRound(in, line, validEngines);
+        line = loadRound(in, line, validEngines);
     }
 }

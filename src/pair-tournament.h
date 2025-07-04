@@ -58,6 +58,8 @@ struct PairTournamentConfig {
     int games = 0;
     int repeat = 2;
     int round = 0;
+    int seed = 0;
+    int gameNumberOffset = 0;
     bool swapColors = true;
     Openings openings;
 };
@@ -212,13 +214,15 @@ public:
      */
     std::string load(std::istream& in);
 
+
+private:
+
     /**
      * @brief Returns the index of the next opening position to use for the given game in the encounter.
      */
     int newOpeningIndex(int gameInEncounter);
 
     void updateOpening(int openingIndex);
-private:
 
     /**
      * @brief Returns the compact result sequence string (e.g. "1=01?").
@@ -240,6 +244,7 @@ private:
 
     // // Results from the engine pairing perspective, not from the white-player view
     GameRecord curRecord_;
+    int openingIndex_ = 0; ///< Current opening index in the encounter
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;
     mutable std::mutex mutex_;
