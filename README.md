@@ -458,7 +458,7 @@ Controls how opening positions are assigned to games. Required for all game-base
 ### Example
 
 ```bash
---openings file="openings.epd" format=epd order=random plies=8 policy=round
+--openings file="openings.pgn" format=pgn order=random plies=8 policy=round
 ```
 
 ---
