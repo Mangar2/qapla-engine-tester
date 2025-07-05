@@ -30,10 +30,10 @@ All features are fully configurable and optimized for multi-core systems.
 - [💬 Interactive Mode](#-interactive-mode)
 - [⚙️ `--engine` Group — Define Engine Configuration via CLI](#️---engine-group--define-engine-configuration-via-cli)
 - [♻️ `--each` Group — Shared Engine Options](#️---each-group--shared-engine-options)
-- [📄 EPD Position Analysis](#-epd-position-analysis)
+- [📄 `--epd` Group — EPD Position Analysis](#---epd Group — EPD Position Analysis)
 - [📤 `--pgnoutput` Group — PGN Output Settings](#---pgnoutput-group--pgn-output-settings)
 - [♟️ `--openings` Group — Opening Selection Settings](#️---openings-group--opening-selection-settings)
-- [🏆 Tournament Mode](#tournament-mode)
+- [🏆 `--tournament` Group — Tournament Mode](#---tournament Group — Tournament Mode)
 - [📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)](#---sprt-group--sequential-probability-ratio-test-sprt)
 - [🧾 Tournament Result Files](#-tournament-result-files)
 - [🧪 Engine Testing Suite — Protocol & Stability Validation](#-engine-testing-suite--protocol--stability-validation)
@@ -322,7 +322,7 @@ Defines default values that apply to **all** engines unless overridden in their 
 
 ---
 
-## 📄 EPD Position Analysis
+## 📄 --epd Group — EPD Position Analysis
 
 Qapla Engine Tester supports efficient EPD-based analysis across multiple engines in parallel, utilizing all available CPU cores. It reads `.epd` files containing `bm` (best move) tags and compares each engine´s output against the expected move.
 
@@ -463,7 +463,7 @@ Controls how opening positions are assigned to games. Required for all game-base
 
 ---
 
-## 🏆 Tournament Mode
+## 🏆 --tournament Group — Tournament Mode
 
 Qapla Engine Tester supports automated tournaments between multiple engines using **Gauntlet** or **Round-Robin** formats. Tournaments are fully configurable and resumable via result files.
 
