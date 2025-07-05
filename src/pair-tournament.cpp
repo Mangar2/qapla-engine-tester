@@ -99,7 +99,7 @@ void PairTournament::schedule() {
     );
 }
 
-int PairTournament::newOpeningIndex(int gameInEncounter) {
+int PairTournament::newOpeningIndex(size_t gameInEncounter) {
     if (config_.openings.order == "random") {
         std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
         return static_cast<int>(dist(rng_));
@@ -163,7 +163,7 @@ std::optional<GameTask> PairTournament::nextTask() {
         std::cout << std::left
             << "started round " << std::setw(3) << (config_.round + 1)
             << " game " << std::setw(3) << i + 1
-            << " opening " << std::setw(5) << openingIndex_
+            << " opening " << std::setw(6) << openingIndex_
             << " engines " << engineA_.getName() << " vs " << engineB_.getName()
             << std::endl;
 
@@ -197,7 +197,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     if (verbose_) {
         std::ostringstream oss;
         oss << std::left
-            << "match round " << std::setw(3) << (config_.round + 1)
+            << "  match round " << std::setw(3) << (config_.round + 1)
             << " game " << std::setw(3) << round
             << " result " << std::setw(7) << to_string(result)
             << " cause " << std::setw(21) << to_string(cause)

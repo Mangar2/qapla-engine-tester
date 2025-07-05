@@ -220,7 +220,7 @@ private:
     /**
      * @brief Returns the index of the next opening position to use for the given game in the encounter.
      */
-    int newOpeningIndex(int gameInEncounter);
+    int newOpeningIndex(size_t gameInEncounter);
 
     void updateOpening(int openingIndex);
 

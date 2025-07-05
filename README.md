@@ -24,24 +24,23 @@ All features are fully configurable and optimized for multi-core systems.
 - [Qapla Engine Tester](#qapla-engine-tester)
 - [Comparison with cutechess-cli](#comparison-with-cutechess-cli)
 - [🔁 General Options](#-general-options)
-- [🔚 Return Codes for Batch Processing](#-return-codes-for-batch-processing)
+- [🔚 Return Codes for Batch Processing](#return-codes-for-batch-processing)
 - [Engine `.ini` Configuration (--enginesfile)](#engine-ini-configuration---enginesfile)
-- [🗂️ Settings File Support (`--settingsfile`)](#️-settings-file-support---settingsfile)
+- [🗂️ Settings File Support (`--settingsfile`)](#️settings-file-support---settingsfile)
 - [💬 Interactive Mode](#-interactive-mode)
-- [⚙️ `--engine` Group — Define Engine Configuration via CLI](#️---engine-group--define-engine-configuration-via-cli)
-- [♻️ `--each` Group — Shared Engine Options](#️---each-group--shared-engine-options)
-- [📄 EPD Position Analysis](#-epd-position-analysis)
-- [📤 `--pgnoutput` Group — PGN Output Settings](#-pgnoutput-group--pgn-output-settings)
-- [♟️ `--openings` Group — Opening Selection Settings](#️---openings-group--opening-selection-settings)
-- [🏆 Tournament Mode](#-tournament-mode)
-- [📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)](#-sprt-group--sequential-probability-ratio-test-sprt)
-- [🧾 Tournament Result Files](#-tournament-result-files)
-- [🧪 Engine Testing Suite — Protocol & Stability Validation](#-engine-testing-suite--protocol--stability-validation)
+- [⚙️ `--engine` Group — Define Engine Configuration via CLI](#️--engine-group--define-engine-configuration-via-cli)
+- [♻️ `--each` Group — Shared Engine Options](#️--each-group--shared-engine-options)
+- [📄 EPD Position Analysis](#epd-position-analysis)
+- [📤 `--pgnoutput` Group — PGN Output Settings](#--pgnoutput-group--pgn-output-settings)
+- [♟️ `--openings` Group — Opening Selection Settings](#️--openings-group--opening-selection-settings)
+- [🏆 Tournament Mode](#tournament-mode)
+- [📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)](#--sprt-group--sequential-probability-ratio-test-sprt)
+- [🧾 Tournament Result Files](#tournament-result-files)
+- [🧪 Engine Testing Suite — Protocol & Stability Validation](#engine-testing-suite--protocol--stability-validation)
 - [Example Combined Run](#example-combined-run)
 - [Platform and Installation](#platform-and-installation)
 - [Limitations](#limitations)
 - [Feedback](#feedback)
-
 
 ---
 
@@ -78,8 +77,8 @@ These options configure the overall behavior of the tester and apply across all 
 - **`--logpath`** (Optional, Default: `.`)  
   Sets the output directory for log files, including engine logs and test summaries. The directory must exist beforehand. If not specified, logs are written to the current working directory.
 
-- **`--noinfo`** (Optional, Default: `false`)  
-  Ignores all `info` lines sent by engines. This significantly reduces overhead during very short time control games and improves performance in bulk testing scenarios.
+- **`--rapid`** (Optional, Default: `false`)
+  Disables processing of all `info` lines from engines to minimize overhead. Optimized for ultra-short time control games and high-throughput testing. Note: Disables PV checking, bestmove validation, and analysis features like depth/bestscore tracking or early termination based on evaluation.
 
 - **`--settingsfile`** (Optional)  
   Path to a `.ini` file containing predefined settings. These can be used alongside or instead of command-line options.
@@ -130,12 +129,14 @@ Use these codes in automation scripts to check for test outcomes or failure caus
 
 ## Engine `.ini` Configuration (--enginesfile)
 
-[Spike1.4]  
+[engine]  
+name=Spike 1.4
 protocol=uci  
 executablePath=C:\Chess\cutechess-cli\qapla0.3\Spike1.4.exe  
 Hash=128  
 
-[Qapla0.3.2bb]  
+[engine]
+name=Qapla 0.3.2bb
 protocol=uci  
 executablePath=C:\Chess\delivery\Qapla0.3.2\Qapla0.3.2-win-x86.exe  
 workingDirectory=.  
@@ -143,8 +144,7 @@ Hash=128
 qaplaBitbasePath=C:\Chess\bitbases\lz4  
 qaplaBitbaseCache=512  
 
-- Required: section name, `executablePath`  
-- Optional: `protocol`, `workingDirectory`, and any `option.*` lines
+Note: Required is only executablePath.
 
 ---
 
@@ -443,7 +443,7 @@ Controls how opening positions are assigned to games. Required for all game-base
   Maximum number of plies to play from the PGN opening before engines take over.  
   Accepts an integer or `all`.  
   - `all`: plays the full PGN sequence before engines begin.  
-  - `0`: engines start immediately from the PGN start position (usually only meaningful if a FEN is provided).  
+  - `0`: engines start immediately from the PGN start position. Only meaningful if the PGN defines a custom start position via FEN  
   Only applicable when using PGN input.
 
 - **`start`** (Optional, Default: `1`)  
@@ -451,7 +451,7 @@ Controls how opening positions are assigned to games. Required for all game-base
 
 - **`policy`** (Optional, Default: `default`)  
   Defines when a new opening position is selected from the opening file:  
-  - `default` — Picks a new opening for each new engine pair **and** after the configured number of repetitions. 
+  - `default` — Assigns a **fresh sequence** of openings at the start of each round. This sequence is **reused identically across all engine pairings** in that round to ensure fair comparison. The repeat setting controls how many games are played per opening.
   - `encounter` — Picks a new opening only when the **names of the two engines** change. The player colors do **not** matter. All games between the same engine pair (e.g., Qapla vs. Spike), regardless of side, will use the **same opening**. The `-repeat` setting is ignored in this mode.
   - `round` — Picks a new opening at the **start of each round**, reusing the same opening for all games in that round, regardless of engines or colors.
 
@@ -465,38 +465,44 @@ Controls how opening positions are assigned to games. Required for all game-base
 
 ## 🏆 Tournament Mode
 
-Qapla Engine Tester supports automated tournaments between multiple engines using **Gauntlet** or **Round-Robin** formats. Tournaments are fully configurable and can be resumed via result files.
+Qapla Engine Tester supports automated tournaments between multiple engines using **Gauntlet** or **Round-Robin** formats. Tournaments are fully configurable and resumable via result files.
 
-To activate tournament mode, use the `[tournament]` section in a settings file or pass equivalent CLI options.
+To activate tournament mode, define a `[tournament]` section in a settings file or use CLI options.
 
 ### Supported Parameters
 
 - **`type`** (Required, Default: `gauntlet`)  
-  Defines the tournament format. Options: `gauntlet`, `round-robin`.
+  Tournament type: `gauntlet` or `round-robin`.
 
 - **`resultfile`** (Optional)  
-  File path to save tournament results. Enables resume and extend functionality.
+  File to save tournament outcome. Enables resume and extend.
 
 - **`append`** (Optional, Default: `false`)  
-  Appends results to an existing file instead of overwriting it.
+  Append to result file instead of overwriting it.
 
 - **`event`** (Optional)  
-  Custom event name to include in PGN output or logs.
+  Optional event name for PGN or logging.
 
 - **`games`** (Optional, Default: `2`)  
-  Number of games per engine pairing.
+  Number of games per pairing. Total games = `games` × `rounds`.
 
 - **`rounds`** (Optional, Default: `1`)  
-  Number of times to repeat the full pairing cycle.
+  Repeat all pairings this many times.
 
 - **`repeat`** (Optional, Default: `2`)  
-  Number of consecutive games per opening (typically with color swap).
+  Number of consecutive games played per opening. Commonly set to 2 to alternate colors with the same line.
 
 - **`noswap`** (Optional, Default: `false`)  
-  Disables automatic color swapping after each game.
+  Disable automatic color swap after each game.
 
-- **`ratinginterval`** (Optional, Default: `10`)  
-  Print rating table every N games during the tournament.
+- **`ratinginterval`** (Optional, Default: `100`)  
+  Interval (in games) for printing current Elo estimates with confidence margins. Ratings are scaled around averageelo and updated as games progress.
+
+- **`averageelo`** (Optional, Default: `2600`)  
+  Set average Elo level for scaling rating output.
+
+- **`outcomeinterval`** (Optional, Default: `0`)  
+  Interval (in games) for printing a detailed outcome table, showing win/loss/draw breakdowns by result type (e.g. checkmate, stalemate, repetition). Use 0 to disable.
 
 ---
 

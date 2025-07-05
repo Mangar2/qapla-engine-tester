@@ -20,6 +20,7 @@
 #include "engine-config.h"
 #include "engine-option.h"
 #include "app-error.h"
+#include "string-helper.h"
 
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
@@ -113,22 +114,6 @@ void EngineConfig::finalizeSetOptions() {
     if (protocol_ == EngineProtocol::Unknown) protocol_ = EngineProtocol::Uci;
 }
 
-void EngineConfig::readHeader(std::istream& in) {
-    std::string line;
-
-    while (std::getline(in, line)) {
-        if (line.empty() || line[0] == '#' || line[0] == ';') continue;
-        if (line.front() == '[' && line.back() == ']') {
-            std::string name = line.substr(1, line.size() - 2);
-            if (name.empty()) throw std::runtime_error("Empty section name");
-            setName(name);
-            return;
-        }
-        break;
-    }
-
-    throw std::runtime_error("Expected section header");
-}
 
 bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
     return lhs.name_ == rhs.name_
@@ -142,24 +127,31 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
 }
 
 std::istream& operator>>(std::istream& in, EngineConfig& config) {
-    config.readHeader(in);
 
     std::string line;
     std::unordered_set<std::string> seenKeys;
+    
+	auto sectionHeader = readSectionHeader(in);
+    if (!sectionHeader) return in;
+    if (*sectionHeader != "engine") {
+		throw AppError::makeInvalidParameters("Invalid section header, expected [engine], got: " + 
+            (sectionHeader ? *sectionHeader : "none"));
+    }
 
     while (in && in.peek() != '[' && std::getline(in, line)) {
         if (line.empty() || line[0] == '#' || line[0] == ';') continue;
 
-        auto pos = line.find('=');
-        if (pos == std::string::npos) continue;
-
-        std::string key = line.substr(0, pos);
-        std::string value = line.substr(pos + 1);
+        auto kv = parseKeyValue(line);
+        if (!kv)
+        {
+            throw AppError::makeInvalidParameters("Invalid setting in line " + line 
+                + "'. Expected 'key=value' format.");
+        }
+        const auto& [key, value] = *kv;
 
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key: " + key);
-        if (key == "name")
-            throw std::runtime_error("name is set in the header and may not be set again");
+        if (key == "name") config.setName(value);
         else if (key == "executablePath") config.setExecutablePath(value);
         else if (key == "workingDirectory") config.setWorkingDirectory(value);
 		else if (key == "tc") config.setTimeControl(value);
@@ -182,14 +174,14 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
     return in;
 }
 
-
 std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
     if (!out) throw std::runtime_error("Invalid output stream");
 
-    out << "[" << config.name_ << "]\n";
-    out << "protocol=" << to_string(config.protocol_) << '\n';
+    out << "[engine]\n";
+	out << "name=" << config.name_ << '\n';
     out << "executablePath=" << config.executablePath_ << '\n';
     out << "workingDirectory=" << config.workingDirectory_ << '\n';
+    out << "protocol=" << to_string(config.protocol_) << '\n';
     out << "tc=" << config.tc_.toPgnTimeControlString() << '\n';
 	if (config.ponder_) out << "ponder=" << (config.ponder_ ? "true" : "false") << '\n';
     for (const auto& [_, value] : config.optionValues_) {

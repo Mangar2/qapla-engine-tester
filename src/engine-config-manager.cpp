@@ -29,23 +29,8 @@ void EngineConfigManager::loadFromStream(std::istream& in) {
         std::streampos startPos = in.tellg();
         EngineConfig config;
 
-        try {
-            in >> config;
-            addOrReplaceConfig(config);
-        }
-        catch (const std::exception& e) {
-            in.clear();
-            in.seekg(startPos);
-            std::string line;
-            while (std::getline(in, line)) {
-                if (line.empty()) continue;
-                if (line[0] == '[' && line.back() == ']') {
-                    in.seekg(-(std::streamoff)line.length() - 1, std::ios_base::cur);
-                    break;
-                }
-            }
-            errors.push_back(std::string("Parse error: ") + e.what());
-        }
+        in >> config;
+        addOrReplaceConfig(config);
     }
 }
 

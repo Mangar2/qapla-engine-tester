@@ -106,7 +106,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 
     std::ostringstream oss;
     oss << std::left
-        << "match game " << std::setw(3) << record.getRound()
+        << "  match game " << std::setw(4) << record.getRound()
         << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
         << " cause " << std::setw(21) << to_string(cause)
         << " sprt " << info

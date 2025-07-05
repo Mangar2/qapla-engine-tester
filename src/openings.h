@@ -31,7 +31,7 @@ struct Openings {
     std::string order;
     std::optional<int> plies;
     int start;
-    size_t seed;
+    uint32_t seed;
     std::string policy;
 };
 

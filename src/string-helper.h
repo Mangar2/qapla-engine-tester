@@ -31,7 +31,7 @@ inline std::string to_lowercase(const std::string& input) {
 
 inline std::string trim(const std::string& line) {
 	auto start = line.find_first_not_of(" \t\r\n");
-	if (start == std::string::npos) return "";
+    if (start == std::string::npos) return {};
 	auto end = line.find_last_not_of(" \t\r\n");
 	return line.substr(start, end - start + 1);
 }
@@ -39,6 +39,19 @@ inline std::string trim(const std::string& line) {
 inline std::optional<std::string> parseSection(const std::string& line) {
     if (line.size() > 2 && line.front() == '[' && line.back() == ']') {
         return trim(line.substr(1, line.size() - 2));
+    }
+    return std::nullopt;
+}
+
+inline std::optional<std::string> readSectionHeader(std::istream& in) {
+    std::string line;
+    while (in && std::getline(in, line)) {
+        std::string trimmedLine = trim(line);
+        if (trimmedLine.empty() || trimmedLine[0] == '#' || trimmedLine[0] == ';') continue;
+        auto section = parseSection(trimmedLine);
+		if (section) {
+			return *section;
+		}
     }
     return std::nullopt;
 }

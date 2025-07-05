@@ -197,7 +197,6 @@ private:
      * @param in The input stream positioned at a section header line.
      * @throws std::runtime_error If the line is not a valid section header.
      */
-    void readHeader(std::istream& in);
     void finalizeSetOptions();
 
     std::string toString(const Value& value);
