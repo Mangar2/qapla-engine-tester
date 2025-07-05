@@ -22,7 +22,9 @@ All features are fully configurable and optimized for multi-core systems.
 ## 📚 Table of Contents
 
 - [Qapla Engine Tester](#qapla-engine-tester)
+- [🆕 What's New in Version 0.4.0](#whats-new-in-version-040)
 - [Comparison with cutechess-cli](#comparison-with-cutechess-cli)
+- [⚡ Ultra-Fast Testing](#-ultra-fast-testing)
 - [🔁 General Options](#-general-options)
 - [🔚 Return Codes for Batch Processing](#-return-codes-for-batch-processing)
 - [Engine `.ini` Configuration (--enginesfile)](#-engine-ini-configuration---enginesfile)
@@ -44,6 +46,29 @@ All features are fully configurable and optimized for multi-core systems.
 
 ---
 
+## 🆕 What's New in Version 0.4.0
+
+Version 0.4.0 introduces several major features that significantly extend Qapla's flexibility, control, and test coverage:
+
+- **Tournament System**  
+  Full support for **Gauntlet** and **Round-Robin** tournament formats, including advanced repetition, color control, rating tracking, and resumable result files.
+
+- - **Settings File Support**  
+  All CLI options can now be defined in `.ini`-style config files. Supports grouped sections for engines, tournaments, openings, and output. Enables clean reuse and modular test definitions.
+
+- **Interactive Mode**  
+  A new real-time command interface allows on-the-fly control of active runs: adjust concurrency, abort tests, or query progress without restarting.
+
+- **Pondering Support**  
+  Engine pondering is now supported in both single tests and tournaments, enabling realistic latency scenarios and testing of ponder-hit efficiency.
+
+- **PGN-Based Opening Selection**  
+  Opening positions can now be extracted from `.pgn` files, complementing `.epd` and raw FEN input. Combined with the `plies` option, this allows deep opening testing from real games.
+
+These additions make Qapla suitable not only for statistical testing, but also for full-scale tournament automation with complex input and evaluation setups.
+
+---
+
 ## Comparison with cutechess-cli
 
 Qapla Engine Tester supports UCI engines playing standard chess in **Gauntlet**, **Round-Robin**, and **SPRT** tournaments.  
@@ -58,6 +83,26 @@ Unlike `cutechess-cli`, Qapla Engine Tester does **not** support WinBoard engine
 - Full **configuration via file** is supported, not just via CLI options
 - **Per-engine logging** can be enabled for detailed debugging or analysis
 - Includes an **engine behavior report** after each run to help identify compliance or stability issues
+- Ultra fast testing mode for high-throughput scenarios with minimal overhead
+
+---
+
+## ⚡ Ultra-Fast Testing
+
+Qapla Engine Tester is optimized for high-throughput testing under extremely short time controls. With the `--rapid` option enabled, all non-essential processing—such as `info`-line evaluation, PV checks, or score tracking—is disabled. Combined with options to suppress PGN output and communication logging, this enables rapid testing at minimal overhead.
+
+### Example: SPRT under 1+0.005 Time Control
+
+In a test run comparing Qapla 0.3.1 and Qapla 0.3.2 (identical playing strength, but 0.3.2 includes interface bugfixes), an SPRT tournament with the following setup was executed:
+
+- **Time control**: 1 second base + 5ms increment
+- **Parallel threads**: 20 (on a 16-core machine)
+- **Games played**: 8182
+- **Result**: No statistically significant strength difference, and only 3 loss-on-time incidents (statistically negligible)
+- **Total duration**: 18 minutes 26 seconds
+- **Average match duration**: 2.7 seconds
+
+This demonstrates Qapla's capability for ultra-fast, large-scale testing with extremely low overhead.
 
 ---
 
@@ -210,6 +255,9 @@ This mode is particularly useful during long tournaments or test runs where dyna
 
 - `quit` / `q`  
   Exit the program gracefully after all current games have finished.
+
+- `leaveinput` / `l`  
+  Leave interactive mode and continue running the test. The program will exit, after all games are finished.
 
 - `info` / `?`  
   Show current engine/game state and overall progress.
