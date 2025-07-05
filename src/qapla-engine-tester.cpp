@@ -174,7 +174,7 @@ std::optional<Openings> readOpenings() {
         .order = opening->get<std::string>("order"),
         .plies = plies,
         .start = opening->get<int>("start") - 1, // 1 based index in gui.
-        .seed = static_cast<size_t>(opening->get<int>("srand")),
+        .seed = static_cast<uint32_t>(opening->get<int>("srand")),
         .policy = opening->get<std::string>("policy")
     };
     if (openings.start < 0) {
