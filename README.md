@@ -65,6 +65,9 @@ Version 0.4.0 introduces several major features that significantly extend Qapla'
 - **PGN-Based Opening Selection**  
   Opening positions can now be extracted from `.pgn` files, complementing `.epd` and raw FEN input. Combined with the `plies` option, this allows deep opening testing from real games.
 
+- **Linux Support**
+  Linux is now a first-class platform with full support for all features, including tournaments, SPRT, and EPD analysis. The tester is fully cross-platform compatible.
+
 These additions make Qapla suitable not only for statistical testing, but also for full-scale tournament automation with complex input and evaluation setups.
 
 ---
