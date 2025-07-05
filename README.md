@@ -75,7 +75,7 @@ These additions make Qapla suitable not only for statistical testing, but also f
 ## Comparison with cutechess-cli
 
 Qapla Engine Tester supports UCI engines playing standard chess in **Gauntlet**, **Round-Robin**, and **SPRT** tournaments.  
-Command-line options are largely **compatible** with `cutechess-cli`, but follow a more modern syntax (e.g., `--engine` instead of `-engine`).
+Command-line options are largely **compatible** with `cutechess-cli`, but uses two "--" instead of one (e.g., `--engine` instead of `-engine`).
 
 Unlike `cutechess-cli`, Qapla Engine Tester does **not** support WinBoard engines, chess variants, or additional tournament types beyond those listed above.
 
