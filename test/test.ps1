@@ -14,8 +14,8 @@
     #,@{ args = "--settingsfile=test-sprt-maxgames.ini" ; expectedCode = 16 }
     #,@{ args = "--settingsfile=test-sprt-15.ini" ; expectedCode = 15 }
     #,@{ args = "--settingsfile=test-sprt-14.ini" ; expectedCode = 14 }
-    ,@{ args = "--settingsfile=test-sprt-14-ponder.ini" ; expectedCode = 14 }
-    #,@{ args = "--settingsfile=test-rapid.ini" ; expectedCode = 15 }
+    #,@{ args = "--settingsfile=test-sprt-14-ponder.ini" ; expectedCode = 14 }
+    ,@{ args = "--settingsfile=test-sprt-rapid.ini" ; expectedCode = 15 }
 )
 
 $results = @()

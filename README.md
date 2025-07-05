@@ -51,7 +51,7 @@ Command-line options are largely **compatible** with `cutechess-cli`, but follow
 
 Unlike `cutechess-cli`, Qapla Engine Tester does **not** support WinBoard engines, chess variants, or additional tournament types beyond those listed above.
 
-### What I like most about Qapla Engine Tester compared to cutechess-cli
+### What I like most about Qapla Engine Tester 
 
 - Tournaments are **resumable and extendable** thanks to persistent result files
 - A built-in **interactive mode** allows changing concurrency, viewing status, or terminating gracefully

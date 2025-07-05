@@ -354,7 +354,7 @@ void handlePgnOptions() {
 }
 
 void handleEngineOptions() {
-	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("noinfo"));
+	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("rapid"));
     std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
@@ -456,7 +456,7 @@ int main(int argc, char** argv) {
         CliSettings::Manager::registerSetting("interactive", "Enables interactive mode", false, false,  CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
             CliSettings::ValueType::Int);
-        CliSettings::Manager::registerSetting("noinfo", "Ignores engine info output. Speeds up games with <10s total compute time",
+        CliSettings::Manager::registerSetting("rapid", "Ignores engine info output. Speeds up games with <10s total compute time",
             false, false, CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
 			CliSettings::ValueType::PathExists);
