@@ -1,20 +1,20 @@
 ﻿$tests = @(
-    #@{ args = "--help"; expectedCode = 0 }
+     @{ args = "--help"; expectedCode = 0 }
     ,@{ args = "--invalid"; expectedCode = 2 }
     ,@{ args = "--logpath=log"; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-noerror.ini" ; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-error-10.ini" ; expectedCode = 10 }
-    #,@{ args = "--settingsfile=test-error-10-stop.ini" ; expectedCode = 10 }
-    #,@{ args = "--settingsfile=test-error-ponder.ini" ; expectedCode = 12 }
-    #,@{ args = "--settingsfile=test-20-games.ini" ; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-epd-13.ini" ; expectedCode = 13 }
-    #,@{ args = "--settingsfile=test-gauntlet.ini" ; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-tournament-file.ini" ; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-tournament-file.ini" ; expectedCode = 0 }
-    #,@{ args = "--settingsfile=test-sprt-maxgames.ini" ; expectedCode = 16 }
-    #,@{ args = "--settingsfile=test-sprt-15.ini" ; expectedCode = 15 }
-    #,@{ args = "--settingsfile=test-sprt-14.ini" ; expectedCode = 14 }
-    #,@{ args = "--settingsfile=test-sprt-14-ponder.ini" ; expectedCode = 14 }
+    ,@{ args = "--settingsfile=test-noerror.ini" ; expectedCode = 0 }
+    ,@{ args = "--settingsfile=test-error-10.ini" ; expectedCode = 10 }
+    ,@{ args = "--settingsfile=test-error-10-stop.ini" ; expectedCode = 10 }
+    ,@{ args = "--settingsfile=test-error-ponder.ini" ; expectedCode = 12 }
+    ,@{ args = "--settingsfile=test-20-games.ini" ; expectedCode = 0 }
+    ,@{ args = "--settingsfile=test-epd-13.ini" ; expectedCode = 13 }
+    ,@{ args = "--settingsfile=test-gauntlet.ini" ; expectedCode = 0 }
+    ,@{ args = "--settingsfile=test-tournament-file.ini" ; expectedCode = 0 }
+    ,@{ args = "--settingsfile=test-tournament-file.ini" ; expectedCode = 0 }
+    ,@{ args = "--settingsfile=test-sprt-maxgames.ini" ; expectedCode = 16 }
+    ,@{ args = "--settingsfile=test-sprt-15.ini" ; expectedCode = 15 }
+    ,@{ args = "--settingsfile=test-sprt-14.ini" ; expectedCode = 14 }
+    ,@{ args = "--settingsfile=test-sprt-14-ponder.ini" ; expectedCode = 14 }
     ,@{ args = "--settingsfile=test-sprt-rapid.ini" ; expectedCode = 15 }
 )
 
