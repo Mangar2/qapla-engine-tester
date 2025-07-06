@@ -40,6 +40,7 @@
 #include <poll.h>
 #include <fstream>
 #include <sstream>
+#include <sys/prctl.h>
 #endif
 
 #include "timer.h"
@@ -168,6 +169,7 @@ void EngineProcess::start()
     
     if (childPid_ == 0)
     {
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
         if (workingDirectory_ && chdir(workingDirectory_->c_str()) == -1) {
             perror("chdir failed");
         }            

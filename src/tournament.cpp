@@ -164,6 +164,7 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
     ++raitingTrigger_;
     ++outcomeTrigger_;
+    ++saveTrigger_;
 
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
@@ -174,6 +175,16 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
         outcomeTrigger_ = 0;
         auto result = getResult();
         result.printOutcome(std::cout);
+    }
+    if (config_.saveInterval > 0 && saveTrigger_ >= config_.saveInterval) {
+        saveTrigger_ = 0;
+        try {
+            if (!config_.tournamentFilename.empty()) {
+                save(config_.tournamentFilename);
+            }
+        } catch (const std::exception& ex) {
+            Logger::testLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
+        }
     }
 }
 

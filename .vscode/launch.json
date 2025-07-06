@@ -7,7 +7,8 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/debug/qapla-engine-tester",
         "args": [
-          "--settingsfile=/home/mangar/chess/release03/tour.ini"
+          "--settingsfile=/home/mangar/dev/qapla-engine-tester/test/test-sprt-maxgames.ini",
+          "--enginesfile=/home/mangar/dev/qapla-engine-tester/test/linux-engines.ini"
         ],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
