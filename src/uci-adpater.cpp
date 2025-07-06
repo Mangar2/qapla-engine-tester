@@ -57,12 +57,11 @@ void UciAdapter::terminateEngine() {
         // Engine might already be gone; nothing to do
     }
 
-    // Give the engine a short time to exit normally
-    if (process_.waitForExit(engineQuitTimeout)) {
-    }
-
     // Force termination if the engine didn't quit in time
     try {
+        // Give the engine a short time to exit normally
+        if (process_.waitForExit(engineQuitTimeout)) {
+        }
         process_.terminate();
     }
     catch (const std::exception& ex) {

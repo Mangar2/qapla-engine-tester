@@ -35,6 +35,8 @@
 struct TournamentConfig {
     std::string event;
     std::string type;
+    std::string tournamentFilename;
+    int saveInterval = 0;
     int games = 2;
     int rounds = 1;
     int repeat = 2;
@@ -165,6 +167,7 @@ private:
     std::vector<std::shared_ptr<PairTournament>> pairings_;
     int raitingTrigger_ = 0;
     int outcomeTrigger_ = 0;
+    int saveTrigger_ = 0;
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;

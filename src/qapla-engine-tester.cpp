@@ -23,6 +23,10 @@
 #include <utility>
 #include <iostream>
 
+#ifndef _WIN32
+#include <signal.h>
+#endif
+
 #include "app-error.h"
 #include "engine-report.h"
 #include "engine-test-controller.h"
@@ -290,10 +294,12 @@ AppReturnCode runTournament(AppReturnCode code) {
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 
     try {
-
+        auto tournamentFilename = tournamentGroup->get<std::string>("resultfile");
         TournamentConfig config = {
             .event = tournamentGroup->get<std::string>("event"),
             .type = tournamentGroup->get<std::string>("type"),
+            .tournamentFilename = tournamentFilename,
+            .saveInterval = tournamentGroup->get<int>("saveinterval"),
             .games = tournamentGroup->get<int>("games"),
             .rounds = tournamentGroup->get<int>("rounds"),
             .repeat = tournamentGroup->get<int>("repeat"),
@@ -307,13 +313,13 @@ AppReturnCode runTournament(AppReturnCode code) {
         int concurrency = CliSettings::Manager::get<int>("concurrency");
 
         Tournament tournament;
-        auto filename = tournamentGroup->get<std::string>("resultfile");
+        
         tournament.createTournament(activeEngines, config);
-		tournament.load(filename);
+		tournament.load(tournamentFilename);
         tournament.scheduleAll(concurrency);
         tournament.wait();
-		if (!filename.empty()) {
-			tournament.save(filename);
+		if (!tournamentFilename.empty()) {
+			tournament.save(tournamentFilename);
 		}
         Logger::testLogger().log("tournament all games completed", TraceLevel::result);
         std::string resultString = tournament.getResultString();
@@ -443,6 +449,9 @@ AppReturnCode run(const std::vector<std::string>& args) {
 }
 
 int main(int argc, char** argv) {
+    #ifndef _WIN32
+    signal(SIGPIPE, SIG_IGN);
+    #endif
     bool isEngineTest = false;
     Timer timer;
     timer.start();
@@ -545,7 +554,8 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
             { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", CliSettings::ValueType::String } },
-            { "resultfile", { "File to save tournament outcome", false, "", CliSettings::ValueType::PathParentExists } },
+            { "resultfile", { "File to save tournament state", false, "", CliSettings::ValueType::PathParentExists } },
+            { "saveinterval", { "Interval in games to save tournament state", false, 10, CliSettings::ValueType::Int } },
             { "append", { "Append to result file instead of overwriting it", false, false, CliSettings::ValueType::Bool } },
             { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
             { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, CliSettings::ValueType::Int } },
