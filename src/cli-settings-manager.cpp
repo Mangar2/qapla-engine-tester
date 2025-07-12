@@ -21,6 +21,7 @@
 
 #include <string.h>
 #include <iostream>
+#include <sstream>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
@@ -133,6 +134,13 @@ namespace CliSettings
                 (!std::get<std::string>(value).empty() && std::get<std::string>(value) != "."))
             {
                 typeMismatch("empty string required as default for type PathExists");
+            }
+            break;
+        case ValueType::PathParentExists:
+            if (!std::holds_alternative<std::string>(value) ||
+                (!std::get<std::string>(value).empty() && std::get<std::string>(value) != "."))
+            {
+                typeMismatch("empty string required as default for type PathParentExists");
             }
             break;
         }
