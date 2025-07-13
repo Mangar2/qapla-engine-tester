@@ -33,7 +33,6 @@
 #include <psapi.h>
 #include <io.h>
 #else
-#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -614,38 +613,7 @@ void EngineProcess::terminate()
     closeAllHandles();
     // Should never be reached unless TerminateProcess succeeds but the process remains active (unexpected)
     throw std::runtime_error("Engine did not end by itself");
-
-#elif defined(__APPLE__)
-    if (childPid_ <= 0)
-    {
-        closeAllHandles();
-        return;
-    }
-
-    if (kill(childPid_, 0) == -1 && errno == ESRCH)
-    {
-        closeAllHandles();
-        return;
-    }
-
-    if (kill(childPid_, SIGKILL) == -1)
-    {
-        throw std::runtime_error("kill(SIGKILL) failed");
-    }
-
-    int status = 0;
-    if (waitpid(childPid_, &status, 0) == -1)
-    {
-        if (errno != ECHILD)
-        {
-            throw std::runtime_error("waitpid() failed");
-        }
-        // ECHILD means no child to wait for, likely already reaped
-    }
-
-    closeAllHandles();
-
-#else // Linux or other POSIX systems
+#else
     if (childPid_ <= 0)
     {
         closeAllHandles();
@@ -665,7 +633,7 @@ void EngineProcess::terminate()
 
     if (waitpid(childPid_, nullptr, 0) == -1)
     {
-        throw std::runtime_error("waitpid() failed");
+        throw std::runtime_error("waitpid() failed: " + std::string(std::strerror(errno)));
     }
     closeAllHandles();
 #endif
