@@ -37,7 +37,8 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
 	}
 
-    if (!searchInfo.pv.empty()) {
+    bool inactive = !computingMove_ && !pondering_;
+    if (!searchInfo.pv.empty() && !inactive) {
         std::vector<QaplaBasics::Move> pvMoves;
         pvMoves.reserve(searchInfo.pv.size());
         for (const auto& moveStr : searchInfo.pv) {
@@ -51,7 +52,9 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 					pondering_ ? "pondering" : "inactive";
                 checklist_->logReport("pv", false,
                     "Encountered illegal move " + moveStr + " while " + stateStr + " in pv " + fullPv);
-
+                Logger::engineLogger().log("Illegal move in PV: " + moveStr + " while " + stateStr +
+                    " in raw info line \"" + event.rawLine + "\"", TraceLevel::error);
+                
                 break;
             }
             gameState_.doMove(move);

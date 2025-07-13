@@ -269,7 +269,7 @@ void EngineTestController::runHashTableMemoryTest() {
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t memHigh = gameManager_->getEngine()->getEngineMemoryUsage();
 
-        setOption("Hash", "1");
+        setOption("Hash", "16");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t memLow = gameManager_->getEngine()->getEngineMemoryUsage();
 
@@ -278,12 +278,12 @@ void EngineTestController::runHashTableMemoryTest() {
         gameManager_->getEngine()->setOption("Hash", "32");
 
         Logger::testLogger().logAligned("Test if memory shrinks:", "Usage with 512MB hash " +
-            bytesToMB(memHigh) + " MB and with 1MB hash " + bytesToMB(memLow) + " MB" +
+            bytesToMB(memHigh) + " MB and with 16MB hash " + bytesToMB(memLow) + " MB" +
             (success ? " (shrinked)" : " (did not shrink enough)"));
 
         std::string errorMsg;
         if (!success) {
-            errorMsg = "Memory did not shrink as expected when changing Hash from 512 to 1. "
+            errorMsg = "Memory did not shrink as expected when changing Hash from 512 to 16. "
                 "Usage was " + std::to_string(memHigh) + " bytes before, now " +
                 std::to_string(memLow) + " bytes.";
         }

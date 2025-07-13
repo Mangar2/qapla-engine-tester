@@ -150,7 +150,7 @@ void UciAdapter::sendPosition(const GameRecord& game, std::string ponderMove) {
     else {
         oss << "position fen " << game.getStartFen();
     }
-    if (!game.nextMoveIndex() == 0 || ponderMove != "") {
+    if (game.nextMoveIndex() != 0 || ponderMove != "") {
         oss << " moves";
 		for (uint32_t ply = 0; ply < game.nextMoveIndex(); ++ply) {
             oss << " " << game.history()[ply].lan;
