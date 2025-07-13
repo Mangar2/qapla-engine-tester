@@ -40,7 +40,9 @@
 #include <poll.h>
 #include <fstream>
 #include <sstream>
+#ifdef __linux__
 #include <sys/prctl.h>
+#endif
 #endif
 
 #include "timer.h"
@@ -169,7 +171,11 @@ void EngineProcess::start()
     
     if (childPid_ == 0)
     {
+        #ifdef __linux__
+        // Set the parent death signal to SIGKILL
+        // This ensures the child process is killed if the parent dies unexpectedly
         prctl(PR_SET_PDEATHSIG, SIGKILL);
+        #endif
         if (workingDirectory_ && chdir(workingDirectory_->c_str()) == -1) {
             perror("chdir failed");
         }            

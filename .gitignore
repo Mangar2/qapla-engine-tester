@@ -12,6 +12,7 @@
 *.exe
 *.pgn
 *.raw
+*.DS_Store
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
