@@ -33,6 +33,7 @@
 #include <psapi.h>
 #include <io.h>
 #else
+#include <signal.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
