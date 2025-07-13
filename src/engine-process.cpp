@@ -44,6 +44,9 @@
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
+#ifdef __APPLE__
+#include <mach/mach.h>
+#endif
 #endif
 
 #include "timer.h"
@@ -306,6 +309,18 @@ std::size_t EngineProcess::getMemoryUsage() const
     {
         return pmc.PrivateUsage; // Private memory used by process
     }
+    return 0;
+#elif defined(__APPLE__)
+    std::string cmd = "ps -o rss= -p " + std::to_string(childPid_);
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return 0;
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
+        pclose(pipe);
+        return std::stoul(buffer) * 1024; // KB → Bytes
+    }
+    pclose(pipe);
     return 0;
 #else
     std::ifstream statusFile("/proc/" + std::to_string(childPid_) + "/status");
@@ -575,9 +590,13 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         }
         else
         {
+            if (errno == ECHILD)
+            {
+                return true; // No child process, considered as exited
+            }
             if (errno == EINTR)
                 continue;
-            throw std::runtime_error("waitpid failed");
+            throw std::runtime_error("waitpid() failed " + std::string(std::strerror(errno)));
         }
     }
 #endif
@@ -617,9 +636,12 @@ void EngineProcess::terminate()
         DWORD error = GetLastError();
         throw std::runtime_error("GetExitCodeProcess failed with error code: " + std::to_string(error));
     }
+    bool exited = waitForExit(std::chrono::seconds(5)); 
     closeAllHandles();
     // Should never be reached unless TerminateProcess succeeds but the process remains active (unexpected)
-    throw std::runtime_error("Engine did not end by itself");
+    if (!exited) {
+        throw std::runtime_error("Engine did not end by itself");
+    }
 #else
     if (childPid_ <= 0)
     {
@@ -638,11 +660,12 @@ void EngineProcess::terminate()
         throw std::runtime_error("kill(SIGKILL) failed");
     }
 
-    if (waitpid(childPid_, nullptr, 0) == -1)
-    {
-        throw std::runtime_error("waitpid() failed: " + std::string(std::strerror(errno)));
-    }
+    bool exited = waitForExit(std::chrono::seconds(5)); // Wait for process to exit
     closeAllHandles();
+    if (!exited)
+    {
+        throw std::runtime_error("Engine did not end by itself");
+    }
 #endif
 }
 

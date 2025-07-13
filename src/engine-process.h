@@ -130,6 +130,15 @@ public:
 		return executablePath_.string();
 	}
 
+    #if defined(__linux__) || defined(__APPLE__)
+        /**
+         * Returns the process ID of the engine process (Linux/macOS only).
+         */
+        pid_t getProcessId() const {
+            return childPid_;
+        }
+    #endif
+
 private:
 
     /**
