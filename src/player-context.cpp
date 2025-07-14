@@ -65,9 +65,12 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
     currentMove_.updateFromSearchInfo(searchInfo);
 
     if (searchInfo.currMove) {
-        const auto move = gameState_.stringToMove(*searchInfo.currMove, requireLan_);
+        auto& state = computeState_ == ComputeState::ComputingMove ? gameState_ : ponderState_;
+        const auto move = state.stringToMove(*searchInfo.currMove, requireLan_);
         checklist_->logReport("currmove", !move.isEmpty(),
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
+        Logger::engineLogger().log("Illegal move in currMove: " + *searchInfo.currMove +
+            " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
 	}
 
     checkPV(event);
@@ -104,6 +107,8 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         currentMove_ = MoveRecord{};
+        Logger::engineLogger().log("Illegal move in bestmove: " + *event.bestMove + 
+            " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
         return QaplaBasics::Move::EMPTY_MOVE;
     }
     checkTime(event);
@@ -186,21 +191,26 @@ bool PlayerContext::checkEngineTimeout() {
 
     const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
     int64_t overrun = 0;
-	if (timeLeft != 0) {
+    bool useGameTime = timeLeft != 0;
+	if (useGameTime) {
         overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;
         if (moveElapsedMs > timeLeft) {
 			engine_->moveNow();
 			restarted = restartIfNotReady();
-            gameState_.setGameResult(GameEndCause::Disconnected, white ? GameResult::BlackWins : GameResult::WhiteWins);
+            gameState_.setGameResult(restarted ? GameEndCause::Disconnected : GameEndCause::Timeout, 
+                white ? GameResult::BlackWins : GameResult::WhiteWins);
+            if (!restarted) {
+                checklist_->logReport("no-loss-on-time", restarted, "Engine timeout and not reacting for a while, but answered isready");
+            }
+            Logger::engineLogger().log("Engine timeout or disconnect", TraceLevel::warning);
 		}
 	}
     else if ((goLimits_.movetimeMs.has_value() && *goLimits_.movetimeMs < moveElapsedMs)) {
         overrun = moveElapsedMs > *goLimits_.movetimeMs + OVERRUN_TIMEOUT;
         engine_->moveNow();
         restarted = restartIfNotReady();
-
     }
-	if (overrun) {
+	if (overrun && !restarted) {
         // We are here, if the engine responded with isready but still does not play a move
         restart();
         restarted = true;
@@ -244,9 +254,8 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
 	}
     // This method is only called with a checked move thus beeing empty should never happen
     std::string lanMove = move.getLAN();
-    if (computeState_ == ComputeState::Pondering) {
-        if (!ponderMove_.empty() && ponderMove_ != lanMove) computeState_ = ComputeState::PonderMiss;
-        else computeState_ = ComputeState::PonderHit;
+    if (computeState_ == ComputeState::Pondering && !ponderMove_.empty()) {
+        computeState_ = ponderMove_ == lanMove ? ComputeState::PonderHit : ComputeState::PonderMiss;
     }
     ponderMove_ = "";  
 
@@ -257,7 +266,7 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
         auto id = engine_->getIdentifier();
         if (!checklist_->logReport("correct-pondering", success,
             "stop command to engine " + id + " did not return a bestmove while in pondermode in time")) {
-			Logger::engineLogger().log(id + " Pondering did not return a bestmove in time", TraceLevel::error);
+			Logger::engineLogger().log(id + " Stop on ponder-miss did not return a bestmove in time", TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
         }
@@ -310,7 +319,7 @@ void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& go
             "Encountered illegal ponder move \"" + ponderMove_ + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
             ponderState_.synchronizeIncrementalFrom(gameState_);
             ponderState_.doMove(move);
-			auto [cause, result] = gameState_.getGameResult();
+			auto [cause, result] = ponderState_.getGameResult();
 			if (result != GameResult::Unterminated) {
 				// If the game is already over, we cannot ponder
 				ponderMove_.clear();
