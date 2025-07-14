@@ -43,7 +43,7 @@ public:
      * @param engineWorker Shared pointer to the EngineWorker.
      */
     void setEngine(std::unique_ptr<EngineWorker> engineWorker, bool requireLan) {
-        computingMove_ = false;
+        computeState_ = ComputeState::Idle;
 		if (!engineWorker) {
 			throw AppError::makeInvalidParameters("Cannot set a null engine worker");
 		}
@@ -104,12 +104,11 @@ public:
     void cancelCompute() {
         if (!engine_) return;
         constexpr auto readyTimeout = std::chrono::seconds{ 1 };
-        if (computingMove_ || (pondering_ && !ponderMove_.empty())) {
+        if (computeState_ != ComputeState::Idle) {
             engine_->moveNow(true);
             engine_->requestReady(readyTimeout);
         }
-        computingMove_ = false;
-        pondering_ = false;
+        computeState_ = ComputeState::Idle;
         ponderMove_ = "";
     }
 
@@ -160,7 +159,7 @@ public:
      * @param computing True if the engine is currently computing a move, false otherwise.
      */
     void setComputingMove(bool computing) {
-        computingMove_ = computing;
+        computeState_ = ComputeState::ComputingMove;
     }
 
     /**
@@ -178,6 +177,16 @@ public:
      * @param event The EngineEvent containing the information.
      */
     void handleInfo(const EngineEvent& event);
+
+    /**
+     * @brief Checks the PV (principal variation) in the event.
+     *
+     * This function verifies that the PV in the event matches the current game state.
+     * If it does not match, it logs an error and updates the move record accordingly.
+     *
+     * @param event The EngineEvent containing the PV to check.
+     */
+    void checkPV(const EngineEvent& event);
 
 	/**
 	 * @brief Keep alive tick - check for a timout or non active engine
@@ -227,6 +236,7 @@ public:
      */
     void setStartPosition(const GameRecord& startPosition) {
         gameState_.setFromGameRecord(startPosition);
+        ponderState_.setFromGameRecord(startPosition);
     }
 
     /**
@@ -237,6 +247,7 @@ public:
      */
     void setStartPosition(bool startPosition, const std::string& fen) {
         gameState_.setFen(startPosition, fen);
+        ponderState_.setFen(startPosition, fen);
     }
 
 	const TimeControl& getTimeControl() const {
@@ -244,13 +255,23 @@ public:
 	}
 
 private:
-    /**
-     * @brief Checks if a move is legal in the current game state.
-     *
-     * @param moveText The move in algebraic notation.
-     * @return true if the move is legal, false otherwise.
-     */
-    bool isLegalMove(const std::string& moveText);
+    enum class ComputeState {
+        Idle,
+        ComputingMove,
+        Pondering,
+        PonderHit,
+        PonderMiss
+    };
+    static const char* toString(ComputeState state) {
+        switch (state) {
+            case ComputeState::Idle:         return "Idle";
+            case ComputeState::ComputingMove:return "ComputingMove";
+            case ComputeState::Pondering:    return "Pondering";
+            case ComputeState::PonderHit:    return "PonderHit";
+            case ComputeState::PonderMiss:   return "PonderMiss";
+        }
+        return "";
+    }
 
     bool restartIfNotReady();
     void restart();
@@ -258,12 +279,13 @@ private:
     std::unique_ptr<EngineWorker> engine_;
     TimeControl timeControl_;
     GameState gameState_;
+    GameState ponderState_;
     int64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
-	bool pondering_ = false;
-	std::string ponderMove_ = "";
-    std::atomic<bool> computingMove_ = false;
+    std::atomic<ComputeState> computeState_ = ComputeState::Idle;
+
+    std::string ponderMove_ = "";
     MoveRecord currentMove_;
 	EngineReport* checklist_ = nullptr; 
 };

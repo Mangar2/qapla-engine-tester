@@ -565,6 +565,7 @@ void EngineTestController::testPonderMiss(const GameRecord& gameRecord, EngineWo
 void EngineTestController::runUciPonderTest() {
     const std::string testname = "correct-pondering";
     try {
+        std::cout << "Testing pondering:" << std::endl;
         Timer timer;
         timer.start();
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
