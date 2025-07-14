@@ -93,6 +93,19 @@ public:
 	 */
 	GameRecord setFromGameRecord(const GameRecord& record, std::optional<int> plies = std::nullopt);
 
+	/**
+	 * @brief Incrementally synchronizes this GameState to match the move history of the given reference state.
+	 *
+	 * This method assumes that both GameStates were originally in sync and have diverged only by a small number
+	 * of recent moves. It avoids full history or FEN comparison for performance reasons. It performs:
+	 * 1. A single undo if the last move differs from the reference at the same position.
+	 * 2. A reapplication of all moves present in the reference but missing here.
+	 *
+	 * This is not a perfect synchronization; correctness depends on both states sharing a common history.
+	 *
+	 * @param referenceState The GameState whose move history this state should approximate.
+	 */
+	void synchronizeIncrementalFrom(const GameState& referenceState);
 	
 private:
 	/**

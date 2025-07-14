@@ -130,6 +130,24 @@ void GameState::undoMove() {
 	hashList_.pop_back();
 }
 
+void GameState::synchronizeIncrementalFrom(const GameState& referenceState) {
+    const auto& refMoves = referenceState.moveList_;
+    const auto& ourMoves = moveList_;
+
+    const size_t ourSize = ourMoves.size();
+    const size_t refSize = refMoves.size();
+
+    if (ourSize > 0 && refSize > 0 && ourSize <= refSize) {
+        if (ourMoves.back() != refMoves[ourSize - 1]) {
+            undoMove();
+        }
+    }
+
+    for (size_t i = ourMoves.size(); i < refSize; ++i) {
+        doMove(refMoves[i]);
+    }
+}
+
 std::string GameState::moveToSan(const QaplaBasics::Move& move) const
 {
 	if (move.isEmpty()) return std::string();
