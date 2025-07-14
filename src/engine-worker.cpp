@@ -202,6 +202,12 @@ bool EngineWorker::setOptionValues(const OptionValues& optionValues) {
 void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits, bool ponderHit) {
     post([this, gameRecord, limits, ponderHit](EngineAdapter& adapter) {
         try {
+            if (eventSink_) {
+                // This ensures that all remaining info packets from pondering arrive before this marker,
+                // allowing the GameManager to safely distinguish between stale and current compute data.
+                eventSink_(EngineEvent::create(EngineEvent::Type::SendingComputeMove, identifier_, 
+                    Timer::getCurrentTimeMs()));
+            }
             int64_t sendTimestamp = adapter.computeMove(gameRecord, limits, ponderHit);
             if (eventSink_) {
 				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));

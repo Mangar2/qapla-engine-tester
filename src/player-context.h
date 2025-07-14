@@ -151,6 +151,19 @@ public:
     }
 
     /**
+     * @brief Sets the flag indicating whether a compute move is currently active.
+     *
+     * This flag is updated asynchronously in response to a marker event (SendingComputeMove),
+     * ensuring that info packets from previous pondering phases are not misinterpreted as part
+     * of the current move computation.
+     *
+     * @param computing True if the engine is currently computing a move, false otherwise.
+     */
+    void setComputingMove(bool computing) {
+        computingMove_ = computing;
+    }
+
+    /**
      * @brief Gets the timestamp when the engine started computing a move.
      *
      * @return Timestamp in milliseconds since epoch.
