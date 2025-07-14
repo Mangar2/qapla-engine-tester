@@ -28,7 +28,9 @@
 #include <assert.h>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #include <psapi.h>
 #include <io.h>

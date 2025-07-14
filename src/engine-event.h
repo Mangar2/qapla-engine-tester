@@ -85,6 +85,7 @@ struct EngineEvent {
     EngineEvent() = default;
     enum class Type {
         None,
+        SendingComputeMove,
         ComputeMoveSent,
         PonderMoveSent,
         ReadyOk,
@@ -141,6 +142,7 @@ struct EngineEvent {
 
     Type type;
     int64_t timestampMs;
+    bool computing = false; // Indicates if the event is related to the engine computing a move
     std::string rawLine;
 
     std::optional<std::string> bestMove;

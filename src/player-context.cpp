@@ -38,7 +38,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 	}
 
     bool inactive = !computingMove_ && !pondering_;
-    if (!searchInfo.pv.empty() && !inactive) {
+    if (!searchInfo.pv.empty()) {
         std::vector<QaplaBasics::Move> pvMoves;
         pvMoves.reserve(searchInfo.pv.size());
         for (const auto& moveStr : searchInfo.pv) {
@@ -281,7 +281,10 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
     setComputeMoveStartTimestamp(Timer::getCurrentTimeMs());
     pondering_ = false;
 	ponderMove_ = "";
-    computingMove_ = true;
+    // Do not set computingMove_ to true here, as computeMove is asynchronous.
+    // Instead, rely on the SendingComputeMove marker event to ensure correct temporal ordering
+    // in the GameManager's event queue. This avoids misclassifying late-arriving pondering info
+    // as part of the new compute phase.
     engine_->computeMove(gameRecord, goLimits, ponderHit);
 }
 

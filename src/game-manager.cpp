@@ -215,6 +215,10 @@ void GameManager::processEvent(const EngineEvent& event) {
             player->setComputeMoveStartTimestamp(event.timestampMs);
             return;
         }
+        if (event.type == EngineEvent::Type::SendingComputeMove) {
+            player->setComputingMove(true);
+            return;
+        }
 
         if (event.type == EngineEvent::Type::BestMove) {
             handleBestMove(event);
