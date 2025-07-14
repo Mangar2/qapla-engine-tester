@@ -27,15 +27,15 @@
 EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, 
     const EngineConfig& engineConfig)
     : adapter_(std::move(adapter)), identifier_(identifier)
-    {
-
+{
+    cliTraceLevel_ = Logger::engineLogger().getCliThreshold();
     if (!adapter_) {
         throw std::invalid_argument("Internal Error: EngineWorker requires a valid EngineAdapter");
     }
     engineConfig_ = engineConfig;
 
     adapter_->setProtocolLogger([this, id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
-        Logger::engineLogger().log(id, message, isOutput, engineConfig_.getTraceLevel(), traceLevel);
+        Logger::engineLogger().log(id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
         
         });
     

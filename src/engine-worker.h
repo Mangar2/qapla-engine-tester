@@ -223,6 +223,14 @@ public:
 		InfoEvent = 2
 	};
 
+	/**
+	 * @brief Sets the trace level for the engine's CLI output.
+	 * @param traceLevel The trace level to set.
+	 */
+	void setTraceLevel(TraceLevel traceLevel) {
+		cliTraceLevel_ = traceLevel;
+	}
+
 private:
 
 	enum class WorkerState {
@@ -293,5 +301,7 @@ private:
 
 	// Engine configuration
 	EngineConfig engineConfig_;
+
+	TraceLevel cliTraceLevel_ = TraceLevel::info;
 
 };

@@ -50,8 +50,10 @@ public:
         Concurrency,
         Info,
         Quit,
-        SetTraceLevel,       // Programmintern
-        SetEngineTraceLevel  // Per Engine
+        Running,           
+        ViewGame,          
+        SetTraceLevel,       
+        SetEngineTraceLevel  
     };
 
     class CallbackRegistration {

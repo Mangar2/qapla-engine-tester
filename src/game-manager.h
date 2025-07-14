@@ -136,6 +136,17 @@ public:
     void computeTasks(GameTaskProvider* taskProvider = nullptr);
 
     /**
+     * @brief Set the Trace level for the engine's CLI output.    
+     * 
+     * @param traceLevel 
+     */
+    void setCliTraceLevel(TraceLevel traceLevel) {
+        forEachUniqueEngine([traceLevel](EngineWorker& engine) {
+            engine.setTraceLevel(traceLevel);
+        });
+    }
+
+    /**
      * @brief Returns a reference to the EngineWorker instance.
      *
      * @return A reference to the EngineWorker.
