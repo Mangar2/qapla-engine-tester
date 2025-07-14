@@ -25,7 +25,9 @@ GameManagerPool::GameManagerPool() {
     inputCallback_ = InputHandler::getInstance().registerCommandCallback(
 		{ InputHandler::ImmediateCommand::Quit,
           InputHandler::ImmediateCommand::Abort,
-		  InputHandler::ImmediateCommand::Concurrency },
+		  InputHandler::ImmediateCommand::Concurrency,
+          InputHandler::ImmediateCommand::Running,
+          InputHandler::ImmediateCommand::ViewGame },
         [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue value) {
 			if (cmd == InputHandler::ImmediateCommand::Quit) {
 				std::cout << "\n\nQuit received, finishing all games and analyses before exiting.\n" << std::endl;
@@ -37,11 +39,53 @@ GameManagerPool::GameManagerPool() {
             } 
             else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
 				if (value) {
+                    std::cout << "\n\nSetting concurrency to " << *value << "\n" << std::endl;
 					int concurrency = std::stoi(*value);
 					this->setConcurrency(concurrency, true, true);
 				}
 			}
+            else if (cmd == InputHandler::ImmediateCommand::Running) {
+                this->printRunningGames();
+            }
+            else if (cmd == InputHandler::ImmediateCommand::ViewGame) {
+                this->viewEngineTrace(value ? std::stoi(*value) : 0);
+            }
         });
+}
+
+void GameManagerPool::printRunningGames() const {
+    std::cout << "\n\nCurrently running games:\n";
+    int pos = 1;
+    for (const auto& managerPtr : managers_) {
+        GameManager* manager = managerPtr.get();
+        if (!manager->getTaskProvider()) {
+            continue;
+        }
+        auto whiteName = manager->getEngine(true)->getEngineName();
+        auto blackName = manager->getEngine(false)->getEngineName();
+        std::cout << std::setw(2) << pos << ". "
+              << std::left << std::setw(30) << whiteName
+              << " vs "
+              << std::left << std::setw(30) << blackName
+              << "\n";
+        ++pos;
+    }
+    std::cout << std::endl;
+}
+
+void GameManagerPool::viewEngineTrace(int gameManagerIndex) const {
+    for (const auto& managerPtr : managers_) {
+        GameManager* manager = managerPtr.get();
+        if (manager->getTaskProvider() == nullptr) {
+            continue;
+        }
+        if (gameManagerIndex == 1) {
+            manager->setCliTraceLevel(TraceLevel::info);
+            continue;
+        }
+        manager->setCliTraceLevel(Logger::engineLogger().getCliThreshold());
+        gameManagerIndex--;
+    }
 }
 
 void GameManagerPool::addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& engineName, int maxManagers) {

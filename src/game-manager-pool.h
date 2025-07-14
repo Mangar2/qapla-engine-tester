@@ -115,6 +115,9 @@ public:
 private:
     void setConcurrency(int count, bool nice, bool start);
 
+    void printRunningGames() const;
+    void viewEngineTrace(int gameManagerIndex) const;
+
     /**
      * @brief Returns the singleton instance of the GameManagerPool.
      */

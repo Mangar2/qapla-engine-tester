@@ -71,6 +71,8 @@ void InputHandler::handleLine(const std::string& line) {
         else if (command == "abort" || command == "a"){ dispatchImmediate(ImmediateCommand::Abort, args); quitFlag = true;} 
         else if (command == "leaveinput"|| command == "l" ) quitFlag = true;
         else if (command == "help" || command == "h") showHelp();
+        else if (command == "running" || command == "r") dispatchImmediate(ImmediateCommand::Running, args);
+        else if (command == "viewgame" || command == "v") dispatchImmediate(ImmediateCommand::ViewGame, args);
         else {
             std::cout << "Unknown command: " << command << "\n";
         }
@@ -88,6 +90,8 @@ void InputHandler::showHelp() {
         << "  concurrency | c    - Set number of concurrent games\n"
         << "  abort | a          - Abort current games immediately\n"
         << "  leaveinput | l     - Leave interactive mode; program keeps running\n"
+        << "  viewgame | v       - Show UCI/Winboard log of a specific game by ID\n"
+        << "  running | r        - Show all currently running game pairings\n"
         << "  help | h           - Show this help message\n";
 }
 
