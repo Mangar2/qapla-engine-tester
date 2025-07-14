@@ -15,7 +15,7 @@ tests=(
 # Second test playing no game due to tournament file
   "--settingsfile=test-tournament-file.ini:0"
   "--settingsfile=test-sprt-maxgames.ini:16"
-  "--settingsfile=test-sprt-fast.ini:16"
+  "--settingsfile=test-sprt-rapid.ini:16"
 )
 
 results=()
