@@ -69,8 +69,10 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
         const auto move = state.stringToMove(*searchInfo.currMove, requireLan_);
         checklist_->logReport("currmove", !move.isEmpty(),
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
-        Logger::engineLogger().log("Illegal move in currMove: " + *searchInfo.currMove +
-            " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
+        if (move.isEmpty()) {
+            Logger::engineLogger().log("Illegal move in currMove: " + *searchInfo.currMove +
+                " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
+        }
 	}
 
     checkPV(event);

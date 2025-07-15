@@ -24,6 +24,7 @@
 #include "game-task.h"
 #include "openings.h"
 #include "pair-tournament.h"
+#include "input-handler.h"
 
 /**
  * @brief Configuration parameters for a SPRT test run.
@@ -138,5 +139,8 @@ private:
 
     SprtConfig config_;
 	std::optional<bool> decision_ = std::nullopt;
+
+    // Registration
+    std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
 
 };
