@@ -144,14 +144,6 @@ private:
 	std::string loadRound(std::istream& in, const std::string& roundHeader,
 		const std::unordered_set<std::string>& validEngines);
 
-    /**
-     * @brief Finds a pairing between two engine names, regardless of order.
-     * @param engineA Name of one engine.
-     * @param engineB Name of the other engine.
-     * @return Pointer to the matching PairTournament, or nullptr if not found.
-     */
-    PairTournament* findMatchingPairing(const std::string& engineA, const std::string& engineB) const;
-
     void createGauntletPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 

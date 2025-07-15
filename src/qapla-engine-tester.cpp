@@ -249,9 +249,11 @@ auto runSprt(AppReturnCode code) {
             manager.load(filename);
             manager.schedule(concurrency);
             manager.wait();
+            std::cout << "wait finished" << std::endl;
             if (!filename.empty()) {
                 manager.save(filename);
             }
+            std::cout << "after manager.save" << std::endl;
 			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager.getResult()));
 			Logger::testLogger().log("sprt all games completed", TraceLevel::result);
 

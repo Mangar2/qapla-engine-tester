@@ -61,8 +61,8 @@ void GameManagerPool::printRunningGames() const {
         if (!manager->getTaskProvider()) {
             continue;
         }
-        auto whiteName = manager->getEngine(true)->getEngineName();
-        auto blackName = manager->getEngine(false)->getEngineName();
+		auto whiteName = manager->getEngine(true)->getConfig().getName();
+        auto blackName = manager->getEngine(false)->getConfig().getName();
         std::cout << std::setw(2) << pos << ". "
               << std::left << std::setw(30) << whiteName
               << " vs "
@@ -81,9 +81,10 @@ void GameManagerPool::viewEngineTrace(int gameManagerIndex) const {
         }
         if (gameManagerIndex == 1) {
             manager->setCliTraceLevel(TraceLevel::info);
-            continue;
         }
-        manager->setCliTraceLevel(Logger::engineLogger().getCliThreshold());
+        else {
+            manager->setCliTraceLevel(Logger::engineLogger().getCliThreshold());
+        }
         gameManagerIndex--;
     }
 }

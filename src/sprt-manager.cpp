@@ -75,6 +75,12 @@ void SprtManager::createTournament(
 }
 
 void SprtManager::schedule(int concurrency) { 
+    sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
+        InputHandler::ImmediateCommand::Info,
+        [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
+            auto result = getResult();
+            result.printOutcome(std::cout);
+        });
 	auto duel = tournament_.getResult();
     std::cout << "sprt engines " << duel.getEngineA() << " vs " << duel.getEngineB()
         << " elo [" << config_.eloLower << ", " << config_.eloUpper << "]"
