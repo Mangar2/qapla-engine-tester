@@ -182,7 +182,7 @@ void EngineProcess::start()
         // This ensures the child process is killed if the parent dies unexpectedly
         prctl(PR_SET_PDEATHSIG, SIGKILL);
         #endif
-        if (dir_ && chdir(dir_->c_str()) == -1) {
+        if (workingDirectory_ && chdir(workingDirectory_->c_str()) == -1) {
             perror("chdir failed");
         }            
 
@@ -208,7 +208,7 @@ void EngineProcess::start()
         close(execStatusPipe[0]); // close unused read end
         // Signal exec error to parent if execl fails
 
-        execl(cmd_.c_str(), cmd_.c_str(), nullptr);
+        execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
 
         // only on failure:
         int err = errno;
