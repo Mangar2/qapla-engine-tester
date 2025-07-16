@@ -516,17 +516,20 @@ void GameManager::computeNextTask() {
 }
 
 void GameManager::computeTasks(GameTaskProvider* taskProvider) {
-    markRunning();
     logMoves_ = false;
-
-	if (taskProvider == nullptr) {
-		auto task = tryGetReplacementTask();
+    std::optional<GameTask> task;
+    if (taskProvider == nullptr) {
+        task = tryGetReplacementTask();
         computeTask(task);
     }
     else {
         taskProvider_ = std::move(taskProvider);
         taskType_ = GameTask::Type::FetchNextTask;
-        computeNextTask();
+        task = organizeNewAssignment();
+    }
+    if (task) {
+        markRunning();
+        computeTask(std::move(task));
     }
 }
 
