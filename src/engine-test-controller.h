@@ -54,6 +54,8 @@ private:
 
     void runPlaceholderTest();
 
+    void runEpFromFenTest();
+
     /**
       * @brief Creates and initializes a GameManager instance.
       *

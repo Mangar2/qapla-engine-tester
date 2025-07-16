@@ -111,7 +111,8 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
             runInfiniteAnalyzeTest();
         }
         runGoLimitsTests();
-		if (!testSettings.get<bool>("noepd")) {
+        runEpFromFenTest();
+        if (!testSettings.get<bool>("noepd")) {
 			runEpdTests();
 		}
         runComputeGameTest();
@@ -613,6 +614,27 @@ void EngineTestController::runEpdTests() {
     catch (...) {
         Logger::testLogger().log("Unknown exception during compute epd test.", TraceLevel::error);
     }
+}
+
+void EngineTestController::runEpFromFenTest() {
+	try {
+		EngineList engines = startEngines(1);
+        Logger::testLogger().logAligned("Tested ep-pos from a Fen:", "Check EP handling in FEN parsing if errors occur.");
+        gameManager_->initUniqueEngine(std::move(engines[0]));
+		TimeControl timeControl;
+		timeControl.addTimeSegment({ 0, 1000, 100 }); 
+        gameManager_->setUniqueTimeControl(timeControl);
+        gameManager_->computeMove(false, "rnbqkb1r/ppp2ppp/8/3pP3/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq d6 0 1",
+            std::vector<std::string>{ "e5d6" });
+		gameManager_->getFinishedFuture().wait_for(std::chrono::seconds(2));
+	}
+	catch (const std::exception& e) {
+		Logger::testLogger().log("Exception during compute ep-pos test: " + std::string(e.what()), TraceLevel::error);
+	}
+	catch (...) {
+		Logger::testLogger().log("Unknown exception during compute ep-pos test.", TraceLevel::error);
+	}
+
 }
 
 void EngineTestController::runComputeGameTest() {

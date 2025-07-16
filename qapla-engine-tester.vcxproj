@@ -163,6 +163,7 @@
     <ClCompile Include="src\qapla-engine-tester.cpp" />
     <ClCompile Include="src\sprt-manager.cpp" />
     <ClCompile Include="src\uci-adpater.cpp" />
+    <ClCompile Include="src\winboard-adapter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\app-error.h" />
@@ -222,6 +223,7 @@
     <ClInclude Include="src\types.h" />
     <ClInclude Include="src\uci-adapter.h" />
     <ClInclude Include="src\uci-option.h" />
+    <ClInclude Include="src\winboard-adapter.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

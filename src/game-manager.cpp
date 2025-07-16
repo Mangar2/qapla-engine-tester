@@ -305,20 +305,11 @@ std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
     auto [wcause, wresult] = whitePlayer_->getGameResult();
     auto [bcause, bresult] = blackPlayer_->getGameResult();
     
-    // Timeout or Disconneced is only detected by the loosing player
-    if (wcause == GameEndCause::Timeout || wcause == GameEndCause::Disconnected) {
-		return { wcause, wresult };
-    }
-    else if (bcause == GameEndCause::Timeout || bcause == GameEndCause::Disconnected) {
-        return { bcause, bresult };
-    }
-    // We take the result from the player doing the last move (thus not at move)
-    if (gameRecord_.isWhiteToMove()) {
-		return { bcause, bresult };
-	}
-    else {
-        return { wcause, wresult };
-    }
+    // If any player detects a game  - end return it. 
+	if (wcause != GameEndCause::Ongoing) return { wcause, wresult };
+	if (bcause != GameEndCause::Ongoing) return { bcause, bresult };
+
+	return { GameEndCause::Ongoing, GameResult::Unterminated };
 }
 
 bool GameManager::checkForGameEnd() {
@@ -346,10 +337,11 @@ void GameManager::moveNow() {
     }
 }
 
-void GameManager::computeMove(bool useStartPosition, const std::string fen) {
+void GameManager::computeMove(bool useStartPosition, const std::string fen, 
+    std::optional<std::vector<std::string>> playedMoves) {
     markRunning();
 	taskProvider_ = nullptr;
-	setFromFen(useStartPosition, fen);
+	setFromFen(useStartPosition, fen, playedMoves);
 	gameRecord_.setTimeControl(whitePlayer_->getTimeControl(), blackPlayer_->getTimeControl());
 	taskType_ = GameTask::Type::ComputeMove;
     logMoves_ = false;
@@ -432,15 +424,22 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
     return tryGetReplacementTask();
 }
 
-void GameManager::setFromFen(bool useStartPosition, const std::string& fen)
+void GameManager::setFromFen(bool useStartPosition, const std::string& fen,
+	const std::optional<std::vector<std::string>>& playedMoves)
 {
-    whitePlayer_->setStartPosition(useStartPosition, fen);
-    if (whitePlayer_ != blackPlayer_) {
-        blackPlayer_->setStartPosition(useStartPosition, fen);
-    }
     gameRecord_.setStartPosition(useStartPosition, fen, whitePlayer_->isWhiteToMove(),
         whitePlayer_->getEngine()->getConfig().getName(),
         blackPlayer_->getEngine()->getConfig().getName());
+    if (playedMoves) {
+        for (const auto& move : *playedMoves) {
+            gameRecord_.addMove({ .lan = move });
+        }
+    }
+
+    whitePlayer_->setStartPosition(gameRecord_);
+    if (whitePlayer_ != blackPlayer_) {
+        blackPlayer_->setStartPosition(gameRecord_);
+    }
 }
 
 void GameManager::setFromGameRecord(const GameRecord& game) {
@@ -504,9 +503,10 @@ void GameManager::computeNextTask() {
 	}
 	auto whiteId = whitePlayer_->getIdentifier();
 	auto blackId = blackPlayer_->getIdentifier();
-    if (gameRecord_.nextMoveIndex() > 0) {
-        taskProvider_->setGameRecord(taskId_, gameRecord_);
-    }
+    // Note: we had a check, if any move has been played and removed it as it could cause problems
+    // With a direct loss e.g. due to disconnect. But I don´t know why we ever checked for any move
+    taskProvider_->setGameRecord(taskId_, gameRecord_);
+    
     auto task = organizeNewAssignment();
     if (!task) {
         markFinished();

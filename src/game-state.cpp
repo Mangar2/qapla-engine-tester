@@ -26,6 +26,7 @@
 #include "movescanner.h"
 #include "fenscanner.h"
 #include "game-state.h"
+#include "logger.h"
 
 using MoveStr = std::string;
 using MoveStrList = std::vector<MoveStr>;
@@ -212,8 +213,11 @@ GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<in
 	}
 	for (size_t i = 0; i < maxPly; ++i) {
 		auto move = moves[i];
-		auto parsed = stringToMove(move.lan.empty() ? move.san: move.lan, false);
+		auto moveStr = move.lan.empty() ? move.san : move.lan;
+		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
+			Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
+				TraceLevel::error);
 			return copy;
 		}
 		move.lan = parsed.getLAN();

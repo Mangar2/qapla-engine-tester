@@ -203,7 +203,16 @@ namespace QaplaInterface {
 				++fenIterator;
 			}
 			if (epFile != -1 && epRank != -1) {
-				chessBoard.setEP(computeSquare(static_cast<QaplaBasics::File>(epFile), static_cast<QaplaBasics::Rank>(epRank)));
+				auto rank = static_cast<QaplaBasics::Rank>(epRank);
+				// we use the position of the pawn to be captured and not the target square of the capturing pawn
+				if (rank == QaplaBasics::Rank::R3) {
+					rank = QaplaBasics::Rank::R4; 
+				}
+				else if (rank == QaplaBasics::Rank::R6) {
+					rank = QaplaBasics::Rank::R5; 
+				}
+				auto epSquare = computeSquare(static_cast<QaplaBasics::File>(epFile), rank);
+				chessBoard.setEP(epSquare);
 			}
 			else {
 				// No legal EN-Passant-Field found
