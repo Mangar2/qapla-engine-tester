@@ -72,8 +72,8 @@ void EngineWorkerFactory::assignUniqueDisplayNames() {
 
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConfig& config) {
-    auto executablePath = config.getExecutablePath();
-    auto workingDirectory = config.getWorkingDirectory();
+    auto executablePath = config.getCmd();
+    auto workingDirectory = config.getDir();
     auto name = config.getName();
     auto identifierStr = "#" + std::to_string(identifier_);
     auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);

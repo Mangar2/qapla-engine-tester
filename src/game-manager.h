@@ -108,8 +108,10 @@ public:
      *
 	 * @param useStartPosition If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
+     * @param playedMoves Optional list of moves played already.
      */
-    void computeMove(bool useStartPosition, const std::string fen = "");
+    void computeMove(bool useStartPosition, const std::string fen = "", 
+		std::optional<std::vector<std::string>> playedMoves = std::nullopt);
 
 	/**
 	 * @brief Tells the engine to stop the current move calculation and sends the best move
@@ -239,8 +241,10 @@ private:
      *
      * @param useStartPosition If true, the game starts from the initial position.
      * @param fen The FEN string representing the game state.
+	 * @param playedMoves Optional list of moves played already.
      */
-    void setFromFen(bool useStartPosition, const std::string& fen);
+    void setFromFen(bool useStartPosition, const std::string& fen,
+		const std::optional<std::vector<std::string>>& playedMoves = std::nullopt);
 
 	/**
 	 * @brief Checks if the game has ended.

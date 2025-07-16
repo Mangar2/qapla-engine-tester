@@ -57,7 +57,7 @@ public:
     }
     static EngineConfig createFromPath(const std::string executablePath) {
 		EngineConfig config;
-        config.setExecutablePath(executablePath);
+        config.setCmd(executablePath);
         config.finalizeSetOptions();
 		return config;
     }
@@ -72,15 +72,15 @@ public:
      * Sets the path to the engine executable.
      * @param path The executable path.
      */
-    void setExecutablePath(const std::string& path) { 
-        executablePath_ = path; 
+    void setCmd(const std::string& path) { 
+        cmd_ = path; 
     }
 
     /**
      * Sets the working directory for the engine.
      * @param path The working directory path.
      */
-    void setWorkingDirectory(const std::string& path) { workingDirectory_ = path; }
+    void setDir(const std::string& path) { dir_ = path; }
 
 	/**
 	 * Sets the protocol used by the engine.
@@ -98,13 +98,13 @@ public:
      * Gets the path to the engine executable.
      * @return The executable path.
      */
-    const std::string& getExecutablePath() const { return executablePath_; }
+    const std::string& getCmd() const { return cmd_; }
 
     /**
      * Gets the working directory.
      * @return The working directory path.
      */
-    const std::string& getWorkingDirectory() const { return workingDirectory_; }
+    const std::string& getDir() const { return dir_; }
 
 	/**
 	 * Gets the protocol used by the engine.
@@ -201,8 +201,8 @@ private:
 
     std::string toString(const Value& value);
     std::string name_;
-    std::string executablePath_;
-    std::string workingDirectory_;
+    std::string cmd_;
+    std::string dir_;
     TimeControl tc_;
 	TraceLevel traceLevel_ = TraceLevel::command;
     EngineProtocol protocol_ = EngineProtocol::Unknown;

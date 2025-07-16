@@ -45,7 +45,8 @@ void PlayerContext::checkPV(const EngineEvent& event) {
             std::string stateStr = toString(computeState_);
             checklist_->logReport("pv", false,
                 "Encountered illegal move " + moveStr + " while " + stateStr + " in pv " + fullPv);
-            Logger::engineLogger().log("Illegal move in PV: " + moveStr + " while " + stateStr +
+            
+            Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in PV: " + moveStr + " while " + stateStr +
                 " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
             return;
         }
@@ -70,7 +71,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
         checklist_->logReport("currmove", !move.isEmpty(),
             "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
         if (move.isEmpty()) {
-            Logger::engineLogger().log("Illegal move in currMove: " + *searchInfo.currMove +
+            Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in currMove: " + *searchInfo.currMove +
                 " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
         }
 	}
@@ -93,7 +94,8 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     if (computeState_ != ComputeState::ComputingMove) {
-        Logger::engineLogger().log("Received best move while not computing a move, ignoring.", TraceLevel::error);
+        Logger::engineLogger().log(engine_->getIdentifier() + "Received best move while not computing a move, ignoring.", 
+            TraceLevel::error);
         return QaplaBasics::Move::EMPTY_MOVE;
     }
     computeState_ = ComputeState::Idle;
@@ -105,11 +107,11 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     }
     const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
     if (!checklist_->logReport("legalmove", !move.isEmpty(),
-        "Encountered illegal move \"" + *event.bestMove + "\" in currMove, raw info line \"" + event.rawLine + "\"")) {
+        "Encountered illegal move \"" + *event.bestMove + "\" in bestmove, raw info line \"" + event.rawLine + "\"")) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         currentMove_ = MoveRecord{};
-        Logger::engineLogger().log("Illegal move in bestmove: " + *event.bestMove + 
+        Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in bestmove: " + *event.bestMove +
             " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
         return QaplaBasics::Move::EMPTY_MOVE;
     }
@@ -204,7 +206,8 @@ bool PlayerContext::checkEngineTimeout() {
             if (!restarted) {
                 checklist_->logReport("no-loss-on-time", restarted, "Engine timeout and not reacting for a while, but answered isready");
             }
-            Logger::engineLogger().log("Engine timeout or disconnect", TraceLevel::warning);
+            Logger::engineLogger().log(engine_->getIdentifier() + " Engine timeout or disconnect", 
+                TraceLevel::warning);
 		}
 	}
     else if ((goLimits_.movetimeMs.has_value() && *goLimits_.movetimeMs < moveElapsedMs)) {

@@ -89,8 +89,8 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         else if (key == "trace") setTraceLevel(std::get<std::string>(value));
         else if (key == "name") {
             if (!update) setName(std::get<std::string>(value));
-        } else if (key == "cmd") setExecutablePath(std::get<std::string>(value));
-        else if (key == "dir") setWorkingDirectory(std::get<std::string>(value));
+        } else if (key == "cmd") setCmd(std::get<std::string>(value));
+        else if (key == "dir") setDir(std::get<std::string>(value));
         else if (key == "proto") {
             auto valueStr = std::get<std::string>(value);
             if (valueStr == "uci") protocol_ = EngineProtocol::Uci;
@@ -108,17 +108,17 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
 }
 
 void EngineConfig::finalizeSetOptions() {
-    if (getExecutablePath().empty()) throw std::runtime_error("Missing required field: cmd");
-    if (getName().empty()) setName(getExecutablePath());
-    if (getWorkingDirectory().empty()) setWorkingDirectory(".");
+    if (getCmd().empty()) throw std::runtime_error("Missing required field: cmd");
+    if (getName().empty()) setName(getCmd());
+    if (getDir().empty()) setDir(".");
     if (protocol_ == EngineProtocol::Unknown) protocol_ = EngineProtocol::Uci;
 }
 
 
 bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
     return lhs.name_ == rhs.name_
-        && lhs.executablePath_ == rhs.executablePath_
-        && lhs.workingDirectory_ == rhs.workingDirectory_
+        && lhs.cmd_ == rhs.cmd_
+        && lhs.dir_ == rhs.dir_
         && lhs.tc_ == rhs.tc_
         && lhs.protocol_ == rhs.protocol_
         && lhs.ponder_ == rhs.ponder_
@@ -152,15 +152,15 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
         if (!seenKeys.insert(key).second)
             throw std::runtime_error("Duplicate key: " + key);
         if (key == "name") config.setName(value);
-        else if (key == "executablePath") config.setExecutablePath(value);
-        else if (key == "workingDirectory") config.setWorkingDirectory(value);
+        else if (key == "cmd") config.setCmd(value);
+        else if (key == "dir") config.setDir(value);
 		else if (key == "tc") config.setTimeControl(value);
 		else if (key == "ponder") {
 			if (value == "true" || value == "1" || value == "") config.setPonder(true);
 			else if (value == "false" || value == "0") config.setPonder(false);
 			else throw std::runtime_error("Invalid ponder value: " + value);
 		}
-        else if (key == "protocol") {
+        else if (key == "proto") {
             if (value == "uci") config.protocol_ = EngineProtocol::Uci;
             else if (value == "xboard") config.protocol_ = EngineProtocol::XBoard;
             else throw std::runtime_error("Unknown protocol: " + value);
@@ -179,9 +179,9 @@ std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
 
     out << "[engine]\n";
 	out << "name=" << config.name_ << '\n';
-    out << "executablePath=" << config.executablePath_ << '\n';
-    out << "workingDirectory=" << config.workingDirectory_ << '\n';
-    out << "protocol=" << to_string(config.protocol_) << '\n';
+    out << "cmd=" << config.cmd_ << '\n';
+    out << "dir=" << config.dir_ << '\n';
+    out << "proto=" << to_string(config.protocol_) << '\n';
     out << "tc=" << config.tc_.toPgnTimeControlString() << '\n';
 	if (config.ponder_) out << "ponder=" << (config.ponder_ ? "true" : "false") << '\n';
     for (const auto& [_, value] : config.optionValues_) {
@@ -197,7 +197,7 @@ std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap()
     if (!name_.empty())
         result["name"] = name_;
 
-    result["protocol"] = to_string(protocol_);
+    result["proto"] = to_string(protocol_);
 
     if (ponder_)
         result["ponder"] = "";
