@@ -520,7 +520,6 @@ void GameManager::computeTasks(GameTaskProvider* taskProvider) {
     std::optional<GameTask> task;
     if (taskProvider == nullptr) {
         task = tryGetReplacementTask();
-        computeTask(task);
     }
     else {
         taskProvider_ = std::move(taskProvider);
