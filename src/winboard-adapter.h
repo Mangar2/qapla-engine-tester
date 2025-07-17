@@ -105,7 +105,9 @@ private:
      * @param engineLine The full engine output line with timestamp and completeness status.
      * @return Parsed EngineEvent for handshake processing.
      */
-    EngineEvent readWinboardEvent(const EngineLine& engineLine);
+    EngineEvent readFeatureSection(const EngineLine& engineLine);
+
+	
 
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds winboardHandshakeTimeout{ 3000 };
@@ -130,13 +132,14 @@ private:
      */
     void sendPosition(const GameRecord& game);
 
-    EngineEvent parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& originalLine);
+    EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
+	EngineEvent parseFeature(std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
 
     static inline int numOptionError_ = 0;
     static inline int numFeatureError_ = 0;
     static inline int numNameError_ = 0;
     static inline int numUnknownCommandError_ = 0;
-    bool inWinboardHandshake_ = false;
+    bool inFeatureSection_ = false;
 	uint64_t pingCounter_ = 0;
 };
 

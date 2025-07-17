@@ -34,12 +34,13 @@ struct SearchInfo {
     std::optional<int64_t> nodes;
     std::optional<int64_t> nps;
     std::optional<int> hashFull;
-    std::optional<int> tbhits;
+    std::optional<int64_t> tbhits;
     std::optional<int> sbhits;
     std::optional<int> cpuload;
     std::optional<int> currMoveNumber;
     std::optional<std::string> currMove;
     std::optional<int> refutationIndex;
+    std::optional<std::string> pvText;
     std::vector<std::string> pv;
 	std::vector<std::string> refutation;
     std::vector<std::string> currline; 
@@ -107,9 +108,18 @@ struct EngineEvent {
         e.rawLine = rawLine;
         return e;
     }
+    static EngineEvent createInfo(const std::string& id, int64_t ts, const std::string& rawLine) {
+        auto result = create(Type::Info, id, ts, rawLine);
+        result.searchInfo = SearchInfo{};
+	}
+    static EngineEvent createError(const std::string& id, int64_t ts, const std::string& rawLine) {
+        EngineEvent e = create(Type::Error, id, ts, rawLine);
+        e.errors.push_back({ "no-engine-error-report", rawLine });
+        return e;
+	}
 	static EngineEvent createEngineDisconnected(const std::string& id, int64_t ts, const std::string& errorMessage) {
         EngineEvent e = create(Type::EngineDisconnected, id, ts, "");
-		e.errors.push_back({ "I/O Error", errorMessage });
+		e.errors.push_back({ "no-disconnect", errorMessage });
 		return e;
 	}
 	static EngineEvent createNoData(const std::string& id, int64_t ts) {

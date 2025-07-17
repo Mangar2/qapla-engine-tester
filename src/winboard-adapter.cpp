@@ -26,7 +26,8 @@
 #include <limits>
 #include <unordered_set>
 #include "timer.h"
-
+#include "string-helper.h"
+#define WINBOARD
 #ifdef WINBOARD
 #include "winboard-adapter.h"
 #include "engine-process.h"
@@ -75,7 +76,7 @@ void WinboardAdapter::terminateEngine() {
 }
 
 void WinboardAdapter::startProtocol() {
-    inWinboardHandshake_ = true;
+    inFeatureSection_ = true;
     writeCommand("xboard");
 }
 
@@ -148,8 +149,6 @@ void WinboardAdapter::sendPosition(const GameRecord& game) {
 }
 
 void WinboardAdapter::setTestOption(const std::string& name, const std::string& value) {
-    std::string command = "setoption name " + name + " value " + value;
-    writeCommand(command);
 }
 
 void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
@@ -207,22 +206,23 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
  * @param max Maximum allowed value (inclusive).
  * @param target Optional to assign the result.
  * @param errors Vector collecting parse errors.
+ * @return True if the value was read successfully no matter if in bounds, false otherwise.
  */
-void readBoundedInt32(std::istringstream& iss,
+template <typename T>
+bool readBoundedInt(std::istringstream& iss,
     const std::string& fieldName,
-    int32_t min,
-    int32_t max,
-    std::optional<int>& target,
+    T min,
+    T max,
+    std::optional<T>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
-    int value;
+    T value;
     if (!(iss >> value)) {
         errors.push_back({
-            fieldName,
-            "Expected an integer after '" + fieldName + "'"
+            "missing-thinking-output",
+            "Expected an integer for '" + fieldName + "'"
             });
-        iss.clear();
-        return;
+        return false;
     }
 
     if (value < min || value > max) {
@@ -232,32 +232,23 @@ void readBoundedInt32(std::istringstream& iss,
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
             });
-        return;
+        target = 0;
+        return true;
     }
-    if (target.has_value()) {
-        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
-        return;
-    }
+
     target = value;
 }
 
-
-void readBoundedInt64(std::istringstream& iss,
+template <typename T>
+void storeBoundedInt(
+    const std::string& token,
     const std::string& fieldName,
-    int64_t min,
-    int64_t max,
-    std::optional<int64_t>& target,
+    T min,
+    T max,
+    std::optional<T>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
-    int64_t value;
-    if (!(iss >> value)) {
-        errors.push_back({
-            fieldName,
-            "Expected an integer after '" + fieldName + "'"
-            });
-        iss.clear();
-        return;
-    }
+    T value = std::stol(token);
 
     if (value < min || value > max) {
         errors.push_back({
@@ -266,114 +257,110 @@ void readBoundedInt64(std::istringstream& iss,
             " is outside the expected range [" +
             std::to_string(min) + ", " + std::to_string(max) + "]"
             });
-        return;
-    }
-    if (target.has_value()) {
-        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
-        return;
+		return;
     }
 
-    target = value;
+    target = static_cast<T>(value);
 }
 
-bool isLanMoveToken(const std::string& token) {
-	// A valid LAN move token is a string of 4 or 5 characters, starting with a letter
-	// and followed by 3 or 4 digits (e.g., "e2e4", "g1f3", "d7d5").
-	if (token.size() < 4 || token.size() > 5) return false;
-	if (token[0] < 'a' || token[0] > 'h') return false; // First character must be a letter a-h
-	if (token[1] < '1' || token[1] > '8') return false; // Second character must be a digit 1-8
-	if (token[2] < 'a' || token[2] > 'h') return false; // Third character must be a letter a-h
-	if (token[3] < '1' || token[3] > '8') return false; // Fourth character must be a digit 1-8
-	return true;
+/**
+ * Checks whether the next non-whitespace character in the stream is a tab.
+ * Advances the stream to the tab if found.
+ *
+ * @param stream The input stream to inspect.
+ * @return true if the next non-whitespace character is a tab, false otherwise.
+ */
+bool comesTab(std::istream& stream) {
+    while (std::isspace(stream.peek()) && stream.peek() != '\t') {
+        stream.get();
+    }
+    return stream.peek() == '\t';
 }
 
-EngineEvent WinboardAdapter::parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& rawLine) {
-    SearchInfo info;
-    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, rawLine);
+std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, EngineEvent& event) {
+	std::vector<std::string> pv;
+    std::vector<std::string> optionals;
+    std::streampos pvStart = iss.tellg();
     std::string token;
-    std::string parent;
-
-    auto checkDuplicateField = [&](bool check, const std::string& fieldName) {
-        if (check) {
-            event.errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
-        };
-        return check;
-        };
-    // Checks and reports duplicate field usage
-    // Fields that require sub-tokens (e.g., score, pv) are tracked via 'parent'
-    //
-    // Special handling:
-    // - score accepts cp|mate [lowerbound|upperbound]
-    // - tokens after score are parsed until a non-score token is found
-    // - tokens after pv/refutation/currline/currmove are captured based on parent state
-    //
-    // Remaining tokens are matched against known keywords or reported as errors
     while (iss >> token) {
-        try {
-            if (parent == "score") {
-                if (token == "cp") readBoundedInt32(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
-                else if (token == "mate") readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
-                else if (token == "lowerbound") info.scoreLowerbound = true;
-                else if (token == "upperbound") info.scoreUpperbound = true;
-                else parent = ""; // terminate score parsing, allow re-processing of current token
-                if (parent == "score") continue;
-            }
-            if (isLanMoveToken(token)) {
-                if (parent == "currmove") {
-                    info.currMove = token;
-                    parent = "";
-                }
-                else if (parent == "pv") { info.pv.push_back(token); }
-                else if (parent == "refutation") { info.refutation.push_back(token); continue; }
-                else if (parent == "currline") { info.currline.push_back(token); continue; }
-				else {
-					// If we encounter a move token without a parent, it is an error
-					event.errors.push_back({ "unexpected-move-token", "Unexpected move token '" + token + "' without context" });
-				}
-                continue;
-            }
-            if (token == "string") {
-                std::string restOfLine;
-                std::getline(iss >> std::ws, restOfLine);
-                event.stringInfo = restOfLine;
-            }
-            else if (token == "score") {}
-            else if (token == "currmove") checkDuplicateField(info.currMove.has_value(), token);
-            else if (token == "pv") checkDuplicateField(info.pv.size() > 0, token);
-			else if (token == "refutation") checkDuplicateField(info.refutation.size() > 0, token);
-			else if (token == "currline") checkDuplicateField(info.currline.size() > 0, token);
-            // ReadBoundInt checks for duplicate field. 
-            else if (token == "depth") readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
-            else if (token == "seldepth") readBoundedInt32(iss, token, 0, 1000, info.selDepth, event.errors);
-            else if (token == "multipv") readBoundedInt32(iss, token, 1, 220, info.multipv, event.errors);
-            else if (token == "time") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
-            else if (token == "nodes") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
-            else if (token == "nps") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
-            else if (token == "hashfull") readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
-            else if (token == "tbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
-            else if (token == "sbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
-            else if (token == "cpuload") readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
-            else if (token == "currmovenumber") readBoundedInt32(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
-            else {
-                event.errors.push_back({ "wrong-token-in-info-line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
-            }
-            parent = token;
+		pv.push_back(token);
+		if (comesTab(iss)) {
+            optionals = std::move(pv);
+			pvStart = iss.tellg();
+		}
+    }
+	if (!optionals.empty()) {
+		const auto last = optionals.back();
+		storeBoundedInt<int64_t>(last, "tbhits", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->tbhits, event.errors);
+	}
+    if (optionals.size() > 1) {
+        const auto selDepth = optionals[0];
+		storeBoundedInt<int32_t>(selDepth, "seldepth", 0, 1000, event.searchInfo->selDepth, event.errors);
+    }
+    if (optionals.size() > 2) {
+        const auto nps = optionals[1];
+        storeBoundedInt<int64_t>(nps, "nps", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nps, event.errors);
+    }
+	iss.seekg(pvStart);
+    iss >> std::ws;
+    std::string pvText;
+    std::getline(iss, pvText);
+	event.searchInfo->pvText = pvText;
+
+    return pv;
+}
+
+void parsePV(const std::vector<std::string>& pv, EngineEvent& event) {
+    bool inParens = false;
+    for (const auto& token : pv) {
+        if (token.find('(') != std::string::npos) {
+            inParens = true;
         }
-        catch (const std::exception& e) {
-            event.errors.push_back({ "parsing-exception", e.what() });
+        if (token.find(')') != std::string::npos) {
+            inParens = false;
+        }
+        if (inParens) continue;
+        if (std::isalpha(token[0]) || token == "0-0" || token == "0-0-0") {
+			event.searchInfo->pv.push_back(token);
         }
     }
-    assert(!info.scoreCp || !info.scoreMate);
-    event.searchInfo = std::move(info);
+}
+
+EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& originalLine) {
+    EngineEvent event = EngineEvent::createInfo(identifier_, timestamp, originalLine);
+
+    event.searchInfo->depth = std::stoi(depthStr);
+
+	if (!readBoundedInt<int32_t>(iss, "score", -110000, 110000, event.searchInfo->scoreCp, event.errors)) {
+        return event;
+	}
+    if (*event.searchInfo->scoreCp <= -10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp + 10000;
+	if (*event.searchInfo->scoreCp >= 10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp - 10000;
+
+	if (!readBoundedInt<int64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
+		return event;
+	}
+    *event.searchInfo->timeMs *= 10;
+
+	if (!readBoundedInt<int64_t>(iss, "nodes", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nodes, event.errors)) {
+		return event;
+	}
+
+    // optionale ints (seldepth, nps, tbhits)
+    auto pv = parseOptionalIntegers(iss, event);
+
+    // principal variation
+    parsePV(pv, event);
+
     return event;
 }
 
 
-EngineEvent WinboardAdapter::readUciEvent(const EngineLine& engineLine) {
+EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
     const std::string& line = engineLine.content;
     if (line == "uciok") {
         logFromEngine(line, TraceLevel::command);
-		inUciHandshake_ = false;
+		inFeatureSection_ = false;
         return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
     }
 
@@ -403,6 +390,10 @@ EngineEvent WinboardAdapter::readUciEvent(const EngineLine& engineLine) {
     return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
 }
 
+EngineEvent WinboardAdapter::parseFeature(std::istringstream& iss, int64_t timestamp, const std::string& rawLine) {
+    return EngineEvent::createNoData(identifier_, timestamp);
+}
+
 EngineEvent WinboardAdapter::readEvent() {
     EngineLine engineLine = process_.readLineBlocking();
     const std::string& line = engineLine.content;
@@ -412,94 +403,74 @@ EngineEvent WinboardAdapter::readEvent() {
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
- 	if (engineLine.error == EngineLine::Error::EngineTerminated) {
-		if (terminating_) {
-			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
-		}
-		return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);
-	}
+    if (engineLine.error == EngineLine::Error::EngineTerminated) {
+        if (terminating_) {
+            return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+        }
+        return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);
+    }
 
-	if (inUciHandshake_) {
-		return readUciEvent(engineLine);
-	}
-
-	// std::cout << identifier_ << "-> " << line << std::endl; // Debug output
+    if (inFeatureSection_) {
+        return readFeatureSection(engineLine);
+    }
 
     std::istringstream iss(line);
     std::string command;
     iss >> command;
 
-    if (command == "info") {
-		if (suppressInfoLines_) {
-			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
-		}
+    if (isInteger(command)) {
+        if (suppressInfoLines_) {
+            return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+        }
         logFromEngine(line, TraceLevel::info);
-        return parseSearchInfo(iss, engineLine.timestampMs, line);
+        return parseSearchInfo(command, iss, engineLine.timestampMs, line);
     }
 
-    if (command == "readyok") {
+    if (command == "pong") {
         logFromEngine(line, TraceLevel::command);
         return EngineEvent::createReadyOk(identifier_, engineLine.timestampMs, line);
     }
-	if (command == "uciok") {
-		logFromEngine(line, TraceLevel::command);
-		return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
-	}
 
-    if (command == "bestmove") {
+    if (command == "Illegal" || command == "Error") {
+        logFromEngine(line, TraceLevel::error);
+        return EngineEvent::createError(identifier_, engineLine.timestampMs, line);
+    }
+
+    if (command == "move") {
         logFromEngine(line, TraceLevel::command);
-        std::string best, token, ponder, err;
-        iss >> best;
-        iss >> token;
-        if (token == "ponder") {
-            iss >> ponder;
-        }
-        else {
-            ponder = "";
-        }
-        EngineEvent e = EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, best, ponder);
-        if (token != "ponder" && token != "") {
-            err = "Expected 'ponder' or nothing after bestmove, got '" + token + "'";
-            e.errors.push_back({ "bestmove", err });
-        }
-        return e;
+        std::string move;
+		iss >> move;
+		return EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, move, "");
     }
 
-    if (command == "ponderhit") {
-        logFromEngine(line, TraceLevel::command);
-        return EngineEvent::createPonderHit(identifier_, engineLine.timestampMs, line);
-    }
-
-    if (command == "option") {
-        if (numOptionError_ <= 5) {
-            logFromEngine(line + " Report: option command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::command);
-            if (numOptionError_ == 5) {
-                logFromEngine("Report: too many option errors, stopping further checks", TraceLevel::error);
-            }
-            numOptionError_++;
-        }
-    }
-    else if (command == "id") {
-        if (numIdError_ <= 5) {
-            logFromEngine(line + " Report: id name command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::command);
-            if (numIdError_ == 5) {
-                logFromEngine("Report: too many id name errors, stopping further checks", TraceLevel::error);
-            }
-            numIdError_++;
-        }
+    if (command == "tellics" || command == ".") {
+        logFromEngine(line, TraceLevel::info);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
-    else if (command == "name") {
-        if (numNameError_ <= 5) {
-            logFromEngine(line + " Report: name command outside uci/uciok: ", TraceLevel::error);
-            logFromEngine(line, TraceLevel::command);
-            if (numNameError_ == 5) {
-                logFromEngine("Report: too many name errors, stopping further checks", TraceLevel::error);
-            }
-            numNameError_++;
-        }
+
+    if (command == "hint") {
+        logFromEngine(line, TraceLevel::info);
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (command == "feature") {
+        logFromEngine(line, TraceLevel::command);
+        return parseFeature(iss, engineLine.timestampMs, line);
+    }
+
+    if (command == "resign") {
+        logFromEngine(line, TraceLevel::command);
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (command == "offer") {
+        logFromEngine(line, TraceLevel::command);
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (command == "tellusererror" || command == "tellallerror") {
+        logFromEngine(line, TraceLevel::error);
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
     if (numUnknownCommandError_ <= 5) {
@@ -510,6 +481,8 @@ EngineEvent WinboardAdapter::readEvent() {
         }
         numUnknownCommandError_++;
     }
+
     return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
 }
+
 #endif
