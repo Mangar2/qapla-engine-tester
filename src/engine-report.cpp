@@ -213,6 +213,11 @@ const bool uciSearchInfoTopicsRegistered = [] {
     EngineReport::addTopic({ "SearchInfo", "wrong-token-in-info-line", "Unrecognized or misplaced token in info line", Notes });
     EngineReport::addTopic({ "SearchInfo", "parsing-exception", "Parsing of search info threw an exception", Notes });
 	EngineReport::addTopic({ "SearchInfo", "lower-case-option", "Engine accepts lower case option names", Notes });
+    
+    // Winboard
+    EngineReport::addTopic({ "SearchInfo", "missing-thinking-output", "Engine provides all thinking output", Notes });
+    EngineReport::addTopic({ "SearchInfo", "no-engine-error-report", "Engine did not report errors", Notes });
+    
     EngineReport::addTopic({ "EPD", "epd-expected-moves", "Simple EPD tests: expected moves found", Notes });
 
     return true;

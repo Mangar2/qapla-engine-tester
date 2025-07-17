@@ -21,6 +21,7 @@
 #include <string>
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 
 inline std::string to_lowercase(const std::string& input) {
     std::string result = input;
@@ -34,6 +35,12 @@ inline std::string trim(const std::string& line) {
     if (start == std::string::npos) return {};
 	auto end = line.find_last_not_of(" \t\r\n");
 	return line.substr(start, end - start + 1);
+}
+
+inline bool isInteger(const std::string& s) {
+    int value;
+    auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value);
+    return ec == std::errc() && ptr == s.data() + s.size();
 }
 
 inline std::optional<std::string> parseSection(const std::string& line) {
