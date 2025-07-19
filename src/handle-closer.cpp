@@ -20,6 +20,7 @@
 #ifdef _WIN32
 
 #include "handle-closer.h"
+#include "timer.h"
 #include "logger.h"
 #include <windows.h>
 #include <queue>
@@ -31,7 +32,7 @@ class HandleCloser::Impl {
 public:
     Impl() {
         startControlThread();
-        workerThread = CreateThread(nullptr, 0, workerEntry, this, 0, nullptr);
+        startWorker();
     }
 
     ~Impl() {
@@ -51,26 +52,31 @@ public:
         }
     }
 
-    void restartWorker() {
-        {
-            std::lock_guard lock(queueMutex);
-            if (workerThread) {
-                TerminateThread(workerThread, 1);
-                CloseHandle(workerThread);
-            }
+    void stopWorkerThread() {
+        std::lock_guard lock(queueMutex);
+        if (workerThread) {
+            TerminateThread(workerThread, 1);
+            CloseHandle(workerThread);
         }
+    }
+
+    void startWorker() {
 
         workerThread = CreateThread(nullptr, 0, workerEntry, this, 0, nullptr);
+
         if (!workerThread) {
-            Logger::testLogger().log("HandleCloser: restartWorker failed to create thread.", TraceLevel::error);
+            Logger::testLogger().log("HandleCloser: startWorker failed to create thread.", TraceLevel::error);
         }
     }
 
 
     void close(void* h) {
+        std::cout << "HandleCloser: Request to close handle: " << h << std::endl;
         HANDLE handle = static_cast<HANDLE>(h);
-        if (!handle || handle == INVALID_HANDLE_VALUE)
+        if (!handle || handle == INVALID_HANDLE_VALUE) {
+            std::cout << "HandleCloser: Invalid handle provided, skipping closure." << std::endl;
             return;
+        }
 
         {
             std::lock_guard lock(queueMutex);
@@ -81,47 +87,59 @@ public:
 
     void startCountdown() {
         {
-			if (verbose) std::cout << "HandleCloser: Starting countdown for handle closure." << std::endl;
+			if (verbose) std::cout << "before abortTimeout = false" << std::endl;
             std::lock_guard lock(timeoutMutex); // signal: begin waiting
             abortTimeout = false;
         }
-        if (verbose) std::cout << "HandleCloser: Countdown started, waiting for control thread." << std::endl;
+        if (verbose) std::cout << "Notify to wakeup timeout thread" << std::endl;
         timeoutCond.notify_one();
     }
 
     void abortCountdown() {
         {
-            if (verbose) std::cout << "HandleCloser: Aborting countdown for handle closure." << std::endl;
+            if (verbose) std::cout << "before abortTimeout = true" << std::endl;
             std::lock_guard lock(timeoutMutex); // signal: begin waiting
             abortTimeout = true;
         }
-        if (verbose) std::cout << "HandleCloser: Countdown aborted, notifying control thread." << std::endl;
+        if (verbose) std::cout << "notify timeout wait to stop waiting" << std::endl;
         timeoutCond.notify_one();
     }
 
     void startControlThread() {
+        // The timeout mutex must be locked before the worker thread starts.
         timeoutMutex.lock();
+        static int threadNo = 0;
+        threadNo++;
+        std::cout << "RUNNING THREAD NO " << threadNo << std::endl;
         controlThread = std::thread([this] {
 			if (verbose) std::cout << "HandleCloser: Control thread started." << std::endl;
+            // Waiting takes over the lock and releases ist. We needed to adopt the lock as it is created by another thread
             std::unique_lock timeoutLock(timeoutMutex, std::adopt_lock);
             while (!stopControl) {
-                if (verbose) std::cout << "HandleCloser: Waiting for control timeout or stop signal." << std::endl;
-				if (abortTimeout == false) std::cout << "HandleCloser: Waiting for control timeout with abort = false." << std::endl;
+                if (verbose) std::cout << "Waiting for next timeout task" << std::endl;
+				
+                // Waits until the worker starts closing a handle
                 timeoutCond.wait(timeoutLock, [&] { return stopControl || !abortTimeout; });
 
                 if (stopControl) break;
-                if (verbose) std::cout << "HandleCloser: Control timeout reached." << std::endl;
-                timeoutCond.wait_for(timeoutLock, std::chrono::seconds(200), [&] { return stopControl || abortTimeout; });
+                
+                if (verbose) std::cout << "Before timeout wait." << stopControl << " " << abortTimeout << std::endl;
+                // Timeout starting exactly before close handle is called
+                bool aborted = timeoutCond.wait_for(timeoutLock, std::chrono::seconds(30), [&] { return stopControl || abortTimeout; });
+                if (verbose) std::cout << "After timeout wait stopControl:" << stopControl 
+                    << " abortTimeout: " << abortTimeout << " aborted: " << aborted << std::endl;
 
-				if (abortTimeout == false) std::cout << "Timeout with abort = false" << std::endl;
-                if (verbose) std::cout << "HandleCloser: Control timeout check." << std::endl;
                 if (!abortTimeout && !stopControl) {
-                    if (verbose) std::cout << "HandleCloser: Control timeout - closing handles." << std::endl;
+                    if (verbose) std::cout << "ERROR: restarting thread" << std::endl;
                     timeoutLock.unlock();
-                    Logger::testLogger().log("HandleCloser: Control timeout - restarting worker.", TraceLevel::error);
-                    restartWorker();
-                    if (verbose) std::cout << "HandleCloser: Worker restarted." << std::endl;
+                    Logger::testLogger().log("System was not able to close a windows handle, the thread was restarted. "
+                        + std::to_string(handleQueue.size()) + " Handles to close"
+                        , TraceLevel::error);
+                    stopWorkerThread();
                     timeoutLock.lock();
+                    // timeoutLock must be locked when starting the new Worker
+                    startWorker();
+                    if (verbose) std::cout << "ERROR: thread restarted" << std::endl;
                 }
 
                 abortTimeout = true;
@@ -135,20 +153,20 @@ private:
     std::queue<HANDLE> handleQueue;
     std::atomic<bool> stopWorker{ false };
 	std::atomic<bool> stopControl{ false };
+    std::atomic<bool> abortTimeout{ true };
     HANDLE workerThread;
 
     std::thread controlThread;
     std::condition_variable timeoutCond;
     std::mutex timeoutMutex;   
-    std::atomic<bool> abortTimeout{ true };
-    bool verbose = false;
+    bool verbose = true;
 
     static DWORD WINAPI workerEntry(LPVOID param) {
         return static_cast<Impl*>(param)->workerLoop();
     }
 
     DWORD workerLoop() {
-        if (verbose) std::cout << "HandleCloser: Worker thread started." << std::endl;
+        if (verbose) std::cout << "Worker thread started." << std::endl;
         std::unique_lock queueLock(queueMutex);
         while (true) {
 
@@ -161,19 +179,22 @@ private:
                 workCond.wait(queueLock, [&] { return stopWorker || !handleQueue.empty(); });
                 continue;
             }
-
+            Timer timer;
             while (!handleQueue.empty()) {
                 HANDLE h = handleQueue.front();
                 handleQueue.pop();
                 queueLock.unlock();
+                if (verbose) std::cout << "Starting to close handle" << std::endl;
                 startCountdown();
-
                 ::CloseHandle(h);
-
                 abortCountdown();
 				// Wait until ControlThread is waiting again
-                std::lock_guard sync(timeoutMutex);
+                
                 queueLock.lock();
+                if (verbose) std::cout << "Waiting for timeoutMutex" << std::endl;
+                std::unique_lock timeoutLock(timeoutMutex);
+                if (verbose) std::cout << "Waiting for timeoutMutex done" << std::endl;
+                //workCond.wait(timeoutLock, [&] { return stopWorker || abortTimeout; });
             }
         }
         return 0;
