@@ -34,7 +34,6 @@
 #include <windows.h>
 #include <psapi.h>
 #include <io.h>
-#include "handle-closer.h"
 #else
 #include <signal.h>
 #include <unistd.h>
@@ -138,15 +137,15 @@ void EngineProcess::start()
         workingDirectory_ ? workingDirectory_->string().c_str() : nullptr,
         &siStartInfo,
         &piProcInfo);
-	HandleCloser::instance().close(stdinReadTmp);
-    HandleCloser::instance().close(stdoutWriteTmp);
+	CloseHandle(stdinReadTmp);
+    CloseHandle(stdoutWriteTmp);
     if (useStdErr)
     {
-        HandleCloser::instance().close(stderrWriteTmp);
+        CloseHandle(stderrWriteTmp);
     }
     else
     {
-        HandleCloser::instance().close(nulHandle);
+        CloseHandle(nulHandle);
     }
 
     if (!success)
@@ -155,7 +154,7 @@ void EngineProcess::start()
     }
 
     childProcess_ = piProcInfo.hProcess;
-    HandleCloser::instance().close(piProcInfo.hThread);
+    CloseHandle(piProcInfo.hThread);
 #else
     int inPipe[2], outPipe[2], errPipe[2], execStatusPipe[2];
     if (pipe(inPipe) || pipe(outPipe) || pipe(execStatusPipe))
@@ -254,13 +253,13 @@ void EngineProcess::closeAllHandles()
 {
 #ifdef _WIN32
     if (stdinWrite_)
-        HandleCloser::instance().close(stdinWrite_);
+        CloseHandle(stdinWrite_);
     if (stdoutRead_)
-        HandleCloser::instance().close(stdoutRead_);
+        CloseHandle(stdoutRead_);
     if (stderrRead_)
-        HandleCloser::instance().close(stderrRead_);
+        CloseHandle(stderrRead_);
     if (childProcess_)
-        HandleCloser::instance().close(childProcess_);
+        CloseHandle(childProcess_);
 
     stdinWrite_ = 0;
     stdoutRead_ = 0;
