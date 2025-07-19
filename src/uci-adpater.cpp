@@ -365,7 +365,7 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
             else if (token == "nodes") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
             else if (token == "nps") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
             else if (token == "hashfull") readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
-            else if (token == "tbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
+            else if (token == "tbhits") readBoundedInt64(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
             else if (token == "sbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
             else if (token == "cpuload") readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
             else if (token == "currmovenumber") readBoundedInt32(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);

@@ -41,6 +41,7 @@
 #include "pgn-io.h"
 #include "input-handler.h"
 #include "game-manager-pool.h"
+#include "handle-closer.h"
 
 auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
@@ -249,11 +250,9 @@ auto runSprt(AppReturnCode code) {
             manager.load(filename);
             manager.schedule(concurrency);
             manager.wait();
-            std::cout << "wait finished" << std::endl;
             if (!filename.empty()) {
                 manager.save(filename);
             }
-            std::cout << "after manager.save" << std::endl;
 			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager.getResult()));
 			Logger::testLogger().log("sprt all games completed", TraceLevel::result);
 
@@ -569,6 +568,20 @@ int main(int argc, char** argv) {
             { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, CliSettings::ValueType::Int } }
             });
 
+        CliSettings::Manager::registerGroup("draw", "Draw adjudication settings", true, {
+            { "movenumber", { "Minimum number of full moves before draw adjudication can occur", true, 0, CliSettings::ValueType::Int } },
+            { "movecount",  { "Required number of consecutive moves with evaluation in range", true, 0, CliSettings::ValueType::Int } },
+            { "score",      { "Centipawn score range (+/-) around zero for draw adjudication", true, 0, CliSettings::ValueType::Int } },
+            { "test",       { "If true, only reports what would be adjudicated without taking action", false, false, CliSettings::ValueType::Bool } }
+            });
+
+        CliSettings::Manager::registerGroup("resign", "Resign adjudication settings", true, {
+            { "movecount", { "Required number of consecutive moves with score below threshold for resignation", true, 0, CliSettings::ValueType::Int } },
+            { "score",     { "Centipawn score below zero that triggers resignation", true, 0, CliSettings::ValueType::Int } },
+            { "twosided",  { "If true, both sides must meet respective score conditions", false, false, CliSettings::ValueType::Bool } },
+            { "test",      { "If true, only reports what would be adjudicated without taking action", false, false, CliSettings::ValueType::Bool } }
+            });
+
 		auto args = argvToVector(argc, argv); 
         returnCode = run(args);
 			
@@ -589,6 +602,7 @@ int main(int argc, char** argv) {
 	
     // Unregisters the input handler callback before destruction of the input handler
 	GameManagerPool::resetInstance();
+	HandleCloser::instance().closeAllHandles();
     return static_cast<int>(returnCode);
 }
 
