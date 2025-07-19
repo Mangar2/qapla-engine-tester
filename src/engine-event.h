@@ -109,8 +109,9 @@ struct EngineEvent {
         return e;
     }
     static EngineEvent createInfo(const std::string& id, int64_t ts, const std::string& rawLine) {
-        auto result = create(Type::Info, id, ts, rawLine);
-        result.searchInfo = SearchInfo{};
+        auto e = create(Type::Info, id, ts, rawLine);
+        e.searchInfo = SearchInfo{};
+        return e;
 	}
     static EngineEvent createError(const std::string& id, int64_t ts, const std::string& rawLine) {
         EngineEvent e = create(Type::Error, id, ts, rawLine);

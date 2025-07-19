@@ -111,6 +111,9 @@
     <ClCompile Include="src\winboard-adapter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\handle-closer.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -285,6 +288,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\winboard-adapter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\handle-closer.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

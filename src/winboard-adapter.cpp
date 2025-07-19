@@ -237,6 +237,7 @@ bool readBoundedInt(std::istringstream& iss,
     }
 
     target = value;
+    return true;
 }
 
 template <typename T>

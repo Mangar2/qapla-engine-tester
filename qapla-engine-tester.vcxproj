@@ -149,6 +149,7 @@
     <ClCompile Include="src\game-manager.cpp" />
     <ClCompile Include="src\game-record.cpp" />
     <ClCompile Include="src\game-state.cpp" />
+    <ClCompile Include="src\handle-closer.cpp" />
     <ClCompile Include="src\input-handler.cpp" />
     <ClCompile Include="src\tournament-result.cpp" />
     <ClCompile Include="src\tournament.cpp" />
@@ -196,6 +197,7 @@
     <ClInclude Include="src\game-start-position.h" />
     <ClInclude Include="src\game-state.h" />
     <ClInclude Include="src\game-task.h" />
+    <ClInclude Include="src\handle-closer.h" />
     <ClInclude Include="src\input-handler.h" />
     <ClInclude Include="src\string-helper.h" />
     <ClInclude Include="src\tournament-result.h" />
