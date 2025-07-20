@@ -41,7 +41,6 @@
 #include "pgn-io.h"
 #include "input-handler.h"
 #include "game-manager-pool.h"
-#include "handle-closer.h"
 
 auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
@@ -602,7 +601,6 @@ int main(int argc, char** argv) {
 	
     // Unregisters the input handler callback before destruction of the input handler
 	GameManagerPool::resetInstance();
-	HandleCloser::instance().closeAllHandles();
     return static_cast<int>(returnCode);
 }
 

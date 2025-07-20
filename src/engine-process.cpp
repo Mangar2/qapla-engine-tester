@@ -53,6 +53,16 @@
 
 #include "timer.h"
 
+#ifdef _WIN32
+struct EngineProcess::Win32IoData {
+    OVERLAPPED overlappedRead{};
+    OVERLAPPED overlappedWrite{};
+    HANDLE writeEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    HANDLE readEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    ~Win32IoData() { if (readEvent) CloseHandle(readEvent); }
+};
+#endif
+
 EngineProcess::EngineProcess(const std::filesystem::path &path,
                              const std::optional<std::filesystem::path> &workingDir,
                              std::string identifier)
@@ -73,10 +83,9 @@ EngineProcess::EngineProcess(const std::filesystem::path &path,
     start();
 }
 
-void EngineProcess::start()
-{
-    constexpr bool useStdErr = false;
+void EngineProcess::startWin32() {
 #ifdef _WIN32
+    constexpr bool useStdErr = false;
     constexpr DWORD READ_PUFFER_SIZE = 64 * 1024;
 
     SECURITY_ATTRIBUTES saAttr{};
@@ -137,7 +146,7 @@ void EngineProcess::start()
         workingDirectory_ ? workingDirectory_->string().c_str() : nullptr,
         &siStartInfo,
         &piProcInfo);
-	CloseHandle(stdinReadTmp);
+    CloseHandle(stdinReadTmp);
     CloseHandle(stdoutWriteTmp);
     if (useStdErr)
     {
@@ -155,6 +164,102 @@ void EngineProcess::start()
 
     childProcess_ = piProcInfo.hProcess;
     CloseHandle(piProcInfo.hThread);
+#endif
+}
+
+void EngineProcess::startWin32Overlapped() {
+#ifdef _WIN32
+
+    constexpr bool useStdErr = false;
+    constexpr DWORD READ_PUFFER_SIZE = 64 * 1024;
+
+    SECURITY_ATTRIBUTES saAttr{};
+    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+    saAttr.bInheritHandle = TRUE;
+    saAttr.lpSecurityDescriptor = nullptr;
+
+    HANDLE stdinReadTmp, stdoutWriteTmp, stderrWriteTmp;
+    HANDLE nulHandle = nullptr;
+
+    if (!CreatePipe(&stdinReadTmp, &stdinWrite_, &saAttr, 0) ||
+        !SetHandleInformation(stdinWrite_, HANDLE_FLAG_INHERIT, 0))
+    {
+        throw std::runtime_error("Failed to create stdin pipe");
+    }
+
+    if (!CreatePipe(&stdoutRead_, &stdoutWriteTmp, &saAttr, READ_PUFFER_SIZE) ||
+        !SetHandleInformation(stdoutRead_, HANDLE_FLAG_INHERIT, 0))
+    {
+        throw std::runtime_error("Failed to create stdout pipe");
+    }
+
+    if (useStdErr)
+    {
+        if (!CreatePipe(&stderrRead_, &stderrWriteTmp, &saAttr, 0) ||
+            !SetHandleInformation(stderrRead_, HANDLE_FLAG_INHERIT, 0))
+        {
+            throw std::runtime_error("Failed to create stderr pipe");
+        }
+    }
+    else
+    {
+        nulHandle = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (nulHandle == INVALID_HANDLE_VALUE)
+        {
+            throw std::runtime_error("Failed to open NUL device for stderr redirection");
+        }
+    }
+
+    PROCESS_INFORMATION piProcInfo{};
+    STARTUPINFOA siStartInfo{};
+    siStartInfo.cb = sizeof(STARTUPINFOA);
+    siStartInfo.hStdInput = stdinReadTmp;
+    siStartInfo.hStdOutput = stdoutWriteTmp;
+    siStartInfo.hStdError = useStdErr ? stderrWriteTmp : nulHandle;
+    siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+    std::string cmd = executablePath_.string();
+
+    BOOL success = CreateProcessA(
+        nullptr,
+        cmd.data(),
+        nullptr,
+        nullptr,
+        TRUE,
+        0,
+        nullptr,
+        workingDirectory_ ? workingDirectory_->string().c_str() : nullptr,
+        &siStartInfo,
+        &piProcInfo);
+    CloseHandle(stdinReadTmp);
+    CloseHandle(stdoutWriteTmp);
+    if (useStdErr)
+    {
+        CloseHandle(stderrWriteTmp);
+    }
+    else
+    {
+        CloseHandle(nulHandle);
+    }
+
+    if (!success)
+    {
+        throw std::runtime_error("Failed to create process");
+    }
+
+    childProcess_ = piProcInfo.hProcess;
+    CloseHandle(piProcInfo.hThread);
+    win32IoData_ = std::make_unique<Win32IoData>();
+
+#endif
+}
+
+
+void EngineProcess::start()
+{
+    constexpr bool useStdErr = false;
+#ifdef _WIN32
+    startWin32Overlapped();
 #else
     int inPipe[2], outPipe[2], errPipe[2], execStatusPipe[2];
     if (pipe(inPipe) || pipe(outPipe) || pipe(execStatusPipe))
@@ -254,29 +359,55 @@ void EngineProcess::closeAllHandles()
 #ifdef _WIN32
     if (stdinWrite_)
         CloseHandle(stdinWrite_);
+    stdinWrite_ = 0;
+
     if (stdoutRead_)
         CloseHandle(stdoutRead_);
+    stdoutRead_ = 0;
+
     if (stderrRead_)
         CloseHandle(stderrRead_);
+    stderrRead_ = 0;
+
     if (childProcess_)
         CloseHandle(childProcess_);
-
-    stdinWrite_ = 0;
-    stdoutRead_ = 0;
-    stderrRead_ = 0;
     childProcess_ = 0;
 #else
     if (stdinWrite_ >= 0)
         close(stdinWrite_);
+    stdinWrite_ = -1;
+
     if (stdoutRead_ >= 0)
         close(stdoutRead_);
+    stdoutRead_ = -1;
+
     if (stderrRead_ >= 0)
         close(stderrRead_);
-
-    stdinWrite_ = -1;
-    stdoutRead_ = -1;
     stderrRead_ = -1;
+
 #endif
+}
+
+void EngineProcess::writeLineOverlapped(const std::string& withNewline)
+{
+    constexpr DWORD writeTimeoutMs = 500;
+    auto& overlapped = win32IoData_->overlappedWrite;
+    overlapped.Offset = 0;
+    overlapped.OffsetHigh = 0;
+    ResetEvent(win32IoData_->writeEvent);
+    overlapped.hEvent = win32IoData_->writeEvent;
+
+    if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), nullptr, &overlapped)) {
+        if (GetLastError() != ERROR_IO_PENDING) {
+            throw std::runtime_error("Failed to initiate overlapped write");
+        }
+
+        DWORD bytesWritten = 0;
+        if (WaitForSingleObject(win32IoData_->writeEvent, writeTimeoutMs) != WAIT_OBJECT_0 ||
+            !GetOverlappedResult(stdinWrite_, &overlapped, &bytesWritten, FALSE)) {
+            throw std::runtime_error("Failed to complete overlapped write");
+        }
+    }
 }
 
 int64_t EngineProcess::writeLine(const std::string &line)
@@ -284,11 +415,14 @@ int64_t EngineProcess::writeLine(const std::string &line)
     int64_t now = Timer::getCurrentTimeMs();
     std::string withNewline = line + '\n';
 #ifdef _WIN32
+    writeLineOverlapped(withNewline);
+    /*
     DWORD written;
     if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), &written, nullptr))
     {
         throw std::runtime_error("Failed to write to stdin");
     }
+    */
 #else
     ssize_t written = write(stdinWrite_, withNewline.c_str(), withNewline.size());
     if (written == -1)
@@ -375,9 +509,51 @@ void EngineProcess::appendToLineQueue(const std::string &text, bool lineTerminat
     lineQueue_.emplace_back(EngineLine{text, lineTerminated, now, EngineLine::Error::NoError});
 }
 
+EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
+#ifdef _WIN32
+    constexpr DWORD readTimeoutMs = 500;
+
+    ReadResult result{};
+    result.errorCode = 0;
+    result.success = false;
+
+    auto& overlapped = win32IoData_->overlappedRead;
+    overlapped.Offset = 0;
+    overlapped.OffsetHigh = 0;
+    ResetEvent(win32IoData_->readEvent);
+    overlapped.hEvent = win32IoData_->readEvent;
+
+    BOOL readResult = ReadFile(stdoutRead_, result.buffer.data(), static_cast<DWORD>(result.buffer.size()), nullptr, &overlapped);
+    if (!readResult && GetLastError() != ERROR_IO_PENDING) {
+        result.errorCode = GetLastError();
+        return result;
+    }
+
+    DWORD waitResult = WaitForSingleObject(win32IoData_->readEvent, readTimeoutMs); 
+    if (waitResult != WAIT_OBJECT_0) {
+        CancelIoEx(stdoutRead_, &overlapped);
+        result.errorCode = WAIT_TIMEOUT;
+        return result;
+    }
+
+    DWORD bytesTransferred = 0;
+    if (!GetOverlappedResult(stdoutRead_, &overlapped, &bytesTransferred, FALSE)) {
+        result.errorCode = GetLastError();
+        return result;
+    }
+
+    result.bytesRead = bytesTransferred;
+    result.success = true;
+    return result;
+#else
+    return {};
+#endif
+}
+
+
+
 void EngineProcess::readFromPipeBlocking()
 {
-    char temp[1024];
     int64_t now = Timer::getCurrentTimeMs();
     if (stdoutRead_ == 0)
     {
@@ -386,10 +562,13 @@ void EngineProcess::readFromPipeBlocking()
     size_t bytesRead = 0;
 
 #ifdef _WIN32
-    DWORD winBytesRead = 0;
-    if (!ReadFile(stdoutRead_, temp, sizeof(temp), &winBytesRead, nullptr) || winBytesRead == 0)
+    // DWORD winBytesRead = 0;
+    //if (!ReadFile(stdoutRead_, temp, sizeof(temp), &winBytesRead, nullptr) || winBytesRead == 0)
+    auto result = readFromStdOutOverlapped();
+    if (!result.success || result.bytesRead == 0)
     {
-        DWORD lastError = GetLastError();
+        //DWORD lastError = GetLastError();
+		DWORD lastError = result.errorCode;
         // std::cout << "[" << now << "] " << "lastError: " << lastError << " winBytesRead: " << winBytesRead << std::endl;
         switch (lastError)
         {
@@ -408,9 +587,13 @@ void EngineProcess::readFromPipeBlocking()
         }
         return;
     }
-    bytesRead = static_cast<size_t>(winBytesRead);
+    //bytesRead = static_cast<size_t>(winBytesRead);
+	bytesRead = result.bytesRead;
+    const char* temp = result.buffer.data();
     // std::cout << "[" << now << "] " << incoming << std::endl;
 #else
+    char temp[1024];
+
     ssize_t linuxBytesRead = read(stdoutRead_, temp, sizeof(temp));
     if (linuxBytesRead == 0)
     {
@@ -465,11 +648,14 @@ EngineLine EngineProcess::readLineBlocking()
         {
             auto line = std::move(lineQueue_.front());
             lineQueue_.pop_front();
-            if (std::find_if_not(line.content.begin(), line.content.end(), isspace) == line.content.end())
+            if (std::find_if_not(
+                line.content.begin(),
+                line.content.end(),
+                [](unsigned char ch) { return std::isspace(ch); }) != line.content.end())
             {
-                continue;
+                return line;
             }
-            return line;
+            continue;
         }
 #ifdef _WIN32
         if (stdoutRead_ == 0 || read)
@@ -481,72 +667,6 @@ EngineLine EngineProcess::readLineBlocking()
         readFromPipeBlocking();
         read = true;
     }
-}
-
-std::optional<std::string> EngineProcess::readLineImpl(int fd, std::chrono::milliseconds timeout)
-{
-    std::string line;
-    char ch;
-    auto deadline = std::chrono::steady_clock::now() + timeout;
-
-    while (true)
-    {
-        auto now = std::chrono::steady_clock::now();
-        if (now >= deadline)
-            return std::nullopt;
-
-        int ms = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now).count());
-
-#ifdef _WIN32
-        DWORD bytesAvailable;
-        if (!PeekNamedPipe(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), nullptr, 0, nullptr, &bytesAvailable, nullptr))
-        {
-            return std::nullopt;
-        }
-        if (bytesAvailable == 0)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
-        }
-        DWORD read;
-        if (!ReadFile(reinterpret_cast<HANDLE>(_get_osfhandle(fd)), &ch, 1, &read, nullptr) || read == 0)
-            break;
-#else
-        struct pollfd pfd = {fd, POLLIN, 0};
-        int ret = poll(&pfd, 1, ms);
-        if (ret <= 0)
-            return std::nullopt;
-        ssize_t r = read(fd, &ch, 1);
-        if (r <= 0)
-            break;
-#endif
-        if (ch == '\r')
-        {
-            continue; // Ignore carriage return
-        }
-        else if (ch == '\n')
-        {
-            if (std::all_of(line.begin(), line.end(), isspace))
-            {
-                line.clear();
-                continue;
-            }
-            break;
-        }
-        line += ch;
-    }
-    return line;
-}
-
-std::optional<std::string> EngineProcess::readErrorLine(std::chrono::milliseconds timeout)
-{
-    return readLineImpl(
-#ifdef _WIN32
-        _open_osfhandle(reinterpret_cast<intptr_t>(stderrRead_), 0),
-#else
-        stderrRead_,
-#endif
-        timeout);
 }
 
 bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
@@ -625,6 +745,11 @@ void EngineProcess::terminate()
             closeAllHandles();
             return; // Process already exited
         }
+
+        CancelIoEx(stdoutRead_, &win32IoData_->overlappedRead);
+        CancelIoEx(stdinWrite_, &win32IoData_->overlappedWrite);
+        SetEvent(win32IoData_->readEvent);
+        SetEvent(win32IoData_->writeEvent);
 
         if (!TerminateProcess(childProcess_, 1))
         {
