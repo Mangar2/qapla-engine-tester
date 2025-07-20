@@ -52,6 +52,7 @@
 #endif
 
 #include "timer.h"
+#include "logger.h"
 
 #ifdef _WIN32
 struct EngineProcess::Win32IoData {
@@ -397,17 +398,21 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
     ResetEvent(win32IoData_->writeEvent);
     overlapped.hEvent = win32IoData_->writeEvent;
 
+	Logger::engineLogger().log(identifier_ + " <- Writing to stdin " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
     if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), nullptr, &overlapped)) {
         if (GetLastError() != ERROR_IO_PENDING) {
             throw std::runtime_error("Failed to initiate overlapped write");
         }
 
+		Logger::engineLogger().log(identifier_ + " <- Waiting for write completion " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
         DWORD bytesWritten = 0;
         if (WaitForSingleObject(win32IoData_->writeEvent, writeTimeoutMs) != WAIT_OBJECT_0 ||
             !GetOverlappedResult(stdinWrite_, &overlapped, &bytesWritten, FALSE)) {
             throw std::runtime_error("Failed to complete overlapped write");
         }
+		Logger::engineLogger().log(identifier_ + " <- Write completed with " + std::to_string(bytesWritten) + " bytes written " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
     }
+	Logger::engineLogger().log(identifier_ + " <- Wrote to stdin " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
 }
 
 int64_t EngineProcess::writeLine(const std::string &line)

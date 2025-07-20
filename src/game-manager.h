@@ -262,6 +262,13 @@ private:
     void markRunning();
 
     /**
+     * @brief Tears down the GameManager after all tasks are complete.
+     *
+     * This method releases resources and marks the GameManager as finished.
+     */
+    void tearDown();
+
+    /**
      * Players
      */
     PlayerContext* whitePlayer_;

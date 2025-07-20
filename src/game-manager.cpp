@@ -159,6 +159,17 @@ void GameManager::switchSide() {
 	switchedSide_ = !switchedSide_;
 }
 
+void GameManager::tearDown() {
+    if (taskProvider_) {
+        taskProvider_ = nullptr;
+    }
+    whitePlayer_->resetEngine();
+    if (blackPlayer_ != whitePlayer_) {
+        blackPlayer_->resetEngine();
+    }
+	markFinished();
+}
+
 void GameManager::markFinished() {
 	taskProvider_ = nullptr; 
     if (finishedPromiseValid_) {
@@ -454,7 +465,7 @@ void GameManager::setFromGameRecord(const GameRecord& game) {
 
 void GameManager::computeTask(std::optional<GameTask> task) {
     if (!task) {
-        markFinished();
+		tearDown();
         return;
     }
 	if (task->switchSide != switchedSide_) {
@@ -479,7 +490,7 @@ void GameManager::stop() {
     while (!eventQueue_.empty()) {
         eventQueue_.pop();
     }
-    markFinished();
+	tearDown();
 }
 
 void GameManager::computeNextTask() {
@@ -498,7 +509,7 @@ void GameManager::computeNextTask() {
     }
 
 	if (!taskProvider_) {
-        markFinished();
+        tearDown();
 		return;
 	}
 	auto whiteId = whitePlayer_->getIdentifier();
@@ -509,7 +520,7 @@ void GameManager::computeNextTask() {
     
     auto task = organizeNewAssignment();
     if (!task) {
-        markFinished();
+		tearDown();
         return;
     }
 	computeTask(std::move(task));
