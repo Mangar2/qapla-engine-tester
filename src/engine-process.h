@@ -24,6 +24,7 @@
 #include <optional>
 #include <chrono>
 #include <deque>
+#include <array>
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -91,14 +92,6 @@ public:
     EngineLine readLineBlocking();
 
     /**
-     * @brief Reads a single line from stderr with a timeout.
-     * @param timeout Duration to wait before giving up.
-     * @return Line from stderr, or std::nullopt on timeout.
-     * @throws std::runtime_error if reading fails.
-     */
-    std::optional<std::string> readErrorLine(std::chrono::milliseconds timeout);
-
-    /**
      * @brief Waits for the engine process to exit within the given timeout.
      * @param milliseconds Timeout in milliseconds to wait.
      * @return true if the process exited within the timeout; false otherwise.
@@ -141,12 +134,22 @@ public:
 
 private:
 
+    struct ReadResult {
+        std::array<char, 1024> buffer;
+        std::size_t bytesRead;
+        std::uint32_t errorCode;
+        bool success;
+    };
+
     /**
      * @brief Starts the engine process.
      * @throws std::runtime_error if the process cannot be started.
      */
     void start();
-
+    void startWin32();
+    void startWin32Overlapped();
+    ReadResult readFromStdOutOverlapped();
+    void writeLineOverlapped(const std::string& line);
 
     mutable std::string stdoutBuffer_;
     std::filesystem::path executablePath_;
@@ -184,13 +187,14 @@ private:
     void readFromPipeBlocking();
     std::deque<EngineLine> lineQueue_;
 
-    std::optional<std::string> readLineImpl(int fd, std::chrono::milliseconds timeout);
-
 #ifdef _WIN32
     void* childProcess_ = nullptr;
     void* stdinWrite_ = nullptr;
     void* stdoutRead_ = nullptr;
     void* stderrRead_ = nullptr;
+
+    struct Win32IoData;
+    std::unique_ptr<Win32IoData> win32IoData_;
 #else
     pid_t childPid_ = -1;
     int stdinWrite_ = -1;
