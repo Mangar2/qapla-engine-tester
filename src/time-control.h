@@ -209,7 +209,7 @@ inline std::string to_string(const TimeControl& tc) {
  *
  * @param white TimeControl settings for the white side.
  * @param black TimeControl settings for the black side.
- * @param playedMoves Number of full moves already played in the game.
+ * @param halfMoves Number of half-moves already played in the game.
  * @param whiteTimeUsedMs Time used by white so far, in milliseconds.
  * @param blackTimeUsedMs Time used by black so far, in milliseconds.
  * @param whiteToMove Whether white is to move next.
@@ -218,25 +218,19 @@ inline std::string to_string(const TimeControl& tc) {
 inline GoLimits createGoLimits(
     const TimeControl& white,
     const TimeControl& black,
-    int playedMoves,
+    int halfMoves,
     int64_t whiteTimeUsedMs,
     int64_t blackTimeUsedMs,
     bool whiteToMove
 ) {
-	if (!white.isValid()) {
-		throw std::invalid_argument("White time control is not valid");
-	}
-	if (!black.isValid()) {
-		throw std::invalid_argument("Black time control is not valid");
-	}
-	if (playedMoves < 0) {
-		throw std::invalid_argument("Played moves cannot be negative");
-	}
-	if (whiteTimeUsedMs < 0 || blackTimeUsedMs < 0) {
-		throw std::invalid_argument("Time used cannot be negative");
-	}
-    GoLimits limits;
+    if (!white.isValid() || !black.isValid()) {
+        throw std::invalid_argument("Time control is not valid");
+    }
+    if (halfMoves < 0 || whiteTimeUsedMs < 0 || blackTimeUsedMs < 0) {
+        throw std::invalid_argument("Invalid input values");
+    }
 
+    GoLimits limits;
     limits.movetimeMs = white.moveTimeMs();
     limits.depth = white.depth();
     limits.nodes = white.nodes();
@@ -247,41 +241,51 @@ inline GoLimits createGoLimits(
         return limits;
     }
 
-    int64_t wTotal = 0, bTotal = 0;
-    int64_t wInc = 0, bInc = 0;
-    int wMovesToGo = 0, bMovesToGo = 0;
+    int wMovesPlayed = (halfMoves + 1) / 2;
+    int bMovesPlayed = halfMoves / 2;
 
-    auto compute = [&](const TimeControl& tc, int64_t timeUsedMs, int64_t& totalTime, int64_t& increment, int& movesToGo) {
-        int rem = playedMoves;
+    auto compute = [](const TimeControl& tc, int movesPlayed, int64_t timeUsedMs, int64_t& timeLeftMs, int64_t& incrementMs, int& movesToGo) {
+        int rem = movesPlayed;
         size_t i = 0;
-        while (true) {
-            const auto& segments = tc.timeSegments();
-            const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
-            int moves = seg.movesToPlay;
-            int segMoves = moves ? std::min(rem, moves) : rem;
-            totalTime += seg.baseTimeMs + int64_t(segMoves) * seg.incrementMs;
-            increment = seg.incrementMs;
+        timeLeftMs = 0;
+        incrementMs = 0;
+        movesToGo = 0;
 
-            if (!seg.movesToPlay) {
+        const auto& segments = tc.timeSegments();
+
+        while (true) {
+            const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
+            int movesInSegment = seg.movesToPlay;
+
+            if (movesInSegment == 0) {
+                // Sudden death (no move count limit)
+                timeLeftMs = seg.baseTimeMs + int64_t(movesPlayed) * seg.incrementMs;
+                incrementMs = seg.incrementMs;
                 movesToGo = 0;
                 break;
             }
 
-            if (rem < moves) {
-                movesToGo = moves - rem;
+            if (rem < movesInSegment) {
+                timeLeftMs = seg.baseTimeMs + int64_t(rem) * seg.incrementMs;
+                incrementMs = seg.incrementMs;
+                movesToGo = movesInSegment - rem;
                 break;
             }
 
-            rem -= moves;
+            // Fully consumed segment
+            rem -= movesInSegment;
             ++i;
         }
 
-        totalTime = totalTime > timeUsedMs ? totalTime - timeUsedMs : 0;
+        timeLeftMs = std::max<int64_t>(0, timeLeftMs - timeUsedMs);
         };
 
-    compute(white, whiteTimeUsedMs, limits.wtimeMs, limits.wincMs, wMovesToGo);
-    compute(black, blackTimeUsedMs, limits.btimeMs, limits.bincMs, bMovesToGo);
-    limits.movesToGo = whiteToMove ? wMovesToGo : bMovesToGo;
+    compute(white, wMovesPlayed, whiteTimeUsedMs, limits.wtimeMs, limits.wincMs, limits.movesToGo);
+    compute(black, bMovesPlayed, blackTimeUsedMs, limits.btimeMs, limits.bincMs, limits.movesToGo);
+
+    // Set correct movesToGo based on side to move
+    limits.movesToGo = whiteToMove ? limits.movesToGo : limits.movesToGo;
 
     return limits;
 }
+

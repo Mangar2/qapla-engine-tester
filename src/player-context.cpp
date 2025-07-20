@@ -117,6 +117,8 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     }
     checkTime(event);
     gameState_.doMove(move);
+	Logger::engineLogger().log(engine_->getIdentifier() + " <- " + std::to_string(event.timestampMs) + " ms: Best move: " + *event.bestMove, 
+        TraceLevel::command);
     currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_);
     return move;
 }

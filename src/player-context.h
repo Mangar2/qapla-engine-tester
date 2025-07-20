@@ -54,6 +54,18 @@ public:
     }
 
     /**
+     * @brief Resets the engine worker and its state.
+     *
+     * This function clears the current engine worker and resets the compute state to Idle.
+	 * It is typically called when the engine is no longer needed.
+	 */
+    void resetEngine() {
+		if (!engine_) return;
+        engine_.reset();
+        computeState_ = ComputeState::Idle;
+	}
+
+    /**
      * @brief Returns a raw pointer to the EngineWorker instance.
      *
      * @return Pointer to the EngineWorker.
@@ -144,6 +156,8 @@ public:
         if (timestamp > computeMoveStartTimestamp_) {
             computeMoveStartTimestamp_ = timestamp;
         }
+		Logger::engineLogger().log(getEngine()->getIdentifier() + 
+            " -> Set compute move start timestamp to " + std::to_string(computeMoveStartTimestamp_) + " ms", TraceLevel::command);
         // I expect this to never happen. Let us see in debug mode. If this happens this should be a race condition.
         // But it still make sense to check, if this is a bug in the code
         assert(timestamp >= computeMoveStartTimestamp_);
