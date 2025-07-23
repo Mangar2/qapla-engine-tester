@@ -77,6 +77,16 @@ public:
 	std::tuple<GameEndCause, GameResult> getGameResult();
 
 	/**
+	 * @brief Get the Halfmove Clock -> the total number of half moves without pawn move or capture
+	 * ("total includes the start value from fen to implement the 50-moves-draw rule")
+	 * 
+	 * @return int32_t 
+	 */
+	int32_t getHalfmoveClock() const {
+		return position_.getTotalHalfmovesWithoutPawnMoveOrCapture();
+	}
+
+	/**
 	 * @brief Sets the game result and the cause of the game end.
 	 * @param cause The cause of the game end.
 	 * @param result The result of the game.

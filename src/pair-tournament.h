@@ -110,7 +110,7 @@ public:
      *
      * Must be called after initialize(). Adds this pairing to the pool with the configured concurrency limit.
      */
-    void schedule();
+    void schedule(const std::shared_ptr<PairTournament>& self);
 
     void clear() {
         std::lock_guard lock(mutex_);

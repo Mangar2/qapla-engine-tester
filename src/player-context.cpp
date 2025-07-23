@@ -117,9 +117,8 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     }
     checkTime(event);
     gameState_.doMove(move);
-	Logger::engineLogger().log(engine_->getIdentifier() + " <- " + std::to_string(event.timestampMs) + " ms: Best move: " + *event.bestMove, 
-        TraceLevel::command);
-    currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_);
+
+    currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
     return move;
 }
 
@@ -181,8 +180,6 @@ void PlayerContext::checkTime(const EngineEvent& event) {
             }
         }
     }
-
-
 }
 
 bool PlayerContext::checkEngineTimeout() {
@@ -219,7 +216,7 @@ bool PlayerContext::checkEngineTimeout() {
     }
 	if (overrun && !restarted) {
         // We are here, if the engine responded with isready but still does not play a move
-        restart();
+        restartEngine();
         restarted = true;
 	}
     if (restarted) {
@@ -231,10 +228,10 @@ bool PlayerContext::checkEngineTimeout() {
 void PlayerContext::handleDisconnect(bool isWhitePlayer) {
     gameState_.setGameResult(GameEndCause::Disconnected, isWhitePlayer ? GameResult::BlackWins : GameResult::WhiteWins);
     checklist_->logReport("no-disconnect", false, "Engine disconnected unexpectedly.");
-    restart();
+    restartEngine();
 }
 
-void PlayerContext::restart() {
+void PlayerContext::restartEngine() {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
 	}
@@ -246,7 +243,7 @@ void PlayerContext::restart() {
 bool PlayerContext::restartIfNotReady() {
     std::chrono::seconds WAIT_READY{ 1 };
 	if (engine_ && !engine_->requestReady(WAIT_READY)) {
-        restart();
+        restartEngine();
 		return true;
 	}
     return false;

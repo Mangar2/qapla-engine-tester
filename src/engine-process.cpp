@@ -60,7 +60,10 @@ struct EngineProcess::Win32IoData {
     OVERLAPPED overlappedWrite{};
     HANDLE writeEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     HANDLE readEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-    ~Win32IoData() { if (readEvent) CloseHandle(readEvent); }
+    ~Win32IoData() { 
+        if (readEvent) CloseHandle(readEvent); 
+        if (writeEvent) CloseHandle(writeEvent);
+    }
 };
 #endif
 
@@ -398,21 +401,17 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
     ResetEvent(win32IoData_->writeEvent);
     overlapped.hEvent = win32IoData_->writeEvent;
 
-	Logger::engineLogger().log(identifier_ + " <- Writing to stdin " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
     if (!WriteFile(stdinWrite_, withNewline.c_str(), static_cast<DWORD>(withNewline.size()), nullptr, &overlapped)) {
         if (GetLastError() != ERROR_IO_PENDING) {
             throw std::runtime_error("Failed to initiate overlapped write");
         }
 
-		Logger::engineLogger().log(identifier_ + " <- Waiting for write completion " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
         DWORD bytesWritten = 0;
         if (WaitForSingleObject(win32IoData_->writeEvent, writeTimeoutMs) != WAIT_OBJECT_0 ||
             !GetOverlappedResult(stdinWrite_, &overlapped, &bytesWritten, FALSE)) {
             throw std::runtime_error("Failed to complete overlapped write");
         }
-		Logger::engineLogger().log(identifier_ + " <- Write completed with " + std::to_string(bytesWritten) + " bytes written " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
     }
-	Logger::engineLogger().log(identifier_ + " <- Wrote to stdin " + std::to_string(Timer::getCurrentTimeMs()), TraceLevel::command);
 }
 
 int64_t EngineProcess::writeLine(const std::string &line)
@@ -559,6 +558,7 @@ EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
 
 void EngineProcess::readFromPipeBlocking()
 {
+
     int64_t now = Timer::getCurrentTimeMs();
     if (stdoutRead_ == 0)
     {
@@ -669,7 +669,13 @@ EngineLine EngineProcess::readLineBlocking()
         if (stdoutRead_ < 0 || read)
             return EngineLine{"", false, Timer::getCurrentTimeMs()};
 #endif
-        readFromPipeBlocking();
+        reading_ = true;
+        if (!terminating_)
+        {
+            readFromPipeBlocking();
+        }
+        reading_ = false;
+
         read = true;
     }
 }
@@ -741,6 +747,17 @@ void EngineProcess::terminate()
         closeAllHandles();
         return; // Already terminated (positive case)
     }
+    // Ensures that the read thread will not continue to start reading.
+    terminating_ = true;
+    // Loop until we are sure reading is stopped.    
+    while (reading_)
+    {
+        CancelIoEx(stdoutRead_, &win32IoData_->overlappedRead);
+        CancelIoEx(stdinWrite_, &win32IoData_->overlappedWrite);
+        SetEvent(win32IoData_->readEvent);
+        SetEvent(win32IoData_->writeEvent);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     DWORD exitCode;
     if (GetExitCodeProcess(childProcess_, &exitCode))
@@ -750,11 +767,6 @@ void EngineProcess::terminate()
             closeAllHandles();
             return; // Process already exited
         }
-
-        CancelIoEx(stdoutRead_, &win32IoData_->overlappedRead);
-        CancelIoEx(stdinWrite_, &win32IoData_->overlappedWrite);
-        SetEvent(win32IoData_->readEvent);
-        SetEvent(win32IoData_->writeEvent);
 
         if (!TerminateProcess(childProcess_, 1))
         {

@@ -81,6 +81,16 @@ public:
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      */
     void analyzeEpd(const std::string& filepath, const EngineConfig& engine, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
+    
+    /**
+     * @brief Registers this EpdManager instance as a task provider in the GameManagerPool.
+     *
+     * This method must be called with a shared_ptr to this instance, ensuring proper lifetime management.
+     *
+     * @param self The shared_ptr owning this EpdManager instance.
+     * @param engine The engine configuration to use for analysis.
+     */
+    void schedule(const std::shared_ptr<EpdManager>& self, const EngineConfig& engine);
 
     /**
      * @brief Waits for all engines to finish.

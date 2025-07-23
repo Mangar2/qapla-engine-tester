@@ -133,6 +133,8 @@ public:
     #endif
 
 private:
+	std::atomic<bool> reading_ = false;
+    std::atomic<bool> terminating_ = false;
 
     struct ReadResult {
         std::array<char, 1024> buffer;

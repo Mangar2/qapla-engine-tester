@@ -66,6 +66,13 @@ public:
 	}
 
     /**
+     * @brief Restarts the engine process.
+     *
+     * Terminates the current engine instance and starts a new one.
+     */
+    void restartEngine();
+
+    /**
      * @brief Returns a raw pointer to the EngineWorker instance.
      *
      * @return Pointer to the EngineWorker.
@@ -156,9 +163,7 @@ public:
         if (timestamp > computeMoveStartTimestamp_) {
             computeMoveStartTimestamp_ = timestamp;
         }
-		Logger::engineLogger().log(getEngine()->getIdentifier() + 
-            " -> Set compute move start timestamp to " + std::to_string(computeMoveStartTimestamp_) + " ms", TraceLevel::command);
-        // I expect this to never happen. Let us see in debug mode. If this happens this should be a race condition.
+		// I expect this to never happen. Let us see in debug mode. If this happens this should be a race condition.
         // But it still make sense to check, if this is a bug in the code
         assert(timestamp >= computeMoveStartTimestamp_);
     }
@@ -288,7 +293,7 @@ private:
     }
 
     bool restartIfNotReady();
-    void restart();
+
 
     std::unique_ptr<EngineWorker> engine_;
     TimeControl timeControl_;

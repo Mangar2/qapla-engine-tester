@@ -125,6 +125,23 @@ public:
 	TraceLevel getTraceLevel() const { return traceLevel_; }
 
     /**
+     * @brief Returns the configured engine restart option.
+     * @return The current RestartOption.
+     */
+    RestartOption getRestartOption() const {
+        return restart_;
+    }
+
+    /**
+     * @brief Sets the engine restart option.
+     * @param restart The RestartOption to use.
+     */
+    void setRestartOption(RestartOption restart) {
+        restart_ = restart;
+    }
+
+
+    /**
      * Gets the current option values.
      * @return A map of option names to their values.
      */
@@ -206,6 +223,7 @@ private:
     TimeControl tc_;
 	TraceLevel traceLevel_ = TraceLevel::command;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
+    RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;
 	bool gauntlet_ = false;
     std::unordered_map<std::string, OptionValue> optionValues_;

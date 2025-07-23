@@ -19,6 +19,8 @@
 #pragma once
 
 #include <string>
+#include <iomanip>
+#include <sstream>
 #include <algorithm>
 #include <cctype>
 #include <charconv>
@@ -70,5 +72,17 @@ inline std::optional<std::pair<std::string, std::string>> parseKeyValue(const st
     std::string value = trim(line.substr(eq + 1));
     if (key.empty()) return std::nullopt;
     return std::make_pair(key, value);
+}
+
+static std::string formatMs(uint64_t ms) {
+    std::ostringstream oss;
+    uint64_t minutes = ms / 60000;
+    uint64_t seconds = (ms % 60000) / 1000;
+    uint64_t millis = ms % 1000;
+    oss << minutes << ":" 
+        << std::right
+        << std::setw(2) << std::setfill('0') << seconds << "." 
+        << std::setw(3) << std::setfill('0') << millis;
+    return oss.str();
 }
 

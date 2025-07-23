@@ -114,6 +114,9 @@
     <ClCompile Include="src\handle-closer.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\adjucation-manager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -291,6 +294,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\handle-closer.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\adjucation-manager.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

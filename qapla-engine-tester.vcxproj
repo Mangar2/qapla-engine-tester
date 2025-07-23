@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\adjucation-manager.cpp" />
     <ClCompile Include="src\bitboardmasks.cpp" />
     <ClCompile Include="src\board.cpp" />
     <ClCompile Include="src\engine-report.cpp" />
@@ -167,6 +168,7 @@
     <ClCompile Include="src\winboard-adapter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\adjucation-manager.h" />
     <ClInclude Include="src\app-error.h" />
     <ClInclude Include="src\bitboardmasks.h" />
     <ClInclude Include="src\bits.h" />

@@ -49,6 +49,7 @@ public:
         Abort,
         Concurrency,
         Info,
+        Outcome,
         Quit,
         Running,           
         ViewGame,          

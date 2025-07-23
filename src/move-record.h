@@ -36,6 +36,7 @@ struct MoveRecord {
     std::optional<int> scoreCp;
     std::optional<int> scoreMate;
 
+    int halfmoveClock = 0; 
     int depth = 0;
     int seldepth = 0;
     int multipv = 1;
@@ -62,11 +63,13 @@ struct MoveRecord {
      *
      * @param event EngineEvent of type BestMove containing the chosen move and timestamp.
      * @param computeStartTimestamp Timestamp when move computation started, in milliseconds.
+     * @param halfmoveClk The current halfmove clock value, used for the 50-move rule.
      */
-    void updateFromBestMove(const EngineEvent& event, int64_t computeStartTimestamp) {
+    void updateFromBestMove(const EngineEvent& event, int64_t computeStartTimestamp, int32_t halfmoveClk) {
         if (event.bestMove) {
             lan = *event.bestMove;
         }
+        halfmoveClock = halfmoveClk;
         timeMs = static_cast<uint64_t>(event.timestampMs - computeStartTimestamp);
     }
 

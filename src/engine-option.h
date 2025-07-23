@@ -20,12 +20,37 @@
 
 #include <string>
 #include <vector>
+#include <optional>
+#include "app-error.h"
+
+enum class RestartOption {
+	EngineDecides,
+	Always,
+	Never
+};
+
+inline std::string to_string(RestartOption restart) {
+	switch (restart) {
+	case RestartOption::EngineDecides: return "auto";
+	case RestartOption::Always: return "on";
+	case RestartOption::Never: return "off";
+	}
+	return "auto";
+}
+
+inline RestartOption parseRestartOption(const std::string& value) {
+	if (value == "auto") return RestartOption::EngineDecides;
+	if (value == "on") return RestartOption::Always;
+	if (value == "off") return RestartOption::Never;
+	throw AppError::makeInvalidParameters("Unknown value for option 'restart' : " + value);
+}
 
 enum class EngineProtocol {
 	Uci,
 	XBoard,
 	Unknown
 };
+
 inline std::string to_string(EngineProtocol protocol) {
 	switch (protocol) {
 	case EngineProtocol::Uci: return "uci";
