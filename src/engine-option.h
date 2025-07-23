@@ -63,7 +63,7 @@ inline std::string to_string(EngineProtocol protocol) {
   * Represents an option that can be set for a chess engine.
   */
 struct EngineOption {
-    enum class Type { Check, Spin, Combo, Button, String, Unknown };
+    enum class Type { File, Path, Check, Spin, Slider, Combo, Button, String, Unknown };
 
     std::string name;
     Type type = Type::Unknown;
@@ -74,3 +74,15 @@ struct EngineOption {
 };
 
 using EngineOptions = std::vector<EngineOption>;
+
+inline EngineOption::Type parseOptionType(const std::string& typeStr) {
+	if (typeStr == "button" || typeStr == "save" || typeStr == "reset") return EngineOption::Type::Button;
+	if (typeStr == "check")  return EngineOption::Type::Check;
+	if (typeStr == "string") return EngineOption::Type::String;
+	if (typeStr == "file")   return EngineOption::Type::File;
+	if (typeStr == "path")   return EngineOption::Type::Path;
+	if (typeStr == "spin")   return EngineOption::Type::Spin;
+	if (typeStr == "slider") return EngineOption::Type::Spin;
+	if (typeStr == "combo")  return EngineOption::Type::Combo;
+	return EngineOption::Type::Unknown;
+}

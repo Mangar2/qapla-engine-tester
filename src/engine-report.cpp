@@ -217,6 +217,7 @@ const bool uciSearchInfoTopicsRegistered = [] {
     // Winboard
     EngineReport::addTopic({ "SearchInfo", "missing-thinking-output", "Engine provides all thinking output", Notes });
     EngineReport::addTopic({ "SearchInfo", "no-engine-error-report", "Engine did not report errors", Notes });
+    EngineReport::addTopic({ "Startup", "feature-report", "Engine send features correctly", Notes });
     
     EngineReport::addTopic({ "EPD", "epd-expected-moves", "Simple EPD tests: expected moves found", Notes });
 

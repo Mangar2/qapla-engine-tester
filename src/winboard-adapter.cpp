@@ -78,6 +78,7 @@ void WinboardAdapter::terminateEngine() {
 void WinboardAdapter::startProtocol() {
     inFeatureSection_ = true;
     writeCommand("xboard");
+    writeCommand("protover 2");
 }
 
 void WinboardAdapter::newGame() {
@@ -356,43 +357,127 @@ EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istrings
     return event;
 }
 
-
-EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
-    const std::string& line = engineLine.content;
-    if (line == "uciok") {
-        logFromEngine(line, TraceLevel::command);
-		inFeatureSection_ = false;
-        return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
+void WinboardAdapter::parseOptionFeature(const std::string& optionStr, int64_t timestamp, EngineEvent& event) {
+    std::istringstream iss(optionStr);
+    std::string name;
+    std::getline(iss, name, '-');
+    if (name.find(' ') != std::string::npos) {
+        event.errors.push_back({ "feature-report", "Option name '" + name + "' contains space" });
     }
+    trim(name);
 
-    if (line.starts_with("id name ")) {
-        logFromEngine(line, TraceLevel::info);
-        engineName_ = line.substr(strlen("id name "));
-    }
+    std::string kind;
+    iss >> kind;
 
-    if (line.starts_with("id author ")) {
-        logFromEngine(line, TraceLevel::info);
-        engineAuthor_ = line.substr(strlen("id author "));
-    }
+    EngineOption opt;
+    opt.name = name;
+    opt.type = parseOptionType(kind);
 
-    if (line.starts_with("option ")) {
-        logFromEngine(line, TraceLevel::info);
-        try {
-            EngineOption opt = parseUciOptionLine(line);
-            supportedOptions_.push_back(std::move(opt));
+    if (opt.type == EngineOption::Type::Spin || opt.type == EngineOption::Type::Slider) {
+        std::string value;
+        int min, max;
+        if (iss >> value >> min >> max) {
+            opt.defaultValue = value;
+            opt.min = min;
+            opt.max = max;
         }
-        catch (const std::exception& e) {
-			EngineEvent event = EngineEvent::create(EngineEvent::Type::Error, identifier_, engineLine.timestampMs, line);
-            std::string err = static_cast<std::string>("Bad uci option (") + e.what() + ")";
-            return event;
+        else {
+            event.errors.push_back({ "feature-report", "Invalid spin/slider definition for '" + name + "'" });
+            return;
         }
     }
+    else if (opt.type == EngineOption::Type::Combo) {
+        std::string token;
+        while (iss >> token) {
+            if (!token.empty() && token.front() == '*') {
+                opt.defaultValue = token.substr(1);
+                opt.vars.push_back(opt.defaultValue);
+            }
+            else {
+                opt.vars.push_back(token);
+            }
+        }
+    }
+    else if (opt.type == EngineOption::Type::Check || opt.type == EngineOption::Type::String ||
+        opt.type == EngineOption::Type::File || opt.type == EngineOption::Type::Path) {
+        std::string value;
+        std::getline(iss, value);
+        trim(value);
+        opt.defaultValue = value;
+    }
 
-    return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    supportedOptions_.push_back(std::move(opt));
 }
 
-EngineEvent WinboardAdapter::parseFeature(std::istringstream& iss, int64_t timestamp, const std::string& rawLine) {
-    return EngineEvent::createNoData(identifier_, timestamp);
+
+EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption) {
+    std::string token;
+    EngineEvent event = EngineEvent::createNoData(identifier_, timestamp);
+
+    while (iss >> token) {
+        auto eqPos = token.find('=');
+        std::string key = token.substr(0, eqPos);
+        std::string value = (eqPos != std::string::npos) ? token.substr(eqPos + 1) : "";
+
+        // feature supports quoted values (strings)
+        if (!value.empty() && value.front() == '"') {
+            std::string remainder;
+            while (!value.ends_with("\"") && iss >> remainder)
+                value += " " + remainder;
+            if (value.ends_with("\""))
+                value = value.substr(1, value.size() - 2);
+        }
+
+        if (key == "option") {
+            parseOptionFeature(value, timestamp, event);
+            continue;
+        }
+
+        if (onlyOption) {
+			event.errors.push_back({ "feature-report", "Unexpected feature '" + key + "' outside protocol initialization" });
+            continue;
+        }
+
+        auto [it, inserted] = featureMap_.insert({ key, value });
+        if (!inserted) {
+            event.errors.push_back({ "feature-report", "Feature '" + key + "' specified more than once" });
+        }
+    }
+
+    return event;
+}
+
+
+EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
+    const std::string& line = trim(engineLine.content);
+
+    if (!line.starts_with("feature ")) {
+        logFromEngine(line, TraceLevel::info);
+        return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
+    }
+
+    logFromEngine(line, TraceLevel::command);
+
+    std::istringstream iss(line.substr(8)); // nach "feature "
+    auto event = parseFeatureLine(iss, engineLine.timestampMs, false);
+
+    auto it = featureMap_.find("done");
+    if (it != featureMap_.end()) {
+        event.rawLine = line;
+        if (it->second == "1") {
+            inFeatureSection_ = false;
+            event.type = EngineEvent::Type::ProtocolOk;
+        }
+        else if (it->second == "0") {
+            event.type = EngineEvent::Type::ExtendTimeout;
+        }
+        else {
+			event.errors.push_back({ "feature-report", "Invalid 'done' value: '" + it->second + "'" });
+            event.type = EngineEvent::Type::Error;
+        }
+    }
+
+    return event;
 }
 
 EngineEvent WinboardAdapter::readEvent() {
@@ -456,7 +541,7 @@ EngineEvent WinboardAdapter::readEvent() {
 
     if (command == "feature") {
         logFromEngine(line, TraceLevel::command);
-        return parseFeature(iss, engineLine.timestampMs, line);
+        return parseFeatureLine(iss, engineLine.timestampMs, true);
     }
 
     if (command == "resign") {

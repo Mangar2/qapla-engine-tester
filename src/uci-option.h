@@ -27,16 +27,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-
-inline EngineOption::Type parseOptionType(const std::string& typeStr) {
-    if (typeStr == "check") return EngineOption::Type::Check;
-    if (typeStr == "spin") return EngineOption::Type::Spin;
-    if (typeStr == "combo") return EngineOption::Type::Combo;
-    if (typeStr == "button") return EngineOption::Type::Button;
-    if (typeStr == "string") return EngineOption::Type::String;
-    return EngineOption::Type::Unknown;
-}
-
 /**
  * @brief Parses a single UCI option line and returns a UciOption.
  *        Throws std::runtime_error on malformed input.

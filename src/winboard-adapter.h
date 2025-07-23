@@ -26,6 +26,7 @@
 #include <optional>
 #include <unordered_map>
 #include <iostream>
+#include <map>
 
 #include "engine-adapter.h"
 #include "uci-option.h"
@@ -51,6 +52,18 @@ public:
      * @brief Starts the engine protocol.
      */
     void startProtocol() override;
+
+    /**
+     * Winboard engines may omit "feature done=1", especially older or non-compliant ones.
+     * In such cases, the EngineWorker completes the startup based on a timeout.
+     *
+     * Therefore, the presence of ProtocolOk is optional for Winboard.
+     *
+     * @return false — Winboard does not require ProtocolOk.
+     */
+    bool isProtocolOkRequired() const override {
+        return false;
+    }
 
     /**
      * Attempts to gracefully terminate the Winboard engine. If the engine is already
@@ -133,13 +146,15 @@ private:
     void sendPosition(const GameRecord& game);
 
     EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
-	EngineEvent parseFeature(std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
+	EngineEvent parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption);
+    void parseOptionFeature(const std::string& optionStr, int64_t timestamp, EngineEvent& event);
 
     static inline int numOptionError_ = 0;
     static inline int numFeatureError_ = 0;
     static inline int numNameError_ = 0;
     static inline int numUnknownCommandError_ = 0;
     bool inFeatureSection_ = false;
+    std::map<std::string, std::string> featureMap_;
 	uint64_t pingCounter_ = 0;
 };
 

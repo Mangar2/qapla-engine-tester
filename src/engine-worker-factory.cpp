@@ -19,6 +19,7 @@
 
 #include "engine-worker-factory.h"
 #include "uci-adapter.h"
+#include "winboard-adapter.h"
 #include "engine-report.h"
 
 void EngineWorkerFactory::assignUniqueDisplayNames() {
@@ -76,7 +77,16 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConf
     auto workingDirectory = config.getDir();
     auto name = config.getName();
     auto identifierStr = "#" + std::to_string(identifier_);
-    auto adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+    std::unique_ptr<EngineAdapter> adapter;
+    if (config.getProtocol() == EngineProtocol::Uci) {
+		adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+	}
+    else if (config.getProtocol() == EngineProtocol::XBoard) {
+        adapter = std::make_unique<WinboardAdapter>(executablePath, workingDirectory, identifierStr);
+    } 
+    else {
+        throw AppError::makeInvalidParameters("Unsupported engine protocol: " + to_string(config.getProtocol()));
+    }
     adapter->setSuppressInfoLines(suppressInfoLines_);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, config);
     identifier_++;

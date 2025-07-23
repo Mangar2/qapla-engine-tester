@@ -53,7 +53,7 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             
             // Define expected response for the reader before initiating the protocol command.
             // This ensures the read thread knows which handshake response to watch for.
-            waitForHandshake_ = EngineEvent::Type::UciOk;
+            waitForHandshake_ = EngineEvent::Type::ProtocolOk;
             adapter.startProtocol();
             if (!waitForHandshake(ReadyTimeoutUciOk)) {
                

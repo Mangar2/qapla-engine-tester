@@ -90,7 +90,8 @@ struct EngineEvent {
         ComputeMoveSent,
         PonderMoveSent,
         ReadyOk,
-        UciOk,
+        ProtocolOk,
+        ExtendTimeout,
         BestMove,
         Info,
         PonderHit,
@@ -126,8 +127,8 @@ struct EngineEvent {
 	static EngineEvent createNoData(const std::string& id, int64_t ts) {
 		return create(Type::NoData, id, ts);
 	}
-	static EngineEvent createUciOk(const std::string& id, int64_t ts, const std::string& rawLine) {
-		return create(Type::UciOk, id, ts, rawLine);
+	static EngineEvent createProtocolOk(const std::string& id, int64_t ts, const std::string& rawLine) {
+		return create(Type::ProtocolOk, id, ts, rawLine);
 	}
 	static EngineEvent createReadyOk(const std::string& id, int64_t ts, const std::string& rawLine) {
 		return create(Type::ReadyOk, id, ts, rawLine);
