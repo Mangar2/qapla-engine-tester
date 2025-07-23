@@ -53,6 +53,18 @@ public:
     void startProtocol() override;
 
     /**
+     * UCI requires an explicit "uciok" response from the engine to confirm
+     * that the protocol has been correctly initialized.
+     *
+     * If this is missing, the engine is considered non-compliant and startup must fail.
+     *
+     * @return true — UCI requires ProtocolOk.
+     */
+    bool isProtocolOkRequired() const override {
+        return true;
+    }
+
+    /**
      * Attempts to gracefully terminate the UCI engine. If the engine is already
      * terminated or unreachable, this is treated as a normal condition.
      * If forced termination fails, the adapter reports a critical error.

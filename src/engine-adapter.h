@@ -134,6 +134,22 @@ public:
     }
 
     /**
+     * Indicates whether this protocol requires an explicit confirmation (ProtocolOk)
+     * to complete the startup handshake.
+     *
+     * For example:
+     * - UCI requires a "uciok" response → must return true.
+     * - Winboard may omit "feature done=1" → must return false.
+     *
+     * The EngineWorker uses this to decide whether a missing ProtocolOk
+     * should be treated as a fatal error or as a valid timeout-based completion.
+     *
+     * @return true if ProtocolOk is mandatory for this protocol, false if optional.
+     */
+    virtual bool isProtocolOkRequired() const = 0;
+
+
+    /**
      * Returns the current memory usage (in bytes) of the engine process.
      */
     std::size_t getEngineMemoryUsage() const {

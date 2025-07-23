@@ -389,7 +389,7 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
     if (line == "uciok") {
         logFromEngine(line, TraceLevel::command);
 		inUciHandshake_ = false;
-        return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
+        return EngineEvent::createProtocolOk(identifier_, engineLine.timestampMs, line);
     }
 
     if (line.starts_with("id name ")) {
@@ -458,7 +458,7 @@ EngineEvent UciAdapter::readEvent() {
     }
 	if (command == "uciok") {
 		logFromEngine(line, TraceLevel::command);
-		return EngineEvent::createUciOk(identifier_, engineLine.timestampMs, line);
+		return EngineEvent::createProtocolOk(identifier_, engineLine.timestampMs, line);
 	}
 
     if (command == "bestmove") {
