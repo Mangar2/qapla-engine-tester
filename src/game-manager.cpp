@@ -37,6 +37,7 @@
 #include <iostream>
 #include "game-manager-pool.h"
 #include "input-handler.h"
+#include "adjucation-manager.h"
 
 GameManager::GameManager(): taskProvider_(nullptr) {
     eventThread_ = std::thread(&GameManager::processQueue, this);
@@ -320,6 +321,14 @@ std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
 	if (wcause != GameEndCause::Ongoing) return { wcause, wresult };
 	if (bcause != GameEndCause::Ongoing) return { bcause, bresult };
 
+	AdjudicationManager::instance().testAdjudicate(gameRecord_);
+
+	auto [dcause, dresult] = AdjudicationManager::instance().adjudicateDraw(gameRecord_);
+    if (dresult != GameResult::Unterminated) return { dcause, dresult };
+
+	auto [rcause, rresult] = AdjudicationManager::instance().adjudicateResign(gameRecord_);
+	if (rresult != GameResult::Unterminated) return { rcause, rresult };
+
 	return { GameEndCause::Ongoing, GameResult::Unterminated };
 }
 
@@ -429,9 +438,17 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
 
     auto task = taskProvider_->nextTask();
     if (task) {
+        if (whitePlayer_->getEngine()->getConfig().getRestartOption() == RestartOption::Always) {
+            whitePlayer_->restartEngine();
+        }
+        if (whitePlayer_ != blackPlayer_ && 
+            blackPlayer_->getEngine()->getConfig().getRestartOption() == RestartOption::Always) 
+        {
+            blackPlayer_->restartEngine();
+        }
         return task;
     }
-
+    // tryGetReplacementTask already provides new engine instances so restarting is not needed.
     return tryGetReplacementTask();
 }
 
@@ -517,16 +534,17 @@ void GameManager::computeNextTask() {
     // Note: we had a check, if any move has been played and removed it as it could cause problems
     // With a direct loss e.g. due to disconnect. But I don´t know why we ever checked for any move
     taskProvider_->setGameRecord(taskId_, gameRecord_);
-    
+	AdjudicationManager::instance().onGameFinished(gameRecord_);
     auto task = organizeNewAssignment();
     if (!task) {
 		tearDown();
         return;
     }
+
 	computeTask(std::move(task));
 }
 
-void GameManager::computeTasks(GameTaskProvider* taskProvider) {
+bool GameManager::computeTasks(std::shared_ptr<GameTaskProvider> taskProvider) {
     logMoves_ = false;
     std::optional<GameTask> task;
     if (taskProvider == nullptr) {
@@ -540,7 +558,9 @@ void GameManager::computeTasks(GameTaskProvider* taskProvider) {
     if (task) {
         markRunning();
         computeTask(std::move(task));
+		return true;
     }
+    return false;
 }
 
 

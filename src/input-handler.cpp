@@ -66,7 +66,10 @@ void InputHandler::handleLine(const std::string& line) {
     try {
         if (command == "quit" || command == "q") { dispatchImmediate(ImmediateCommand::Quit, args); quitFlag = true; }
         else if (command == "set" || command == "s") handleSetCommand(args);
-        else if (command == "info" || command == "?") dispatchImmediate(ImmediateCommand::Info, args);
+        else if (command == "info" || command == "?" || command == "i") dispatchImmediate(ImmediateCommand::Info, args);
+        else if (command == "outcome" || command == "o") dispatchImmediate(ImmediateCommand::Outcome, args);
+        else if (command == "settracelevel" || command == "stl") dispatchImmediate(ImmediateCommand::SetTraceLevel, args);
+		else if (command == "setenginetracelevel" || command == "setel") dispatchImmediate(ImmediateCommand::SetEngineTraceLevel, args);
         else if (command == "concurrency" || command == "c") dispatchImmediate(ImmediateCommand::Concurrency, args);
         else if (command == "abort" || command == "a"){ dispatchImmediate(ImmediateCommand::Abort, args); quitFlag = true;} 
         else if (command == "leaveinput"|| command == "l" ) quitFlag = true;
@@ -86,7 +89,8 @@ void InputHandler::showHelp() {
     std::cout
         << "Available commands:\n"
         << "  quit | q           - Exit the program, waiting for current games to finish\n"
-        << "  info | ?           - Show current engine/game state\n"
+        << "  info | i | ?       - Show current engine/game state\n"
+        << "  outcome | o        - Show engine win/draw/loss causes\n"
         << "  concurrency | c    - Set number of concurrent games\n"
         << "  abort | a          - Abort current games immediately\n"
         << "  leaveinput | l     - Leave interactive mode; program keeps running\n"

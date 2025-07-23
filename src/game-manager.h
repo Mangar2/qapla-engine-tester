@@ -40,7 +40,7 @@ class GameManager {
 public:
     struct ExtendedTask {
         GameTask task;
-        GameTaskProvider* provider = nullptr;
+        std::shared_ptr<GameTaskProvider> provider;
         std::unique_ptr<EngineWorker> white;
         std::unique_ptr<EngineWorker> black;
     };
@@ -134,8 +134,9 @@ public:
      * callback must return a valid GameTask or std::nullopt to signal completion.
      *
      * @param taskProvider Function that returns the next Task or std::nullopt if done.
+	 * @return true if tasks were computed, false if no tasks were available.
      */
-    void computeTasks(GameTaskProvider* taskProvider = nullptr);
+    bool computeTasks(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
 
     /**
      * @brief Set the Trace level for the engine's CLI output.    
@@ -162,7 +163,7 @@ public:
 	 *
 	 * @return A reference to the used GameTaskProvider.
 	 */
-    const GameTaskProvider* getTaskProvider() {
+    const std::shared_ptr<GameTaskProvider> getTaskProvider() {
 		return taskProvider_;
     }
     /**
@@ -283,7 +284,7 @@ private:
     /**
      * Callback to get new tasks
      */
-    GameTaskProvider* taskProvider_ = nullptr;
+    std::shared_ptr<GameTaskProvider> taskProvider_;
 
     /**
 	 * Computes the next task from the task provider

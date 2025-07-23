@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <utility>
 #include <iostream>
+#include <memory>
 
 #ifndef _WIN32
 #include <signal.h>
@@ -41,6 +42,7 @@
 #include "pgn-io.h"
 #include "input-handler.h"
 #include "game-manager-pool.h"
+#include "adjucation-manager.h"
 
 auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
@@ -67,7 +69,7 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 	int concurrency = CliSettings::Manager::get<int>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
-    EpdManager epdManager;
+    auto epdManager = std::make_shared<EpdManager>();
 	for (auto& epd : epdList) {
         std::string file;
         int maxTime = 10;
@@ -84,12 +86,13 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 			Logger::testLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
                 + earlyStop);
-            epdManager.analyzeEpd(file, engine, concurrency, maxTime, minTime, seenPlies);
-            epdManager.wait();
+            epdManager->analyzeEpd(file, engine, concurrency, maxTime, minTime, seenPlies);
+            epdManager->schedule(epdManager, engine);
+            epdManager->wait();
 			code = logChecklist(code, TraceLevel::info);
 			auto minSuccess = epd.get<int>("minsuccess");
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
-                bool success = epdManager.getSuccessRate() >= minSuccess / 100.0;
+                bool success = epdManager->getSuccessRate() >= minSuccess / 100.0;
 				code = success ? code : AppReturnCode::MissedTarget;
             }
 		}
@@ -142,6 +145,7 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
     }
     return code;
 }
+
 
 std::optional<Openings> readOpenings() {
     auto opening = CliSettings::Manager::getGroupInstance("openings");
@@ -239,24 +243,24 @@ auto runSprt(AppReturnCode code) {
         };
         int concurrency = CliSettings::Manager::get<int>("concurrency");
 
-        SprtManager manager;
+        auto manager = std::make_shared<SprtManager>();
 		if (isMontecarlo) {
-            manager.runMonteCarloTest(config);
+            manager->runMonteCarloTest(config);
 		}
         else {
             auto filename = sprt->get<std::string>("resultfile");
-            manager.createTournament(activeEngines[0], activeEngines[1], config);
-            manager.load(filename);
-            manager.schedule(concurrency);
-            manager.wait();
+            manager->createTournament(activeEngines[0], activeEngines[1], config);
+            manager->load(filename);
+            manager->schedule(manager, concurrency);
+            manager->wait();
             if (!filename.empty()) {
-                manager.save(filename);
+                manager->save(filename);
             }
-			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager.getResult()));
+			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
 			Logger::testLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
-                auto decision = manager.getDecision();
+                auto decision = manager->getDecision();
 				code = !decision ? AppReturnCode::UndefinedResult : 
                     (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
             }
@@ -322,6 +326,7 @@ AppReturnCode runTournament(AppReturnCode code) {
 			tournament.save(tournamentFilename);
 		}
         Logger::testLogger().log("tournament all games completed", TraceLevel::result);
+        AdjudicationManager::instance().printTestResult(std::cout);
         std::string resultString = tournament.getResultString();
         Logger::testLogger().log(resultString, TraceLevel::result);
 
@@ -339,6 +344,25 @@ AppReturnCode runTournament(AppReturnCode code) {
     return code;
 }
 
+void handleAdjudicationOptions() {
+    auto draw = CliSettings::Manager::getGroupInstance("draw");
+    if (draw) {
+        AdjudicationManager::instance().setDrawAdjudicationConfig({
+            .minFullMoves = draw->get<int>("movenumber"),
+            .requiredConsecutiveMoves = draw->get<int>("movecount"),
+            .centipawnThreshold = draw->get<int>("score"),
+            .testOnly = draw->get<bool>("test")
+        });
+    }
+    auto resign = CliSettings::Manager::getGroupInstance("resign");
+    if (resign) {
+        AdjudicationManager::instance().setResignAdjudicationConfig({
+            .requiredConsecutiveMoves = resign->get<int>("movecount"),
+            .centipawnThreshold = resign->get<int>("score"),
+            .testOnly = resign->get<bool>("test")
+        });
+    }
+}
 
 void handlePgnOptions() {
     auto pgnOptionInstance = CliSettings::Manager::getGroupInstance("pgnoutput");
@@ -426,6 +450,7 @@ AppReturnCode run(const std::vector<std::string>& args) {
     handleGlobalOptions(returnCode);
     handlePgnOptions();
     handleEngineOptions();
+    handleAdjudicationOptions();
 
     if (auto test = CliSettings::Manager::getGroupInstance("test")) {
         returnCode = runTest(*test, returnCode);
@@ -487,7 +512,9 @@ int main(int argc, char** argv) {
             { "ponder",    { "Enable pondering, if the engine supports it", false, std::nullopt, CliSettings::ValueType::Bool } },
             { "gauntlet",  { "Set if engine is part of the gauntlet group.", false, false, CliSettings::ValueType::Bool } },
 			{ "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
-                false,std::nullopt, CliSettings::ValueType::String}},
+                false, std::nullopt, CliSettings::ValueType::String}},
+            { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)",
+                false, std::nullopt, CliSettings::ValueType::String }},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
         CliSettings::Manager::registerGroup("each", "Defines configuration options for all engines", false, {
@@ -497,6 +524,8 @@ int main(int argc, char** argv) {
             { "ponder",    { "Enable pondering, if the engine supports it", false, false, CliSettings::ValueType::Bool}},
             { "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
                 false, "command", CliSettings::ValueType::String}},
+            { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)", 
+                false, "auto", CliSettings::ValueType::String }},
             { "option.[name]",  { "UCI engine option", false, "", CliSettings::ValueType::String } }
             });
 

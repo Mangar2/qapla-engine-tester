@@ -448,8 +448,7 @@ EngineEvent UciAdapter::readEvent() {
 		if (suppressInfoLines_) {
 			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
 		}
-		std::string infoline = line + " timestamp: " + std::to_string(engineLine.timestampMs);
-        logFromEngine(infoline, TraceLevel::info);
+        logFromEngine(line, TraceLevel::info);
         return parseSearchInfo(iss, engineLine.timestampMs, line);
     }
 

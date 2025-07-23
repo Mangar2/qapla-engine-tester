@@ -159,7 +159,10 @@ void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& eng
     tc_.setMoveTime(maxTimeInS * 1000);
     printHeaderLine();
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-	GameManagerPool::getInstance().addTaskProvider(this, engine, static_cast<int>(reader_->all().size()));
+}
+
+void EpdManager::schedule(const std::shared_ptr<EpdManager>& self, const EngineConfig& engine) {
+    GameManagerPool::getInstance().addTaskProvider(self, engine);
 }
 
 bool EpdManager::wait() {

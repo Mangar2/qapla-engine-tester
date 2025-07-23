@@ -28,6 +28,7 @@
 #include "pgn-io.h"
 #include "engine-config-manager.h"
 #include "input-handler.h"
+#include "adjucation-manager.h"
 
 bool Tournament::wait() {
     GameManagerPool::getInstance().waitForTask();
@@ -191,13 +192,22 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
 void Tournament::scheduleAll(int concurrency) {
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
     tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
-        InputHandler::ImmediateCommand::Info,
-        [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
-			auto result = getResult();
-            result.printRatingTableUciStyle(std::cout, config_.averageElo);
+        { 
+            InputHandler::ImmediateCommand::Info,
+			InputHandler::ImmediateCommand::Outcome
+        },
+        [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue) {
+            auto result = getResult();
+            if (cmd == InputHandler::ImmediateCommand::Info) {
+                result.printRatingTableUciStyle(std::cout, config_.averageElo);
+                AdjudicationManager::instance().printTestResult(std::cout);
+            }
+            else if (cmd == InputHandler::ImmediateCommand::Outcome) {
+                result.printOutcome(std::cout);
+			}
         });
 	for (const auto& pairing : pairings_) {
-		pairing->schedule();
+		pairing->schedule(pairing);
 	}
 }
 

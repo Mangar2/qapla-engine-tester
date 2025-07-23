@@ -71,7 +71,7 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
 
 }
 
-void PairTournament::schedule() {
+void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
 
     if (!started_) {
         throw std::logic_error("PairTournament must be initialized before scheduling");
@@ -91,12 +91,7 @@ void PairTournament::schedule() {
         return; // Nichts zu tun
     }
 
-    GameManagerPool::getInstance().addTaskProvider(
-        this,
-        engineA_,
-        engineB_,
-        remainingGames
-    );
+    GameManagerPool::getInstance().addTaskProvider(self, engineA_, engineB_);
 }
 
 int PairTournament::newOpeningIndex(size_t gameInEncounter) {

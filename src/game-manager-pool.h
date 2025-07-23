@@ -41,9 +41,8 @@ public:
      *
      * @param taskProvider Task source
      * @param engineConfig Engine configuration
-	 * @param maxManagers maximum number of managers to use for this task
      */
-    void addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& engine, int maxManagers);
+    void addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, const EngineConfig& engine);
 
     /**
      * @brief Adds a new task with two engines per manager.
@@ -51,10 +50,9 @@ public:
      * @param taskProvider Task source
      * @param whiteEngine Configuration of the white engine
      * @param blackEngine Configuration of the black engine
-     * @param maxManagers maximum number of managers to use for this task
      */
-    void addTaskProvider(GameTaskProvider* taskProvider, const EngineConfig& whiteEngine, 
-        const EngineConfig& blackEngine, int maxManagers);
+    void addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, const EngineConfig& whiteEngine,
+        const EngineConfig& blackEngine);
 
     /**
      * @brief Sets the global concurrency limit.
@@ -110,7 +108,7 @@ public:
 	 * @param taskProvider Reference to the GameTaskProvider pointer to clear.
 	 * @return True if the manager was deactivated, false otherwise.
 	 */
-	bool maybeDeactivateManager(GameTaskProvider*& taskProvider);
+	bool maybeDeactivateManager(std::shared_ptr<GameTaskProvider>& taskProvider);
 
 private:
     void setConcurrency(int count, bool nice, bool start);
@@ -127,10 +125,9 @@ private:
     }
 
     struct TaskAssignment {
-        GameTaskProvider* provider = nullptr;
+        std::shared_ptr<GameTaskProvider> provider;
         std::optional<EngineConfig> engine1;
         std::optional<EngineConfig> engine2;
-        size_t maxManagers = 0;
     };
 
     /**
@@ -149,14 +146,14 @@ private:
 
     void tryReactivateManagers();
     void ensureManagerCount(size_t count, bool start = false);
-    void assignTaskToManagers(TaskAssignment& task);
+    void assignTaskToManagers();
 
     std::vector<TaskAssignment> taskAssignments_;
     std::vector<std::unique_ptr<GameManager>> managers_;
     int maxConcurrency_ = 0;
     bool niceMode_ = false;
     std::mutex taskMutex_;
-    std::mutex taskAssignmentMutex_;
+    std::mutex managerMutex_;
     std::mutex deactivateMutex_;
 
 	// InputHandler

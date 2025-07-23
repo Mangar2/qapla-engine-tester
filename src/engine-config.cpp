@@ -89,8 +89,10 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         else if (key == "trace") setTraceLevel(std::get<std::string>(value));
         else if (key == "name") {
             if (!update) setName(std::get<std::string>(value));
-        } else if (key == "cmd") setCmd(std::get<std::string>(value));
+        }
+        else if (key == "cmd") setCmd(std::get<std::string>(value));
         else if (key == "dir") setDir(std::get<std::string>(value));
+        else if (key == "restart") restart_ = parseRestartOption(std::get<std::string>(value));
         else if (key == "proto") {
             auto valueStr = std::get<std::string>(value);
             if (valueStr == "uci") protocol_ = EngineProtocol::Uci;
@@ -160,6 +162,7 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
 			else if (value == "false" || value == "0") config.setPonder(false);
 			else throw std::runtime_error("Invalid ponder value: " + value);
 		}
+        else if (key == "restart") config.restart_ = parseRestartOption(value);
         else if (key == "proto") {
             if (value == "uci") config.protocol_ = EngineProtocol::Uci;
             else if (value == "xboard") config.protocol_ = EngineProtocol::XBoard;
@@ -181,6 +184,7 @@ std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
 	out << "name=" << config.name_ << '\n';
     out << "cmd=" << config.cmd_ << '\n';
     out << "dir=" << config.dir_ << '\n';
+    out << "restart=" << to_string(config.restart_) << '\n';
     out << "proto=" << to_string(config.protocol_) << '\n';
     out << "tc=" << config.tc_.toPgnTimeControlString() << '\n';
 	if (config.ponder_) out << "ponder=" << (config.ponder_ ? "true" : "false") << '\n';

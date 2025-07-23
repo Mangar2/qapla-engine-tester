@@ -601,9 +601,9 @@ void EngineTestController::runEpdTests() {
 	std::cout.flush();
     try {
         EngineList engines = startEngines(1);
-        EpdTestManager epdManager(EngineReport::getChecklist(engines[0]->getConfig().getName()));
+        auto epdManager = std::make_shared<EpdTestManager>(EngineReport::getChecklist(engines[0]->getConfig().getName()));
         gameManager_->initUniqueEngine(std::move(engines[0]));
-        gameManager_->computeTasks(&epdManager);
+        gameManager_->computeTasks(epdManager);
 		gameManager_->getFinishedFuture().wait();
 
         Logger::testLogger().logAligned("Testing positions:", "All positions computed.");
@@ -689,10 +689,10 @@ void EngineTestController::runMultipleGamesTest() {
     Logger::testLogger().log("Please wait a moment before first game results occur.");
 
 	GameManagerPool::getInstance().setConcurrency(parallelGames, true);
-    TestTournament tournament(numGames_, checklist_);
+    auto tournament = std::make_shared<TestTournament>(numGames_, checklist_);
 
     try {
-        GameManagerPool::getInstance().addTaskProvider(&tournament, engineConfig_, numGames_);
+        GameManagerPool::getInstance().addTaskProvider(tournament, engineConfig_);
         GameManagerPool::getInstance().waitForTask();
         Logger::testLogger().log("All games completed.");
     }

@@ -74,7 +74,7 @@ void SprtManager::createTournament(
 	tournament_.setVerbose(false);
 }
 
-void SprtManager::schedule(int concurrency) { 
+void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, int concurrency) {
     sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
         InputHandler::ImmediateCommand::Info,
         [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
@@ -89,8 +89,8 @@ void SprtManager::schedule(int concurrency) {
         << " concurrency " << concurrency << std::endl;
 
     GameManagerPool::getInstance().setConcurrency(concurrency, true);
-    GameManagerPool::getInstance().addTaskProvider(this, 
-        tournament_.getEngineA(), tournament_.getEngineB(), config_.maxGames);
+    GameManagerPool::getInstance().addTaskProvider(self, 
+        tournament_.getEngineA(), tournament_.getEngineB());
 }
 
 std::optional<GameTask> SprtManager::nextTask() {

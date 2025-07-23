@@ -24,12 +24,12 @@
 
 class Timer {
 public:
-    /*
+    
     static int64_t getCurrentTimeMs() {
         return duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
-    */
-    static int64_t getCurrentTimeMs() {
+    
+    static int64_t getSystemTimeMs() {
         return std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
         ).count();

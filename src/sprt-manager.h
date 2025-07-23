@@ -59,11 +59,12 @@ public:
         const SprtConfig& config);
 
     /**
-     * @brief Schedules the tournament
+     * @brief Schedules the tournament and registers all pairings as task providers.
      *
+     * @param self Shared pointer to this Tournament instance.
      * @param concurrency Number of parallel workers to use.
      */
-    void schedule(int concurrency);
+    void schedule(const std::shared_ptr<SprtManager>& self, int concurrency);
 
     /**
      * @brief Waits for all engines to finish.
