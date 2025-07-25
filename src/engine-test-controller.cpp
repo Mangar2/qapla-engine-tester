@@ -241,7 +241,7 @@ void EngineTestController::runGoLimitsTests() {
 	int errors = 0;
     for (const auto& [name, timeControl] : testCases) {
         runTest(name, [this, name, timeControl, &errors]() -> std::pair<bool, std::string> {
-            gameManager_->notifyNewGame();
+            gameManager_->newGame();
             gameManager_->setUniqueTimeControl(timeControl);
             gameManager_->computeMove(true);
             bool success = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
@@ -444,7 +444,7 @@ void EngineTestController::runAnalyzeTest() {
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
 
     runTest("reacts-on-stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->notifyNewGame();
+        gameManager_->newGame();
         TimeControl t;
         t.setInfinite();
         gameManager_->setUniqueTimeControl(t);
@@ -524,7 +524,7 @@ void EngineTestController::testPonderHit(const GameRecord& gameRecord, EngineWor
 
     EventSinkRecorder recorder;
     engine->setEventSink(recorder.getCallback());
-    engine->newGame();
+    engine->newGame(gameRecord, gameRecord.isWhiteToMove());
     bool success;
     TimeControl t;
     t.addTimeSegment({ 0, 2000, 0 });
@@ -546,7 +546,7 @@ void EngineTestController::testPonderMiss(const GameRecord& gameRecord, EngineWo
 
     EventSinkRecorder recorder;
     engine->setEventSink(recorder.getCallback());
-    engine->newGame();
+    engine->newGame(gameRecord, gameRecord.isWhiteToMove());
     bool success;
     TimeControl t;
     t.addTimeSegment({ 0, 2000, 0 });
@@ -642,7 +642,7 @@ void EngineTestController::runComputeGameTest() {
     EngineList engines = startEngines(2);
     gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
     try {
-        gameManager_->notifyNewGame();
+        gameManager_->newGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         gameManager_->setTimeControls(t1, t2);
@@ -664,7 +664,7 @@ void EngineTestController::runPonderGameTest() {
 	engines[1]->getConfigMutable().setPonder(true);
     gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
     try {
-        gameManager_->notifyNewGame();
+        gameManager_->newGame();
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         gameManager_->setTimeControls(t1, t2);
@@ -693,6 +693,7 @@ void EngineTestController::runMultipleGamesTest() {
 
     try {
         GameManagerPool::getInstance().addTaskProvider(tournament, engineConfig_);
+		GameManagerPool::getInstance().assignTaskToManagers();
         GameManagerPool::getInstance().waitForTask();
         Logger::testLogger().log("All games completed.");
     }

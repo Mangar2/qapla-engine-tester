@@ -92,6 +92,7 @@ void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
     }
 
     GameManagerPool::getInstance().addTaskProvider(self, engineA_, engineB_);
+    GameManagerPool::getInstance().assignTaskToManagers();
 }
 
 int PairTournament::newOpeningIndex(size_t gameInEncounter) {
@@ -146,11 +147,16 @@ std::optional<GameTask> PairTournament::nextTask() {
         GameTask task;
         task.taskType = GameTask::Type::PlayGame;
 		task.gameRecord = curRecord_;
-		task.gameRecord.setTimeControl(engineA_.getTimeControl(), engineB_.getTimeControl());
+		
 		task.gameRecord.setRound(static_cast<uint32_t>(i + 1));
 		task.taskId = std::to_string(i);
         task.switchSide = config_.swapColors && (i % 2 == 1);
-
+        if (task.switchSide) {
+            task.gameRecord.setTimeControl(engineB_.getTimeControl(), engineA_.getTimeControl());
+        }
+        else {
+            task.gameRecord.setTimeControl(engineA_.getTimeControl(), engineB_.getTimeControl());
+        }
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
 

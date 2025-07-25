@@ -97,9 +97,6 @@ void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProv
         std::lock_guard lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
-
-    assignTaskToManagers();
-
 }
 
 void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider,
@@ -113,7 +110,6 @@ void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProv
         std::lock_guard lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
-    assignTaskToManagers();
 }
 
 void GameManagerPool::setConcurrency(int count, bool nice, bool start) {
@@ -246,6 +242,10 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
         if (assignment.engine1 && assignment.engine2) {
             auto whiteEngines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);
             auto blackEngines = EngineWorkerFactory::createEngines(*assignment.engine2, 1);
+
+            if (whiteEngines.empty() || blackEngines.empty()) {
+                throw std::runtime_error("Failed to create engines for task assignment ");
+			}
 
             result.white = std::move(whiteEngines.front());
             result.black = std::move(blackEngines.front());

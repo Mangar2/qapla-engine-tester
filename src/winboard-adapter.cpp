@@ -81,8 +81,10 @@ void WinboardAdapter::startProtocol() {
     writeCommand("protover 2");
 }
 
-void WinboardAdapter::newGame() {
-    writeCommand("new");
+void WinboardAdapter::newGame(const GameRecord& gameRecord, bool engineIsWhite) {
+	sendPosition(gameRecord);
+    gameRecord_ = gameRecord;
+	sendTimeControl(gameRecord, engineIsWhite);
 }
 
 void WinboardAdapter::moveNow() {
@@ -104,29 +106,66 @@ int64_t WinboardAdapter::allowPonder(
     return 0;
 }
 
-int64_t WinboardAdapter::computeMove(
-    [[maybe_unused]] const GameRecord& game,
-    [[maybe_unused]] const GoLimits& limits,
-    [[maybe_unused]] bool ponderHit) {
-    return writeCommand("go");
+int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
+    const auto& newMoves = game.history();
+    auto& oldMoves = gameRecord_.history();
+
+    if (game.getStartPos() != gameRecord_.getStartPos() ||
+        game.getStartFen() != gameRecord_.getStartFen() ||
+		oldMoves.size() > newMoves.size()) {
+		throw std::runtime_error("Different start position or FEN detected in sendMissingMoves");
+    }
+
+    for (int ply = 0; ply < oldMoves.size(); ply++) {
+        if (!oldMoves[ply].lan.empty() &&
+            oldMoves[ply].lan != newMoves[ply].lan) {
+            throw std::runtime_error("Different move history detected in sendMissingMoves");
+		}
+        else if (oldMoves[ply].original == newMoves[ply].original) {
+            oldMoves[ply] = newMoves[ply];
+        } else {
+            throw std::runtime_error("Different move history detected in sendMissingMoves");
+		}
+	}
+    // We need either a move command or a go command to tell the engine to play a move
+    if (newMoves.size() == oldMoves.size()) {
+        forceMode_ = false;
+        size_t size = newMoves.size();
+        if (size > 0) oldMoves[size - 1] = newMoves[size - 1];
+        return writeCommand("go");
+    }
+
+    if (newMoves.size() - oldMoves.size() > 1) {
+        writeCommand("force");
+        forceMode_ = true;
+    }
+    int64_t lastTimestamp = 0;
+    for (size_t ply = oldMoves.size(); ply < newMoves.size(); ++ply) {
+        if (!newMoves[ply].lan.empty()) {
+            lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + newMoves[ply].lan);
+            gameRecord_.addMove(newMoves[ply]);
+        }
+        else {
+            throw std::runtime_error("Empty LAN string in move history in sendMissingMoves");
+        }
+	}
+    if (forceMode_) {
+        forceMode_ = false;
+        lastTimestamp = writeCommand("go");
+    }
+    return lastTimestamp;
 }
 
-
-std::string WinboardAdapter::computeGoOptions(const GoLimits& limits) const {
-    std::ostringstream oss;
-    if (limits.infinite) oss << " infinite";
-    if (limits.movetimeMs) oss << " movetime " << *limits.movetimeMs;
-    if (limits.depth) oss << " depth " << *limits.depth;
-    if (limits.nodes) oss << " nodes " << *limits.nodes;
-    if (limits.mateIn) oss << " mate " << *limits.mateIn;
-
-    if (limits.wtimeMs > 0) oss << " wtime " << limits.wtimeMs;
-    if (limits.btimeMs > 0) oss << " btime " << limits.btimeMs;
-    if (limits.wincMs > 0)  oss << " winc " << limits.wincMs;
-    if (limits.bincMs > 0)  oss << " binc " << limits.bincMs;
-
-    if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
-	return oss.str();
+int64_t WinboardAdapter::computeMove(const GameRecord& game,
+    const GoLimits& limits,
+    [[maybe_unused]] bool ponderHit) {
+    if (isEnabled("time")) {
+        int64_t time = game.isWhiteToMove() ? limits.wtimeMs : limits.btimeMs;
+        int64_t otim = game.isWhiteToMove() ? limits.btimeMs : limits.wtimeMs;
+        writeCommand("time " + std::to_string(time / 10));
+        writeCommand("otim " + std::to_string(otim / 10));
+    }
+    return catchupMovesAndGo(game);
 }
 
 void WinboardAdapter::askForReady() {
@@ -134,18 +173,53 @@ void WinboardAdapter::askForReady() {
     writeCommand("ping " + std::to_string(pingCounter_));
 }
 
-void WinboardAdapter::sendPosition(const GameRecord& game) {
-    writeCommand("force");
+void WinboardAdapter::sendTimeControl(const GameRecord& gameRecord, bool engineIsWhite) {
+    const TimeControl& tc = engineIsWhite ? gameRecord.getWhiteTimeControl()
+        : gameRecord.getBlackTimeControl();
 
-    if (game.getStartPos()) {
-        writeCommand("new");
+    if (!tc.isValid()) return;
+
+    const auto& segments = tc.timeSegments();
+    if (!segments.empty()) {
+        const auto& seg = segments[0];
+        int moves = seg.movesToPlay > 0 ? seg.movesToPlay : 0;
+        int baseSeconds = static_cast<int>(seg.baseTimeMs / 1000);
+		int baseMinutes = baseSeconds / 60;
+		baseSeconds %= 60;
+        int incSeconds = static_cast<int>(seg.incrementMs / 1000);
+        std::ostringstream oss;
+        oss << "level " << moves << " "
+            << baseMinutes << ":"
+            << baseSeconds << " "
+			<< incSeconds;
+        writeCommand(oss.str());
     }
-    else {
+
+    if (tc.moveTimeMs()) {
+        writeCommand("st " + std::to_string(static_cast<int>(*tc.moveTimeMs() / 1000)));
+    }
+
+    if (tc.depth()) {
+        writeCommand("sd " + std::to_string(*tc.depth()));
+    }
+
+    if (tc.nodes()) {
+        writeCommand("nps " + std::to_string(*tc.nodes()));
+    }
+}
+
+void WinboardAdapter::sendPosition(const GameRecord& game) {
+    writeCommand("new");
+    writeCommand("easy");
+    writeCommand("force");
+	forceMode_ = true;
+
+    if (!game.getStartPos()) {
         writeCommand("setboard " + game.getStartFen());
     }
 
     for (uint32_t ply = 0; ply < game.nextMoveIndex(); ++ply) {
-        writeCommand("usermove " + game.history()[ply].lan);
+        writeCommand((isEnabled("usermove") ? "usermove " : "") + game.history()[ply].lan);
     }
 }
 
@@ -438,14 +512,49 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, int64_t t
             continue;
         }
 
-        auto [it, inserted] = featureMap_.insert({ key, value });
-        if (!inserted) {
+        auto it = featureMap_.find(key);
+        if (it != featureMap_.end() && key != "done") {
             event.errors.push_back({ "feature-report", "Feature '" + key + "' specified more than once" });
         }
+        featureMap_[key] = value;
     }
-
+    finalizeFeatures();
     return event;
 }
+
+void WinboardAdapter::finalizeFeatures() {
+    static const std::unordered_map<std::string, bool> booleanFeatureDefaults = {
+        { "ping", false },
+        { "setboard", false },
+        { "playother", false },
+        { "san", false },
+        { "usermove", false },
+        { "time", true },
+        { "draw", true },
+        { "sigint", true },
+        { "sigterm", true },
+        { "reuse", true },
+        { "analyze", true },
+        { "colors", true },
+        { "ics", false },
+        { "name", false },
+        { "pause", false },
+        { "nps", true },
+        { "debug", false },
+        { "memory", false },
+        { "smp", false },
+        { "exclude", false },
+        { "setscore", false },
+        { "highlight", false }
+    };
+
+    for (const auto& [key, defaultValue] : booleanFeatureDefaults) {
+        if (featureMap_.find(key) == featureMap_.end()) {
+            featureMap_[key] = defaultValue ? "1" : "0";
+        }
+    }
+}
+
 
 
 EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
@@ -477,6 +586,55 @@ EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
         }
     }
 
+    return event;
+}
+
+EngineEvent WinboardAdapter::parseResult(std::istringstream& iss, const std::string& command, EngineEvent event) {
+    
+    iss >> std::ws;
+    char openBrace;
+    if (!(iss >> openBrace) || openBrace != '{') {
+        event.errors.push_back({
+            "result-parsing",
+            "Expected opening '{' after game result command, in line: " + event.rawLine
+			});
+    }
+    std::string text;
+    if (!std::getline(iss, text, '}')) {
+        event.errors.push_back({
+            "result-parsing",
+            "Expected closing '}' at the end of a result command in line: " + event.rawLine
+            });
+    }
+    text = trim(text);
+
+    if (command == "0-1") {
+        event.gameResult = GameResult::BlackWins;
+        if (text != "Black mates") {
+            event.errors.push_back({
+                "result-parsing",
+                "Expected 'Black mates' after '0-1' in: " + event.rawLine
+            });
+		}
+    }
+    else if (command == "1-0") {
+        event.gameResult = GameResult::WhiteWins;
+        if (text != "White mates") {
+            event.errors.push_back({
+                "result-parsing",
+                "Expected 'White mates' after '1-0' in: " + event.rawLine
+                });
+        }
+    }
+    else if (command == "1/2-1/2") {
+        event.gameResult = GameResult::Draw;
+    }
+    else {
+        event.errors.push_back({
+            "result-parsing",
+            "Unexpected game result command: " + command + " in line: " + event.rawLine
+			});
+	}
     return event;
 }
 
@@ -526,6 +684,7 @@ EngineEvent WinboardAdapter::readEvent() {
         logFromEngine(line, TraceLevel::command);
         std::string move;
 		iss >> move;
+        gameRecord_.addMove({ .original = move });
 		return EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, move, "");
     }
 
@@ -546,7 +705,7 @@ EngineEvent WinboardAdapter::readEvent() {
 
     if (command == "resign") {
         logFromEngine(line, TraceLevel::command);
-        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+        return EngineEvent::create(EngineEvent::Type::Resign, identifier_, engineLine.timestampMs, line);
     }
 
     if (command == "offer") {
@@ -557,6 +716,13 @@ EngineEvent WinboardAdapter::readEvent() {
     if (command == "tellusererror" || command == "tellallerror") {
         logFromEngine(line, TraceLevel::error);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (command == "0-1" || command == "1-0" || command == "1/2-1/2") {
+        logFromEngine(line, TraceLevel::command);
+        EngineEvent event = EngineEvent::create(
+            EngineEvent::Type::Result, identifier_, engineLine.timestampMs, line);
+		return parseResult(iss, command, std::move(event));
     }
 
     if (numUnknownCommandError_ <= 5) {

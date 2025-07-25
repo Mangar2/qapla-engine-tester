@@ -26,6 +26,7 @@
 #include <functional>
 #include <optional>
 #include <future>
+#include <thread>
 #include "game-record.h"
 #include "engine-adapter.h"
 #include "engine-config.h"
@@ -99,9 +100,9 @@ public:
 	/**
 	 * @brief Sends a command to the engine to prepare for a new game.
 	 */
-	void newGame() {
-		post([this](EngineAdapter& adapter) {
-			adapter.newGame();
+	void newGame(const GameRecord& gameRecord, bool engineIsWhite) {
+		post([=](EngineAdapter& adapter) {
+			adapter.newGame(gameRecord, engineIsWhite);
 			});
 	}
 
@@ -268,7 +269,7 @@ private:
 	
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
 	static constexpr std::chrono::seconds BestMoveTimeout{ 2 };
-	static constexpr std::chrono::seconds ReadyTimeoutUciOk{ 5 };
+	static constexpr std::chrono::seconds ReadyTimeoutProtocolOk{ 5 };
 	static constexpr std::chrono::seconds ReadyTimeoutOption{ 10 };
 
 	std::queue<std::optional<std::function<void(EngineAdapter&)>>> writeQueue_;

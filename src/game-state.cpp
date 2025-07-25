@@ -213,7 +213,7 @@ GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<in
 	}
 	for (size_t i = 0; i < maxPly; ++i) {
 		auto move = moves[i];
-		auto moveStr = move.lan.empty() ? move.san : move.lan;
+		auto moveStr = move.original;
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
 			Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),

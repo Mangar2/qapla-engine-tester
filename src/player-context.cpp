@@ -118,7 +118,7 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     checkTime(event);
     gameState_.doMove(move);
 
-    currentMove_.updateFromBestMove(event, computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
+    currentMove_.updateFromBestMove(event, move.getLAN(), computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
     return move;
 }
 

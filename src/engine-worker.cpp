@@ -55,9 +55,10 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             // This ensures the read thread knows which handshake response to watch for.
             waitForHandshake_ = EngineEvent::Type::ProtocolOk;
             adapter.startProtocol();
-            if (!waitForHandshake(ReadyTimeoutUciOk)) {
-               
-                throw std::runtime_error("Engine " + getEngineName() + " failed UCI handshake");
+            if (!waitForHandshake(ReadyTimeoutProtocolOk)) {
+                if (adapter.isProtocolOkRequired()) {
+                    throw std::runtime_error("Engine " + getEngineName() + " failed UCI handshake");
+                }
             }
             if (!options.empty()) {
                 adapter.setOptionValues(options);

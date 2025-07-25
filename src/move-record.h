@@ -27,6 +27,7 @@
 #include "engine-event.h"
 
 struct MoveRecord {
+    std::string original;
     std::string lan;
     std::string san;
     std::string comment;
@@ -44,6 +45,7 @@ struct MoveRecord {
     std::string pv;
 
     void clear() {
+		original.clear();
 		lan.clear();
         san.clear();
 		comment.clear();
@@ -65,9 +67,10 @@ struct MoveRecord {
      * @param computeStartTimestamp Timestamp when move computation started, in milliseconds.
      * @param halfmoveClk The current halfmove clock value, used for the 50-move rule.
      */
-    void updateFromBestMove(const EngineEvent& event, int64_t computeStartTimestamp, int32_t halfmoveClk) {
+    void updateFromBestMove(const EngineEvent& event, std::string lanMove, int64_t computeStartTimestamp, int32_t halfmoveClk) {
         if (event.bestMove) {
-            lan = *event.bestMove;
+            original = *event.bestMove;
+			lan = lanMove;
         }
         halfmoveClock = halfmoveClk;
         timeMs = static_cast<uint64_t>(event.timestampMs - computeStartTimestamp);

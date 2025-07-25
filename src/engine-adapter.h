@@ -74,9 +74,10 @@ public:
 
     /**
      * @brief Prepares the engine for a new game.
-     * @param info Game-specific initialization parameters.
+     * @param game        Current game state.
+	 * @param engineIsWhite True if the engine plays as white, false for black.
      */
-    virtual void newGame() = 0;
+    virtual void newGame(const GameRecord& game, bool engineIsWhite) = 0;
 
     /**
      * @brief Immediately requests the engine to produce a move, e.g. in force mode.

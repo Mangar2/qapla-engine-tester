@@ -98,6 +98,4 @@ std::pair<uint64_t, uint64_t> GameRecord::timeUsed() const {
     return { whiteTime, blackTime };
 }
 
-const std::vector<MoveRecord>& GameRecord::history() const {
-    return moves_;
-}
+
