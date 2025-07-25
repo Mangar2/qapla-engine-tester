@@ -78,7 +78,7 @@ void UciAdapter::startProtocol() {
 	writeCommand("uci");
 }
 
-void UciAdapter::newGame() {
+void UciAdapter::newGame([[maybe_unused]] const GameRecord& gameRecord, [[maybe_unused]] bool engineIsWhite) {
     writeCommand("ucinewgame");
 }
 

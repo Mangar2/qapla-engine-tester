@@ -65,12 +65,12 @@ public:
 
 
     /**
-	 * Sends a new game command to the engine(s).
+	 * Informs the engines that a new game starts.
      */
-    void notifyNewGame() {
-        whitePlayer_->notifyNewGame();
+    void newGame() {
+        whitePlayer_->newGame(gameRecord_, true);
 		if (blackPlayer_ != whitePlayer_) {
-			blackPlayer_->notifyNewGame();
+			blackPlayer_->newGame(gameRecord_, false);
 		}
     }
 

@@ -26,6 +26,7 @@
 #include <utility>
 #include <string>
 #include <map>
+#include <iostream>
 
 #include "move-record.h"
 #include "time-control.h"
@@ -74,7 +75,12 @@ public:
     std::pair<uint64_t, uint64_t> timeUsed() const;
 
     /** Returns const reference to move history. */
-    const std::vector<MoveRecord>& history() const;
+	const std::vector<MoveRecord>& history() const {
+		return moves_;
+	}
+	std::vector<MoveRecord>& history() {
+		return moves_;
+	}
 
     /**
 	 * @brief returns true if the game started with the standard starting position.
@@ -195,7 +201,6 @@ public:
 	const std::map<std::string, std::string>& getTags() const {
 		return tags_;
 	}
-
 
 private:
 	

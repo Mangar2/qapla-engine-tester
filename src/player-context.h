@@ -94,9 +94,9 @@ public:
     /**
 	 * @brief Informs the engine that a new game is starting.
      */
-    void notifyNewGame() {
+    void newGame(const GameRecord& gameRecord, bool engineIsWhite) {
         if (engine_) {
-            engine_->newGame();
+            engine_->newGame(gameRecord, engineIsWhite);
         }
     }
 

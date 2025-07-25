@@ -30,6 +30,7 @@
 
 #include "engine-adapter.h"
 #include "uci-option.h"
+#include "game-record.h"
 
  /**
   * @brief Winboard protocol adapter implementing EngineAdapter.
@@ -74,7 +75,7 @@ public:
 
     EngineEvent readEvent() override;
 
-    void newGame() override;
+    void newGame(const GameRecord& gameRecord, bool engineIsWhite) override;
     void moveNow() override;
     void setPonder(bool enabled) override;
     void ticker() override;
@@ -120,8 +121,6 @@ private:
      */
     EngineEvent readFeatureSection(const EngineLine& engineLine);
 
-	
-
     static constexpr std::chrono::milliseconds engineIntroScanDuration{ 50 };
     static constexpr std::chrono::milliseconds winboardHandshakeTimeout{ 3000 };
     static constexpr std::chrono::milliseconds engineQuitTimeout{ 10000 };
@@ -134,9 +133,17 @@ private:
     std::vector<ProtocolError> protocolErrors_;
 
     /**
-     * @brief Compute the time setting options required for the go command
+     * @brief Sends time control to the engine according to Winboard protocol.
+     *        Supports asymmetric time controls and all xboard-compliant formats:
+     *        - level (classical, increment)
+     *        - st (movetime)
+     *        - sd (depth)
+     *        - nps (nodes-per-second)
+     *
+     * @param gameRecord GameRecord with time control settings.
+     * @param engineIsWhite True if engine is playing white.
      */
-    std::string computeGoOptions(const GoLimits& limits) const;
+    void sendTimeControl(const GameRecord& gameRecord, bool engineIsWhite);
 
     /**
      * @brief Sends the current position to the engine.
@@ -145,9 +152,30 @@ private:
      */
     void sendPosition(const GameRecord& game);
 
+    /**
+     * @brief Sends only the new opponent moves from the given GameRecord compared to the last known state.
+     *        Skips the last own move if it matches the stored original move string.
+     *
+     * @param game The current game state with full move history.
+     */
+    int64_t catchupMovesAndGo(const GameRecord& game);
+
+    /**
+     * Ensures all known boolean features are present in featureMap_ with correct defaults.
+     * Should be called once after parsing all incoming 'feature' lines from GUI.
+     */
+    void finalizeFeatures();
+
+    bool isEnabled(const std::string& key) const {
+        auto it = featureMap_.find(key);
+        return it != featureMap_.end() && it->second == "1";
+    }
+
     EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
 	EngineEvent parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption);
     void parseOptionFeature(const std::string& optionStr, int64_t timestamp, EngineEvent& event);
+    EngineEvent parseResult(std::istringstream& iss, const std::string& command, EngineEvent event);
+    
 
     static inline int numOptionError_ = 0;
     static inline int numFeatureError_ = 0;
@@ -156,5 +184,8 @@ private:
     bool inFeatureSection_ = false;
     std::map<std::string, std::string> featureMap_;
 	uint64_t pingCounter_ = 0;
+    bool forceMode_ = false;
+
+	GameRecord gameRecord_; 
 };
 

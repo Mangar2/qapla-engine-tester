@@ -488,12 +488,13 @@ void GameManager::computeTask(std::optional<GameTask> task) {
 	if (task->switchSide != switchedSide_) {
 		switchSide();
 	}
+	// Also sets the engines names, Switched side must be set before
 	setFromGameRecord(task->gameRecord);
     setTimeControls(gameRecord_.getWhiteTimeControl(), gameRecord_.getBlackTimeControl());
 	taskType_ = task->taskType;
 	taskId_ = task->taskId;
     // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
-    notifyNewGame();
+    newGame();
 	computeNextMove();
 }
 

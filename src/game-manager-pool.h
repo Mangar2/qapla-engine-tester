@@ -45,6 +45,13 @@ public:
     void addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, const EngineConfig& engine);
 
     /**
+     * @brief Assigns tasks to available GameManagers.
+     *
+	 * This method assigns tasks to available GameManagers based on the current task providers.
+	 */
+    void assignTaskToManagers();
+
+    /**
      * @brief Adds a new task with two engines per manager.
      *
      * @param taskProvider Task source
@@ -146,7 +153,6 @@ private:
 
     void tryReactivateManagers();
     void ensureManagerCount(size_t count, bool start = false);
-    void assignTaskToManagers();
 
     std::vector<TaskAssignment> taskAssignments_;
     std::vector<std::unique_ptr<GameManager>> managers_;

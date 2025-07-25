@@ -22,6 +22,8 @@
 #include <optional>
 #include <ostream>
 
+#include "game-result.h"
+
 struct SearchInfo {
     std::optional<int> depth;
     std::optional<int> selDepth;
@@ -95,6 +97,8 @@ struct EngineEvent {
         BestMove,
         Info,
         PonderHit,
+        Resign,
+        Result,
         Error,
         EngineDisconnected,
         Unknown,
@@ -164,6 +168,7 @@ struct EngineEvent {
     std::vector<ParseError> errors;
     std::string engineIdentifier;
 	std::optional<std::string> stringInfo;
+    std::optional<GameResult> gameResult;
 private:
 
 };

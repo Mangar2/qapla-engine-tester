@@ -89,8 +89,8 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, int concurr
         << " concurrency " << concurrency << std::endl;
 
     GameManagerPool::getInstance().setConcurrency(concurrency, true);
-    GameManagerPool::getInstance().addTaskProvider(self, 
-        tournament_.getEngineA(), tournament_.getEngineB());
+    GameManagerPool::getInstance().addTaskProvider(self, tournament_.getEngineA(), tournament_.getEngineB());
+    GameManagerPool::getInstance().assignTaskToManagers();
 }
 
 std::optional<GameTask> SprtManager::nextTask() {

@@ -163,6 +163,7 @@ void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& eng
 
 void EpdManager::schedule(const std::shared_ptr<EpdManager>& self, const EngineConfig& engine) {
     GameManagerPool::getInstance().addTaskProvider(self, engine);
+    GameManagerPool::getInstance().assignTaskToManagers();
 }
 
 bool EpdManager::wait() {
