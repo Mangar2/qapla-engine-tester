@@ -232,13 +232,14 @@ void AdjudicationManager::printTestResult(std::ostream& out) const {
             << " total     " << formatMs(stats.totalTimeMs)
             << "\n";
     };
-
-	out << "Adjudication test results:\n";
-    if (drawConfig && drawConfig->testOnly) {
-        print("draw", drawStats);
+    
+    bool drawTest = drawConfig && drawConfig->testOnly;
+    bool resignTest = resignConfig && resignConfig->testOnly;
+    
+    if (drawTest || resignTest) {
+        out << "Adjudication test results:\n";
+        if (drawTest) print("draw", drawStats);
+        if (resignTest) print("resign", resignStats);
+        out << std::endl;
     }
-    if (resignConfig && resignConfig->testOnly) {
-        print("resign", resignStats);
-    }
-    out << std::endl;
 }

@@ -45,7 +45,6 @@ void EngineReport::addTopic(const CheckTopic& topic) {
 }
 
 AppReturnCode EngineReport::logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result) {
-	std::cout << "logAll started" << std::endl;
     AppReturnCode worst = AppReturnCode::NoError;
     for (const auto& [name, checklist] : checklists_) {
         AppReturnCode code = checklist->log(traceLevel, result? result->forEngine(name) : std::nullopt);

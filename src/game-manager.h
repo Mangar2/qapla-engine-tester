@@ -322,7 +322,6 @@ private:
      */
     bool finishedPromiseValid_ = false;
 
-    bool requireLan_ = true;
 	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
     std::string taskId_;
 
@@ -332,6 +331,7 @@ private:
     // Queue management
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };
+    std::atomic<bool> debug_{ false };
     std::mutex queueMutex_;
     std::condition_variable queueCondition_;
     std::queue<EngineEvent> eventQueue_;

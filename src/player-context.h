@@ -24,6 +24,8 @@
 #include "game-record.h"
 #include "engine-report.h"
 
+inline thread_local bool isGameManagerThread = false;
+
 class PlayerContext {
 public:
     PlayerContext() = default;
@@ -42,15 +44,14 @@ public:
      *
      * @param engineWorker Shared pointer to the EngineWorker.
      */
-    void setEngine(std::unique_ptr<EngineWorker> engineWorker, bool requireLan) {
+    void setEngine(std::unique_ptr<EngineWorker> engineWorker) {
         computeState_ = ComputeState::Idle;
 		if (!engineWorker) {
 			throw AppError::makeInvalidParameters("Cannot set a null engine worker");
 		}
 		checklist_ = EngineReport::getChecklist(engineWorker->getConfig().getName());
         engine_ = std::move(engineWorker);
-
-		requireLan_ = requireLan;
+		requireLan_ = engine_->getConfig().getProtocol() == EngineProtocol::Uci;
     }
 
     /**
@@ -211,7 +212,7 @@ public:
 	 * @brief Keep alive tick - check for a timout or non active engine
      * @return true, if we restarted the engine and the task must be stopped
 	 */
-    bool checkEngineTimeout();
+    bool checkEngineTimeout(bool debug = false);
 
     /**
      * @brief Handles a best move event from the engine.

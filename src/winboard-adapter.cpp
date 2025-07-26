@@ -27,8 +27,6 @@
 #include <unordered_set>
 #include "timer.h"
 #include "string-helper.h"
-#define WINBOARD
-#ifdef WINBOARD
 #include "winboard-adapter.h"
 #include "engine-process.h"
 #include "logger.h"
@@ -141,12 +139,13 @@ int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
     }
     int64_t lastTimestamp = 0;
     for (size_t ply = oldMoves.size(); ply < newMoves.size(); ++ply) {
-        if (!newMoves[ply].lan.empty()) {
-            lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + newMoves[ply].lan);
+        std::string move = isEnabled("san") ? newMoves[ply].san : newMoves[ply].lan;
+        if (!move.empty()) {
             gameRecord_.addMove(newMoves[ply]);
+            lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + newMoves[ply].lan);
         }
         else {
-            throw std::runtime_error("Empty LAN string in move history in sendMissingMoves");
+            throw std::runtime_error("Empty LAN or SAN string in move history in sendMissingMoves");
         }
 	}
     if (forceMode_) {
@@ -483,7 +482,6 @@ void WinboardAdapter::parseOptionFeature(const std::string& optionStr, int64_t t
     supportedOptions_.push_back(std::move(opt));
 }
 
-
 EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption) {
     std::string token;
     EngineEvent event = EngineEvent::createNoData(identifier_, timestamp);
@@ -554,8 +552,6 @@ void WinboardAdapter::finalizeFeatures() {
         }
     }
 }
-
-
 
 EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
     const std::string& line = trim(engineLine.content);
@@ -657,7 +653,15 @@ EngineEvent WinboardAdapter::readEvent() {
     if (inFeatureSection_) {
         return readFeatureSection(engineLine);
     }
-
+	/* Timeout test code, uncomment to use
+    static int64_t count = 0;
+    count++;
+    if (count == 100) {
+		std::cout << identifier_ << " WinboardAdapter: readEvent() called 100 times, sleeping for 200 seconds" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(200));
+		std::cout << identifier_ << " WinboardAdapter: resuming after sleep" << std::endl;
+    }
+    */
     std::istringstream iss(line);
     std::string command;
     iss >> command;
@@ -688,7 +692,9 @@ EngineEvent WinboardAdapter::readEvent() {
 		return EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, move, "");
     }
 
-    if (command == "tellics" || command == ".") {
+    if (command == "tellics" || command == "tellicsnoalias" 
+        || command == "tellusererror" || command == "tellallerror") 
+    {
         logFromEngine(line, TraceLevel::info);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
@@ -713,11 +719,6 @@ EngineEvent WinboardAdapter::readEvent() {
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
-    if (command == "tellusererror" || command == "tellallerror") {
-        logFromEngine(line, TraceLevel::error);
-        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
-    }
-
     if (command == "0-1" || command == "1-0" || command == "1/2-1/2") {
         logFromEngine(line, TraceLevel::command);
         EngineEvent event = EngineEvent::create(
@@ -736,5 +737,3 @@ EngineEvent WinboardAdapter::readEvent() {
 
     return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
 }
-
-#endif

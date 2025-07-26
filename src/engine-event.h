@@ -23,6 +23,7 @@
 #include <ostream>
 
 #include "game-result.h"
+#include "logger.h"
 
 struct SearchInfo {
     std::optional<int> depth;
@@ -154,6 +155,7 @@ struct EngineEvent {
     struct ParseError {
         std::string name;
         std::string detail;
+        TraceLevel level = TraceLevel::info;
     };
 
     Type type;

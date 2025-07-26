@@ -91,7 +91,7 @@ void GameManager::initUniqueEngine(std::unique_ptr<EngineWorker> engine) {
         });
     whitePlayer_ = &player1_;
     blackPlayer_ = &player1_;
-    whitePlayer_->setEngine(std::move(engine), requireLan_);
+    whitePlayer_->setEngine(std::move(engine));
     switchedSide_ = false;
 }
 
@@ -106,14 +106,15 @@ void GameManager::initEngines(std::unique_ptr<EngineWorker> white, std::unique_p
 
     whitePlayer_ = &player1_;
     blackPlayer_ = &player2_;
-	whitePlayer_->setEngine(std::move(white), requireLan_);
-    blackPlayer_->setEngine(std::move(black), requireLan_);
+	whitePlayer_->setEngine(std::move(white));
+    blackPlayer_->setEngine(std::move(black));
     switchedSide_ = false;
 }
 
 void GameManager::processQueue() {
     constexpr std::chrono::seconds timeoutInterval(1);
     auto nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+    isGameManagerThread = true;
 
     while (!stopThread_) {
         {
@@ -128,20 +129,24 @@ void GameManager::processQueue() {
         }
 
         if (std::chrono::steady_clock::now() >= nextTimeoutCheck) {
+            if (debug_) std::cout << "Timeout check" << std::endl;
             nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
 
             if (taskType_ != GameTask::Type::ComputeMove && taskType_ != GameTask::Type::PlayGame) {
+                if (debug_) std::cout << "Stop check, cause task-type" << std::to_string(static_cast<int>(taskType_.load())) << std::endl;
                 continue;
             }
             bool restarted = false;
-            if (whitePlayer_->checkEngineTimeout()) {
+            if (whitePlayer_->checkEngineTimeout(debug_)) {
+                if (debug_) std::cout << "White timout" << std::endl;
                 restarted = true;
                 whitePlayer_->getEngine()->setEventSink([this](EngineEvent&& event) {
                     enqueueEvent(std::move(event));
                     });;
             }
             if (whitePlayer_ != blackPlayer_) {
-                if (blackPlayer_->checkEngineTimeout()) {
+                if (blackPlayer_->checkEngineTimeout(debug_)) {
+                    if (debug_) std::cout << "Black timout" << std::endl;
 					restarted = true;
                     blackPlayer_->getEngine()->setEventSink([this](EngineEvent&& event) {
                         enqueueEvent(std::move(event));
@@ -207,7 +212,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 		std::string name = player->getEngine()->getConfig().getName();
 		EngineReport* checklist = EngineReport::getChecklist(name);
         for (auto& error : event.errors) {
-            checklist->logReport(error.name, false, error.detail, TraceLevel::info);
+            checklist->logReport(error.name, false, error.detail, error.level);
         }
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {

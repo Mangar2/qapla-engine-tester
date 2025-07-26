@@ -36,6 +36,7 @@ struct GoLimits {
     int64_t wincMs = 0;
     int64_t bincMs = 0;
     int32_t movesToGo = 0;
+	bool hasTimeControl = false;  
 
     std::optional<int> depth;
     std::optional<int> nodes;
@@ -238,8 +239,11 @@ inline GoLimits createGoLimits(
     limits.infinite = white.infinite();
 
     if (limits.movetimeMs || limits.depth || limits.nodes || limits.infinite) {
+        limits.hasTimeControl = false;
         return limits;
     }
+
+	limits.hasTimeControl = true;
 
     int wMovesPlayed = (halfMoves + 1) / 2;
     int bMovesPlayed = halfMoves / 2;

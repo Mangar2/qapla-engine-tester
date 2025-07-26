@@ -72,15 +72,13 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
 
     PgnIO::tournament().initialize(config.event);
+    AppError::throwOnInvalidOption({ "gauntlet", "round-robin" }, config.type, "Unsupported tournament type");
+
     if (config.type == "gauntlet") {
         createGauntletPairings(engines, config);
     }
-    else if (config.type == "round-robin") {
-        createRoundRobinPairings(engines, config);
-    }
     else {
-        Logger::testLogger().log("Unsupported tournament type: " + config.type, TraceLevel::error);
-        return;
+        createRoundRobinPairings(engines, config);
     }
 }
 
