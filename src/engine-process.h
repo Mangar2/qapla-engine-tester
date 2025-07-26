@@ -25,6 +25,7 @@
 #include <chrono>
 #include <deque>
 #include <array>
+#include <atomic>
 
 #ifndef _WIN32
 #include <unistd.h>

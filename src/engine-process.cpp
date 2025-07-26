@@ -394,6 +394,7 @@ void EngineProcess::closeAllHandles()
 
 void EngineProcess::writeLineOverlapped(const std::string& withNewline)
 {
+#ifdef _WIN32
     constexpr DWORD writeTimeoutMs = 500;
     auto& overlapped = win32IoData_->overlappedWrite;
     overlapped.Offset = 0;
@@ -412,6 +413,7 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
             throw std::runtime_error("Failed to complete overlapped write");
         }
     }
+#endif
 }
 
 int64_t EngineProcess::writeLine(const std::string &line)
