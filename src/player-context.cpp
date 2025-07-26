@@ -118,7 +118,8 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     checkTime(event);
     gameState_.doMove(move);
 
-    currentMove_.updateFromBestMove(event, move.getLAN(), computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
+    currentMove_.updateFromBestMove(event, move.getLAN(), gameState_.moveToSan(move),
+        computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
     return move;
 }
 
@@ -182,7 +183,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 }
 
-bool PlayerContext::checkEngineTimeout() {
+bool PlayerContext::checkEngineTimeout(bool debug) {
     if (computeState_ != ComputeState::ComputingMove) return false;
     if (!engine_) return false;
 	const int64_t GRACE_MS = 1000;
@@ -194,8 +195,8 @@ bool PlayerContext::checkEngineTimeout() {
 
     const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
     int64_t overrun = 0;
-    bool useGameTime = timeLeft != 0;
-	if (useGameTime) {
+
+	if (goLimits_.hasTimeControl) {
         overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;
         if (moveElapsedMs > timeLeft) {
 			engine_->moveNow();
@@ -234,6 +235,10 @@ void PlayerContext::handleDisconnect(bool isWhitePlayer) {
 void PlayerContext::restartEngine() {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
+	}
+    if (!isGameManagerThread) {
+		std::cerr << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed." << std::endl;
+        throw AppError::make("PlayerContext::restart; Cannot restart engine outside of the GameManager thread.");
 	}
     computeState_ = ComputeState::Idle;
     // Create a fully initialized new engine instance (incl. UCI handshake)

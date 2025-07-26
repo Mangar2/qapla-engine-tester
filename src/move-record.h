@@ -64,13 +64,17 @@ struct MoveRecord {
      * Updates the move record with the best move and time taken from an EngineEvent.
      *
      * @param event EngineEvent of type BestMove containing the chosen move and timestamp.
+     * @param lanMove move in long algebraic notation
+     * @param sanMove move in short algebraic notation
      * @param computeStartTimestamp Timestamp when move computation started, in milliseconds.
      * @param halfmoveClk The current halfmove clock value, used for the 50-move rule.
      */
-    void updateFromBestMove(const EngineEvent& event, std::string lanMove, int64_t computeStartTimestamp, int32_t halfmoveClk) {
+    void updateFromBestMove(const EngineEvent& event, std::string lanMove, std::string sanMove,
+        int64_t computeStartTimestamp, int32_t halfmoveClk) {
         if (event.bestMove) {
             original = *event.bestMove;
 			lan = lanMove;
+            san = sanMove;
         }
         halfmoveClock = halfmoveClk;
         timeMs = static_cast<uint64_t>(event.timestampMs - computeStartTimestamp);

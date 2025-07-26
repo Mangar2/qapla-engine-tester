@@ -214,12 +214,28 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
             }
         }
+        catch (const std::exception& ex) {
+            if (eventSink_) {
+                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
+                    Timer::getCurrentTimeMs());
+                e.errors.push_back({ 
+                    .name = "I/O Error", 
+                    .detail = std::string("Failed to send compute move command: ") + ex.what(),
+					.level = TraceLevel::error
+                    });
+                eventSink_(std::move(e));
+            }
+        }
         catch (...) {
             if (eventSink_) {
-                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, 
+                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
                     Timer::getCurrentTimeMs());
-				e.errors.push_back({ "I/O Error", "Failed to send compute move command" });
-				eventSink_(std::move(e));
+                e.errors.push_back({ 
+                    .name = "I/O Error",
+                    .detail = std::string("Failed to send compute move command"),
+                    .level = TraceLevel::error
+                });
+                eventSink_(std::move(e));
             }
         }
         });

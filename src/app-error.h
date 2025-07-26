@@ -97,6 +97,49 @@ public:
             "Use --help to display all supported parameters.", {});
     }
 
+    /**
+     * Throws an AppError if the given option is not in the list of allowed options.
+     * Suggests a similar option if available.
+     * @param allowedOptions List of valid options.
+     * @param givenOption The provided option to validate.
+     * @param contextText The context or description for the error message.
+     */
+    static void throwOnInvalidOption(const std::vector<std::string>& allowedOptions, 
+        const std::string& givenOption, const std::string& contextText) {
+
+        if (std::find(allowedOptions.begin(), allowedOptions.end(), givenOption) != allowedOptions.end()) return;
+
+        auto levenshtein = [](const std::string& a, const std::string& b) {
+            const size_t m = a.size(), n = b.size();
+            std::vector<std::vector<size_t>> dp(m + 1, std::vector<size_t>(n + 1));
+            for (size_t i = 0; i <= m; ++i) dp[i][0] = i;
+            for (size_t j = 0; j <= n; ++j) dp[0][j] = j;
+            for (size_t i = 1; i <= m; ++i)
+                for (size_t j = 1; j <= n; ++j)
+                    dp[i][j] = std::min({ dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]), dp[i - 1][j] + 1, dp[i][j - 1] + 1 });
+            return dp[m][n];
+            };
+
+        std::string suggestion;
+        size_t minDistance = std::numeric_limits<int>::max();
+        for (const auto& option : allowedOptions) {
+            size_t dist = levenshtein(givenOption, option);
+            if (dist < minDistance && dist <= 3) {
+                minDistance = dist;
+                suggestion = option;
+            }
+        }
+
+        std::string hint = "\nValid options: ";
+        for (const auto& opt : allowedOptions) hint += opt + ", ";
+        hint.pop_back(); hint.pop_back(); // remove trailing comma and space
+
+        if (!suggestion.empty()) hint += ".\nDid you mean '" + suggestion + "'?";
+
+        throw makeInvalidParameters("\n" + contextText + ": '" + givenOption + "' " + hint);
+    }
+
+
 private:
 
     AppError(int internalCode, AppReturnCode returnCode, const std::string& externalText,
