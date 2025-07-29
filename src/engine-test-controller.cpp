@@ -459,11 +459,11 @@ void EngineTestController::runAnalyzeTest() {
             if (!finished) {
                 bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
-                    startEngine();
 					Logger::testLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
                     return { false, "Timeout after stop command (even after extended wait)" };
                 }
             }
+            startEngine();
         }
 		Logger::testLogger().logAligned("Testing stop command:", "Engine correctly handled stop command and sent bestmove");
         return { true, "" };
