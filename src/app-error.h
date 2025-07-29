@@ -21,6 +21,8 @@
 
 #include <stdexcept>
 #include <string>
+#include <algorithm>
+#include <limits>
 
 enum class AppReturnCode {
     NoError = 0,
