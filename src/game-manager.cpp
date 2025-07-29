@@ -465,7 +465,7 @@ void GameManager::setFromFen(bool useStartPosition, const std::string& fen,
         blackPlayer_->getEngine()->getConfig().getName());
     if (playedMoves) {
         for (const auto& move : *playedMoves) {
-            gameRecord_.addMove({ .lan = move });
+            gameRecord_.addMove({ .original = move, .lan = move });
         }
     }
 

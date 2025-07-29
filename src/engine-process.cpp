@@ -446,7 +446,8 @@ std::size_t EngineProcess::getMemoryUsage() const
     PROCESS_MEMORY_COUNTERS_EX pmc;
     if (GetProcessMemoryInfo(childProcess_, reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&pmc), sizeof(pmc)))
     {
-        return pmc.PrivateUsage; // Private memory used by process
+        // return pmc.PrivateUsage; // Pages
+        return pmc.WorkingSetSize; // RAM
     }
     return 0;
 #elif defined(__APPLE__)
