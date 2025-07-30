@@ -151,12 +151,10 @@ std::optional<GameTask> PairTournament::nextTask() {
 		task.gameRecord.setRound(static_cast<uint32_t>(i + 1));
 		task.taskId = std::to_string(i);
         task.switchSide = config_.swapColors && (i % 2 == 1);
-        if (task.switchSide) {
-            task.gameRecord.setTimeControl(engineB_.getTimeControl(), engineA_.getTimeControl());
-        }
-        else {
-            task.gameRecord.setTimeControl(engineA_.getTimeControl(), engineB_.getTimeControl());
-        }
+        auto& white = task.switchSide ? engineB_ : engineA_;
+        auto& black = task.switchSide ? engineA_ : engineB_;
+        task.gameRecord.setTimeControl(white.getTimeControl(), black.getTimeControl());
+
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
 
@@ -165,7 +163,7 @@ std::optional<GameTask> PairTournament::nextTask() {
             << "started round " << std::setw(3) << (config_.round + 1)
             << " game " << std::setw(3) << i + 1
             << " opening " << std::setw(6) << openingIndex_
-            << " engines " << engineA_.getName() << " vs " << engineB_.getName()
+            << " engines " << white.getName() << " vs " << black.getName()
             << std::endl;
 
         return task;
