@@ -42,7 +42,8 @@ inline RestartOption parseRestartOption(const std::string& value) {
 	if (value == "auto") return RestartOption::EngineDecides;
 	if (value == "on") return RestartOption::Always;
 	if (value == "off") return RestartOption::Never;
-	throw AppError::makeInvalidParameters("Unknown value for option 'restart' : " + value);
+	AppError::throwOnInvalidOption({ "auto", "on", "off" }, value, "restart option");	
+	return RestartOption::EngineDecides;
 }
 
 enum class EngineProtocol {

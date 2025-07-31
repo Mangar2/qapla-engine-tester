@@ -108,7 +108,7 @@ namespace CliSettings
     {
         auto typeMismatch = [&](const std::string &expected)
         {
-            throw AppError::make("Default value for setting \"" + name + "\" must be of type " + expected + ".");
+            throw AppError::makeInvalidParameters("Default value for setting \"" + name + "\" must be of type " + expected + ".");
         };
 
         switch (type)
@@ -344,9 +344,10 @@ namespace CliSettings
                 break;
 
             const Definition *def = resolveGroupedKey(groupDefinition, arg.name);
-            if (!def)
-                throw AppError::makeInvalidParameters(
-                    "Unknown parameter \"" + arg.name + "\" in section \"" + groupArg.name + "\"");
+            if (!def) {
+                AppError::throwOnInvalidOption(groupDefinition.keyNames(), arg.name,
+                    "Unknown parameter in section \"" + groupArg.name + "\"");
+            }
             group[arg.name] = parseValue(arg, *def);
 
             ++index;

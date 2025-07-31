@@ -21,6 +21,8 @@
 #include "engine-option.h"
 #include "app-error.h"
 #include "string-helper.h"
+#include <string>
+#include <filesystem>
 
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
@@ -70,8 +72,17 @@ void EngineConfig::setTraceLevel(const std::string& level) {
 		traceLevel_ = TraceLevel::command;
 	}
 	else {
-		throw AppError::makeInvalidParameters("Unknown trace level: " + level + " for engine " + getName());
+        AppError::throwOnInvalidOption({ "none", "all", "command" }, level, 
+			"Invalid trace level for engine " + getName() + ". Supported levels are: none, all, command.");
 	}
+}
+
+void EngineConfig::setProtocol(const std::string& proto) {
+    if (proto == "uci") protocol_ = EngineProtocol::Uci;
+    else if (proto == "xboard") protocol_ = EngineProtocol::XBoard;
+    else {
+		AppError::throwOnInvalidOption({ "uci", "xboard" }, proto, "Unknown protocol");
+    }
 }
 
 void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
@@ -93,25 +104,44 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         else if (key == "cmd") setCmd(std::get<std::string>(value));
         else if (key == "dir") setDir(std::get<std::string>(value));
         else if (key == "restart") restart_ = parseRestartOption(std::get<std::string>(value));
-        else if (key == "proto") {
-            auto valueStr = std::get<std::string>(value);
-            if (valueStr == "uci") protocol_ = EngineProtocol::Uci;
-            else if (valueStr == "xboard") protocol_ = EngineProtocol::XBoard;
-            else throw std::runtime_error("Unknown protocol: " + valueStr);
-        }
-        else if (key.starts_with("option.")) {
-            setOptionValue(key.substr(7), toString(value));
-        }
+        else if (key == "proto") setProtocol(std::get<std::string>(value));
+        else if (key.starts_with("option.")) setOptionValue(key.substr(7), toString(value));
         else {
-			throw AppError::makeInvalidParameters("Unknown engine option key: " + key + " for engine " + getName());
+            AppError::throwOnInvalidOption(
+                { "name", "cmd", "dir", "tc", "ponder", "gauntlet", "trace", "restart", "proto", "option."},
+                key, 
+				"Invalid engine option key: " + key + 
+                ". Supported keys are: name, cmd, dir, tc, ponder, gauntlet, trace, restart, proto, option.[name] ."
+            );
         }
     }
     if (!update) finalizeSetOptions();
 }
 
+void EngineConfig::warnOnNameMismatch(const std::string& fileName, const std::string& engineName) const {
+    const std::string normName = to_lowercase(to_alphanum(engineName));
+    const std::string normFile = to_lowercase(to_alphanum(fileName));
+
+    const size_t len = std::min(normName.size(), normFile.size());
+    if (len <= 2) return;
+
+    if (normName.find(normFile) != std::string::npos || normFile.find(normName) != std::string::npos)
+        return;
+
+    const size_t dist = levenshteinDistance(normName, normFile);
+    
+    if (dist > 0 && dist < 3) {
+        std::cerr << "Warning: Engine name '" << getName()
+            << "' and command filename '" << fileName
+            << "' appear mismatched.\n";
+    }
+}
+
 void EngineConfig::finalizeSetOptions() {
     if (getCmd().empty()) throw std::runtime_error("Missing required field: cmd");
-    if (getName().empty()) setName(getCmd());
+    std::string fileName = std::filesystem::path(getCmd()).filename().string();
+    warnOnNameMismatch(fileName, getName());
+    if (getName().empty()) setName(fileName);
     if (getDir().empty()) setDir(".");
     if (protocol_ == EngineProtocol::Unknown) protocol_ = EngineProtocol::Uci;
 }
@@ -156,18 +186,14 @@ std::istream& operator>>(std::istream& in, EngineConfig& config) {
         if (key == "name") config.setName(value);
         else if (key == "cmd") config.setCmd(value);
         else if (key == "dir") config.setDir(value);
-		else if (key == "tc") config.setTimeControl(value);
-		else if (key == "ponder") {
-			if (value == "true" || value == "1" || value == "") config.setPonder(true);
-			else if (value == "false" || value == "0") config.setPonder(false);
-			else throw std::runtime_error("Invalid ponder value: " + value);
-		}
-        else if (key == "restart") config.restart_ = parseRestartOption(value);
-        else if (key == "proto") {
-            if (value == "uci") config.protocol_ = EngineProtocol::Uci;
-            else if (value == "xboard") config.protocol_ = EngineProtocol::XBoard;
-            else throw std::runtime_error("Unknown protocol: " + value);
+        else if (key == "tc") config.setTimeControl(value);
+        else if (key == "ponder") {
+            if (value == "true" || value == "1" || value == "") config.setPonder(true);
+            else if (value == "false" || value == "0") config.setPonder(false);
+            else throw std::runtime_error("Invalid ponder value: " + value);
         }
+        else if (key == "restart") config.restart_ = parseRestartOption(value);
+        else if (key == "proto") config.setProtocol(value);
         else {
             config.setOptionValue(key, value);
         }

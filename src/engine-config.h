@@ -87,6 +87,7 @@ public:
 	 * @param proto The protocol to set (Uci, XBoard, etc.).
 	 */
 	void setProtocol(EngineProtocol proto) { protocol_ = proto; }
+    void setProtocol(const std::string& proto);
 
     /**
      * Gets the engine name.
@@ -215,6 +216,14 @@ private:
      * @throws std::runtime_error If the line is not a valid section header.
      */
     void finalizeSetOptions();
+
+    /**
+     * Checks whether engine name and command file name appear mismatched.
+     * Emits a warning if normalized forms differ significantly.
+	 * @param fileName The name of the engine executable.
+	 * @param engineName The name of the engine as configured.
+     */
+    void warnOnNameMismatch(const std::string& fileName, const std::string& engineName) const;
 
     std::string toString(const Value& value);
     std::string name_;

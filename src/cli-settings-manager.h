@@ -43,8 +43,23 @@ namespace CliSettings {
         std::string description;
 		bool unique = false; 
         std::unordered_map<std::string, Definition> keys;
-    };
 
+        /**
+         * Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
+        */
+        std::vector<std::string> keyNames() const {
+            std::vector<std::string> result;
+            result.reserve(keys.size());
+            constexpr std::string_view suffix = ".[name]";
+            for (const auto& [key, _] : keys) {
+                if (key.ends_with(suffix))
+                    result.emplace_back(key.substr(0, key.size() - suffix.size()));
+                else
+                    result.emplace_back(key);
+            }
+            return result;
+        }
+    };
 
     /**
      * @brief Represents a single instance of a grouped CLI setting block (e.g., one --engine block).
