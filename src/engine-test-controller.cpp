@@ -28,6 +28,8 @@
 #include "engine-report.h"
 #include "cli-settings-manager.h"
 #include "epd-test-manager.h"
+#include "compute-task.h"
+#include "game-manager.h"
 #include "game-manager-pool.h"
 #include "event-sink-recorder.h"
 
@@ -444,26 +446,29 @@ void EngineTestController::runAnalyzeTest() {
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
 
     runTest("reacts-on-stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->newGame();
+        ComputeTask task;
+        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
+		task.initEngines(std::move(list));
         TimeControl t;
         t.setInfinite();
-        gameManager_->setUniqueTimeControl(t);
+        task.setTimeControl(t);
         for (auto fen : {
             "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - - 0 1",
             "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - - 0 1"
             }) {
-            gameManager_->computeMove(false, fen);
+            task.newGame();
+            task.setPosition(false, fen);
+            task.computeMove(0);
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            gameManager_->moveNow();
-            bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+            task.moveNow();
+            bool finished = task.getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
             if (!finished) {
-                bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+                bool extended = task.getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
 					Logger::testLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
                     return { false, "Timeout after stop command (even after extended wait)" };
                 }
             }
-            startEngine();
         }
 		Logger::testLogger().logAligned("Testing stop command:", "Engine correctly handled stop command and sent bestmove");
         return { true, "" };

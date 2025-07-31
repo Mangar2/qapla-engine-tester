@@ -25,11 +25,23 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <optional>
 
 inline std::string to_lowercase(const std::string& input) {
     std::string result = input;
     std::transform(result.begin(), result.end(), result.begin(),
         [](unsigned char c) { return std::tolower(c); });
+    return result;
+}
+
+inline std::string to_alphanum(const std::string& input) {
+    std::string result;
+    result.reserve(input.size());
+    for (char ch : input) {
+        if (std::isalnum(static_cast<unsigned char>(ch))) {
+            result += ch;
+        }
+    }
     return result;
 }
 
@@ -75,7 +87,7 @@ inline std::optional<std::pair<std::string, std::string>> parseKeyValue(const st
     return std::make_pair(key, value);
 }
 
-static std::string formatMs(uint64_t ms) {
+inline std::string formatMs(uint64_t ms) {
     std::ostringstream oss;
     uint64_t minutes = ms / 60000;
     uint64_t seconds = (ms % 60000) / 1000;
@@ -87,3 +99,13 @@ static std::string formatMs(uint64_t ms) {
     return oss.str();
 }
 
+inline size_t levenshteinDistance(const std::string& a, const std::string& b) {
+    const size_t m = a.size(), n = b.size();
+    std::vector<std::vector<size_t>> dp(m + 1, std::vector<size_t>(n + 1));
+    for (size_t i = 0; i <= m; ++i) dp[i][0] = i;
+    for (size_t j = 0; j <= n; ++j) dp[0][j] = j;
+    for (size_t i = 1; i <= m; ++i)
+        for (size_t j = 1; j <= n; ++j)
+            dp[i][j] = std::min({ dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]), dp[i - 1][j] + 1, dp[i][j - 1] + 1 });
+    return dp[m][n];
+};

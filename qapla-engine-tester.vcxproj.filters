@@ -117,6 +117,9 @@
     <ClCompile Include="src\adjucation-manager.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\compute-task.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine-process.h">
@@ -297,6 +300,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\adjucation-manager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\compute-task.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

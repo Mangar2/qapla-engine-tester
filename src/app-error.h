@@ -23,6 +23,7 @@
 #include <string>
 #include <algorithm>
 #include <limits>
+#include "string-helper.h"
 
 enum class AppReturnCode {
     NoError = 0,
@@ -111,21 +112,10 @@ public:
 
         if (std::find(allowedOptions.begin(), allowedOptions.end(), givenOption) != allowedOptions.end()) return;
 
-        auto levenshtein = [](const std::string& a, const std::string& b) {
-            const size_t m = a.size(), n = b.size();
-            std::vector<std::vector<size_t>> dp(m + 1, std::vector<size_t>(n + 1));
-            for (size_t i = 0; i <= m; ++i) dp[i][0] = i;
-            for (size_t j = 0; j <= n; ++j) dp[0][j] = j;
-            for (size_t i = 1; i <= m; ++i)
-                for (size_t j = 1; j <= n; ++j)
-                    dp[i][j] = std::min({ dp[i - 1][j - 1] + (a[i - 1] != b[j - 1]), dp[i - 1][j] + 1, dp[i][j - 1] + 1 });
-            return dp[m][n];
-            };
-
         std::string suggestion;
         size_t minDistance = std::numeric_limits<int>::max();
         for (const auto& option : allowedOptions) {
-            size_t dist = levenshtein(givenOption, option);
+            size_t dist = levenshteinDistance(givenOption, option);
             if (dist < minDistance && dist <= 3) {
                 minDistance = dist;
                 suggestion = option;

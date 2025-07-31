@@ -29,6 +29,11 @@ inline thread_local bool isGameManagerThread = false;
 class PlayerContext {
 public:
     PlayerContext() = default;
+    PlayerContext(PlayerContext&&) = delete;
+    PlayerContext& operator=(PlayerContext&&) = delete;
+
+    PlayerContext(const PlayerContext&) = delete;
+    PlayerContext& operator=(const PlayerContext&) = delete;
 
     /**
      * @brief Sets the time control for this player.
@@ -113,7 +118,7 @@ public:
 	 * @param event the event that triggered the pondering, if any
      */
     void allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
-        const std::optional<EngineEvent>& event);
+        const std::optional<EngineEvent>& event = std::nullopt);
 
 	/**
 	 * @brief Cancels the current move computation.
