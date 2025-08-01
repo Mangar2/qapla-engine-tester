@@ -25,10 +25,8 @@
 #include <future>
 
 #include "engine-worker.h"
-#include "player-context.h"
-#include "time-control.h"
-#include "game-record.h"
 #include "engine-event.h"
+#include "game-context.h"
 
  /**
   * @brief Executes a single computation task such as move calculation, game play, or position analysis.
@@ -43,31 +41,56 @@ public:
      * @brief Initializes engines
      * @param engines A vector of unique pointers to EngineWorker instances.
      */
-    void initEngines(std::vector<std::unique_ptr<EngineWorker>> engines);
+    void initEngines(std::vector<std::unique_ptr<EngineWorker>> engines) {
+        gameContext_.initPlayers(std::move(engines));
+    }
 
     /**
 	 * @brief Gets the amount of engines currently managed by this manager.
      */
-    uint32_t getEngineCount() const {
-		return static_cast<uint32_t>(players_.size());
+    size_t getEngineCount() const {
+		return gameContext_.getPlayerCount();
+    }
+
+    /**
+     * @brief Returns the player at the specified index.
+     * @param index The index of the player to return.
+     * @return Pointer to the PlayerContext at the given index, or nullptr if no players exist.
+     */
+    EngineWorker* getEngine(uint32_t index = 0) {
+        return gameContext_.getEngine(index);
     }
 
     /**
 	 * @brief Restarts the engine at the specified index.
 	 * @param index The index of the engine to restart.
 	 */
-	void restartEngine(uint32_t index);
+    void restartEngine(uint32_t index) {
+		gameContext_.restartPlayer(index);
+    }
 
     /**
 	 * @brief Sets the time controls for the players.
      * @param timeControl The time control.
      */
-    void setTimeControl(const TimeControl& timeControl);
+    void setTimeControl(const TimeControl& timeControl) {
+        gameContext_.setTimeControl(timeControl);
+	}
+
+    /**
+     * @brief Sets the time controls for each player.
+     * @param timeControls A vector of TimeControl objects for each player.
+	 */
+	void setTimeControls(const std::vector<TimeControl>& timeControls) {
+		gameContext_.setTimeControls(timeControls);
+	}
 
     /**
      * @brief Notifies all engines that a new game starts and resets their internal state.
      */
-    void newGame();
+    void newGame() {
+		gameContext_.newGame();
+    }
 
     /**
      * @brief Sets a position
@@ -76,17 +99,19 @@ public:
      * @param playedMoves Optional list of moves already played.
      */
     void setPosition(bool useStartPosition, const std::string& fen = "",
-        std::optional<std::vector<std::string>> playedMoves = std::nullopt);
+        std::optional<std::vector<std::string>> playedMoves = std::nullopt) {
+		gameContext_.setPosition(useStartPosition, fen, playedMoves);
+    }
 
     /**
 	 * @brief computes a single move for the current position.
      */
-    void computeMove(std::optional<uint32_t> index);
+    void computeMove();
 
     /**
      * @brief Starts a game continuation until the end.
      */
-    void autoplay();
+    void autoplay(bool logMoves = false);
 
     /**
      * @brief Forces the engine to return the best move immediately.
@@ -104,24 +129,37 @@ public:
     void stop();
 
 private:
+    GameContext gameContext_;
+
+    /**
+     * @brief Defines the currently active automated task mode.
+     */
+    enum class ComputeTaskType {
+        None,
+        Autoplay
+    };
+    ComputeTaskType taskType_ = ComputeTaskType::None;
+
+    /**
+     * @brief Continues the current automatic task after a best move, if applicable.
+     */
+    void nextMove();
+
+
     void enqueueEvent(const EngineEvent& event);
     void processQueue();
     void processEvent(const EngineEvent& event);
     void handleBestMove(const EngineEvent& event);
 
-    bool checkGameOver();
+    bool checkGameOver(bool verbose = false);
 
-    std::tuple<GameEndCause, GameResult> getGameResult();
+
     void markFinished();
     void markRunning();
-
-    std::vector<std::unique_ptr<PlayerContext>> players_;
-
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
     bool finishedPromiseValid_ = false;
 
-    GameRecord gameRecord_;
     bool logMoves_ = false;
 
     std::thread eventThread_;

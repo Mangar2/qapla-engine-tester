@@ -147,6 +147,7 @@
     <ClCompile Include="src\engine-worker.cpp" />
     <ClCompile Include="src\epd-manager.cpp" />
     <ClCompile Include="src\epd-reader.cpp" />
+    <ClCompile Include="src\game-context.cpp" />
     <ClCompile Include="src\game-manager-pool.cpp" />
     <ClCompile Include="src\game-manager.cpp" />
     <ClCompile Include="src\game-record.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="src\evalvalue.h" />
     <ClInclude Include="src\event-sink-recorder.h" />
     <ClInclude Include="src\fenscanner.h" />
+    <ClInclude Include="src\game-context.h" />
     <ClInclude Include="src\game-manager-pool.h" />
     <ClInclude Include="src\game-manager.h" />
     <ClInclude Include="src\game-record.h" />

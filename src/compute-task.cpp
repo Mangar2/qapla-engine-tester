@@ -23,6 +23,9 @@ ComputeTask::ComputeTask() {
     finishedFuture_ = finishedPromise_.get_future();
     finishedPromiseValid_ = true;
     eventThread_ = std::thread(&ComputeTask::processQueue, this);
+    gameContext_.setEventCallback([this](EngineEvent&& event) {
+        enqueueEvent(std::move(event));
+		});
 }
 
 ComputeTask::~ComputeTask() {
@@ -33,106 +36,65 @@ ComputeTask::~ComputeTask() {
     }
 }
 
-void ComputeTask::initEngines(std::vector<std::unique_ptr<EngineWorker>> engines) {
-    players_.clear();
-    for (auto& engine : engines) {
-        engine->setEventSink([this](EngineEvent&& event) {
-            enqueueEvent(std::move(event));
-            });
-
-        auto player = std::make_unique<PlayerContext>();
-        player->setEngine(std::move(engine));
-        players_.emplace_back(std::move(player));
-    }
-}
-
-void ComputeTask::restartEngine(uint32_t index) {
-    if (index >= players_.size()) return;
-
-    players_[index]->restartEngine();
-    players_[index]->getEngine()->setEventSink([this](EngineEvent&& event) {
-        enqueueEvent(std::move(event));
-        });
-}
-
-void ComputeTask::setTimeControl(const TimeControl& timeControl) {
-    for (auto& player : players_) {
-        player->setTimeControl(timeControl);
-    }
-}
-
-void ComputeTask::newGame() {
-    for (size_t i = 0; i < players_.size(); ++i) {
-        bool isWhite = (i == 0);
-        players_[i]->newGame(gameRecord_, isWhite);
-    }
-}
-
-void ComputeTask::setPosition(bool useStartPosition, const std::string& fen,
-    std::optional<std::vector<std::string>> playedMoves) {
-
-    gameRecord_.setStartPosition(useStartPosition, fen, true,
-        players_.empty() ? "" : players_[0]->getEngine()->getConfig().getName(),
-        players_.size() > 1 ? players_[1]->getEngine()->getConfig().getName() : "");
-
-    if (playedMoves) {
-        for (const auto& move : *playedMoves) {
-            gameRecord_.addMove({ .original = move, .lan = move });
-        }
-    }
-
-    for (auto& player : players_) {
-        player->setStartPosition(gameRecord_);
-    }
-}
-
-void ComputeTask::computeMove(std::optional<uint32_t> index) {
-    if (players_.empty()) return;
-    if (index && *index >= players_.size()) {
-        return;
-	}
-    markRunning();
-    GoLimits goLimits = createGoLimits(
-        players_.front()->getTimeControl(), players_.front()->getTimeControl(),
-        gameRecord_.nextMoveIndex(), 0, 0, gameRecord_.isWhiteToMove());
-
-    if (index) {
-        players_[*index]->computeMove(gameRecord_, goLimits);
-    }
-    else {
-        for (auto& player : players_) {
-            player->computeMove(gameRecord_, goLimits);
-		}
-    }
-}
-
-void ComputeTask::autoplay() {
-    if (players_.size() < 2) return;
+void ComputeTask::computeMove() {
+    if (gameContext_.getPlayerCount() == 0) return;
+    if (checkGameOver()) return;
+    logMoves_ = false;
     markRunning();
 
-    auto [whiteTime, blackTime] = gameRecord_.timeUsed();
-    GoLimits goLimits = createGoLimits(
-        players_[0]->getTimeControl(), players_[1]->getTimeControl(),
-        gameRecord_.nextMoveIndex(), whiteTime, blackTime, gameRecord_.isWhiteToMove());
+    auto& gameRecord = gameContext_.gameRecord();
+    auto white = gameContext_.getWhite();
+    auto black = gameContext_.getBlack();
 
-    if (gameRecord_.isWhiteToMove()) {
-        players_[0]->computeMove(gameRecord_, goLimits);
-        players_[1]->allowPonder(gameRecord_, goLimits);
+    auto [whiteTime, blackTime] = gameRecord.timeUsed();
+    GoLimits goLimits = createGoLimits(
+        white->getTimeControl(), black->getTimeControl(),
+        gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
+
+    if (gameRecord.isWhiteToMove()) {
+        white->computeMove(gameRecord, goLimits);
     }
     else {
-        players_[1]->computeMove(gameRecord_, goLimits);
-        players_[0]->allowPonder(gameRecord_, goLimits);
+        black->computeMove(gameRecord, goLimits);
     }
+}
+
+void ComputeTask::autoplay(bool logMoves) {
+
+    if (gameContext_.getPlayerCount() == 0) return;
+    if (checkGameOver()) return;
+	logMoves_ = logMoves;
+    markRunning();
+	auto& gameRecord = gameContext_.gameRecord();
+	auto white = gameContext_.getWhite();
+	auto black = gameContext_.getBlack();
+
+    auto [whiteTime, blackTime] = gameRecord.timeUsed();
+    GoLimits goLimits = createGoLimits(
+        white->getTimeControl(), black->getTimeControl(),
+        gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
+
+    if (gameRecord.isWhiteToMove()) {
+        white->computeMove(gameRecord, goLimits);
+        black->allowPonder(gameRecord, goLimits);
+    }
+    else {
+        black->computeMove(gameRecord, goLimits);
+        white->allowPonder(gameRecord, goLimits);
+    }
+    taskType_ = ComputeTaskType::Autoplay;
 }
 
 void ComputeTask::moveNow() {
-    if (players_.empty()) return;
+    if (gameContext_.getPlayerCount() == 0) return;
 
-    if (players_.size() == 1 || gameRecord_.isWhiteToMove()) {
-        players_[0]->getEngine()->moveNow();
+    auto& gameRecord = gameContext_.gameRecord();
+
+    if (gameRecord.isWhiteToMove()) {
+        gameContext_.getWhite()->getEngine()->moveNow();
     }
     else {
-        players_[1]->getEngine()->moveNow();
+        gameContext_.getBlack()->getEngine()->moveNow();
     }
 }
 
@@ -141,9 +103,18 @@ const std::future<void>& ComputeTask::getFinishedFuture() const {
 }
 
 void ComputeTask::stop() {
-    stopThread_ = true;
-    queueCondition_.notify_all();
+    taskType_ = ComputeTaskType::None;
+    gameContext_.cancelCompute();
+    {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        while (!eventQueue_.empty()) {
+            eventQueue_.pop();
+        }
+    }
+
+    markFinished();
 }
+
 
 void ComputeTask::enqueueEvent(const EngineEvent& event) {
     if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {
@@ -159,6 +130,7 @@ void ComputeTask::enqueueEvent(const EngineEvent& event) {
 void ComputeTask::processQueue() {
     constexpr std::chrono::seconds timeoutInterval(1);
     auto nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+    isEventQueueThread = true;
 
     while (!stopThread_) {
         {
@@ -182,133 +154,108 @@ void ComputeTask::processQueue() {
         if (std::chrono::steady_clock::now() >= nextTimeoutCheck) {
             nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
 
-            bool restarted = false;
-            for (auto& player : players_) {
-                if (player->checkEngineTimeout(false)) {
-                    restarted = true;
-                    player->getEngine()->setEventSink([this](EngineEvent&& event) {
-                        enqueueEvent(std::move(event));
-                        });
-                }
-            }
-
-            if (checkGameOver() || (restarted && players_.size() == 1)) {
-                markFinished();
-            }
-            else if (restarted && players_.size() > 1) {
-                autoplay();
-            }
+            bool restarted = gameContext_.checkForTimeoutsAndRestart();
+            if (restarted) markFinished();
         }
     }
 }
 
+void ComputeTask::processEvent(const EngineEvent & event) {
 
-void ComputeTask::processEvent(const EngineEvent& event) {
-    for (auto& player : players_) {
-        if (player->getEngine()->getIdentifier() != event.engineIdentifier) {
-            continue;
+    PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
+    if (!player) return;
+
+    if (!event.errors.empty()) {
+        const std::string& name = player->getEngine()->getConfig().getName();
+        EngineReport* checklist = EngineReport::getChecklist(name);
+        for (const auto& error : event.errors) {
+            checklist->logReport(error.name, false, error.detail, error.level);
         }
+    }
 
-        if (!event.errors.empty()) {
-            std::string name = player->getEngine()->getConfig().getName();
-            EngineReport* checklist = EngineReport::getChecklist(name);
-            for (const auto& error : event.errors) {
-                checklist->logReport(error.name, false, error.detail, error.level);
-            }
-        }
+    if (event.type == EngineEvent::Type::EngineDisconnected) {
+        player->handleDisconnect(true);
+        player->getEngine()->setEventSink([this](EngineEvent&& e) {
+            enqueueEvent(std::move(e));
+            });
+        return;
+    }
 
-        if (event.type == EngineEvent::Type::EngineDisconnected) {
-            player->handleDisconnect(true);
-            player->getEngine()->setEventSink([this](EngineEvent&& e) {
-                enqueueEvent(std::move(e));
-                });
-            return;
-        }
+    if (event.type == EngineEvent::Type::ComputeMoveSent) {
+        player->setComputeMoveStartTimestamp(event.timestampMs);
+        return;
+    }
 
-        if (event.type == EngineEvent::Type::ComputeMoveSent) {
-            player->setComputeMoveStartTimestamp(event.timestampMs);
-            return;
-        }
+    if (event.type == EngineEvent::Type::SendingComputeMove) {
+        player->setComputingMove(true);
+        return;
+    }
 
-        if (event.type == EngineEvent::Type::SendingComputeMove) {
-            player->setComputingMove(true);
-            return;
-        }
+    if (event.type == EngineEvent::Type::BestMove) {
+        handleBestMove(event);
+        nextMove();
+        return;
+    }
 
-        if (event.type == EngineEvent::Type::BestMove) {
-            handleBestMove(event);
-            if (players_.size() == 1) {
-                markFinished();
-            }
-            else {
-                autoplay(); // continue game
-            }
-            return;
-        }
-
-        if (event.type == EngineEvent::Type::Info) {
-            player->handleInfo(event);
-        }
-
-        break;
+    if (event.type == EngineEvent::Type::Info) {
+        player->handleInfo(event);
     }
 }
 
 void ComputeTask::handleBestMove(const EngineEvent& event) {
     QaplaBasics::Move move;
     MoveRecord moveRecord;
-    PlayerContext* player = nullptr;
-    PlayerContext* opponent = nullptr;
 
-    if (logMoves_) std::cout << *event.bestMove << " " << std::flush;
+    PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
+    if (!player) return;
 
-    if (players_.size() == 1 || players_[0]->getEngine()->getIdentifier() == event.engineIdentifier) {
-        player = players_[0].get();
-        if (players_.size() > 1) opponent = players_[1].get();
-    }
-    else if (players_.size() > 1 && players_[1]->getEngine()->getIdentifier() == event.engineIdentifier) {
-        player = players_[1].get();
-        opponent = players_[0].get();
+    if (logMoves_ && event.bestMove) {
+        std::cout << *event.bestMove << " " << std::flush;
     }
 
-    if (player) {
-        move = player->handleBestMove(event);
-        moveRecord = player->getCurrentMove();
-    }
+    move = player->handleBestMove(event);
+    moveRecord = player->getCurrentMove();
 
     if (move != QaplaBasics::Move::EMPTY_MOVE) {
-        gameRecord_.addMove(moveRecord);
-        if (opponent && opponent != player) {
+        auto& gameRecord = gameContext_.gameRecord();
+        gameRecord.addMove(moveRecord);
+
+        PlayerContext* opponent =
+            (player == gameContext_.getWhite()) ? gameContext_.getBlack() : gameContext_.getWhite();
+
+        if (opponent != player) {
             opponent->doMove(move);
         }
     }
 }
 
-std::tuple<GameEndCause, GameResult> ComputeTask::getGameResult() {
-    GameEndCause cause = GameEndCause::Ongoing;
-    GameResult result = GameResult::Unterminated;
-
-    for (auto& player : players_) {
-        auto [pcause, presult] = player->getGameResult();
-        if (pcause != GameEndCause::Ongoing) {
-            return { pcause, presult };
-        }
+void ComputeTask::nextMove() {
+    if (taskType_ != ComputeTaskType::Autoplay) {
+        markFinished();
+        return;
     }
 
-    return { GameEndCause::Ongoing, GameResult::Unterminated };
+    if (checkGameOver(true)) {
+        markFinished();
+    }
+    else {
+        autoplay(logMoves_);
+    }
 }
 
-bool ComputeTask::checkGameOver() {
-    auto [cause, result] = getGameResult();
+
+bool ComputeTask::checkGameOver(bool verbose) {
+    auto [cause, result] = gameContext_.checkGameResult();
 
     if (result == GameResult::Unterminated) {
         return false;
     }
 
-    gameRecord_.setGameEnd(cause, result);
-    if (logMoves_) std::cout << "\n";
-    Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
-    Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
+    if (verbose) {
+        if (logMoves_) std::cout << "\n";
+        Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
+        Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
+    }
 
     return true;
 }
@@ -323,6 +270,7 @@ void ComputeTask::markFinished() {
         }
         finishedPromiseValid_ = false;
     }
+    taskType_ = ComputeTaskType::None;
 }
 
 void ComputeTask::markRunning() {

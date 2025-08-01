@@ -31,6 +31,7 @@
 #include "game-record.h"
 #include "test-tournament.h"
 #include "player-context.h"
+#include "game-context.h"
 
  /**
   * @brief Manages a single chess game between the application and an engine.
@@ -53,25 +54,22 @@ public:
      * @brief sets a new engine to play both sides
 	 * @param engine The new engine to be set.
      */
-    void initUniqueEngine(std::unique_ptr<EngineWorker> engine);
+    void initUniqueEngine(std::unique_ptr<EngineWorker> engine) {
+        std::vector<std::unique_ptr<EngineWorker>> list;
+        list.emplace_back(std::move(engine));
+        gameContext_.initPlayers(std::move(list));
+    }
 
     /**
 	 * @brief sets two engines to play against each other
 	 * @param white The engine to play as white.
 	 * @param black The engine to play as black.
      */
-    void initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
-
-
-
-    /**
-	 * Informs the engines that a new game starts.
-     */
-    void newGame() {
-        whitePlayer_->newGame(gameRecord_, true);
-		if (blackPlayer_ != whitePlayer_) {
-			blackPlayer_->newGame(gameRecord_, false);
-		}
+    void initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
+        std::vector<std::unique_ptr<EngineWorker>> list;
+        list.emplace_back(std::move(white));
+		list.emplace_back(std::move(black));
+        gameContext_.initPlayers(std::move(list));
     }
 
 	/**
@@ -80,20 +78,14 @@ public:
 	 * @param timeControl The time control to be set.
 	 */
 	void setUniqueTimeControl(const TimeControl& timeControl) {
-		whitePlayer_->setTimeControl(timeControl);
-        if (blackPlayer_ != whitePlayer_) {
-            blackPlayer_->setTimeControl(timeControl);
-        }
+        gameContext_.setTimeControl(timeControl);
 	}
 
     /**
 	 * @brief Sets the time control for both sides.
      */
 	void setTimeControls(const TimeControl& white, const TimeControl& black) {
-		assert(whitePlayer_ != nullptr && blackPlayer_ != nullptr);
-        assert(whitePlayer_ != blackPlayer_ || &white != &black);
-		whitePlayer_->setTimeControl(white);
-		blackPlayer_->setTimeControl(black);
+        gameContext_.setTimeControls({ white, black });
 	}
 
     /**
@@ -102,30 +94,6 @@ public:
     const std::future<void>& getFinishedFuture() const {
         return finishedFuture_;
     }
-
-    /**
-     * Initiates asynchronous move computation using the current time control.
-     *
-	 * @param useStartPosition If true, the game starts from the initial position.
-	 * @param fen The FEN string representing the game state.
-     * @param playedMoves Optional list of moves played already.
-     */
-    void computeMove(bool useStartPosition, const std::string fen = "", 
-		std::optional<std::vector<std::string>> playedMoves = std::nullopt);
-
-	/**
-	 * @brief Tells the engine to stop the current move calculation and sends the best move
-	 */
-    void moveNow();
-
-	/**
-	 * Initiates asynchronous game computation using the current time control.
-	 *
-	 * @param useStartPosition If true, the game starts from the initial position.
-	 * @param fen The FEN string representing the game state.
-     * @param logMoves true, then moves will be logged
-	 */
-    void computeGame(bool useStartPosition, const std::string fen = "", bool logMoves = false);
 
     /**
      * @brief Starts and manages multiple consecutive tasks such as games or compute move using a task callback.
@@ -144,9 +112,7 @@ public:
      * @param traceLevel 
      */
     void setCliTraceLevel(TraceLevel traceLevel) {
-        forEachUniqueEngine([traceLevel](EngineWorker& engine) {
-            engine.setTraceLevel(traceLevel);
-        });
+		gameContext_.setCliTraceLevel(traceLevel);
     }
 
     /**
@@ -155,7 +121,7 @@ public:
      * @return A reference to the EngineWorker.
      */
     EngineWorker* getEngine(bool white = true) {
-        return white ? whitePlayer_->getEngine() : blackPlayer_->getEngine();
+		return white ? gameContext_.getWhite()->getEngine() : gameContext_.getBlack()->getEngine();
     }
 
 	/**
@@ -171,7 +137,10 @@ public:
      */
     void stop();
 private:
-
+    /**
+     * @brief Tells the engine to stop the current move calculation and sends the best move
+     */
+    void moveNow();
 
     /**
      * Adds a new engine event to the processing queue.
@@ -198,7 +167,16 @@ private:
      */
     void processEvent(const EngineEvent& event);
 
+    /**
+     * @brief Handles the best move event from the engine.
+     *
+     * This function processes the best move event, updates the game state, and informs the task provider.
+     * It is called when an EngineEvent of type EngineEvent::Type::BestMove is received.
+     *
+     * @param event The engine event containing the best move information.
+	 */
 	void handleBestMove(const EngineEvent& event);
+
 	/**
 	 * Informs the task provider about the event, allowing it to react to engine information.
 	 * This is called for events of type EngineEvent::Type::Info.
@@ -207,27 +185,7 @@ private:
 	 */
     void informTask(const EngineEvent& event, const PlayerContext* player);
 
-    /**
-     * @brief Switches the engines side to play
-     */
-    void switchSide();
-
     void computeNextMove(const std::optional<EngineEvent>& event = std::nullopt);
-
-    /**
-	 * @brief template executing a function for both white and black engine, if they are not identical
-     */
-    template<typename Func>
-    void forEachUniqueEngine(Func&& func) {
-		auto whiteEngine = whitePlayer_->getEngine();
-		auto blackEngine = blackPlayer_->getEngine();
-        if (whiteEngine) {
-            func(*whiteEngine);
-        }
-        if (blackEngine && blackEngine != whiteEngine) {
-            func(*blackEngine);
-        }
-    }
 
 	/**
 	 * @brief Initiates a new game, setting the FEN string for both players and informing the gameRecord.
@@ -235,7 +193,9 @@ private:
 	 * @param useStartPosition If true, the game starts from the initial position.
 	 * @param fen The FEN string representing the game state.
 	 */
-    void setFromGameRecord(const GameRecord& game);
+    void setFromGameRecord(const GameRecord& game) {
+        gameContext_.setPosition(game);
+    }
 
     /**
      * @brief Initiates a new game, setting the FEN string for both players and informing the gameRecord.
@@ -245,7 +205,9 @@ private:
 	 * @param playedMoves Optional list of moves played already.
      */
     void setFromFen(bool useStartPosition, const std::string& fen,
-		const std::optional<std::vector<std::string>>& playedMoves = std::nullopt);
+        const std::optional<std::vector<std::string>>& playedMoves = std::nullopt) {
+		gameContext_.setPosition(useStartPosition, fen, playedMoves);
+    }
 
 	/**
 	 * @brief Checks if the game has ended.
@@ -268,18 +230,6 @@ private:
      * This method releases resources and marks the GameManager as finished.
      */
     void tearDown();
-
-    /**
-     * Players
-     */
-    PlayerContext* whitePlayer_;
-    PlayerContext* blackPlayer_;
-    PlayerContext player1_;
-    PlayerContext player2_;
-	bool switchedSide_ = false;
-
-    std::promise<void> finishedPromise_;
-    std::future<void> finishedFuture_;
 
     /**
      * Callback to get new tasks
@@ -318,15 +268,19 @@ private:
     void computeTask(std::optional<GameTask> task);
 
     /**
+     * @brief Players and GameRecord coordination
+     */
+    GameContext gameContext_;
+
+    /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
      */
     bool finishedPromiseValid_ = false;
+    std::promise<void> finishedPromise_;
+    std::future<void> finishedFuture_;
 
 	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
     std::string taskId_;
-
-    GameRecord gameRecord_;
-    bool logMoves_ = false;
 
     // Queue management
     std::thread eventThread_;

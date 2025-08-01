@@ -24,6 +24,7 @@
 #include <filesystem>
 #include "engine-config.h"
 #include "game-manager.h"
+#include "compute-task.h"
 #include "engine-worker-factory.h"
 
 /**
@@ -151,7 +152,7 @@ private:
     std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
 
     EngineReport* checklist_;
-    std::unique_ptr<GameManager> gameManager_;
+    std::unique_ptr<ComputeTask> computeTask_;
     EngineConfig engineConfig_;
     int numGames_ = 20;
 };
