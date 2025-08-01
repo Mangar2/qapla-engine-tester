@@ -59,11 +59,15 @@ void ComputeTask::computeMove() {
     }
 }
 
-void ComputeTask::autoplay(bool logMoves) {
+void ComputeTask::autoPlay(bool logMoves) {
+    logMoves_ = logMoves;
+    autoPlay(std::nullopt);
+}
+
+void ComputeTask::autoPlay(const std::optional<EngineEvent>& event) {
 
     if (gameContext_.getPlayerCount() == 0) return;
     if (checkGameOver()) return;
-	logMoves_ = logMoves;
     markRunning();
 	auto& gameRecord = gameContext_.gameRecord();
 	auto white = gameContext_.getWhite();
@@ -76,11 +80,11 @@ void ComputeTask::autoplay(bool logMoves) {
 
     if (gameRecord.isWhiteToMove()) {
         white->computeMove(gameRecord, goLimits);
-        black->allowPonder(gameRecord, goLimits);
+        black->allowPonder(gameRecord, goLimits, event);
     }
     else {
         black->computeMove(gameRecord, goLimits);
-        white->allowPonder(gameRecord, goLimits);
+        white->allowPonder(gameRecord, goLimits, event);
     }
     taskType_ = ComputeTaskType::Autoplay;
 }
@@ -193,7 +197,7 @@ void ComputeTask::processEvent(const EngineEvent & event) {
 
     if (event.type == EngineEvent::Type::BestMove) {
         handleBestMove(event);
-        nextMove();
+        nextMove(event);
         return;
     }
 
@@ -229,7 +233,7 @@ void ComputeTask::handleBestMove(const EngineEvent& event) {
     }
 }
 
-void ComputeTask::nextMove() {
+void ComputeTask::nextMove(const EngineEvent& event) {
     if (taskType_ != ComputeTaskType::Autoplay) {
         markFinished();
         return;
@@ -239,7 +243,7 @@ void ComputeTask::nextMove() {
         markFinished();
     }
     else {
-        autoplay(logMoves_);
+        autoPlay(event);
     }
 }
 
