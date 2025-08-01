@@ -20,6 +20,7 @@
 #include "game-manager.h"
 #include "game-manager-pool.h"
 #include "engine-worker-factory.h"
+#include "app-error.h"
 
 GameManagerPool::GameManagerPool() {
     inputCallback_ = InputHandler::getInstance().registerCommandCallback(
@@ -238,6 +239,10 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
         GameManager::ExtendedTask result;
         result.task = std::move(taskOpt.value());
         result.provider = assignment.provider;
+
+        if (!assignment.engine1) {
+            throw AppError::make("GameManagerPool::tryAssignNewTask; No engine configuration provided for task assignment");
+        }
 
         if (assignment.engine1 && assignment.engine2) {
             auto whiteEngines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);

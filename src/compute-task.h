@@ -111,7 +111,7 @@ public:
     /**
      * @brief Starts a game continuation until the end.
      */
-    void autoplay(bool logMoves = false);
+    void autoPlay(bool logMoves = false);
 
     /**
      * @brief Forces the engine to return the best move immediately.
@@ -143,7 +143,8 @@ private:
     /**
      * @brief Continues the current automatic task after a best move, if applicable.
      */
-    void nextMove();
+    void nextMove(const EngineEvent& event);
+    void autoPlay(const std::optional<EngineEvent>& event);
 
 
     void enqueueEvent(const EngineEvent& event);

@@ -97,7 +97,6 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
         numGames_ = numGames;
         createGameManager(true);
         runStartStopTest();
-
         runMultipleStartStopTest(20);
         if (!testSettings.get<bool>("nomemory")) {
             runHashTableMemoryTest();
@@ -657,7 +656,7 @@ void EngineTestController::runComputeGameTest() {
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         computeTask_->setTimeControls({ t1, t2 });
-        computeTask_->autoplay(true);
+        computeTask_->autoPlay(true);
         computeTask_->getFinishedFuture().wait();
     }
     catch (const std::exception& e) {
@@ -680,7 +679,7 @@ void EngineTestController::runPonderGameTest() {
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
         computeTask_->setTimeControls({ t1, t2 });
-        computeTask_->autoplay(true);
+        computeTask_->autoPlay(true);
         computeTask_->getFinishedFuture().wait();
     }
     catch (const std::exception& e) {
@@ -704,7 +703,7 @@ void EngineTestController::runMultipleGamesTest() {
     auto tournament = std::make_shared<TestTournament>(numGames_, checklist_);
 
     try {
-        GameManagerPool::getInstance().addTaskProvider(tournament, engineConfig_);
+        GameManagerPool::getInstance().addTaskProvider(tournament, engineConfig_, engineConfig_);
 		GameManagerPool::getInstance().assignTaskToManagers();
         GameManagerPool::getInstance().waitForTask();
         Logger::testLogger().log("All games completed.");

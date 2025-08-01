@@ -72,22 +72,6 @@ public:
         gameContext_.initPlayers(std::move(list));
     }
 
-	/**
-	 * @brief Sets the same time control for both sides.
-	 *
-	 * @param timeControl The time control to be set.
-	 */
-	void setUniqueTimeControl(const TimeControl& timeControl) {
-        gameContext_.setTimeControl(timeControl);
-	}
-
-    /**
-	 * @brief Sets the time control for both sides.
-     */
-	void setTimeControls(const TimeControl& white, const TimeControl& black) {
-        gameContext_.setTimeControls({ white, black });
-	}
-
     /**
      * @brief Returns a future that becomes ready when the game is complete.
      */
