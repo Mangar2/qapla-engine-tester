@@ -236,7 +236,7 @@ void PlayerContext::restartEngine() {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
 	}
-    if (!isGameManagerThread) {
+    if (!isEventQueueThread) {
 		std::cerr << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed." << std::endl;
         throw AppError::make("PlayerContext::restart; Cannot restart engine outside of the GameManager thread.");
 	}

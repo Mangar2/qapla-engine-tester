@@ -34,16 +34,16 @@
 #include "event-sink-recorder.h"
 
 void EngineTestController::createGameManager(bool singleEngine) {
-    gameManager_ = std::make_unique<GameManager>();
+    computeTask_ = std::make_unique<ComputeTask>();
     startEngine();
 }
 
 void EngineTestController::startEngine() {
     bool success = false;
     try {
-        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
-        gameManager_->initUniqueEngine(std::move(list[0]));
-        success = gameManager_->getEngine()->requestReady();
+        auto ctList = EngineWorkerFactory::createEngines(engineConfig_, 1);
+		computeTask_->initEngines(std::move(ctList));
+		success = computeTask_->getEngine()->requestReady();
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Configuration error during engine test for " + 
@@ -97,6 +97,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
         numGames_ = numGames;
         createGameManager(true);
         runStartStopTest();
+
         runMultipleStartStopTest(20);
         if (!testSettings.get<bool>("nomemory")) {
             runHashTableMemoryTest();
@@ -123,7 +124,6 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
             runPonderGameTest();
         }
         runMultipleGamesTest();
-        gameManager_->stop();
     }
 	catch (const std::exception& e) {
 		Logger::testLogger().log("Exception during engine tests, all remaining tests cancelled: " + std::string(e.what()), TraceLevel::error);
@@ -145,16 +145,15 @@ void EngineTestController::runTest(
 {
     constexpr std::chrono::seconds timeout{ 2 };
     try {
-        if (!gameManager_) {
-            Logger::testLogger().log("GameManager not initialized", TraceLevel::error);
+        if (!computeTask_) {
+			Logger::testLogger().log("ComputeTask not initialized", TraceLevel::error);
             return;
         }
-		if (!gameManager_->getEngine()) {
-			startEngine();
-		}
-
-        bool isReady = gameManager_->getEngine()->requestReady(timeout);
-		if (!isReady) {
+        if (!computeTask_->getEngine()) {
+            startEngine();
+        }
+		bool isComputeReady = computeTask_->getEngine()->requestReady(timeout);
+        if (!isComputeReady) {
             startEngine();
 		}
 
@@ -243,17 +242,18 @@ void EngineTestController::runGoLimitsTests() {
 	int errors = 0;
     for (const auto& [name, timeControl] : testCases) {
         runTest(name, [this, name, timeControl, &errors]() -> std::pair<bool, std::string> {
-            gameManager_->newGame();
-            gameManager_->setUniqueTimeControl(timeControl);
-            gameManager_->computeMove(true);
-            bool success = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
+            computeTask_->newGame();
+			computeTask_->setTimeControl(timeControl);
+            computeTask_->setPosition(true);
+            computeTask_->computeMove();
+            bool success = computeTask_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
 			if (!success) {
-				gameManager_->getEngine()->moveNow();
+                computeTask_->moveNow();
                 errors++;
 			}
-            bool finished = gameManager_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
+            bool finished = computeTask_->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
 			if (!finished) {
-				gameManager_->stop();
+                computeTask_->stop();
 			}
             auto timeStr = timeControl.toPgnTimeControlString();
 			if (timeStr != "") {
@@ -270,15 +270,15 @@ void EngineTestController::runHashTableMemoryTest() {
     runTest("shrinks-with-hash", [this]() -> std::pair<bool, std::string> {
         setOption("Hash", "512");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        std::size_t memHigh = gameManager_->getEngine()->getEngineMemoryUsage();
+        std::size_t memHigh = computeTask_->getEngine()->getEngineMemoryUsage();
 
         setOption("Hash", "16");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        std::size_t memLow = gameManager_->getEngine()->getEngineMemoryUsage();
+        std::size_t memLow = computeTask_->getEngine()->getEngineMemoryUsage();
 
         bool success = memLow + 400'000'000 < memHigh;
 
-        gameManager_->getEngine()->setOption("Hash", "32");
+        computeTask_->getEngine()->setOption("Hash", "32");
 
         Logger::testLogger().logAligned("Test if memory shrinks:", "Usage with 512MB hash " +
             bytesToMB(memHigh) + " MB and with 16MB hash " + bytesToMB(memLow) + " MB" +
@@ -299,11 +299,11 @@ void EngineTestController::runLowerCaseOptionTest() {
     runTest("lower-case-option", [this]() -> std::pair<bool, std::string> {
         setOption("hash", "512");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        std::size_t lMem = gameManager_->getEngine()->getEngineMemoryUsage();
+        std::size_t lMem = computeTask_->getEngine()->getEngineMemoryUsage();
 
         setOption("Hash", "512");
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
-        std::size_t uMem = gameManager_->getEngine()->getEngineMemoryUsage();
+        std::size_t uMem = computeTask_->getEngine()->getEngineMemoryUsage();
 
         bool success = (lMem + 1000 > uMem && lMem - 1000 < uMem);
 
@@ -353,7 +353,7 @@ std::vector<std::string> generateStringValues() {
 }
 
 std::pair<bool, std::string> EngineTestController::setOption(const std::string& name, const std::string& value) {
-    auto engine = gameManager_->getEngine();
+    auto engine = computeTask_->getEngine();
     bool success = engine->setOption(name, value);
 
     if (success) {
@@ -376,12 +376,12 @@ std::pair<bool, std::string> EngineTestController::setOption(const std::string& 
 void EngineTestController::runEngineOptionTests() {
     int errors = 0;
 
-    if (!gameManager_) {
+    if (!computeTask_) {
         Logger::testLogger().log("GameManager not initialized", TraceLevel::error);
         return;
     }
 
-    auto engine = gameManager_->getEngine();
+    auto engine = computeTask_->getEngine();
     const EngineOptions& options = engine->getSupportedOptions();
 	std::cout << "Randomizing engine settings, please wait...\r";
     for (const auto opt : options) {
@@ -446,24 +446,22 @@ void EngineTestController::runAnalyzeTest() {
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
 
     runTest("reacts-on-stop", [this]() -> std::pair<bool, std::string> {
-        ComputeTask task;
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
-		task.initEngines(std::move(list));
         TimeControl t;
         t.setInfinite();
-        task.setTimeControl(t);
+        computeTask_->setTimeControl(t);
         for (auto fen : {
             "r3r1k1/1pq2pp1/2p2n2/1PNn4/2QN2b1/6P1/3RPP2/2R3KB b - - 0 1",
             "r1q2rk1/p2bb2p/1p1p2p1/2pPp2n/2P1PpP1/3B1P2/PP2QR1P/R1B2NK1 b - - 0 1"
             }) {
-            task.newGame();
-            task.setPosition(false, fen);
-            task.computeMove(0);
+            computeTask_->newGame();
+            computeTask_->setPosition(false, fen);
+            computeTask_->computeMove();
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            task.moveNow();
-            bool finished = task.getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+            computeTask_->moveNow();
+            bool finished = computeTask_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
             if (!finished) {
-                bool extended = task.getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+                bool extended = computeTask_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
 					Logger::testLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
                     return { false, "Timeout after stop command (even after extended wait)" };
@@ -479,11 +477,15 @@ void EngineTestController::runImmediateStopTest() {
     static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
     static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
     runTest("correct-after-immediate-stop", [this]() -> std::pair<bool, std::string> {
-        gameManager_->computeMove(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
-        gameManager_->moveNow();
-        bool finished = gameManager_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+        TimeControl t;
+        t.setInfinite();
+        computeTask_->setTimeControl(t);
+		computeTask_->setPosition(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
+        computeTask_->computeMove();
+        computeTask_->moveNow();
+        bool finished = computeTask_->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
         if (!finished) {
-            bool extended = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+            bool extended = computeTask_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
             if (!extended) {
                 startEngine();
 				Logger::testLogger().logAligned("Testing immediate stop:", "Timeout after immediate stop");
@@ -503,20 +505,24 @@ void EngineTestController::runInfiniteAnalyzeTest() {
 		std::cout << "Testing infinite mode: takes about 10 seconds, please wait...";
 		std::cout.flush();
         std::cout << "\r";
-        gameManager_->computeMove(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
-        bool exited = gameManager_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
+        TimeControl t;
+        t.setInfinite();
+        computeTask_->setTimeControl(t);
+		computeTask_->setPosition(false, "K7/8/k7/8/8/8/8/3r4 b - - 0 1");
+        computeTask_->computeMove();
+        bool exited = computeTask_->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
         if (exited) {
             Logger::testLogger().logAligned("Testing infinite mode:", "Engine sent bestmove without receiving 'stop'", TraceLevel::command);
             return { false, "Engine sent bestmove in infinite mode without receiving 'stop'" };
         }
-        gameManager_->moveNow();
-        bool stopped = gameManager_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+        computeTask_->moveNow();
+        bool stopped = computeTask_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
         if (!stopped) {
             createGameManager(true);
             Logger::testLogger().logAligned("Testing infinite mode:", "Timeout after stop command", TraceLevel::command);
             return { false, "Timeout after stop command in infinite mode" };
         }
-        gameManager_->getFinishedFuture().wait();
+        computeTask_->getFinishedFuture().wait();
         Logger::testLogger().logAligned("Testing infinite mode:", "Correctly waited for stop and then sent bestmove", TraceLevel::command);
         return { true, "" };
         });
@@ -574,9 +580,8 @@ void EngineTestController::runUciPonderTest() {
         std::cout << "Testing pondering:" << std::endl;
         Timer timer;
         timer.start();
-        auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
 		auto name = engineConfig_.getName();
-        auto engine = list[0].get();
+		auto engine = computeTask_->getEngine();
         GameRecord gameRecord;
 		testPonderHit(gameRecord, engine, "e2e4", testname);
         testPonderHit(gameRecord, engine, "e2e4", testname, std::chrono::milliseconds{ 0 });
@@ -607,9 +612,10 @@ void EngineTestController::runEpdTests() {
     try {
         EngineList engines = startEngines(1);
         auto epdManager = std::make_shared<EpdTestManager>(EngineReport::getChecklist(engines[0]->getConfig().getName()));
-        gameManager_->initUniqueEngine(std::move(engines[0]));
-        gameManager_->computeTasks(epdManager);
-		gameManager_->getFinishedFuture().wait();
+        GameManager gameManager;
+        gameManager.initUniqueEngine(std::move(engines[0]));
+        gameManager.computeTasks(epdManager);
+		gameManager.getFinishedFuture().wait();
 
         Logger::testLogger().logAligned("Testing positions:", "All positions computed.");
     }
@@ -623,15 +629,14 @@ void EngineTestController::runEpdTests() {
 
 void EngineTestController::runEpFromFenTest() {
 	try {
-		EngineList engines = startEngines(1);
         Logger::testLogger().logAligned("Tested ep-pos from a Fen:", "Check EP handling in FEN parsing if errors occur.");
-        gameManager_->initUniqueEngine(std::move(engines[0]));
 		TimeControl timeControl;
 		timeControl.addTimeSegment({ 0, 1000, 100 }); 
-        gameManager_->setUniqueTimeControl(timeControl);
-        gameManager_->computeMove(false, "rnbqkb1r/ppp2ppp/8/3pP3/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq d6 0 1",
+		computeTask_->setTimeControl(timeControl);
+		computeTask_->setPosition(false, "rnbqkb1r/ppp2ppp/8/3pP3/4n3/5N2/PPP2PPP/RNBQKB1R w KQkq d6 0 1",
             std::vector<std::string>{ "e5d6" });
-		gameManager_->getFinishedFuture().wait_for(std::chrono::seconds(2));
+		computeTask_->computeMove();
+        computeTask_->getFinishedFuture().wait_for(std::chrono::seconds(2));
 	}
 	catch (const std::exception& e) {
 		Logger::testLogger().log("Exception during compute ep-pos test: " + std::string(e.what()), TraceLevel::error);
@@ -645,14 +650,15 @@ void EngineTestController::runEpFromFenTest() {
 void EngineTestController::runComputeGameTest() {
 	Logger::testLogger().log("\nThe engine now plays against itself. I control all engine output, and check its validity while playing.");
     EngineList engines = startEngines(2);
-    gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
+	computeTask_->initEngines(std::move(engines));
     try {
-        gameManager_->newGame();
+        computeTask_->newGame();
+        computeTask_->setPosition(true);
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
-        gameManager_->setTimeControls(t1, t2);
-        gameManager_->computeGame(true, "", true);
-        gameManager_->getFinishedFuture().wait();
+        computeTask_->setTimeControls({ t1, t2 });
+        computeTask_->autoplay(true);
+        computeTask_->getFinishedFuture().wait();
     }
     catch (const std::exception& e) {
 		Logger::testLogger().log("Exception during compute games test: " + std::string(e.what()), TraceLevel::error);
@@ -667,14 +673,15 @@ void EngineTestController::runPonderGameTest() {
     EngineList engines = startEngines(2);
 	engines[0]->getConfigMutable().setPonder(true);
 	engines[1]->getConfigMutable().setPonder(true);
-    gameManager_->initEngines(std::move(engines[0]), std::move(engines[1]));
+    computeTask_->initEngines(std::move(engines));
     try {
-        gameManager_->newGame();
+        computeTask_->newGame();
+        computeTask_->setPosition(true);
         TimeControl t1; t1.addTimeSegment({ 0, 20000, 100 });
         TimeControl t2; t2.addTimeSegment({ 0, 10000, 100 });
-        gameManager_->setTimeControls(t1, t2);
-        gameManager_->computeGame(true, "", true);
-        gameManager_->getFinishedFuture().wait();
+        computeTask_->setTimeControls({ t1, t2 });
+        computeTask_->autoplay(true);
+        computeTask_->getFinishedFuture().wait();
     }
     catch (const std::exception& e) {
         Logger::testLogger().log("Exception during compute games test: " + std::string(e.what()), TraceLevel::error);

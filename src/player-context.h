@@ -24,7 +24,7 @@
 #include "game-record.h"
 #include "engine-report.h"
 
-inline thread_local bool isGameManagerThread = false;
+inline thread_local bool isEventQueueThread = false;
 
 class PlayerContext {
 public:
