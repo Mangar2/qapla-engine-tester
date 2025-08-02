@@ -45,7 +45,7 @@ public:
     explicit UciAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
-    ~UciAdapter();
+    ~UciAdapter() override;
 
     /**
      * @brief Starts the engine protokoll.

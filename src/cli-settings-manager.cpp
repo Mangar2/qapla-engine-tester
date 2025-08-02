@@ -27,6 +27,7 @@
 #include <filesystem>
 #include <fstream>
 #include <unordered_map>
+#include <cassert>
 
 #include "app-error.h"
 #include "string-helper.h"
@@ -113,17 +114,13 @@ namespace CliSettings
 
         switch (type)
         {
-        case ValueType::String:
-            if (!std::holds_alternative<std::string>(value))
-                typeMismatch("string");
-            break;
         case ValueType::Int:
             if (!std::holds_alternative<int>(value))
                 typeMismatch("int");
             break;
         case ValueType::Float:
-            if (!std::holds_alternative<float>(value))
-                typeMismatch("float");
+            if (!std::holds_alternative<double>(value))
+                typeMismatch("double");
             break;
         case ValueType::Bool:
             if (!std::holds_alternative<bool>(value))
@@ -142,6 +139,10 @@ namespace CliSettings
             {
                 typeMismatch("empty string required as default for type PathParentExists");
             }
+            break;
+        default:
+            if (!std::holds_alternative<std::string>(value))
+                typeMismatch("string");
             break;
         }
     }
@@ -513,7 +514,7 @@ namespace CliSettings
             }
             catch (...)
             {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected float");
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected double");
             }
         }
         if (def.type == ValueType::PathExists)

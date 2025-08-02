@@ -334,7 +334,7 @@ void GameManager::stop() {
     gameContext_.cancelCompute();
 
     {
-        std::unique_lock<std::mutex> lock(queueMutex_);
+        std::lock_guard<std::mutex> lock(queueMutex_);
         while (!eventQueue_.empty()) {
             eventQueue_.pop();
         }

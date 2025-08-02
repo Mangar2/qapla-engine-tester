@@ -31,7 +31,7 @@
 
 class TestTournament : public GameTaskProvider {
 public:
-    explicit TestTournament(int totalGames, EngineReport* checklist)
+    explicit TestTournament(uint32_t totalGames, EngineReport* checklist)
         : maxGames_(totalGames), current_(0), checklist_(checklist) {
         timePairs_ = {
             {{0, 20000, 500}, {0, 10000, 100}},
@@ -210,8 +210,8 @@ public:
 
     bool checkTimeLimits = false;
 private:
-    int maxGames_;
-    int current_;
+    uint32_t maxGames_;
+    uint32_t current_;
     std::mutex mutex_;
     std::vector<GameRecord> gameRecords_;
     std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;

@@ -186,15 +186,15 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 bool PlayerContext::checkEngineTimeout() {
     if (computeState_ != ComputeState::ComputingMove) return false;
     if (!engine_) return false;
-	const int64_t GRACE_MS = 1000;
-    const int64_t OVERRUN_TIMEOUT = 5000;
+	const uint64_t GRACE_MS = 1000;
+    const uint64_t OVERRUN_TIMEOUT = 5000;
 
-    const int64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_ - GRACE_MS;
+    const uint64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_ - GRACE_MS;
     const bool white = gameState_.isWhiteToMove();
     bool restarted = false;
 
-    const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
-    int64_t overrun = 0;
+    const uint64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
+    uint64_t overrun = 0;
 
 	if (goLimits_.hasTimeControl) {
         overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;

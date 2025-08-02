@@ -43,8 +43,8 @@
 struct StartPositions {
     std::vector<std::string> fens;
     std::vector<GameRecord> games;
-	int32_t size() const {
-		return std::max(static_cast<int32_t>(fens.size()), static_cast<int32_t>(games.size()));
+	uint32_t size() const {
+		return std::max(static_cast<uint32_t>(fens.size()), static_cast<uint32_t>(games.size()));
 	}
 	bool empty() const {
 		return fens.empty() && games.empty();
@@ -58,7 +58,7 @@ struct PairTournamentConfig {
     uint32_t games = 0;
     uint32_t repeat = 2;
     uint32_t round = 0;
-    int seed = 0;
+    uint32_t seed = 0;
     uint32_t gameNumberOffset = 0;
     bool swapColors = true;
     Openings openings;
@@ -72,7 +72,7 @@ struct PairTournamentConfig {
   */
 class PairTournament : public GameTaskProvider {
 public:
-    PairTournament(): rng_(std::random_device{}()) {};
+    PairTournament(): rng_(std::random_device{}()) {}
 
     /**
      * @brief Defines the callback type for notifying game completion.
@@ -113,7 +113,7 @@ public:
     void schedule(const std::shared_ptr<PairTournament>& self);
 
     void clear() {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         started_ = false;
         results_.clear();
         duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
@@ -191,7 +191,7 @@ public:
      * @return Tuple with round, engineA, engineB
      * @throws std::runtime_error if the line is malformed
      */
-    static std::tuple<int, std::string, std::string> parseRoundHeader(const std::string& line);
+    static std::tuple<uint32_t, std::string, std::string> parseRoundHeader(const std::string& line);
 
     /**
      * @brief Checks if this pairing matches the given round and engine names.
@@ -220,9 +220,9 @@ private:
     /**
      * @brief Returns the index of the next opening position to use for the given game in the encounter.
      */
-    int newOpeningIndex(size_t gameInEncounter);
+    uint32_t newOpeningIndex(size_t gameInEncounter);
 
-    void updateOpening(int openingIndex);
+    void updateOpening(uint32_t openingIndex);
 
     /**
      * @brief Returns the compact result sequence string (e.g. "1=01?").
@@ -244,7 +244,7 @@ private:
 
     // // Results from the engine pairing perspective, not from the white-player view
     GameRecord curRecord_;
-    int openingIndex_ = 0; ///< Current opening index in the encounter
+    uint32_t openingIndex_ = 0; ///< Current opening index in the encounter
     std::vector<GameResult> results_;
 	EngineDuelResult duelResult_;
     mutable std::mutex mutex_;

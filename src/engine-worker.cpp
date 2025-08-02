@@ -116,7 +116,7 @@ void EngineWorker::writeLoop() {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
         {
-            std::unique_lock lock(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
             cv_.wait(lock, [&] { return !writeQueue_.empty(); });
 
             task = std::move(writeQueue_.front());
@@ -146,14 +146,14 @@ void EngineWorker::writeLoop() {
 
 void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task) {
     {
-        std::scoped_lock lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         writeQueue_.push(std::move(task));
     }
     cv_.notify_one();
 }
 
 bool EngineWorker::waitForHandshake(std::chrono::milliseconds timeout) {
-    std::unique_lock lock(handshakeMutex_);
+    std::unique_lock<std::mutex> lock(handshakeMutex_);
     if (!handshakeReceived_) {
         handshakeCv_.wait_for(lock, timeout, [this] {
             return handshakeReceived_;
@@ -269,7 +269,7 @@ void EngineWorker::readLoop() {
 
             if (event.type == waitForHandshake_) {
                 {
-                    std::scoped_lock lock(handshakeMutex_);
+                    std::lock_guard<std::mutex> lock(handshakeMutex_);
                     // We wait for a single handshake. waitForHandshake_ must be set
                     // again for each new handshake request.
                     waitForHandshake_ = EngineEvent::Type::None;

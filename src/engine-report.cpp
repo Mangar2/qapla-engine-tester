@@ -29,7 +29,7 @@
 #include "engine-report.h"
 
 void EngineReport::addTopic(const CheckTopic& topic) {
-    std::lock_guard lock(statsMutex_);
+    std::lock_guard<std::mutex> lock(statsMutex_);
     auto it = std::find_if(registeredTopics_.begin(), registeredTopics_.end(),
         [&](const CheckTopic& t) { return t.id == topic.id; });
 

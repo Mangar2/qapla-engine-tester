@@ -27,8 +27,6 @@
 
 #include "movegenerator.h"
 
-using namespace QaplaBasics;
-
 namespace QaplaInterface {
 	class FenScanner {
 	public:
@@ -82,7 +80,7 @@ namespace QaplaInterface {
 					break;
 				}
 				else if (curChar == '/') {
-					error = file != NORTH;
+					error = file != QaplaBasics::NORTH;
 					file = 0;
 					rank--;
 				}
@@ -100,7 +98,7 @@ namespace QaplaInterface {
 				}
 			}
 
-			if (file != NORTH || rank != 0) {
+			if (file != QaplaBasics::NORTH || rank != 0) {
 				error = true;
 			}
 
@@ -142,29 +140,29 @@ namespace QaplaInterface {
 
 			// Default: every castle right activated
 			if (fenIterator == fen.end()) {
-				chessBoard.setCastlingRight(WHITE, true, true);
-				chessBoard.setCastlingRight(WHITE, false, true);
-				chessBoard.setCastlingRight(BLACK, true, true);
-				chessBoard.setCastlingRight(BLACK, false, true);
+				chessBoard.setCastlingRight(QaplaBasics::WHITE, true, true);
+				chessBoard.setCastlingRight(QaplaBasics::WHITE, false, true);
+				chessBoard.setCastlingRight(QaplaBasics::BLACK, true, true);
+				chessBoard.setCastlingRight(QaplaBasics::BLACK, false, true);
 			}
 			else {
 				if (*fenIterator == 'K') {
-					chessBoard.setCastlingRight(WHITE, true, true);
+					chessBoard.setCastlingRight(QaplaBasics::WHITE, true, true);
 					castlingRightsFound = true;
 					++fenIterator;
 				}
 				if (*fenIterator == 'Q') {
-					chessBoard.setCastlingRight(WHITE, false, true);
+					chessBoard.setCastlingRight(QaplaBasics::WHITE, false, true);
 					castlingRightsFound = true;
 					++fenIterator;
 				}
 				if (*fenIterator == 'k') {
-					chessBoard.setCastlingRight(BLACK, true, true);
+					chessBoard.setCastlingRight(QaplaBasics::BLACK, true, true);
 					castlingRightsFound = true;
 					++fenIterator;
 				}
 				if (*fenIterator == 'q') {
-					chessBoard.setCastlingRight(BLACK, false, true);
+					chessBoard.setCastlingRight(QaplaBasics::BLACK, false, true);
 					castlingRightsFound = true;
 					++fenIterator;
 				}
@@ -230,7 +228,7 @@ namespace QaplaInterface {
 		}
 
 		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
-			chessBoard.setHalfmovesWithoutPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
+			chessBoard.setHalfmovesWithoutPawnMoveOrCapture(static_cast<uint8_t>(scanInteger(fen, fenIterator)));
 		}
 
 		bool isPieceChar(char pieceChar) {

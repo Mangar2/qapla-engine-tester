@@ -154,7 +154,7 @@ public:
      */
     std::size_t getEngineMemoryUsage() const {
         return process_.getMemoryUsage();
-    };
+    }
 
     /**
      * @brief Sends a UCI 'setoption' command to the engine with the given name and value.

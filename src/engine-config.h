@@ -43,7 +43,7 @@ public:
     EngineConfig(const EngineConfig&) = default;
 	EngineConfig& operator=(const EngineConfig&) = default;
 
-    using Value = std::variant<std::string, int, unsigned int, bool, float>;
+    using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     /**
      * @brief Creates a fully initialized EngineConfig instance from a value map.

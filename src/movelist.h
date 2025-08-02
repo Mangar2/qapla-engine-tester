@@ -35,7 +35,7 @@ namespace QaplaBasics {
 	class MoveList
 	{
 	public:
-		MoveList(void) { clear(); };
+		MoveList(void) { clear(); }
 
 		void clear() { totalMoveAmount = 0; nonSilentMoveAmount = 0; }
 

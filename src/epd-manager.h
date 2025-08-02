@@ -80,7 +80,8 @@ public:
 	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      */
-    void analyzeEpd(const std::string& filepath, const EngineConfig& engine, uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies);
+    void analyzeEpd(const std::string& filepath, const EngineConfig& engine, uint32_t concurrency, 
+        uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies);
     
     /**
      * @brief Registers this EpdManager instance as a task provider in the GameManagerPool.
@@ -104,7 +105,7 @@ public:
      *        Does not interrupt active analysis.
      * @param concurrency Desired number of concurrent engines.
      */
-    void changeConcurrency([[maybe_unused]] uint32_t concurrency) { throw "not yet implemented"; };
+    [[noreturn]] void changeConcurrency([[maybe_unused]] uint32_t concurrency) { throw "not yet implemented"; }
 
     /**
      * @brief Provides the next EPD position to analyze.
@@ -118,6 +119,8 @@ public:
      *
      * @param taskId The identifier of the task this result belongs to.
      * @param record The result containing the engine's move(s) and evaluation.
+     * 
+	 * @throws std::runtime_error if the taskId does not match any active task.
      */
     void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
@@ -151,7 +154,7 @@ private:
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      * @param clearTests true, if the tests shall be fully clear (old results gets forgotten)
      */
-    void initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies, bool clearTests = true);
+    void initializeTestCases(uint32_t maxTimeInS, uint32_t minTimeInS, uint32_t seenPlies, bool clearTests = true);
     /**
      * @brief Retrieves and transforms the next EPD entry into a test case.
      * @return Optional EpdTestCase or std::nullopt if no more entries are available.

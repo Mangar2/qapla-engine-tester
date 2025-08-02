@@ -25,29 +25,30 @@
 class Timer {
 public:
     
-    static int64_t getCurrentTimeMs() {
-        return duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    static uint64_t getCurrentTimeMs() {
+        return static_cast<uint64_t>(duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count());
     }
     
-    static int64_t getSystemTimeMs() {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(
+    static uint64_t getSystemTimeMs() {
+        return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()
-        ).count();
+        ).count());
     }
 
     void start() {
         start_ = getCurrentTimeMs();
     }
 
-	int64_t elapsedMs(int64_t end) const {
+	uint64_t elapsedMs(uint64_t end) const {
 		return end - start_;
 	}
-    int64_t elapsedMs() const {
+    uint64_t elapsedMs() const {
         return getCurrentTimeMs() - start_;
     }
 
     void printElapsed(const char* label) {
-		int64_t elapsed = elapsedMs();
+		uint64_t elapsed = elapsedMs();
         int sec = (elapsed / 1000) % 60;
         
         std::cout << "[Timer] " << label << ": elapsed = " 
@@ -59,6 +60,6 @@ public:
 
 private:
 
-    int64_t start_{};
+    uint64_t start_{};
 };
 

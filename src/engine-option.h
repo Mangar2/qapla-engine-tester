@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <cassert>
 #include "app-error.h"
 
 enum class RestartOption {
@@ -31,11 +32,10 @@ enum class RestartOption {
 
 inline std::string to_string(RestartOption restart) {
 	switch (restart) {
-	case RestartOption::EngineDecides: return "auto";
 	case RestartOption::Always: return "on";
 	case RestartOption::Never: return "off";
+	default: return "auto";
 	}
-	return "auto";
 }
 
 inline RestartOption parseRestartOption(const std::string& value) {

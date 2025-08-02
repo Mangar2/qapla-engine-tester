@@ -28,6 +28,7 @@
 #include "game-state.h"
 #include "logger.h"
 
+using namespace QaplaBasics;
 using MoveStr = std::string;
 using MoveStrList = std::vector<MoveStr>;
 
@@ -155,9 +156,9 @@ std::string GameState::moveToSan(const QaplaBasics::Move& move) const
 	return position_.moveToSan(move);
 }
 
-QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan) 
+QaplaBasics::Move GameState::stringToMove(std::string moveStr, bool requireLan) 
 {
-	QaplaInterface::MoveScanner scanner(move);
+	QaplaInterface::MoveScanner scanner(moveStr);
 	if (!scanner.isLegal()) {
 		return QaplaBasics::Move();
 	}
@@ -213,7 +214,7 @@ GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<in
 	}
 	for (int i = 0; i < maxPly; ++i) {
 		auto move = moves[i];
-		auto moveStr = move.original;
+		auto& moveStr = move.original;
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
 			Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),

@@ -153,8 +153,8 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
     }
 }
 
-const void PgnIO::saveMove(std::ostream& out, const std::string& san, 
-    const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart) {
+void PgnIO::saveMove(std::ostream& out, const std::string& san, 
+    const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart) const {
     
     bool shouldPrintMoveNumber = (plyIndex % 2 == 0 && isWhiteStart) || (plyIndex % 2 == 1 && !isWhiteStart);
     if (shouldPrintMoveNumber) {
@@ -416,8 +416,8 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
             else {
                 // Centipawn score, e.g. +0.21
                 try {
-                    float cp = std::stof(tok);
-                    move.scoreCp = static_cast<int>(cp * 100.0f);
+                    double cp = static_cast<double>(std::stof(tok));
+                    move.scoreCp = static_cast<int>(cp * 100.0);
                 }
                 catch (...) {}
             }

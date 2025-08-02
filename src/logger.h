@@ -63,7 +63,7 @@ public:
     void log(std::string_view prefix, std::string_view message, bool isOutput, TraceLevel cliThreshold, TraceLevel fileThreshold,
         TraceLevel level = TraceLevel::info) {
 
-        std::scoped_lock lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         if (level <= fileThreshold && fileStream_.is_open()) {
             fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
         }
@@ -79,7 +79,7 @@ public:
      */
     void log(std::string_view message, TraceLevel level = TraceLevel::command) {
 
-        std::scoped_lock lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         if (level <= fileThreshold_ && fileStream_.is_open()) {
             fileStream_ << message << std::endl;
         }
@@ -105,7 +105,7 @@ public:
 	 * @param basename Base name for the log file. The timestamp will be appended.
      */
     void setLogFile(const std::string& basename) {
-        std::scoped_lock lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
         namespace fs = std::filesystem;
         fs::path path = logPath_.empty() ? "" : fs::path(logPath_);
         filename_ = (path / generateTimestampedFilename(basename)).string();

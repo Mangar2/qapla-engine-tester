@@ -32,9 +32,9 @@
 struct SprtConfig {
     int eloUpper;
     int eloLower;
-    float alpha;
-    float beta;
-    int maxGames;
+    double alpha;
+    double beta;
+    uint32_t maxGames;
     Openings openings;
 };
 
@@ -63,7 +63,7 @@ public:
      * @param self Shared pointer to this Tournament instance.
      * @param concurrency Number of parallel workers to use.
      */
-    void schedule(const std::shared_ptr<SprtManager>& self, int concurrency);
+    void schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency);
 
     /**
      * @brief Waits for all engines to finish.

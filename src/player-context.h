@@ -165,7 +165,7 @@ public:
      * we obviously have a race condition and thus ignore the too-old timestamp.
      * @param timestamp Milliseconds since epoch.
      */
-    void setComputeMoveStartTimestamp(int64_t timestamp) {
+    void setComputeMoveStartTimestamp(uint64_t timestamp) {
         if (timestamp > computeMoveStartTimestamp_) {
             computeMoveStartTimestamp_ = timestamp;
         }
@@ -191,7 +191,7 @@ public:
      *
      * @return Timestamp in milliseconds since epoch.
      */
-    int64_t getComputeMoveStartTimestamp() const {
+    uint64_t getComputeMoveStartTimestamp() const {
         return computeMoveStartTimestamp_;
     }
 
@@ -288,13 +288,12 @@ private:
     };
     static const char* toString(ComputeState state) {
         switch (state) {
-            case ComputeState::Idle:         return "Idle";
             case ComputeState::ComputingMove:return "ComputingMove";
             case ComputeState::Pondering:    return "Pondering";
             case ComputeState::PonderHit:    return "PonderHit";
             case ComputeState::PonderMiss:   return "PonderMiss";
+			default: return "Idle";
         }
-        return "";
     }
 
     bool restartIfNotReady();
@@ -304,7 +303,7 @@ private:
     TimeControl timeControl_;
     GameState gameState_;
     GameState ponderState_;
-    int64_t computeMoveStartTimestamp_ = 0;
+    uint64_t computeMoveStartTimestamp_ = 0;
     GoLimits goLimits_;
     bool requireLan_;
     std::atomic<ComputeState> computeState_ = ComputeState::Idle;

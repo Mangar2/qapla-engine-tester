@@ -106,7 +106,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/clang:-Wno-c++98-compat /clang:-Wno-pre-c++14-compat /clang:-Wno-c++98-compat-pedantic /clang:-Wno-unsafe-buffer-usage /clang:-Wno-duplicate-enum /clang:-Wno-sign-conversion /clang:-Wno-switch-enum %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/clang:-Wno-c++98-compat /clang:-Wno-pre-c++14-compat /clang:-Wno-c++98-compat-pedantic /clang:-Wno-unsafe-buffer-usage /clang:-Wno-duplicate-enum  /clang:-Wno-switch-enum /clang:-Wno-implicit-int-conversion /clang:-Wno-implicit-int-float-conversion /clang:-Wno-global-constructors /clang:-Wno-exit-time-destructors %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -210,7 +210,6 @@
     <ClInclude Include="src\tournament-result.h" />
     <ClInclude Include="src\tournament.h" />
     <ClInclude Include="src\hashconstants.h" />
-    <ClInclude Include="src\heart-beat.h" />
     <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\magics.h" />
     <ClInclude Include="src\materialbalance.h" />

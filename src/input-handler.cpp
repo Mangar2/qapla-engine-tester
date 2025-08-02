@@ -130,7 +130,7 @@ void InputHandler::dispatchImmediate(ImmediateCommand cmd, const std::vector<std
 
 std::unique_ptr<InputHandler::CallbackRegistration>
 InputHandler::registerCommandCallback(ImmediateCommand cmd, CommandCallback callback) {
-    std::scoped_lock lock(callbacksMutex_);
+    std::lock_guard<std::mutex> lock(callbacksMutex_);
     size_t id = nextCallbackId_++;
     callbacks_.emplace_back(CallbackEntry{ { cmd }, id, std::move(callback) });
     return std::make_unique<CallbackRegistration>(*this, id);
@@ -138,7 +138,7 @@ InputHandler::registerCommandCallback(ImmediateCommand cmd, CommandCallback call
 
 std::unique_ptr<InputHandler::CallbackRegistration>
 InputHandler::registerCommandCallback(std::vector<ImmediateCommand> cmds, CommandCallback callback) {
-    std::scoped_lock lock(callbacksMutex_);
+    std::lock_guard<std::mutex> lock(callbacksMutex_);
     size_t id = nextCallbackId_++;
     callbacks_.emplace_back(CallbackEntry{ cmds, id, std::move(callback) });
     return std::make_unique<CallbackRegistration>(*this, id);
@@ -146,7 +146,7 @@ InputHandler::registerCommandCallback(std::vector<ImmediateCommand> cmds, Comman
 
 
 void InputHandler::unregisterCallback(size_t id) {
-    std::scoped_lock lock(callbacksMutex_);
+    std::lock_guard<std::mutex> lock(callbacksMutex_);
     std::erase_if(callbacks_, [&](const CallbackEntry& e) {
         return e.id == id;
         });

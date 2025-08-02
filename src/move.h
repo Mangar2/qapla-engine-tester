@@ -54,7 +54,8 @@ public:
 	 * Creates a silent move
 	 */
 	constexpr Move(Square departure, Square destination, uint32_t movingPiece) 
-		: _move(uint32_t(departure) + (destination << DESTINATION_SHIFT) +
+		: _move(static_cast<uint32_t>(departure) + 
+			(static_cast<uint32_t>(destination) << DESTINATION_SHIFT) +
 			(movingPiece << MOVING_PIECE_SHIFT))
 	{}
 
@@ -62,8 +63,8 @@ public:
 	 * Creates a capture move
 	 */
 	constexpr Move(Square departure, Square destination, uint32_t movingPiece, Piece capture):
-		_move(uint32_t(departure) +
-			(destination << DESTINATION_SHIFT) +
+		_move(static_cast<uint32_t>(departure) +
+			(static_cast<uint32_t>(destination) << DESTINATION_SHIFT) +
 			(movingPiece << MOVING_PIECE_SHIFT) +
 			(capture << CAPTURE_SHIFT))
 	{}
@@ -169,12 +170,12 @@ public:
 	}
 
 	constexpr inline Move& setDeparture(square_t square) {
-		_move |= square;
+		_move |= static_cast<uint32_t>(square);
 		return *this;
 	}
 
 	constexpr inline Move& setDestination(square_t square) {
-		_move |= square << DESTINATION_SHIFT;
+		_move |= static_cast<uint32_t>(square) << DESTINATION_SHIFT;
 		return *this;
 	}
 

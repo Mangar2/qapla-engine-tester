@@ -26,7 +26,7 @@
 void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig& engineB,
 	const PairTournamentConfig& config, std::shared_ptr<StartPositions> startPositions) {
 
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     if (started_) {
         throw std::logic_error("PairTournament already initialized");
     }
@@ -95,18 +95,18 @@ void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
     GameManagerPool::getInstance().assignTaskToManagers();
 }
 
-int PairTournament::newOpeningIndex(size_t gameInEncounter) {
+uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
     if (config_.openings.order == "random") {
         std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
-        return static_cast<int>(dist(rng_));
+        return static_cast<uint32_t>(dist(rng_));
     }
     else {
-        int size = static_cast<int>(startPositions_->size());
+        uint32_t size = startPositions_->size();
         return (gameInEncounter / config_.repeat + config_.openings.start) % size;
     }
 } 
 
-void PairTournament::updateOpening(int openingIndex) {
+void PairTournament::updateOpening(uint32_t openingIndex) {
     GameState gameState;
     openingIndex_ = openingIndex;
     if (startPositions_->fens.empty()) {
@@ -121,7 +121,7 @@ void PairTournament::updateOpening(int openingIndex) {
 }
 
 std::optional<GameTask> PairTournament::nextTask() {
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     if (!started_ || !startPositions_ || startPositions_->empty()) {
         return std::nullopt;
@@ -173,7 +173,7 @@ std::optional<GameTask> PairTournament::nextTask() {
 }
 
 void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, const GameRecord& record) {
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     auto [cause, result] = record.getGameResult();
     uint32_t round = record.getRound();
@@ -224,7 +224,7 @@ std::string PairTournament::getResultSequenceEngineView() const {
         case GameResult::Draw:
             oss << '=';
             break;
-        case GameResult::Unterminated:
+        default:
             oss << '?';
             break;
         }
@@ -233,14 +233,14 @@ std::string PairTournament::getResultSequenceEngineView() const {
 }
 
 std::string PairTournament::toString() const {
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
     std::ostringstream oss;
 	oss << engineA_.getName() << " vs " << engineB_.getName() << " : " << getResultSequenceEngineView();
     return oss.str();
 }
 
 void PairTournament::fromString(const std::string& line) {
-    std::lock_guard lock(mutex_);
+    std::lock_guard<std::mutex> lock(mutex_);
 
     // The index of the next game to play is derived from the results_ vector, not from nextIndex_.
     // nextIndex_ is only used to avoid rechecking already completed games in nextTask().
@@ -308,7 +308,7 @@ void PairTournament::trySaveIfNotEmpty(std::ostream& out) const {
     writeStats("losscauses", [](const CauseStats& s) { return s.loss; });
 }
 
-std::tuple<int, std::string, std::string> PairTournament::parseRoundHeader(const std::string& line) {
+std::tuple<uint32_t, std::string, std::string> PairTournament::parseRoundHeader(const std::string& line) {
     const std::string trimmed = trim(line);
     if (!trimmed.starts_with("[") || !trimmed.ends_with("]")) {
         throw std::runtime_error("Invalid round header: missing [ or ]\nLine: " + line);
@@ -329,6 +329,9 @@ std::tuple<int, std::string, std::string> PairTournament::parseRoundHeader(const
 
     const std::string roundStr = trim(inner.substr(prefix.size(), enginesPos - prefix.size()));
     int round = std::stoi(roundStr);
+    if (round < 0) {
+        throw std::runtime_error("Invalid round number: " + roundStr + "\nLine: " + line);
+	}
 
     const auto vsPos = inner.find(" vs ", enginesPos + 9);
     if (vsPos == std::string::npos) {
@@ -338,7 +341,7 @@ std::tuple<int, std::string, std::string> PairTournament::parseRoundHeader(const
     const std::string engineA = trim(inner.substr(enginesPos + 9, vsPos - (enginesPos + 9)));
     const std::string engineB = trim(inner.substr(vsPos + 4));
 
-    return { round, engineA, engineB };
+    return { static_cast<uint32_t>(round), engineA, engineB };
 }
 
 bool PairTournament::matches(uint32_t round, const std::string& engineA, const std::string& engineB) const {

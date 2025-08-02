@@ -158,8 +158,8 @@ int64_t WinboardAdapter::computeMove(const GameRecord& game,
     const GoLimits& limits,
     [[maybe_unused]] bool ponderHit) {
     if (isEnabled("time")) {
-        int64_t time = game.isWhiteToMove() ? limits.wtimeMs : limits.btimeMs;
-        int64_t otim = game.isWhiteToMove() ? limits.btimeMs : limits.wtimeMs;
+        uint64_t time = game.isWhiteToMove() ? limits.wtimeMs : limits.btimeMs;
+        uint64_t otim = game.isWhiteToMove() ? limits.btimeMs : limits.wtimeMs;
         writeCommand("time " + std::to_string(time / 10));
         writeCommand("otim " + std::to_string(otim / 10));
     }

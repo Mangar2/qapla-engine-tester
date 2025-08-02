@@ -44,7 +44,7 @@ std::string EngineConfig::toString(const Value& value) {
         if constexpr (std::is_same_v<T, std::string>) return v;
         else if constexpr (std::is_same_v<T, int>) return std::to_string(v);
         else if constexpr (std::is_same_v<T, unsigned int>) return std::to_string(v);
-		else if constexpr (std::is_same_v<T, float>) return std::to_string(v);
+		else if constexpr (std::is_same_v<T, double>) return std::to_string(v);
         else if constexpr (std::is_same_v<T, bool>) return v ? "true" : "false";
         else static_assert(always_false<T>, "Unsupported variant type");
         }, value);

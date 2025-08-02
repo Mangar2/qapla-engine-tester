@@ -63,7 +63,6 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     else {
 		throw AppError::makeInvalidParameters(
 			"Unsupported openings format: " + config.openings.format);
-        return;
     }
 
     if (startPositions_->fens.empty() && startPositions_->games.empty()) {
@@ -115,10 +114,10 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
 
 void Tournament::createPairings(const std::vector<EngineConfig>& players, const std::vector<EngineConfig>& opponents,
     const TournamentConfig& config, bool symmetric) {
-    int openingOffset = config.openings.start;
+    uint32_t openingOffset = config.openings.start;
     std::mt19937 rng(config.openings.seed);    
     std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
-    int posSize = static_cast<int>(startPositions_->size());
+    uint32_t posSize = static_cast<uint32_t>(startPositions_->size());
 
     PairTournamentConfig ptc;
     ptc.games = config.games;
@@ -127,9 +126,9 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
     ptc.openings = config.openings;
     ptc.gameNumberOffset = 0;
 
-    for (int round = 0; round < config.rounds; ++round) {
+    for (uint32_t round = 0; round < config.rounds; ++round) {
         ptc.round = round;
-        ptc.seed = static_cast<int>(dist(rng));
+        ptc.seed = static_cast<uint32_t>(dist(rng));
         openingOffset %= posSize;
         ptc.openings.start = openingOffset;
 
@@ -146,7 +145,7 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
                 if (config.openings.policy == "encounter") {
                     ptc.openings.start = openingOffset;
                     openingOffset = (openingOffset + 1) % posSize;
-                    ptc.seed = static_cast<int>(dist(rng));
+                    ptc.seed = static_cast<uint32_t>(dist(rng));
                 }
                 pt->initialize(players[i], opponents[j], ptc, startPositions_);
                 pt->setGameFinishedCallback([this](PairTournament* sender) {
@@ -187,7 +186,7 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
     }
 }
 
-void Tournament::scheduleAll(int concurrency) {
+void Tournament::scheduleAll(uint32_t concurrency) {
 	GameManagerPool::getInstance().setConcurrency(concurrency, true);
     tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
         { 
@@ -216,30 +215,6 @@ void Tournament::save(std::ostream& out) const {
 
     for (auto & pairing : pairings_) {
         pairing->trySaveIfNotEmpty(out);
-    }
-}
-
-
-
-/**
- * @brief Parses a summary string like "W:3 D:1 L:2" and updates the result counts.
- * @param text The summary portion of the line after "games: ".
- * @param result The result object to update.
- */
-static void parseGameSummary(std::string_view text, EngineDuelResult& result) {
-    std::istringstream iss(std::string{ text });
-    std::string token;
-
-    while (iss >> token) {
-        if (token.starts_with("W:")) {
-            result.winsEngineA = std::stoi(token.substr(2));
-        }
-        else if (token.starts_with("D:")) {
-            result.draws = std::stoi(token.substr(2));
-        }
-        else if (token.starts_with("L:")) {
-            result.winsEngineB = std::stoi(token.substr(2));
-        }
     }
 }
 

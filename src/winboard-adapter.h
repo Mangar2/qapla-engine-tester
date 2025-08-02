@@ -47,7 +47,7 @@ public:
     explicit WinboardAdapter(std::filesystem::path enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
-    ~WinboardAdapter();
+    ~WinboardAdapter() override;
 
     /**
      * @brief Starts the engine protocol.

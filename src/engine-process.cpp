@@ -31,8 +31,8 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#include <windows.h>
-#include <psapi.h>
+#include <Windows.h>
+#include <Psapi.h>
 #include <io.h>
 #else
 #include <signal.h>
@@ -362,19 +362,19 @@ void EngineProcess::closeAllHandles()
 #ifdef _WIN32
     if (stdinWrite_)
         CloseHandle(stdinWrite_);
-    stdinWrite_ = 0;
+    stdinWrite_ = nullptr;
 
     if (stdoutRead_)
         CloseHandle(stdoutRead_);
-    stdoutRead_ = 0;
+    stdoutRead_ = nullptr;
 
     if (stderrRead_)
         CloseHandle(stderrRead_);
-    stderrRead_ = 0;
+    stderrRead_ = nullptr;
 
     if (childProcess_)
         CloseHandle(childProcess_);
-    childProcess_ = 0;
+    childProcess_ = nullptr;
 #else
     if (stdinWrite_ >= 0)
         close(stdinWrite_);
@@ -560,7 +560,7 @@ EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
 
 void EngineProcess::readFromPipeBlocking()
 {
-    if (stdoutRead_ == 0)
+    if (stdoutRead_ == nullptr)
     {
         return;
     }
@@ -663,7 +663,7 @@ EngineLine EngineProcess::readLineBlocking()
             continue;
         }
 #ifdef _WIN32
-        if (stdoutRead_ == 0 || read)
+        if (stdoutRead_ == nullptr || read)
             return EngineLine{"", false, Timer::getCurrentTimeMs()};
 #else
         if (stdoutRead_ < 0 || read)
