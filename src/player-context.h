@@ -181,9 +181,8 @@ public:
      * ensuring that info packets from previous pondering phases are not misinterpreted as part
      * of the current move computation.
      *
-     * @param computing True if the engine is currently computing a move, false otherwise.
      */
-    void setComputingMove(bool computing) {
+    void setComputingMove() {
         computeState_ = ComputeState::ComputingMove;
     }
 
@@ -217,7 +216,7 @@ public:
 	 * @brief Keep alive tick - check for a timout or non active engine
      * @return true, if we restarted the engine and the task must be stopped
 	 */
-    bool checkEngineTimeout(bool debug = false);
+    bool checkEngineTimeout();
 
     /**
      * @brief Handles a best move event from the engine.

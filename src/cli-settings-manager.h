@@ -30,7 +30,7 @@
 namespace CliSettings {
 
     enum class ValueType { String, Int, Float, Bool, PathExists, PathParentExists };
-    using Value = std::variant<std::string, int, bool, float>;
+    using Value = std::variant<std::string, int, unsigned int, bool, float>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
     struct Definition {
@@ -70,7 +70,7 @@ namespace CliSettings {
         /**
          * @brief Constructs a group instance with reference to its values and definition.
          * @param values Map of key-value pairs parsed for this group instance.
-         * @param keyDefs Map of expected keys and their metadata.
+		 * @param definition Definition of the group, including expected keys and their metadata.
          */
         GroupInstance(const ValueMap& values, const GroupDefinition definition)
             : values_(values), definition_(definition) {
@@ -97,17 +97,20 @@ namespace CliSettings {
             }
             if (!std::holds_alternative<T>(it->second)) {
                 if constexpr (std::is_same_v<T, int>) {
-                    throw AppError::makeInvalidParameters("Expected integer for group setting \"" + name + "\".");
+                    throw AppError::makeInvalidParameters("Expected whole number for group setting \"" + name + "\".");
                 }
                 else if constexpr (std::is_same_v<T, bool>) {
-                    throw AppError::makeInvalidParameters("Expected boolean for group setting \"" + name + "\".");
+                    throw AppError::makeInvalidParameters("Expected true or false for group setting \"" + name + "\".");
                 }
                 else if constexpr (std::is_same_v<T, std::string>) {
                     throw AppError::makeInvalidParameters("Expected string for group setting \"" + name + "\".");
                 }
                 else if constexpr (std::is_same_v < T, float>) {
-					throw AppError::makeInvalidParameters("Expected float for group setting \"" + name + "\".");
+					throw AppError::makeInvalidParameters("Expected decimal number for group setting \"" + name + "\".");
 				}
+                else if constexpr (std::is_same_v<T, uint32_t>) {
+                    throw AppError::makeInvalidParameters("Expected whole number ≥ 0 for group setting \"" + name + "\".");
+                }
             }
             return std::get<T>(it->second);
         }
@@ -277,7 +280,7 @@ namespace CliSettings {
          * @param args Vector of command line arguments.
          * @return Index of the next unprocessed argument after the group block.
          */
-        static int parseGroupedParameter(int index, const std::vector<std::string>& args);
+        static int parseGroupedParameter(size_t index, const std::vector<std::string>& args);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.

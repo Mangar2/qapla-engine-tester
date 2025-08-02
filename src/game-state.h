@@ -127,7 +127,7 @@ private:
 
 	bool isThreefoldRepetition() const;
 
-	MoveList legalMoves_; // legalMoves of the current position
+	QaplaBasics::MoveList legalMoves_; // legalMoves of the current position
 	bool moveListOutdated = true;
 	std::vector<QaplaBasics::Move> moveList_;  // list of moves played so far
 	std::vector<QaplaBasics::BoardState> boardState_; // list of board states

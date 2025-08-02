@@ -57,10 +57,6 @@ namespace QaplaInterface {
 				scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, position);
 			}
 
-			if (!error && skipBlank(fen, fenIterator)) {
-				scanPlayedMovesInGame(fen, fenIterator, position);
-			}
-
 			if (!error) {
 				//position->finishBoardSetup();
 			}
@@ -188,8 +184,8 @@ namespace QaplaInterface {
 		 * Scans an EN-Passant-Field
 		 */
 		void scanEPField(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
-			uint32_t epFile = -1;
-			uint32_t epRank = -1;
+			int epFile = -1;
+			int epRank = -1;
 			if (fenIterator != fen.end() && *fenIterator == '-') {
 				++fenIterator;
 				return;
@@ -235,10 +231,6 @@ namespace QaplaInterface {
 
 		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			chessBoard.setHalfmovesWithoutPawnMoveOrCapture((uint8_t)scanInteger(fen, fenIterator));
-		}
-
-		void scanPlayedMovesInGame(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
-			//chessBoard.setPlayedMovesInGame(scanInteger(fen, fenIterator));
 		}
 
 		bool isPieceChar(char pieceChar) {

@@ -102,7 +102,7 @@ public:
 
     /**
      * @brief Sets the output log file.
-     * @param filename Path to target file.
+	 * @param basename Base name for the log file. The timestamp will be appended.
      */
     void setLogFile(const std::string& basename) {
         std::scoped_lock lock(mutex_);
@@ -123,7 +123,8 @@ public:
 
     /**
      * @brief Sets the minimum trace level to log.
-     * @param level TraceLevel threshold.
+	 * @param cli The minimum trace level for console output.
+	 * @param file The minimum trace level for file logging (default: info).
      */
     void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info) {
 		cliThreshold_ = cli;

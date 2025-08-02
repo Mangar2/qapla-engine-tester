@@ -45,10 +45,10 @@ class AppError : public std::runtime_error {
 public:
 
 
-    int getInternalCode() const noexcept { return internalCode; }
-    AppReturnCode getReturnCode() const noexcept { return returnCode; }
-    const std::string& getUserHint() const noexcept { return userHint; }
-    const std::string& getInternalDetail() const noexcept { return internalDetail; }
+    int getInternalCode() const noexcept { return internalCode_; }
+    AppReturnCode getReturnCode() const noexcept { return returnCode_; }
+    const std::string& getUserHint() const noexcept { return userHint_; }
+    const std::string& getInternalDetail() const noexcept { return internalDetail_; }
 
 	/**
 	 * Creates an AppError with a default internal code and return code of 1.
@@ -137,15 +137,15 @@ private:
     AppError(int internalCode, AppReturnCode returnCode, const std::string& externalText,
         const std::string& userHint, const std::string& internalDetail)
         : std::runtime_error(userHint.empty() ? externalText : externalText + "\nHint: " + userHint),
-        internalCode(internalCode),
-        returnCode(returnCode),
-        userHint(userHint),
-        internalDetail(internalDetail) {
+        internalCode_(internalCode),
+        returnCode_(returnCode),
+        userHint_(userHint),
+        internalDetail_(internalDetail) {
     }
-    int internalCode;
-    AppReturnCode returnCode;
-    std::string userHint;
-    std::string internalDetail;
+    int internalCode_;
+    AppReturnCode returnCode_;
+    std::string userHint_;
+    std::string internalDetail_;
 };
 
 

@@ -169,8 +169,8 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {
             player->handleDisconnect(isWhitePlayer);
-            player->getEngine()->setEventSink([this](EngineEvent&& event) {
-                enqueueEvent(std::move(event));
+            player->getEngine()->setEventSink([this](EngineEvent&& curEvent) {
+                enqueueEvent(std::move(curEvent));
                 });
             if (taskType_ != GameTask::Type::PlayGame) {
                 finalizeTaskAndContinue();
@@ -185,7 +185,7 @@ void GameManager::processEvent(const EngineEvent& event) {
             return;
         }
         if (event.type == EngineEvent::Type::SendingComputeMove) {
-            player->setComputingMove(true);
+            player->setComputingMove();
             return;
         }
 
@@ -231,7 +231,7 @@ void GameManager::handleBestMove(const EngineEvent& event) {
         move = player->handleBestMove(event);
         moveRecord = player->getCurrentMove();
     }
-	if (move != QaplaBasics::Move::EMPTY_MOVE) {
+	if (!move.isEmpty()) {
         auto& gameRecord = gameContext_.gameRecord();
 		gameRecord.addMove(moveRecord);
         PlayerContext* opponent = player == gameContext_.getWhite() ? gameContext_.getBlack() : gameContext_.getWhite();
@@ -250,7 +250,7 @@ void GameManager::informTask(const EngineEvent& event, const PlayerContext* play
 	if (event.type != EngineEvent::Type::Info || !event.searchInfo) {
 		return; // Only interested in info events
 	}
-	auto pv = event.searchInfo->pv;
+	const auto& pv = event.searchInfo->pv;
 	if (pv.empty()) {
 		return; // No principal variation to set
 	}

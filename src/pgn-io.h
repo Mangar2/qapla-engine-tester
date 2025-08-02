@@ -98,7 +98,7 @@ private:
      * @param plyIndex Zero-based ply index to determine move number and side.
      * @param isWhiteStart Whether white starts (relevant for proper numbering if not).
      */
-    void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move, 
+    const void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move, 
         uint32_t plyIndex, bool isWhiteStart);
 
     /**
@@ -111,7 +111,7 @@ private:
 
     /**
      * @brief Parses a PGN tag line.
-     * @param line A trimmed PGN tag line, e.g. [Key "Value"]
+	 * @param tokens Tokenized line from PGN input.
      * @return Pair of tag key and value. Returns {"", ""} if invalid.
      */
     std::pair<std::string, std::string> parseTag(const std::vector<std::string>& tokens);

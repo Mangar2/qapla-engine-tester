@@ -159,10 +159,10 @@ QaplaBasics::Move GameState::stringToMove(std::string move, bool requireLan)
 {
 	QaplaInterface::MoveScanner scanner(move);
 	if (!scanner.isLegal()) {
-		return QaplaBasics::Move::EMPTY_MOVE;
+		return QaplaBasics::Move();
 	}
 	if (requireLan && !scanner.isLan()) {
-		return QaplaBasics::Move::EMPTY_MOVE;
+		return QaplaBasics::Move();
 	}
 	int32_t departureFile = scanner.departureFile;
 	int32_t departureRank = scanner.departureRank;
@@ -211,7 +211,7 @@ GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<in
 	if (plies) {
 		maxPly = std::min(maxPly, *plies);
 	}
-	for (size_t i = 0; i < maxPly; ++i) {
+	for (int i = 0; i < maxPly; ++i) {
 		auto move = moves[i];
 		auto moveStr = move.original;
 		auto parsed = stringToMove(moveStr, false);

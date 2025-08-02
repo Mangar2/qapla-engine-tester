@@ -48,7 +48,7 @@ public:
 	 * @brief Constructs the worker and starts its internal thread.
 	 * @param adapter The engine adapter to control. Ownership is transferred.
 	 * @param identifier A unique identifier for the engine represented by the worker.
-	 * @param optionValues option values to set for the engine in the startup process.
+	 * @param engineConfig Configuration for the engine, including executable path and options.
 	 */
 	explicit EngineWorker(std::unique_ptr<EngineAdapter> adapter,
 		std::string identifier,

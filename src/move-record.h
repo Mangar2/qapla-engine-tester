@@ -27,22 +27,22 @@
 #include "engine-event.h"
 
 struct MoveRecord {
-    std::string original;
-    std::string lan;
-    std::string san;
-    std::string comment;
-    std::string nag;
+    std::string original{};
+    std::string lan{};
+    std::string san{};
+    std::string comment{};
+    std::string nag{};
     uint64_t timeMs = 0;
 
-    std::optional<int> scoreCp;
-    std::optional<int> scoreMate;
+    std::optional<int> scoreCp = std::nullopt;
+    std::optional<int> scoreMate = std::nullopt;
 
-    int halfmoveClock = 0; 
+    uint32_t halfmoveClock = 0; 
     int depth = 0;
     int seldepth = 0;
     int multipv = 1;
     uint64_t nodes = 0;
-    std::string pv;
+    std::string pv{};
 
     void clear() {
 		original.clear();
@@ -82,7 +82,7 @@ struct MoveRecord {
 
     /**
 	 * @brief Updates the move record with search information from an EngineEvent.
-	 * @param event EngineEvent of type Info containing search information.
+	 * @param info SearchInfo containing various search metrics.
      */
     void updateFromSearchInfo(const SearchInfo& info) {
         if (info.depth) depth = *info.depth;

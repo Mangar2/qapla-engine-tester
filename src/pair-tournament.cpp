@@ -81,7 +81,7 @@ void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
     
 	// We support having more games in results_ than config_.games.
 	// Unfinished games in the first config_.games are played even, if there are more results.
-    for (int i = 0; i < results_.size() && i < config_.games; i++) {
+    for (size_t i = 0; i < results_.size() && i < config_.games; i++) {
         if (results_[i] == GameResult::Unterminated) {
             ++remainingGames;
         }
@@ -113,7 +113,7 @@ void PairTournament::updateOpening(int openingIndex) {
         curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
     }
     else {
-        auto fen = startPositions_->fens[openingIndex];
+        auto& fen = startPositions_->fens[openingIndex];
         gameState.setFen(false, fen);
         curRecord_.setStartPosition(false, gameState.getFen(),
             gameState.isWhiteToMove(), engineA_.getName(), engineB_.getName());
@@ -341,7 +341,7 @@ std::tuple<int, std::string, std::string> PairTournament::parseRoundHeader(const
     return { round, engineA, engineB };
 }
 
-bool PairTournament::matches(int round, const std::string& engineA, const std::string& engineB) const {
+bool PairTournament::matches(uint32_t round, const std::string& engineA, const std::string& engineB) const {
     return config_.round == round &&
         getEngineA().getName() == engineA &&
         getEngineB().getName() == engineB;
@@ -354,7 +354,7 @@ bool PairTournament::matches(int round, const std::string& engineA, const std::s
  * @param result EngineDuelResult to update.
  * @param field Pointer to the CauseStats member to increment (win/draw/loss).
  */
-void parseEndCauses(std::string_view text, EngineDuelResult& result, int CauseStats::* field) {
+static void parseEndCauses(std::string_view text, EngineDuelResult& result, int CauseStats::* field) {
     std::istringstream ss(std::string{ text });
     std::string token;
 

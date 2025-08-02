@@ -37,7 +37,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
         return { GameEndCause::Ongoing, GameResult::Unterminated };
     }
 
-    int consecutiveOk = 0;
+    uint32_t consecutiveOk = 0;
 
     for (int i = static_cast<int>(moves.size()) - 1; i >= 0; --i) {
         const auto& move = moves[i];
@@ -68,7 +68,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
         return { GameEndCause::Ongoing, GameResult::Unterminated };
     }
 
-    int consecutive = 0;
+    uint32_t consecutive = 0;
 
 	auto& lastMove = moves.back();
     bool curLoosing = lastMove.scoreCp && *lastMove.scoreCp <= -cfg.centipawnThreshold;
@@ -99,7 +99,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
  * @param game The game record.
  * @return True if white was to move at ply 0, false if black.
  */
-bool wtmAtPly(const GameRecord& game, size_t ply) {
+ static bool wtmAtPly(const GameRecord& game, size_t ply) {
     if (ply > game.history().size()) {
         throw std::out_of_range("Ply index exceeds game history size");
     }
@@ -113,7 +113,7 @@ std::optional<size_t> AdjudicationManager::findDrawAdjudicationIndex(const GameR
         return std::nullopt;
     }
 
-    int inRangeCount = 0;
+    uint32_t inRangeCount = 0;
 
     for (size_t i = 0; i < moves.size(); ++i) {
         const auto& move = moves[i];

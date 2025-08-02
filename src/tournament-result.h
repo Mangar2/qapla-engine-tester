@@ -253,7 +253,7 @@ private:
      * @brief Computes the average opponent Elo weighted by number of games.
      *
      * @param s The scored engine to evaluate
-     * @param currentElos All scored engines with current Elo values
+     * @param currentElo All scored engines with current Elo values
      * @return Weighted average Elo of all opponents
      */
     double averageOpponentElo(const Scored &s, const std::unordered_map<std::string, double>& currentElo) const; 

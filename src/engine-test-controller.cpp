@@ -33,7 +33,7 @@
 #include "game-manager-pool.h"
 #include "event-sink-recorder.h"
 
-void EngineTestController::createGameManager(bool singleEngine) {
+void EngineTestController::createGameManager() {
     computeTask_ = std::make_unique<ComputeTask>();
     startEngine();
 }
@@ -83,7 +83,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
     return list;
 }
 
-std::string bytesToMB(int64_t bytes) {
+static std::string bytesToMB(int64_t bytes) {
 	std::ostringstream oss;
 	oss << std::fixed << std::setprecision(1) << (bytes / (1024.0 * 1024.0));
 	return oss.str();
@@ -93,9 +93,9 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
     engineConfig_ = engine;
 	checklist_ = EngineReport::getChecklist(engineConfig_.getName());
     try {
-        auto testSettings = *CliSettings::Manager::getGroupInstance("test");
+        auto& testSettings = *CliSettings::Manager::getGroupInstance("test");
         numGames_ = numGames;
-        createGameManager(true);
+        createGameManager();
         runStartStopTest();
         runMultipleStartStopTest(20);
         if (!testSettings.get<bool>("nomemory")) {
@@ -313,11 +313,11 @@ void EngineTestController::runLowerCaseOptionTest() {
         });
 }
 
-std::vector<std::string> generateCheckValues() {
+static std::vector<std::string> generateCheckValues() {
     return { "true", "false" };
 }
 
-std::vector<std::string> generateSpinValues(const EngineOption& opt) {
+static std::vector<std::string> generateSpinValues(const EngineOption& opt) {
     std::vector<std::string> values;
     if (opt.min && opt.max) {
         int min = *opt.min;
@@ -335,13 +335,13 @@ std::vector<std::string> generateSpinValues(const EngineOption& opt) {
     return values;
 }
 
-std::vector<std::string> generateComboValues(const EngineOption& opt) {
+static std::vector<std::string> generateComboValues(const EngineOption& opt) {
     std::vector<std::string> values = opt.vars;
     values.push_back("invalid_option");
     return values;
 }
 
-std::vector<std::string> generateStringValues() {
+static std::vector<std::string> generateStringValues() {
     return {
         "",
         "öäüß",               
@@ -517,7 +517,7 @@ void EngineTestController::runInfiniteAnalyzeTest() {
         computeTask_->moveNow();
         bool stopped = computeTask_->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
         if (!stopped) {
-            createGameManager(true);
+            createGameManager();
             Logger::testLogger().logAligned("Testing infinite mode:", "Timeout after stop command", TraceLevel::command);
             return { false, "Timeout after stop command in infinite mode" };
         }
@@ -542,11 +542,11 @@ void EngineTestController::testPonderHit(const GameRecord& gameRecord, EngineWor
     engine->allowPonder(gameRecord, goLimits, ponderMove);
     std::this_thread::sleep_for(sleep);
     success = recorder.count(EngineEvent::Type::BestMove) == 0;
-    checklist_->logReport("Pondering", success, "Engine sent a bestmove while in ponder mode. ");
+    checklist_->logReport(testname, success, "Engine sent a bestmove while in ponder mode. ");
     engine->setWaitForHandshake(EngineEvent::Type::BestMove);
     engine->computeMove(gameRecord, goLimits, true);
     success = engine->waitForHandshake(TIMEOUT);
-    checklist_->logReport("Pondering", success, "Engine did not send a bestmove after compute move in ponder mode.");
+    checklist_->logReport(testname, success, "Engine did not send a bestmove after compute move in ponder mode.");
 }
 
 void EngineTestController::testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
@@ -564,12 +564,12 @@ void EngineTestController::testPonderMiss(const GameRecord& gameRecord, EngineWo
     engine->allowPonder(gameRecord, goLimits, ponderMove);
     std::this_thread::sleep_for(sleep);
     success = recorder.count(EngineEvent::Type::BestMove) == 0;
-    checklist_->logReport("Pondering", success, "Engine sent a bestmove while in ponder mode. ");
+    checklist_->logReport(testname, success, "Engine sent a bestmove while in ponder mode. ");
     success = engine->moveNow(true, std::chrono::milliseconds(500));
-    checklist_->logReport("Pondering", success, "Engine did not send a bestmove fast after receiving stop in ponder mode.");
+    checklist_->logReport(testname, success, "Engine did not send a bestmove fast after receiving stop in ponder mode.");
     if (!success) {
         success = engine->waitForHandshake(TIMEOUT);
-        checklist_->logReport("Pondering", success, "Engine never sent a bestmove after receiving stop in ponder mode.");
+        checklist_->logReport(testname, success, "Engine never sent a bestmove after receiving stop in ponder mode.");
     }
 }
 
@@ -579,7 +579,7 @@ void EngineTestController::runUciPonderTest() {
         std::cout << "Testing pondering:" << std::endl;
         Timer timer;
         timer.start();
-		auto name = engineConfig_.getName();
+		auto& name = engineConfig_.getName();
 		auto engine = computeTask_->getEngine();
         GameRecord gameRecord;
 		testPonderHit(gameRecord, engine, "e2e4", testname);

@@ -139,7 +139,7 @@ public:
 	/**
 	 * @brief Returns the current side to move.
 	 */
-	const bool isWhiteToMove() const {
+	bool isWhiteToMove() const {
 		return isWhiteToMove_;
 	}
 

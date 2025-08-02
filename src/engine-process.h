@@ -37,10 +37,10 @@ struct EngineLine {
         EngineTerminated,
         IncompleteLine
     };
-    std::string content;
-    bool complete;
-    int64_t timestampMs; 
-    Error error;
+    std::string content{};
+    bool complete = false;
+    int64_t timestampMs = 0; 
+    Error error = Error::NoError;
 };
 
  /**
@@ -94,7 +94,7 @@ public:
 
     /**
      * @brief Waits for the engine process to exit within the given timeout.
-     * @param milliseconds Timeout in milliseconds to wait.
+     * @param timeout Timeout in milliseconds to wait.
      * @return true if the process exited within the timeout; false otherwise.
      */
     bool waitForExit(std::chrono::milliseconds timeout);

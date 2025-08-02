@@ -37,7 +37,7 @@ namespace QaplaBasics {
 		static const hash_t CASTLE_RANDOMS[64];
 
 	private:
-		HashConstants(void) {};
+		HashConstants() = default;
 
 	};
 

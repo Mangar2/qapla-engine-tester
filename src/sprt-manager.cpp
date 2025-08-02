@@ -184,7 +184,7 @@ void SprtManager::load(const std::string& filename) {
  * @param beta Maximum allowed type II error (false negative rate).
  * @return std::tuple<double, double> A pair of log-likelihood thresholds (lowerBound, upperBound).
  */
-std::tuple<double, double> sprtBounds(double alpha, double beta) {
+static std::tuple<double, double> sprtBounds(double alpha, double beta) {
     const double lBound = std::log(beta / (1.0 - alpha));         
     const double uBound = std::log((1.0 - beta) / alpha);         
     return { lBound, uBound };
@@ -198,7 +198,7 @@ std::tuple<double, double> sprtBounds(double alpha, double beta) {
  * @param draws number of draws.
  * @return double Estimated drawElo value.
  */
-double computeDrawElo(double wins, double draws, double losses) {
+static double computeDrawElo(double wins, double draws, double losses) {
     wins += 0.5;
     draws += 0.5;
     losses += 0.5;
@@ -216,7 +216,7 @@ double computeDrawElo(double wins, double draws, double losses) {
  * @param drawElo Estimated drawElo value.
  * @return std::tuple<double, double, double> Probabilities for win, draw and loss.
  */
-std::tuple<double, double, double> bayesEloProbabilities(double bayesElo, double drawElo) {
+static std::tuple<double, double, double> bayesEloProbabilities(double bayesElo, double drawElo) {
     const double pWin = 1.0 / (1.0 + std::pow(10.0, (drawElo - bayesElo) / 400.0));
     const double pLoss = 1.0 / (1.0 + std::pow(10.0, (drawElo + bayesElo) / 400.0));
     const double pDraw = 1.0 - pWin - pLoss;
@@ -233,14 +233,14 @@ std::tuple<double, double, double> bayesEloProbabilities(double bayesElo, double
  * @param p1 Tuple of probabilities under H1 (win, loss, draw).
  * @return double Computed LLR value.
  */
-double computeLLR(double wins, double draws, double losses,
+static double computeLLR(double wins, double draws, double losses,
     const std::tuple<double, double, double>& p0,
     const std::tuple<double, double, double>& p1) {
     wins += 0.5;
 	losses += 0.5;
 	draws += 0.5;
-    const auto [pWin0, pDraw0, pLoss0] = p0;
-    const auto [pWin1, pDraw1, pLoss1] = p1;
+    const auto& [pWin0, pDraw0, pLoss0] = p0;
+    const auto& [pWin1, pDraw1, pLoss1] = p1;
 
     return 
         wins * std::log(pWin1 / pWin0) +
@@ -315,7 +315,7 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
             const double winProb = (1.0 - drawRate) * trueScore;
 
             std::optional<bool> decision;
-            int g = 0;
+            uint64_t g = 0;
 
             for (; g < config_.maxGames; ++g) {
                 double r = (double)rand() / RAND_MAX;

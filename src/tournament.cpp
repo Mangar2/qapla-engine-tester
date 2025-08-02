@@ -226,7 +226,7 @@ void Tournament::save(std::ostream& out) const {
  * @param text The summary portion of the line after "games: ".
  * @param result The result object to update.
  */
-void parseGameSummary(std::string_view text, EngineDuelResult& result) {
+static void parseGameSummary(std::string_view text, EngineDuelResult& result) {
     std::istringstream iss(std::string{ text });
     std::string token;
 

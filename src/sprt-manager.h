@@ -52,7 +52,6 @@ public:
      *
 	 * @param engine0 Configuration for the first engine.
      * @param engine1 Configuration for the second engine.
-     * @param concurrency Number of engine instances to run in parallel.
      * @param config All configuration parameters required for the SPRT test.
      */
     void createTournament(const EngineConfig& engine0, const EngineConfig& engine1,

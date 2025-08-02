@@ -93,7 +93,7 @@ public:
     /**
      * @brief Set the Trace level for the engine's CLI output.    
      * 
-     * @param traceLevel 
+	 * @param traceLevel The trace level to set for the CLI output.
      */
     void setCliTraceLevel(TraceLevel traceLevel) {
 		gameContext_.setCliTraceLevel(traceLevel);
@@ -190,8 +190,7 @@ private:
 	/**
 	 * @brief Initiates a new game, setting the FEN string for both players and informing the gameRecord.
 	 *
-	 * @param useStartPosition If true, the game starts from the initial position.
-	 * @param fen The FEN string representing the game state.
+	 * @param game The GameRecord containing the game state to set.
 	 */
     void setFromGameRecord(const GameRecord& game) {
         gameContext_.setPosition(game);

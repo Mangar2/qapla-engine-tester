@@ -178,7 +178,7 @@ bool EpdManager::wait() {
 
 std::optional<GameTask> EpdManager::nextTask() {
     std::lock_guard<std::mutex> lock(taskMutex_);
-    if (currentIndex_ >= static_cast<int>(tests_.size())) {
+    if (currentIndex_ >= tests_.size()) {
         return std::nullopt;
     }
 
@@ -257,10 +257,10 @@ void EpdManager::setGameRecord(const std::string& taskId, const GameRecord& reco
     const auto& move = moves.back();
     const std::string& played = move.lan;
 
-    const int index = std::stoi(taskId);
+    const size_t index = std::stoi(taskId);
     std::lock_guard<std::mutex> lock(taskMutex_);
 
-    if (index < 0 || index >= static_cast<int>(tests_.size())) {
+    if (index < 0 || index >= tests_.size()) {
         return;
     }
 

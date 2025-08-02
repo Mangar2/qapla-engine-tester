@@ -22,7 +22,6 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
-#include <sstream>
 #include <limits>
 #include <unordered_set>
 #include "timer.h"
@@ -175,7 +174,7 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
                 Logger::testLogger().log("Unsupported option: " + name, TraceLevel::info);
                 continue;
             }
-			auto supportedOption = *opt;
+			const auto& supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
@@ -223,7 +222,7 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
  * @param target Optional to assign the result.
  * @param errors Vector collecting parse errors.
  */
-void readBoundedInt32(std::istringstream& iss,
+static void readBoundedInt32(std::istringstream& iss,
     const std::string& fieldName,
     int32_t min,
     int32_t max,
@@ -257,7 +256,7 @@ void readBoundedInt32(std::istringstream& iss,
 }
 
 
-void readBoundedInt64(std::istringstream& iss,
+static void readBoundedInt64(std::istringstream& iss,
     const std::string& fieldName,
     int64_t min,
     int64_t max,
@@ -291,7 +290,7 @@ void readBoundedInt64(std::istringstream& iss,
     target = value;
 }
 
-bool isLanMoveToken(const std::string& token) {
+static bool isLanMoveToken(const std::string& token) {
 	// A valid LAN move token is a string of 4 or 5 characters, starting with a letter
 	// and followed by 3 or 4 digits (e.g., "e2e4", "g1f3", "d7d5").
 	if (token.size() < 4 || token.size() > 5) return false;

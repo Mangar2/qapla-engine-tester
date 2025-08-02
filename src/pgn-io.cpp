@@ -153,7 +153,7 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
     }
 }
 
-void PgnIO::saveMove(std::ostream& out, const std::string& san, 
+const void PgnIO::saveMove(std::ostream& out, const std::string& san, 
     const MoveRecord& move, uint32_t plyIndex, bool isWhiteStart) {
     
     bool shouldPrintMoveNumber = (plyIndex % 2 == 0 && isWhiteStart) || (plyIndex % 2 == 1 && !isWhiteStart);
@@ -229,10 +229,10 @@ void PgnIO::saveGame(const GameRecord& game) {
         out << "1... ";
     }
     for (size_t i = 0; i < history.size(); ++i) {
-        auto moveRecord = history[i];
-        auto lan = moveRecord.lan;
-		auto move = state.stringToMove(lan, true);
-        auto san = state.moveToSan(move);
+        const auto& moveRecord = history[i];
+        const auto& lan = moveRecord.lan;
+		const auto& move = state.stringToMove(lan, true);
+        const auto& san = state.moveToSan(move);
 		state.doMove(move);
         saveMove(out, san, history[i], static_cast<uint32_t>(i), isWhiteStart);
     }

@@ -32,8 +32,8 @@ public:
      * @brief Configuration for draw adjudication logic.
      */
     struct DrawAdjudicationConfig {
-        int minFullMoves = 0;
-        int requiredConsecutiveMoves = 0;
+        uint32_t minFullMoves = 0;
+        uint32_t requiredConsecutiveMoves = 0;
         int centipawnThreshold = 0;
         bool testOnly = false;
     };
@@ -42,16 +42,16 @@ public:
      * @brief Configuration for resign adjudication logic.
      */
     struct ResignAdjudicationConfig {
-        int requiredConsecutiveMoves = 0;
+        uint32_t requiredConsecutiveMoves = 0;
         int centipawnThreshold = 0;
         bool twoSided = false;
         bool testOnly = false;
     };
 
     struct AdjudicationTestStats {
-        int totalGames = 0;
-        int correctDecisions = 0;
-        int incorrectDecisions = 0;
+        uint32_t totalGames = 0;
+        uint32_t correctDecisions = 0;
+        uint32_t incorrectDecisions = 0;
         uint64_t savedTimeMs = 0;
         uint64_t totalTimeMs = 0;
         std::vector<GameRecord> failed;

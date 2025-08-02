@@ -191,7 +191,7 @@ void ComputeTask::processEvent(const EngineEvent & event) {
     }
 
     if (event.type == EngineEvent::Type::SendingComputeMove) {
-        player->setComputingMove(true);
+        player->setComputingMove();
         return;
     }
 
@@ -220,7 +220,7 @@ void ComputeTask::handleBestMove(const EngineEvent& event) {
     move = player->handleBestMove(event);
     moveRecord = player->getCurrentMove();
 
-    if (move != QaplaBasics::Move::EMPTY_MOVE) {
+    if (!move.isEmpty()) {
         auto& gameRecord = gameContext_.gameRecord();
         gameRecord.addMove(moveRecord);
 
