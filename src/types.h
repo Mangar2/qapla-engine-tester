@@ -305,7 +305,7 @@ namespace QaplaBasics {
 	/**
 	 * Computes the internal representation of a board square from a string
 	 * @param squareAsString standard chess notation of a square
-	 * @expampe stringToSquare("e1")
+	 * @example stringToSquare("e1")
 	 */
 	constexpr auto stringToSquare(std::string squareAsString) {
 		square_t result =

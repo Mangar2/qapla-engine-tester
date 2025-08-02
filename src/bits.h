@@ -28,7 +28,7 @@
 namespace QaplaBasics {
 
 	constexpr uint32_t popCount(bitBoard_t bitBoard) {
-		return std::popcount(bitBoard);
+		return static_cast<uint32_t>(std::popcount(bitBoard));
 	}
 
 	constexpr uint32_t popCountForSparcelyPopulatedBitBoards(bitBoard_t bitBoard) {

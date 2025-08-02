@@ -105,7 +105,6 @@ namespace QaplaBasics {
 	 *
 	 * @param pieceChar The piece character to match ('Q', 'R', 'B', 'N', 'P').
 	 * @param part The pattern substring for the current color.
-	 * @param pos Current parsing position, updated internally.
 	 * @return A tuple (minCount, allowMore, valid).
 	 */
 	static std::tuple<int, bool, bool> parsePieceInPattern(char pieceChar, std::string_view part) {
@@ -169,7 +168,7 @@ namespace QaplaBasics {
 		_signature = 0;
 		pieceSignature_t shift = 0;
 
-		for (int pos = 0; pos < pieces.length(); pos++) {
+		for (size_t pos = 0; pos < pieces.length(); pos++) {
 			auto pieceChar = pieces[pos];
 			if (pieceChar == 'K') {
 				if (pos > 0) {

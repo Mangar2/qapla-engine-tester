@@ -41,7 +41,7 @@ namespace QaplaBasics {
 	class BoardState {
 	public:
 
-		BoardState() { initialize(); };
+		BoardState() { initialize(); }
 
 		/**
 		 * Checks, if castling king side is allowed

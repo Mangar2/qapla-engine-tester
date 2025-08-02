@@ -42,9 +42,11 @@ namespace QaplaBasics {
 class Move
 {
 public:
-	constexpr Move(uint32_t move) : _move(move) {}
-	constexpr Move(const Move& move) : _move(move._move) {}
-	constexpr Move() : _move(EMPTY_MOVE) {}
+	explicit constexpr Move(uint32_t move) : _move(move) {}
+	constexpr Move(const Move& move) = default;
+	constexpr Move() = default;
+	Move& operator=(const Move& move) = default;
+
 	constexpr bool operator==(const Move& moveToCompare) const { return moveToCompare._move == _move;  }
 	constexpr bool operator!=(const Move& moveToCompare) const { return moveToCompare._move != _move; }
 
@@ -228,7 +230,7 @@ public:
 
 private:
 
-	uint32_t _move;
+	uint32_t _move = EMPTY_MOVE;
 };
 
 /**

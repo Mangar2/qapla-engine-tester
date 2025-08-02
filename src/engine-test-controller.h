@@ -34,7 +34,7 @@ class EngineTestController {
 public:
     /**
      * @brief Runs the full suite of tests in a controlled sequence.
-	 * @param engineName The name of the engine to test.
+	 * @param engine The engine configuration to use for the tests.
 	 * @param numGames The number of games to run in the compute game test.
      */
     void runAllTests(const EngineConfig& engine, int numGames);
@@ -62,10 +62,8 @@ private:
       *
       * Initializes a GameManager capable of controlling the engine via UCI protocol.
       * Must be called before executing any test that requires engine interaction.
-      *
-	  * @param bool singleEngine if true, only one engine instance is created, otherwise two instances are created
       */
-    void createGameManager(bool singleEngine = true);
+    void createGameManager();
 
 	/**
 	 * @brief Starts an engine instance and sets it as unique engine to the GameManager

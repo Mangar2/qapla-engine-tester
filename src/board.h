@@ -55,7 +55,7 @@ namespace QaplaBasics {
 		/**
 		 * Checks, if two positions are identical
 		 */
-		bool isIdenticalPosition(const Board& boardToCompare) {
+		const bool isIdenticalPosition(const Board& boardToCompare) {
 			return _whiteToMove == boardToCompare._whiteToMove && _board == boardToCompare._board;
 		}
 

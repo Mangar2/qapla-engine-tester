@@ -159,7 +159,6 @@ public:
 
     /**
 	 * @brief Checks all players for engine timeout and restarts them if necessary.
-     * @param callback The callback to reassign on timeout.
      * @return True if at least one engine was restarted.
      */
     bool checkForTimeoutsAndRestart();

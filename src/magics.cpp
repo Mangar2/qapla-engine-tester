@@ -240,7 +240,7 @@ bitBoard_t Magics::_bishopMask(Square square)
 }
 
 // -------------------------- IndexToBitBoard ---------------------------------
-bitBoard_t indexToBitBoard(int aIndex, int bitAmount, bitBoard_t aMask) 
+static bitBoard_t indexToBitBoard(int aIndex, int bitAmount, bitBoard_t aMask)
 {
 	int32_t i, j;
 	bitBoard_t res = 0ULL;

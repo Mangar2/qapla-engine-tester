@@ -68,12 +68,12 @@ public:
      * @return true if the engine should stop searching, false to continue.
      */
     virtual bool setPV(
-        const std::string& taskId,
-        const std::vector<std::string>& pv,
-        uint64_t timeInMs,
-        std::optional<uint32_t> depth,
-        std::optional<uint64_t> nodes,
-        std::optional<uint32_t> multipv)
+        [[maybe_unused]] const std::string& taskId,
+        [[maybe_unused]] const std::vector<std::string>& pv,
+        [[maybe_unused]] uint64_t timeInMs,
+        [[maybe_unused]] std::optional<uint32_t> depth,
+        [[maybe_unused]] std::optional<uint64_t> nodes,
+        [[maybe_unused]] std::optional<uint32_t> multipv)
     {
         return false;
     }

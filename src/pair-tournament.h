@@ -55,11 +55,11 @@ struct StartPositions {
 * @brief Configuration parameters for a PairTournament.
 */
 struct PairTournamentConfig {
-    int games = 0;
-    int repeat = 2;
-    int round = 0;
+    uint32_t games = 0;
+    uint32_t repeat = 2;
+    uint32_t round = 0;
     int seed = 0;
-    int gameNumberOffset = 0;
+    uint32_t gameNumberOffset = 0;
     bool swapColors = true;
     Openings openings;
 };
@@ -201,7 +201,7 @@ public:
      * @param engineB Second engine name (must match getEngineB()).
      * @return true if round and engine names match exactly.
      */
-    bool matches(int round, const std::string& engineA, const std::string& engineB) const;
+    bool matches(uint32_t round, const std::string& engineA, const std::string& engineB) const;
     
     /**
      * @brief Loads result block data from input stream (one round).

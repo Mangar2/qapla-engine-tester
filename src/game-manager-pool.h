@@ -40,7 +40,7 @@ public:
      * @brief Adds a new task with one engine per manager.
      *
      * @param taskProvider Task source
-     * @param engineConfig Engine configuration
+     * @param engine Engine configuration
      */
     void addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, const EngineConfig& engine);
 
@@ -79,9 +79,7 @@ public:
     void togglePause();
 
     /**
-     * @brief Blocks until all managers for the given task have completed their current task.
-	 * if taskProvider is nullptr, waits for all tasks in the pool.
-     * @param taskProvider The task to wait for.
+	 * @brief Blocks until all managers have completed all available tasks.
      */
     void waitForTask();
 
@@ -151,14 +149,14 @@ private:
 	 *
 	 * @return The number of currently active managers.
 	 */
-    int countActiveManagers() const;
+    uint32_t countActiveManagers() const;
 
     void tryReactivateManagers();
     void ensureManagerCount(size_t count, bool start = false);
 
     std::vector<TaskAssignment> taskAssignments_;
     std::vector<std::unique_ptr<GameManager>> managers_;
-    int maxConcurrency_ = 0;
+    uint32_t maxConcurrency_ = 0;
     bool niceMode_ = false;
     std::mutex taskMutex_;
     std::mutex managerMutex_;

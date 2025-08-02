@@ -44,7 +44,7 @@
 #include "game-manager-pool.h"
 #include "adjucation-manager.h"
 
-auto updateCode(AppReturnCode code, AppReturnCode newCode) {
+static auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
 		return newCode;
 	}
@@ -54,7 +54,7 @@ auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	return code;
 }
 
-auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
+static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
     auto newCode = EngineReport::logAll(traceLevel);
     if (code == AppReturnCode::NoError) {
         code = newCode;
@@ -65,7 +65,7 @@ auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::comman
     return code;
 }
 
-auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
+static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
 	int concurrency = CliSettings::Manager::get<int>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
@@ -100,7 +100,7 @@ auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
     return code;
 }
 
-AppReturnCode handleGlobalOptions(AppReturnCode code) {
+static AppReturnCode handleGlobalOptions(AppReturnCode code) {
     if (!CliSettings::Manager::get<std::string>("logpath").empty()) {
         Logger::setLogPath(CliSettings::Manager::get<std::string>("logpath"));
     }
@@ -112,7 +112,7 @@ AppReturnCode handleGlobalOptions(AppReturnCode code) {
     return code;
 }
 
-AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
+static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
     Logger::testLogger().setLogFile("engine-report");
     Logger::testLogger().setTraceLevel(TraceLevel::warning);
     if (!Logger::engineLogger().getFilename().empty()) {
@@ -147,7 +147,7 @@ AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code
 }
 
 
-std::optional<Openings> readOpenings() {
+static std::optional<Openings> readOpenings() {
     auto opening = CliSettings::Manager::getGroupInstance("openings");
     if (!opening) {
         Logger::testLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
@@ -201,7 +201,7 @@ std::optional<Openings> readOpenings() {
     return openings;
 }
 
-void checkTimeControl() {
+static void checkTimeControl() {
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         if (!engine.getTimeControl().isValid()) {
             throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
@@ -210,7 +210,7 @@ void checkTimeControl() {
     }
 } 
 
-auto runSprt(AppReturnCode code) {
+static auto runSprt(AppReturnCode code) {
     auto sprt = CliSettings::Manager::getGroupInstance("sprt");
 	auto opening = CliSettings::Manager::getGroupInstance("openings");  
     Openings openings;
@@ -223,7 +223,7 @@ auto runSprt(AppReturnCode code) {
     else {
 		openings = *readOpenings();
     }
-	auto activeEngines = EngineWorkerFactory::getActiveEngines();
+	const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2 && !isMontecarlo) {
         Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
             TraceLevel::error);
@@ -277,12 +277,12 @@ auto runSprt(AppReturnCode code) {
     return code;
 }
 
-AppReturnCode runTournament(AppReturnCode code) {
+static AppReturnCode runTournament(AppReturnCode code) {
     auto tournamentGroup = CliSettings::Manager::getGroupInstance("tournament");
 
     if (!tournamentGroup) return code;
 
-    auto activeEngines = EngineWorkerFactory::getActiveEngines();
+    const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2) {
         Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
@@ -344,12 +344,12 @@ AppReturnCode runTournament(AppReturnCode code) {
     return code;
 }
 
-void handleAdjudicationOptions() {
+static void handleAdjudicationOptions() {
     auto draw = CliSettings::Manager::getGroupInstance("draw");
     if (draw) {
         AdjudicationManager::instance().setDrawAdjudicationConfig({
-            .minFullMoves = draw->get<int>("movenumber"),
-            .requiredConsecutiveMoves = draw->get<int>("movecount"),
+            .minFullMoves = draw->get<uint32_t>("movenumber"),
+            .requiredConsecutiveMoves = draw->get<uint32_t>("movecount"),
             .centipawnThreshold = draw->get<int>("score"),
             .testOnly = draw->get<bool>("test")
         });
@@ -357,18 +357,18 @@ void handleAdjudicationOptions() {
     auto resign = CliSettings::Manager::getGroupInstance("resign");
     if (resign) {
         AdjudicationManager::instance().setResignAdjudicationConfig({
-            .requiredConsecutiveMoves = resign->get<int>("movecount"),
+            .requiredConsecutiveMoves = resign->get<uint32_t>("movecount"),
             .centipawnThreshold = resign->get<int>("score"),
             .testOnly = resign->get<bool>("test")
         });
     }
 }
 
-void handlePgnOptions() {
+static void handlePgnOptions() {
     auto pgnOptionInstance = CliSettings::Manager::getGroupInstance("pgnoutput");
     if (!pgnOptionInstance) return;
 
-    auto pgn = *pgnOptionInstance;
+    const auto& pgn = *pgnOptionInstance;
     PgnIO::Options pgnOptions{
         .file = pgn.get<std::string>("file"),
         .append = pgn.get<bool>("append"),
@@ -383,7 +383,7 @@ void handlePgnOptions() {
     PgnIO::tournament().setOptions(pgnOptions);
 }
 
-void handleEngineOptions() {
+static void handleEngineOptions() {
 	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("rapid"));
     std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
@@ -397,7 +397,7 @@ void handleEngineOptions() {
 	}
     EngineConfig config;
 
-    for (auto engine : engineSettings) {
+    for (const auto& engine : engineSettings) {
         std::string cmd = engine.get<std::string>("cmd");
         std::string conf = engine.get<std::string>("conf");
         std::string name = engine.get<std::string>("name");
@@ -433,7 +433,7 @@ void handleEngineOptions() {
 /**
  * Converts argc/argv into a vector of strings for easier manipulation.
  */
-std::vector<std::string> argvToVector(int argc, char* argv[]) {
+static std::vector<std::string> argvToVector(int argc, char* argv[]) {
     std::vector<std::string> result;
     for (int i = 0; i < argc; ++i) {
         result.emplace_back(argv[i]);
@@ -441,7 +441,7 @@ std::vector<std::string> argvToVector(int argc, char* argv[]) {
     return result;
 }
 
-AppReturnCode run(const std::vector<std::string>& args) {
+static AppReturnCode run(const std::vector<std::string>& args) {
     AppReturnCode returnCode = AppReturnCode::NoError;
     auto extendedArgs = CliSettings::Manager::mergeWithSettingsFile(args);
     CliSettings::Manager::parseCommandLine(extendedArgs);

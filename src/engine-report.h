@@ -129,8 +129,8 @@ private:
     static inline std::mutex statsMutex_;
 
     struct CheckEntry {
-        int total = 0;
-        int failures = 0;
+        uint32_t total = 0;
+        uint32_t failures = 0;
     };
 
     static inline std::vector<CheckTopic> registeredTopics_;

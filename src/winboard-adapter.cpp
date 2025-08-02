@@ -22,7 +22,6 @@
 #include <iostream>
 #include <sstream>
 #include <chrono>
-#include <sstream>
 #include <limits>
 #include <unordered_set>
 #include "timer.h"
@@ -114,7 +113,7 @@ int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
 		throw std::runtime_error("Different start position or FEN detected in sendMissingMoves");
     }
 
-    for (int ply = 0; ply < oldMoves.size(); ply++) {
+    for (size_t ply = 0; ply < oldMoves.size(); ply++) {
         if (!oldMoves[ply].lan.empty() &&
             oldMoves[ply].lan != newMoves[ply].lan) {
             throw std::runtime_error("Different move history detected in sendMissingMoves");
@@ -222,7 +221,10 @@ void WinboardAdapter::sendPosition(const GameRecord& game) {
     }
 }
 
-void WinboardAdapter::setTestOption(const std::string& name, const std::string& value) {
+void WinboardAdapter::setTestOption(
+    [[maybe_unused]] const std::string& name, 
+    [[maybe_unused]] const std::string& value) {
+	throw AppError::make("WinboardAdapter does not support setTestOption");
 }
 
 void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
@@ -233,7 +235,7 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
                 Logger::testLogger().log("Unsupported option: " + name, TraceLevel::info);
                 continue;
             }
-			auto supportedOption = *opt;
+			const auto& supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
@@ -345,14 +347,14 @@ void storeBoundedInt(
  * @param stream The input stream to inspect.
  * @return true if the next non-whitespace character is a tab, false otherwise.
  */
-bool comesTab(std::istream& stream) {
+static bool comesTab(std::istream& stream) {
     while (std::isspace(stream.peek()) && stream.peek() != '\t') {
         stream.get();
     }
     return stream.peek() == '\t';
 }
 
-std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, EngineEvent& event) {
+static std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, EngineEvent& event) {
 	std::vector<std::string> pv;
     std::vector<std::string> optionals;
     std::streampos pvStart = iss.tellg();
@@ -365,15 +367,15 @@ std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, EngineEv
 		}
     }
 	if (!optionals.empty()) {
-		const auto last = optionals.back();
+		const auto& last = optionals.back();
 		storeBoundedInt<int64_t>(last, "tbhits", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->tbhits, event.errors);
 	}
     if (optionals.size() > 1) {
-        const auto selDepth = optionals[0];
+        const auto& selDepth = optionals[0];
 		storeBoundedInt<int32_t>(selDepth, "seldepth", 0, 1000, event.searchInfo->selDepth, event.errors);
     }
     if (optionals.size() > 2) {
-        const auto nps = optionals[1];
+        const auto& nps = optionals[1];
         storeBoundedInt<int64_t>(nps, "nps", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nps, event.errors);
     }
 	iss.seekg(pvStart);
@@ -385,7 +387,7 @@ std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, EngineEv
     return pv;
 }
 
-void parsePV(const std::vector<std::string>& pv, EngineEvent& event) {
+static void parsePV(const std::vector<std::string>& pv, EngineEvent& event) {
     bool inParens = false;
     for (const auto& token : pv) {
         if (token.find('(') != std::string::npos) {
@@ -430,7 +432,7 @@ EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istrings
     return event;
 }
 
-void WinboardAdapter::parseOptionFeature(const std::string& optionStr, int64_t timestamp, EngineEvent& event) {
+void WinboardAdapter::parseOptionFeature(const std::string& optionStr, EngineEvent& event) {
     std::istringstream iss(optionStr);
     std::string name;
     std::getline(iss, name, '-');
@@ -501,7 +503,7 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, int64_t t
         }
 
         if (key == "option") {
-            parseOptionFeature(value, timestamp, event);
+            parseOptionFeature(value, event);
             continue;
         }
 

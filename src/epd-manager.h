@@ -104,7 +104,7 @@ public:
      *        Does not interrupt active analysis.
      * @param concurrency Desired number of concurrent engines.
      */
-    void changeConcurrency(uint32_t concurrency) { throw "not yet implemented"; };
+    void changeConcurrency([[maybe_unused]] uint32_t concurrency) { throw "not yet implemented"; };
 
     /**
      * @brief Provides the next EPD position to analyze.
@@ -168,8 +168,8 @@ private:
     std::string engineName_;
     std::string epdFileName_;
     std::mutex taskMutex_;
-    int oldestIndexInUse_ = 0;
-    int currentIndex_ = 0;
+    size_t oldestIndexInUse_ = 0;
+    size_t currentIndex_ = 0;
     TimeControl tc_;
 
 };

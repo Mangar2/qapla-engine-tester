@@ -19,8 +19,7 @@
  * Implements piece square table for static evaluation for the piece placement
  */
 
-#ifndef __PST_H
-#define __PST_H
+#pragma once
 
 #include <vector>
 #include "types.h"
@@ -114,5 +113,3 @@ namespace QaplaBasics {
 
 	};
 }
-
-#endif  // __PST_H

@@ -156,7 +156,7 @@ bool GameContext::checkForTimeoutsAndRestart() {
 
     bool restarted = false;
     for (auto& player : players_) {
-        if (player->checkEngineTimeout(false)) {
+        if (player->checkEngineTimeout()) {
             restarted = true;
             player->getEngine()->setEventSink(eventCallback_);
         }

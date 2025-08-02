@@ -224,8 +224,8 @@ std::vector<GameManager*> GameManagerPool::collectAvailableManagers() {
     return available;
 }
 
-int GameManagerPool::countActiveManagers() const {
-    int count = 0;
+uint32_t GameManagerPool::countActiveManagers() const {
+    uint32_t count = 0;
     for (const auto& managerPtr : managers_) {
         GameManager* manager = managerPtr.get();
         if (manager->getTaskProvider() != nullptr) {

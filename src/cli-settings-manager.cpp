@@ -234,7 +234,7 @@ namespace CliSettings
 
     void Manager::parseCommandLine(const std::vector<std::string> &args)
     {
-        int index = 1;
+        size_t index = 1;
 
         while (index < args.size())
         {
@@ -318,7 +318,7 @@ namespace CliSettings
         return nullptr;
     }
 
-    int Manager::parseGroupedParameter(int index, const std::vector<std::string> &args)
+    int Manager::parseGroupedParameter(size_t index, const std::vector<std::string> &args)
     {
         auto groupArg = parseParameter(args[index]);
         index++;
@@ -383,7 +383,7 @@ namespace CliSettings
                 std::cout << key << " (required): ";
                 std::getline(std::cin, input);
                 values_[key] = parseValue(
-                    ParsedParameter{.hasPrefix = false, .name = key, .value = input}, def);
+                    ParsedParameter{.original="", .hasPrefix = false, .name = key, .value = input}, def);
             }
             else if (!def.isRequired && def.defaultValue)
             {

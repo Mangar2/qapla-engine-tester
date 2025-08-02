@@ -41,8 +41,9 @@ class EngineConfig {
 public:
     EngineConfig() = default;
     EngineConfig(const EngineConfig&) = default;
+	EngineConfig& operator=(const EngineConfig&) = default;
 
-    using Value = std::variant<std::string, int, bool, float>;
+    using Value = std::variant<std::string, int, unsigned int, bool, float>;
     using ValueMap = std::unordered_map<std::string, Value>;
     /**
      * @brief Creates a fully initialized EngineConfig instance from a value map.
@@ -211,9 +212,8 @@ private:
     };
 
     /**
-     * @brief Reads the section header line from the input stream and sets the engine name.
-     * @param in The input stream positioned at a section header line.
-     * @throws std::runtime_error If the line is not a valid section header.
+	 * @brief Finalizes the set of options after parsing.
+	 * @throws std::runtime_error If required options are missing or invalid.
      */
     void finalizeSetOptions();
 

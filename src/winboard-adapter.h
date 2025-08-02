@@ -148,7 +148,6 @@ private:
     /**
      * @brief Sends the current position to the engine.
      * @param game The current game record containing the position and moves played.
-     * @param ponderMove Optional move to ponder on, if any.
      */
     void sendPosition(const GameRecord& game);
 
@@ -173,7 +172,7 @@ private:
 
     EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
 	EngineEvent parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption);
-    void parseOptionFeature(const std::string& optionStr, int64_t timestamp, EngineEvent& event);
+    void parseOptionFeature(const std::string& optionStr, EngineEvent& event);
     EngineEvent parseResult(std::istringstream& iss, const std::string& command, EngineEvent event);
     
 

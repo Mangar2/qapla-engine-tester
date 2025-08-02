@@ -97,7 +97,7 @@ public:
     /**
      * @brief Add or replaces several EngineConfig instances from configuration maps.
      *        Each map must represent one complete engine configuration.
-     * @param configs A vector of parameter maps.
+	 * @param instances A collection of GroupInstances, each containing a map of configuration values.
      * @throws std::runtime_error if any EngineConfig is invalid.
      */
     void addOrReplaceConfigurations(const CliSettings::GroupInstances& instances) {

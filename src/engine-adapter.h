@@ -106,7 +106,6 @@ public:
      * @brief Requests the engine to calculate a move.
 	 * @param game        Current game state.
 	 * @param limits      Calculation limits (time, depth, etc.).
-	 * @param limitMoves  Optional list of moves to consider.
 	 * @param ponderHit   true, if the engine is currently pondering on the right move.
 	 * @returns the timestamp the calculate move commad has been sent to the engine.
      */
