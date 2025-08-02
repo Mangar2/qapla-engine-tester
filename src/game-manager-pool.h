@@ -76,6 +76,8 @@ public:
      */
     void stopAll();
 
+    void togglePause();
+
     /**
      * @brief Blocks until all managers for the given task have completed their current task.
 	 * if taskProvider is nullptr, waits for all tasks in the pool.
@@ -161,6 +163,7 @@ private:
     std::mutex taskMutex_;
     std::mutex managerMutex_;
     std::mutex deactivateMutex_;
+    bool paused_ = false;
 
 	// InputHandler
     std::unique_ptr<InputHandler::CallbackRegistration> inputCallback_;

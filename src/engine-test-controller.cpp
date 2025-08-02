@@ -613,7 +613,7 @@ void EngineTestController::runEpdTests() {
         auto epdManager = std::make_shared<EpdTestManager>(EngineReport::getChecklist(engines[0]->getConfig().getName()));
         GameManager gameManager;
         gameManager.initUniqueEngine(std::move(engines[0]));
-        gameManager.computeTasks(epdManager);
+        gameManager.start(epdManager);
 		gameManager.getFinishedFuture().wait();
 
         Logger::testLogger().logAligned("Testing positions:", "All positions computed.");

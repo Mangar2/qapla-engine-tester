@@ -88,7 +88,7 @@ public:
      * @param taskProvider Function that returns the next Task or std::nullopt if done.
 	 * @return true if tasks were computed, false if no tasks were available.
      */
-    bool computeTasks(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
+    bool start(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
 
     /**
      * @brief Set the Trace level for the engine's CLI output.    
@@ -120,6 +120,22 @@ public:
      * @brief stops the engine if it is running.
      */
     void stop();
+
+    /**
+     * @brief Pauses task processing after the current game finishes.
+     */
+    void pause() {
+        pauseRequested_ = true;
+    }
+
+    bool isPaused() const {
+        return paused_;
+	}
+
+    /**
+     * @brief Resumes task processing if previously paused.
+     */
+    void resume();
 private:
     /**
      * @brief Tells the engine to stop the current move calculation and sends the best move
@@ -223,7 +239,7 @@ private:
     /**
 	 * Computes the next task from the task provider
      */
-	void computeNextTask();
+	void finalizeTaskAndContinue();
 
     /**
      * @brief Attempts to obtain a replacement task and reassign the GameManager.
@@ -234,14 +250,14 @@ private:
      *
      * @return An optional GameTask if reassignment was possible; std::nullopt otherwise.
      */
-    std::optional<GameTask> tryGetReplacementTask();
+    std::optional<GameTask> assignNewProviderAndTask();
 
     /**
 	 * @brief Attempts to organize a new assignment by fetching the next task from the task provider or 
 	 * from the GameManagerPool, if the task proivder has no more tasks available.
 	 * @return the new GameTask or std::nullopt if no more tasks are available.
      */
-    std::optional<GameTask> organizeNewAssignment();
+    std::optional<GameTask> nextAssignment();
 
 	/**
 	 * @brief Computes the task based on the provided GameTask.
@@ -249,7 +265,7 @@ private:
 	 *
 	 * @param task The GameTask to compute.
 	 */
-    void computeTask(std::optional<GameTask> task);
+    void executeTask(std::optional<GameTask> task);
 
     /**
      * @brief Players and GameRecord coordination
@@ -269,6 +285,9 @@ private:
     // Queue management
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };
+    std::mutex pauseMutex_;
+	std::atomic<bool> pauseRequested_{ false };
+	std::atomic<bool> paused_{ false };
     std::atomic<bool> debug_{ false };
     std::mutex queueMutex_;
     std::condition_variable queueCondition_;

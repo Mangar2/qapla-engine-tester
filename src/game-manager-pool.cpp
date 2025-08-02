@@ -27,6 +27,7 @@ GameManagerPool::GameManagerPool() {
 		{ InputHandler::ImmediateCommand::Quit,
           InputHandler::ImmediateCommand::Abort,
 		  InputHandler::ImmediateCommand::Concurrency,
+		  InputHandler::ImmediateCommand::Pause,
           InputHandler::ImmediateCommand::Running,
           InputHandler::ImmediateCommand::ViewGame },
         [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue value) {
@@ -50,7 +51,16 @@ GameManagerPool::GameManagerPool() {
             }
             else if (cmd == InputHandler::ImmediateCommand::ViewGame) {
                 this->viewEngineTrace(value ? std::stoi(*value) : 0);
-            }
+            } 
+            else if (cmd == InputHandler::ImmediateCommand::Pause) {
+                if (paused_) {
+					std::cout << "\n\nResuming.\n" << std::endl;
+                } 
+                else {
+					std::cout << "\n\nPausing. All current tasks will finish before pause takes effect.\n" << std::endl;
+                }
+                this->togglePause();
+			}
         });
 }
 
@@ -68,6 +78,7 @@ void GameManagerPool::printRunningGames() const {
               << std::left << std::setw(30) << whiteName
               << " vs "
               << std::left << std::setw(30) << blackName
+			  << (manager->isPaused() ? "[PAUSED]" : "[RUNNING]")
               << "\n";
         ++pos;
     }
@@ -130,6 +141,18 @@ void GameManagerPool::stopAll() {
     }
 }
 
+void GameManagerPool::togglePause() {
+    std::lock_guard lock(taskMutex_);
+    for (auto& manager : managers_) {
+        if (paused_) {
+            manager->resume();
+        } else {
+            manager->pause();
+		}
+    }
+    paused_ = !paused_;
+}
+
 void GameManagerPool::waitForTask() {
 
     while (true) {
@@ -168,7 +191,7 @@ void GameManagerPool::tryReactivateManagers() {
             manager = managers_[i].get();
         }
 		if (manager && manager->getTaskProvider() == nullptr) {
-			manager->computeTasks();
+			manager->start();
 		}
 	}
 }
@@ -185,7 +208,7 @@ void GameManagerPool::ensureManagerCount(size_t count, bool start) {
             managers_.push_back(std::move(newManager));
         }
         if (start) {
-            rawPtr->computeTasks();
+            rawPtr->start();
         }
     }
 }
@@ -221,7 +244,7 @@ void GameManagerPool::assignTaskToManagers() {
 
     for (size_t i = 0; i < availableManagers.size(); ++i) {
         GameManager* manager = availableManagers[i];
-        if (!manager->computeTasks()) break;
+        if (!manager->start()) break;
 	}
 }
 

@@ -114,7 +114,7 @@ void GameManager::processQueue() {
 			bool restarted = gameContext_.checkForTimeoutsAndRestart();
 
             if (checkForGameEnd() || (restarted && taskType_ != GameTask::Type::PlayGame)) {
-                computeNextTask();
+                finalizeTaskAndContinue();
             }
         }
     }
@@ -173,7 +173,7 @@ void GameManager::processEvent(const EngineEvent& event) {
                 enqueueEvent(std::move(event));
                 });
             if (taskType_ != GameTask::Type::PlayGame) {
-                computeNextTask();
+                finalizeTaskAndContinue();
                 return;
             }
 		}
@@ -192,7 +192,7 @@ void GameManager::processEvent(const EngineEvent& event) {
         if (event.type == EngineEvent::Type::BestMove) {
             handleBestMove(event);
             if (taskType_ == GameTask::Type::ComputeMove) {
-                computeNextTask();
+                finalizeTaskAndContinue();
                 return;
             }
         }
@@ -204,7 +204,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         if (taskType_ == GameTask::Type::PlayGame) {
             if (checkForGameEnd()) {
-                computeNextTask();
+                finalizeTaskAndContinue();
                 return;
             }
             if (event.type == EngineEvent::Type::BestMove) {
@@ -329,7 +329,38 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     }
 }
 
-std::optional<GameTask> GameManager::tryGetReplacementTask() {
+void GameManager::stop() {
+    taskType_ = GameTask::Type::None;
+    gameContext_.cancelCompute();
+
+    {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        while (!eventQueue_.empty()) {
+            eventQueue_.pop();
+        }
+    }
+    tearDown();
+}
+
+void GameManager::executeTask(std::optional<GameTask> task) {
+    if (!task) {
+        tearDown();
+        return;
+    }
+    gameContext_.setSideSwitched(task->switchSide);
+    auto& gameRecord = task->gameRecord;
+
+    // Also sets the engines names, Switched side must be set before
+    setFromGameRecord(gameRecord);
+    gameContext_.setTimeControls({ gameRecord.getWhiteTimeControl(), gameRecord.getBlackTimeControl() });
+    taskType_ = task->taskType;
+    taskId_ = task->taskId;
+    // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
+    gameContext_.newGame();
+    computeNextMove();
+}
+
+std::optional<GameTask> GameManager::assignNewProviderAndTask() {
     auto extendedTask = GameManagerPool::getInstance().tryAssignNewTask();
     if (!extendedTask) {
         return std::nullopt;
@@ -349,7 +380,7 @@ std::optional<GameTask> GameManager::tryGetReplacementTask() {
     return extendedTask->task;
 }
 
-std::optional<GameTask> GameManager::organizeNewAssignment() {
+std::optional<GameTask> GameManager::nextAssignment() {
     if (!taskProvider_) {
         // No taskProvider_ means no task assignment. And a GameManager without assignment is inactive.
         // Therefore, no attempt is made to request a new TaskProvider.
@@ -379,41 +410,10 @@ std::optional<GameTask> GameManager::organizeNewAssignment() {
         return task;
     }
     // tryGetReplacementTask already provides new engine instances so restarting is not needed.
-    return tryGetReplacementTask();
+    return assignNewProviderAndTask();
 }
 
-void GameManager::computeTask(std::optional<GameTask> task) {
-    if (!task) {
-		tearDown();
-        return;
-    }
-	gameContext_.setSideSwitched(task->switchSide);
-    auto& gameRecord = task->gameRecord;
-
-    // Also sets the engines names, Switched side must be set before
-	setFromGameRecord(gameRecord);
-    gameContext_.setTimeControls({ gameRecord.getWhiteTimeControl(), gameRecord.getBlackTimeControl() });
-	taskType_ = task->taskType;
-	taskId_ = task->taskId;
-    // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
-    gameContext_.newGame();
-	computeNextMove();
-}
-
-void GameManager::stop() {
-    taskType_ = GameTask::Type::None;
-    gameContext_.cancelCompute();
-
-    {
-        std::unique_lock<std::mutex> lock(queueMutex_);
-        while (!eventQueue_.empty()) {
-            eventQueue_.pop();
-        }
-    }
-	tearDown();
-}
-
-void GameManager::computeNextTask() {
+void GameManager::finalizeTaskAndContinue() {
     if (taskType_ == GameTask::Type::None) {
         // Already processed to end
         return;
@@ -434,32 +434,56 @@ void GameManager::computeNextTask() {
 	auto& gameRecord = gameContext_.gameRecord();
     taskProvider_->setGameRecord(taskId_, gameRecord);
 	AdjudicationManager::instance().onGameFinished(gameRecord);
-    auto task = organizeNewAssignment();
+
+    {
+        std::lock_guard<std::mutex> lock(pauseMutex_);
+        if (pauseRequested_) {
+            paused_ = true;
+            return;
+        }
+    }
+
+    auto task = nextAssignment();
     if (!task) {
 		tearDown();
         return;
     }
 
-	computeTask(std::move(task));
+	executeTask(std::move(task));
 }
 
-bool GameManager::computeTasks(std::shared_ptr<GameTaskProvider> taskProvider) {
+bool GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     std::optional<GameTask> task;
     if (taskProvider == nullptr) {
-        task = tryGetReplacementTask();
+        task = assignNewProviderAndTask();
     }
     else {
         taskProvider_ = std::move(taskProvider);
         taskType_ = GameTask::Type::FetchNextTask;
-        task = organizeNewAssignment();
+        task = nextAssignment();
     }
     if (task) {
         markRunning();
-        computeTask(std::move(task));
+        executeTask(std::move(task));
 		return true;
     }
     return false;
 }
 
-
+void GameManager::resume() {
+    {
+        std::lock_guard<std::mutex> lock(pauseMutex_);
+        pauseRequested_ = false;
+        if (!paused_) return;
+        paused_ = false;
+    }
+    taskType_ = GameTask::Type::FetchNextTask;
+    auto task = nextAssignment();
+    if (task) {
+        executeTask(std::move(task));
+    }
+    else {
+        tearDown();
+    }
+}
 
