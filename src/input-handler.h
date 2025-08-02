@@ -50,6 +50,7 @@ public:
         Concurrency,
         Info,
         Outcome,
+        Pause,
         Quit,
         Running,           
         ViewGame,          

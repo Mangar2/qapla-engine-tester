@@ -65,16 +65,17 @@ void InputHandler::handleLine(const std::string& line) {
     std::vector<std::string> args{ std::istream_iterator<std::string>{iss}, {} };
     try {
         if (command == "quit" || command == "q") { dispatchImmediate(ImmediateCommand::Quit, args); quitFlag = true; }
-        else if (command == "set" || command == "s") handleSetCommand(args);
-        else if (command == "info" || command == "?" || command == "i") dispatchImmediate(ImmediateCommand::Info, args);
-        else if (command == "outcome" || command == "o") dispatchImmediate(ImmediateCommand::Outcome, args);
-        else if (command == "settracelevel" || command == "stl") dispatchImmediate(ImmediateCommand::SetTraceLevel, args);
-		else if (command == "setenginetracelevel" || command == "setel") dispatchImmediate(ImmediateCommand::SetEngineTraceLevel, args);
+        else if (command == "abort" || command == "a") { dispatchImmediate(ImmediateCommand::Abort, args); quitFlag = true; }
         else if (command == "concurrency" || command == "c") dispatchImmediate(ImmediateCommand::Concurrency, args);
-        else if (command == "abort" || command == "a"){ dispatchImmediate(ImmediateCommand::Abort, args); quitFlag = true;} 
-        else if (command == "leaveinput"|| command == "l" ) quitFlag = true;
         else if (command == "help" || command == "h") showHelp();
+        else if (command == "info" || command == "?" || command == "i") dispatchImmediate(ImmediateCommand::Info, args);
+        else if (command == "leaveinput" || command == "l") quitFlag = true;
+        else if (command == "outcome" || command == "o") dispatchImmediate(ImmediateCommand::Outcome, args);
+        else if (command == "pause" || command == "p") dispatchImmediate(ImmediateCommand::Pause, args);
         else if (command == "running" || command == "r") dispatchImmediate(ImmediateCommand::Running, args);
+        else if (command == "set" || command == "s") handleSetCommand(args);
+        else if (command == "setenginetracelevel" || command == "setel") dispatchImmediate(ImmediateCommand::SetEngineTraceLevel, args);
+        else if (command == "settracelevel" || command == "stl") dispatchImmediate(ImmediateCommand::SetTraceLevel, args);
         else if (command == "viewgame" || command == "v") dispatchImmediate(ImmediateCommand::ViewGame, args);
         else {
             std::cout << "Unknown command: " << command << "\n";
@@ -89,14 +90,15 @@ void InputHandler::showHelp() {
     std::cout
         << "Available commands:\n"
         << "  quit | q           - Exit the program, waiting for current games to finish\n"
-        << "  info | i | ?       - Show current engine/game state\n"
-        << "  outcome | o        - Show engine win/draw/loss causes\n"
-        << "  concurrency | c    - Set number of concurrent games\n"
+        << "  help | h           - Show this help message\n"
         << "  abort | a          - Abort current games immediately\n"
+        << "  concurrency | c    - Set number of concurrent games\n"
+        << "  info | i | ?       - Show current engine/game state\n"
         << "  leaveinput | l     - Leave interactive mode; program keeps running\n"
-        << "  viewgame | v       - Show UCI/Winboard log of a specific game by ID\n"
+        << "  outcome | o        - Show engine win/draw/loss causes\n"
+		<< "  pause | p          - Pause all running games\n"
         << "  running | r        - Show all currently running game pairings\n"
-        << "  help | h           - Show this help message\n";
+        << "  viewgame | v       - Show UCI/Winboard log of a specific game by ID\n";
 }
 
 
