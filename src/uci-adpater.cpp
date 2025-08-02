@@ -310,7 +310,7 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
     auto checkDuplicateField = [&](bool check, const std::string& fieldName) {
         if (check) {
             event.errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
-        };
+        }
         return check;
         };
     // Checks and reports duplicate field usage

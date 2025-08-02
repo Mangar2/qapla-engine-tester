@@ -240,15 +240,15 @@ bitBoard_t Magics::_bishopMask(Square square)
 }
 
 // -------------------------- IndexToBitBoard ---------------------------------
-static bitBoard_t indexToBitBoard(int aIndex, int bitAmount, bitBoard_t aMask)
+static bitBoard_t indexToBitBoard(uint32_t index, uint32_t bitAmount, bitBoard_t mask)
 {
 	int32_t i, j;
 	bitBoard_t res = 0ULL;
 
 	for(i = 0; i < bitAmount; i++) 
 	{
-		j = popLSB(aMask);
-		if (aIndex & (1 << i)) 
+		j = popLSB(mask);
+		if (index & (1 << i)) 
 			res |= (1ULL << j);
 	}
 	return res;

@@ -72,8 +72,8 @@ void GameManagerPool::printRunningGames() const {
         if (!manager->getTaskProvider()) {
             continue;
         }
-		auto whiteName = manager->getEngine(true)->getConfig().getName();
-        auto blackName = manager->getEngine(false)->getConfig().getName();
+		auto& whiteName = manager->getEngine(true)->getConfig().getName();
+        auto& blackName = manager->getEngine(false)->getConfig().getName();
         std::cout << std::setw(2) << pos << ". "
               << std::left << std::setw(30) << whiteName
               << " vs "
@@ -106,7 +106,7 @@ void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProv
     task.provider = taskProvider;
     task.engine1 = engineName;
     {
-        std::lock_guard lock(taskMutex_);
+        std::lock_guard<std::mutex> lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
 }
@@ -119,13 +119,13 @@ void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProv
     task.engine1 = whiteEngine;
     task.engine2 = blackEngine;
     {
-        std::lock_guard lock(taskMutex_);
+        std::lock_guard<std::mutex> lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
 }
 
-void GameManagerPool::setConcurrency(int count, bool nice, bool start) {
-    std::lock_guard lock(managerMutex_);
+void GameManagerPool::setConcurrency(uint32_t count, bool nice, bool start) {
+    std::lock_guard<std::mutex> lock(managerMutex_);
     maxConcurrency_ = count;
     niceMode_ = nice;
     if (start) {
@@ -135,14 +135,14 @@ void GameManagerPool::setConcurrency(int count, bool nice, bool start) {
 }
 
 void GameManagerPool::stopAll() {
-    std::lock_guard lock(taskMutex_);
+    std::lock_guard<std::mutex> lock(taskMutex_);
     for (auto& manager : managers_) {
         manager->stop();
     }
 }
 
 void GameManagerPool::togglePause() {
-    std::lock_guard lock(taskMutex_);
+    std::lock_guard<std::mutex> lock(taskMutex_);
     for (auto& manager : managers_) {
         if (paused_) {
             manager->resume();
@@ -158,7 +158,7 @@ void GameManagerPool::waitForTask() {
     while (true) {
         std::vector<GameManager*> managers;
         {
-            std::lock_guard lock(taskMutex_);
+            std::lock_guard<std::mutex> lock(taskMutex_);
             for (const auto& managerPtr : managers_) {
                 GameManager* manager = managerPtr.get();
                 auto& future = manager->getFinishedFuture();
@@ -179,7 +179,7 @@ void GameManagerPool::waitForTask() {
         }
     }
 
-    std::lock_guard lock(taskMutex_);
+    std::lock_guard<std::mutex> lock(taskMutex_);
     taskAssignments_.clear();
 }
 
@@ -187,7 +187,7 @@ void GameManagerPool::tryReactivateManagers() {
 	for (size_t i = 0; i < managers_.size() && i < maxConcurrency_; ++i) {
         GameManager* manager;
         {
-            std::lock_guard lock(taskMutex_);
+            std::lock_guard<std::mutex> lock(taskMutex_);
             manager = managers_[i].get();
         }
 		if (manager && manager->getTaskProvider() == nullptr) {
@@ -204,7 +204,7 @@ void GameManagerPool::ensureManagerCount(size_t count, bool start) {
         auto newManager = std::make_unique<GameManager>();
         GameManager* rawPtr = newManager.get();
         {
-            std::lock_guard lock(taskMutex_);
+            std::lock_guard<std::mutex> lock(taskMutex_);
             managers_.push_back(std::move(newManager));
         }
         if (start) {
@@ -236,7 +236,7 @@ uint32_t GameManagerPool::countActiveManagers() const {
 }
 
 void GameManagerPool::assignTaskToManagers() {
-    std::lock_guard lock(managerMutex_);
+    std::lock_guard<std::mutex> lock(managerMutex_);
 	auto availableManagers = collectAvailableManagers();
     if (availableManagers.empty()) {
         return; 
@@ -249,7 +249,7 @@ void GameManagerPool::assignTaskToManagers() {
 }
 
 std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
-    std::lock_guard lock(taskMutex_);
+    std::lock_guard<std::mutex> lock(taskMutex_);
 
     for (auto& assignment : taskAssignments_) {
         if (!assignment.engine1) continue;
@@ -290,7 +290,7 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
 }
 
 bool GameManagerPool::maybeDeactivateManager(std::shared_ptr<GameTaskProvider>& taskProvider) {
-    std::lock_guard lock(deactivateMutex_);
+    std::lock_guard<std::mutex> lock(deactivateMutex_);
 	if (taskProvider == nullptr)
 		return false;
 	bool tooMany = countActiveManagers() > maxConcurrency_;

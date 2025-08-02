@@ -83,7 +83,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
     return list;
 }
 
-static std::string bytesToMB(int64_t bytes) {
+static std::string bytesToMB(uint64_t bytes) {
 	std::ostringstream oss;
 	oss << std::fixed << std::setprecision(1) << (bytes / (1024.0 * 1024.0));
 	return oss.str();
@@ -176,7 +176,7 @@ void EngineTestController::runStartStopTest() {
         auto list = EngineWorkerFactory::createEngines(engineConfig_, 1);
         auto startTime = timer.elapsedMs();
         auto engine = list[0].get();
-        int64_t memoryInBytes = engine->getEngineMemoryUsage();
+        uint64_t memoryInBytes = engine->getEngineMemoryUsage();
         engine->stop();
         auto stopTime = timer.elapsedMs();
 
@@ -197,11 +197,11 @@ void EngineTestController::runStartStopTest() {
     }
 }
 
-void EngineTestController::runMultipleStartStopTest(int numEngines) {
+void EngineTestController::runMultipleStartStopTest(uint32_t numEngines) {
     runTest("starts-and-stops-cleanly", [this, numEngines]() -> std::pair<bool, std::string> {
         Timer timer;
         timer.start();
-		int64_t startTime = 0;
+		uint64_t startTime = 0;
         {
             EngineList engines = EngineWorkerFactory::createEngines(engineConfig_, numEngines);
             startTime = timer.elapsedMs();
@@ -691,7 +691,7 @@ void EngineTestController::runPonderGameTest() {
 }
 
 void EngineTestController::runMultipleGamesTest() {
-    int parallelGames = CliSettings::Manager::get<int>("concurrency");
+    uint32_t parallelGames = CliSettings::Manager::get<uint32_t>("concurrency");
 
     Logger::testLogger().log("\nTesting playing games. The engine will play " + std::to_string(numGames_) + 
         " games in total, " + std::to_string(parallelGames) + " in parallel.");

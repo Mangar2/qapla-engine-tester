@@ -78,7 +78,7 @@ public:
      * @param passed True if the check passed, false if it failed.
      */
     void report(const std::string& topicId, bool passed) {
-        std::lock_guard lock(statsMutex_);
+        std::lock_guard<std::mutex> lock(statsMutex_);
         auto& stat = entries_[topicId];
         ++stat.total;
         if (!passed) ++stat.failures;
@@ -112,14 +112,14 @@ public:
     static AppReturnCode logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result = std::nullopt);
 
 	void setAuthor(const std::string& author) {
-        std::lock_guard lock(statsMutex_);
+        std::lock_guard<std::mutex> lock(statsMutex_);
 		engineAuthor_ = author;
 	}
 
 	static inline bool reportUnderruns = false;
 
     void setTournamentResult(const EngineResult& result) {
-        std::lock_guard lock(statsMutex_);
+        std::lock_guard<std::mutex> lock(statsMutex_);
         engineResult_ = result;
     }
 private:

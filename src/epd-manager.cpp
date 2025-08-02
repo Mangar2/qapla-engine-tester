@@ -25,13 +25,13 @@
 
 void EpdManager::printHeaderLine() const {
     auto formatEngineName = [](const std::string& name) -> std::string {
-        constexpr int totalWidth = 25;
+        constexpr uint32_t totalWidth = 25;
         if (static_cast<int>(name.length()) > totalWidth) {
             return "..." + name.substr(name.length() - (totalWidth - 3));
         }
-        int padding = totalWidth - static_cast<int>(name.length());
-        int leftPad = padding / 2;
-        int rightPad = padding - leftPad;
+        uint32_t padding = totalWidth - static_cast<uint32_t>(name.length());
+        uint32_t leftPad = padding / 2;
+        uint32_t rightPad = padding - leftPad;
         return std::string(leftPad, ' ') + name + std::string(rightPad, ' ');
         };
 
@@ -121,7 +121,7 @@ inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
     return os;
 }
 
-void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPlies, bool clearTests) {
+void EpdManager::initializeTestCases(uint32_t maxTimeInS, uint32_t minTimeInS, uint32_t seenPlies, bool clearTests) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
     }
@@ -138,13 +138,13 @@ void EpdManager::initializeTestCases(int maxTimeInS, int minTimeInS, int seenPli
         }
 		testCase->maxTimeInS = maxTimeInS;
 		testCase->minTimeInS = minTimeInS;
-		testCase->seenPlies = seenPlies;
+		testCase->seenPlies = static_cast<int>(seenPlies);
         tests_.push_back(std::move(*testCase));
     }
 }
 
 void EpdManager::analyzeEpd(const std::string& filepath, const EngineConfig& engine, 
-    uint32_t concurrency, int maxTimeInS, int minTimeInS, int seenPlies)
+    uint32_t concurrency, uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies)
 {
 	engineName_ = engine.getName();
 	epdFileName_ = filepath;
@@ -207,14 +207,14 @@ bool EpdManager::setPV(const std::string& taskId,
         return false;
     }
 
-    const int index = std::stoi(taskId);
+    const auto index = (std::stoi(taskId));
     std::lock_guard<std::mutex> lock(taskMutex_);
 
     if (index < 0 || index >= static_cast<int>(tests_.size())) {
         return false;
     }
 
-    auto& test = tests_[index];
+    auto& test = tests_[static_cast<uint32_t>(index)];
     assert(test.playedMove.empty());
 
     const std::string& firstMove = pv.front();
@@ -228,10 +228,10 @@ bool EpdManager::setPV(const std::string& taskId,
             test.correctAtDepth = static_cast<int>(depth.value());
         }
         if (test.correctAtTimeInMs == 0) {
-            test.correctAtTimeInMs = static_cast<int>(timeInMs);
+            test.correctAtTimeInMs = timeInMs;
         }
         if (test.correctAtNodeCount == 0 && nodes.has_value()) {
-            test.correctAtNodeCount = static_cast<int>(nodes.value());
+            test.correctAtNodeCount = nodes.value();
         }
     }
     else {
@@ -257,12 +257,19 @@ void EpdManager::setGameRecord(const std::string& taskId, const GameRecord& reco
     const auto& move = moves.back();
     const std::string& played = move.lan;
 
-    const size_t index = std::stoi(taskId);
-    std::lock_guard<std::mutex> lock(taskMutex_);
-
-    if (index < 0 || index >= tests_.size()) {
-        return;
+    int taskIdIndex = -1;
+    try {
+        taskIdIndex = std::stoi(taskId);
     }
+    catch (...) {
+		throw AppError::make("Invalid taskId: " + taskId + ". Must be a valid integer.");
+    }
+    if (taskIdIndex < 0 || taskIdIndex >= static_cast<int>(tests_.size())) {
+        return;
+	}
+	const size_t index = static_cast<size_t>(taskIdIndex);
+
+    std::lock_guard<std::mutex> lock(taskMutex_);
 
     auto& test = tests_[index];
     assert(test.playedMove.empty());

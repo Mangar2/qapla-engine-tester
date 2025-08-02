@@ -30,17 +30,17 @@
   * @brief limits for calculating a single move.
   */
 struct GoLimits {
-    int64_t wtimeMs = 0;
-    int64_t btimeMs = 0;
-    int64_t wincMs = 0;
-    int64_t bincMs = 0;
-    int32_t movesToGo = 0;
+    uint64_t wtimeMs = 0;
+    uint64_t btimeMs = 0;
+    uint64_t wincMs = 0;
+    uint64_t bincMs = 0;
+    uint32_t movesToGo = 0;
 	bool hasTimeControl = false;  
 
-    std::optional<int> depth;
-    std::optional<int> nodes;
-    std::optional<int> mateIn;
-    std::optional<int64_t> movetimeMs;
+    std::optional<uint32_t> depth;
+    std::optional<uint32_t> nodes;
+    std::optional<uint32_t> mateIn;
+    std::optional<uint64_t> movetimeMs;
     std::optional<std::vector<std::string>> limitMoves;
     bool infinite = false;
 };
@@ -51,8 +51,8 @@ struct GoLimits {
 struct TimeSegment {
     bool operator==(const TimeSegment& other) const = default;
     int movesToPlay = 0;            ///< Number of moves in this time segment (0 = sudden death)
-    int64_t baseTimeMs = 0;         ///< Time for this segment in milliseconds
-    int64_t incrementMs = 0;        ///< Increment per move in milliseconds
+    uint64_t baseTimeMs = 0;         ///< Time for this segment in milliseconds
+    uint64_t incrementMs = 0;        ///< Increment per move in milliseconds
 };
 
 /**
@@ -67,20 +67,20 @@ public:
 			movetimeMs_.has_value() || depth_.has_value() || nodes_.has_value() || mateIn_.has_value();
     }
 
-    void setMoveTime(int64_t ms) { movetimeMs_ = ms; }
-    void setDepth(int d) { depth_ = d; }
-    void setNodes(int n) { nodes_ = n; }
+    void setMoveTime(uint64_t ms) { movetimeMs_ = ms; }
+    void setDepth(uint32_t d) { depth_ = d; }
+    void setNodes(uint32_t n) { nodes_ = n; }
     void setInfinite(bool v = true) { infinite_ = v; }
-	void setMateIn(int m) { mateIn_ = m; }
+	void setMateIn(uint32_t m) { mateIn_ = m; }
 
     void addTimeSegment(const TimeSegment& segment) {
         timeSegments_.push_back(segment);
     }
 
-    std::optional<int64_t> moveTimeMs() const { return movetimeMs_; }
-    std::optional<int> depth() const { return depth_; }
-    std::optional<int> nodes() const { return nodes_; }
-	std::optional<int> mateIn() const { return mateIn_; }
+    std::optional<uint64_t> moveTimeMs() const { return movetimeMs_; }
+    std::optional<uint32_t> depth() const { return depth_; }
+    std::optional<uint32_t> nodes() const { return nodes_; }
+	std::optional<uint32_t> mateIn() const { return mateIn_; }
     bool infinite() const { return infinite_.value_or(false); }
 	std::vector<TimeSegment> timeSegments() const { return timeSegments_; }
 
@@ -128,11 +128,11 @@ public:
             }
             size_t plusPos = segmentStr.find('+');
             if (plusPos != std::string::npos) {
-                segment.baseTimeMs = static_cast<int64_t>(std::stod(segmentStr.substr(0, plusPos)) * 1000);
-                segment.incrementMs = static_cast<int64_t>(std::stod(segmentStr.substr(plusPos + 1)) * 1000);
+                segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr.substr(0, plusPos)) * 1000);
+                segment.incrementMs = static_cast<uint64_t>(std::stod(segmentStr.substr(plusPos + 1)) * 1000);
             }
             else {
-                segment.baseTimeMs = static_cast<int64_t>(std::stod(segmentStr) * 1000);
+                segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr) * 1000);
             }
             timeSegments_.push_back(segment);
         }
@@ -175,11 +175,13 @@ public:
         std::string timePart = (slashPos != std::string::npos) ? cliString.substr(slashPos + 1) : cliString;
 
         if (plusPos != std::string::npos) {
-            segment.baseTimeMs = static_cast<int64_t>(std::stof(timePart.substr(0, plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0))) * 1000);
-            segment.incrementMs = static_cast<int64_t>(std::stof(timePart.substr(plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0) + 1)) * 1000);
+            segment.baseTimeMs = static_cast<uint64_t>(
+                std::stof(timePart.substr(0, plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0))) * 1000);
+            segment.incrementMs = static_cast<uint64_t>(
+                std::stof(timePart.substr(plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0) + 1)) * 1000);
         }
         else {
-            segment.baseTimeMs = static_cast<int64_t>(std::stof(timePart) * 1000);
+            segment.baseTimeMs = static_cast<uint64_t>(std::stof(timePart) * 1000);
         }
 
         timeSegments_.push_back(segment);
@@ -188,10 +190,10 @@ public:
 
 
 private:
-    std::optional<int64_t> movetimeMs_;
-    std::optional<int> depth_;
-    std::optional<int> nodes_;
-    std::optional<int> mateIn_;
+    std::optional<uint64_t> movetimeMs_;
+    std::optional<uint32_t> depth_;
+    std::optional<uint32_t> nodes_;
+    std::optional<uint32_t> mateIn_;
     std::optional<bool> infinite_;
     std::vector<TimeSegment> timeSegments_;
 };
@@ -218,16 +220,13 @@ inline std::string to_string(const TimeControl& tc) {
 inline GoLimits createGoLimits(
     const TimeControl& white,
     const TimeControl& black,
-    int halfMoves,
-    int64_t whiteTimeUsedMs,
-    int64_t blackTimeUsedMs,
+    uint32_t halfMoves,
+    uint64_t whiteTimeUsedMs,
+    uint64_t blackTimeUsedMs,
     bool whiteToMove
 ) {
     if (!white.isValid() || !black.isValid()) {
         throw std::invalid_argument("Time control is not valid");
-    }
-    if (halfMoves < 0 || whiteTimeUsedMs < 0 || blackTimeUsedMs < 0) {
-        throw std::invalid_argument("Invalid input values");
     }
 
     GoLimits limits;
@@ -244,11 +243,12 @@ inline GoLimits createGoLimits(
 
 	limits.hasTimeControl = true;
 
-    int wMovesPlayed = (halfMoves + 1) / 2;
-    int bMovesPlayed = halfMoves / 2;
+    uint32_t wMovesPlayed = (halfMoves + 1) / 2;
+    uint32_t bMovesPlayed = halfMoves / 2;
 
-    auto compute = [](const TimeControl& tc, int movesPlayed, int64_t timeUsedMs, int64_t& timeLeftMs, int64_t& incrementMs, int& movesToGo) {
-        int rem = movesPlayed;
+    auto compute = [](const TimeControl& tc, uint32_t movesPlayed,
+        uint64_t timeUsedMs, uint64_t& timeLeftMs, uint64_t& incrementMs, uint32_t& movesToGo) {
+        int32_t rem = static_cast<int32_t>(movesPlayed);
         size_t i = 0;
         timeLeftMs = 0;
         incrementMs = 0;
@@ -258,20 +258,20 @@ inline GoLimits createGoLimits(
 
         while (true) {
             const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
-            int movesInSegment = seg.movesToPlay;
+            int32_t movesInSegment = seg.movesToPlay;
 
             if (movesInSegment == 0) {
                 // Sudden death (no move count limit)
-                timeLeftMs = seg.baseTimeMs + int64_t(movesPlayed) * seg.incrementMs;
+                timeLeftMs = seg.baseTimeMs + static_cast<uint64_t>(movesPlayed) * seg.incrementMs;
                 incrementMs = seg.incrementMs;
                 movesToGo = 0;
                 break;
             }
 
             if (rem < movesInSegment) {
-                timeLeftMs = seg.baseTimeMs + int64_t(rem) * seg.incrementMs;
+                timeLeftMs = seg.baseTimeMs + static_cast<uint64_t>(rem) * seg.incrementMs;
                 incrementMs = seg.incrementMs;
-                movesToGo = movesInSegment - rem;
+                movesToGo = static_cast<uint32_t>(movesInSegment - rem);
                 break;
             }
 
@@ -280,7 +280,7 @@ inline GoLimits createGoLimits(
             ++i;
         }
 
-        timeLeftMs = std::max<int64_t>(0, timeLeftMs - timeUsedMs);
+        timeLeftMs = std::max<uint64_t>(0, timeLeftMs - timeUsedMs);
         };
 
     compute(white, wMovesPlayed, whiteTimeUsedMs, limits.wtimeMs, limits.wincMs, limits.movesToGo);

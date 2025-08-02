@@ -20,6 +20,7 @@
 #include "movegenerator.h"
 #include "bitboardmasks.h"
 
+using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
 MoveGenerator::MoveGenerator(void)
@@ -34,14 +35,15 @@ MoveGenerator::MoveGenerator(void)
 
 // -------------------------- genMovesSinglePiece ---------------------------
 inline void MoveGenerator::
-genMovesSinglePiece(uint32_t movingPiece, Square departure, bitBoard_t destinationBB, MoveList& moveList)
+genMovesSinglePiece(uint32_t movingPiece, QaplaBasics::Square departure, 
+	QaplaBasics::bitBoard_t destinationBB, QaplaBasics::MoveList& moveList)
 {
-	Square destination;
+	QaplaBasics::Square destination;
 	for (; destinationBB; destinationBB &= destinationBB - 1)
 	{
-		destination = lsb(destinationBB);
-		Piece capture = operator[](destination);
-		Move move(departure, destination, movingPiece, capture);
+		destination = QaplaBasics::lsb(destinationBB);
+		QaplaBasics::Piece capture = operator[](destination);
+		QaplaBasics::Move move(departure, destination, movingPiece, capture);
 		moveList.addMove(move);
 	}
 }
@@ -104,6 +106,9 @@ inline bitBoard_t MoveGenerator::computeAttackMaskForPiece(Square square, bitBoa
 	case ROOK: result = Magics::genRookAttackMask(square, allPiecesWithoutKing); break;
 	case QUEEN: result = Magics::genQueenAttackMask(square, allPiecesWithoutKing); break;
 	case KING: result = BitBoardMasks::kingMoves[square]; break;
+	default:
+		// Pawn attack mask is computed separately with bit shifts of the pawn bitboard
+		break;
 	}
 	pieceAttackMask[square] = result;
 	return result;
@@ -780,6 +785,9 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 		return (checkBitmaps[ROOK >> 1] & squareToBB(F8)) | (discoveredCheckMask & departureBit);
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
 		return (checkBitmaps[ROOK >> 1] & squareToBB(D8)) | (discoveredCheckMask & departureBit);
+	default:
+		// For all other moves, we do not have to check anything
+		break;
 	}
 
 	return false;
@@ -807,6 +815,9 @@ std::string MoveGenerator::moveToSan(Move move) const
 		return "O-O-O";
 	case Move::BLACK_CASTLES_QUEEN_SIDE:
 		return "O-O-O";
+	default:
+		// Nothing to do
+		break;
 	}
 	san = pieceToSan(piece);
 	// Add start position (column, row or both) if ambigous

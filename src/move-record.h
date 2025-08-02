@@ -70,7 +70,7 @@ struct MoveRecord {
      * @param halfmoveClk The current halfmove clock value, used for the 50-move rule.
      */
     void updateFromBestMove(const EngineEvent& event, std::string lanMove, std::string sanMove,
-        int64_t computeStartTimestamp, int32_t halfmoveClk) {
+        int64_t computeStartTimestamp, uint32_t halfmoveClk) {
         if (event.bestMove) {
             original = *event.bestMove;
 			lan = lanMove;

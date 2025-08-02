@@ -61,8 +61,9 @@ public:
 
 	/**
 	 * Find the correct move providing a partial move information
+	 * @param moveStr The move string to parse.
 	 */
-	QaplaBasics::Move stringToMove(std::string move, bool requireLan);
+	QaplaBasics::Move stringToMove(std::string moveStr, bool requireLan);
 
 	/**
 	 * @brief Returns a move as San notation. The move must be a legal move in the current position.

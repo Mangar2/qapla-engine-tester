@@ -54,9 +54,9 @@ namespace QaplaBasics {
 				pieceSignature <<= SIG_SHIFT_BLACK;
 				pieceMask <<= SIG_SHIFT_BLACK;
 			}
-			int32_t remainingPieces = 0;
+			uint32_t remainingPieces = 0;
 			if (pieceChar) {
-				int32_t maxPieces = std::min(pieceMask / pieceSignature, static_cast<uint32_t>(8));
+				uint32_t maxPieces = std::min(pieceMask / pieceSignature, static_cast<uint32_t>(8));
 				remainingPieces = maxPieces - ((curSig & pieceMask) / pieceSignature);
 			}
 
@@ -180,7 +180,7 @@ namespace QaplaBasics {
 			if (pieceSignature != 0) {
 				pieceSignature <<= shift;
 				pieceMask <<= shift;
-				int32_t remainingPieces = pieceChar ? (pieceMask - (_signature & pieceMask)) / pieceSignature : 0;
+				uint32_t remainingPieces = pieceChar ? (pieceMask - (_signature & pieceMask)) / pieceSignature : 0;
 				if (remainingPieces > 0) {
 					_signature += pieceSignature;
 				}

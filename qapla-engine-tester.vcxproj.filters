@@ -230,9 +230,6 @@
     <ClInclude Include="src\test-tournament.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\heart-beat.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\game-result.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>

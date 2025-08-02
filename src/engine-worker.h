@@ -143,7 +143,7 @@ public:
 			return 0;
 		}
 		return adapter_->getEngineMemoryUsage();
-	};
+	}
 
 	/**
 	 * @brief Sets the engine's option with the given name to the specified value.

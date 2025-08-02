@@ -30,7 +30,7 @@
 namespace CliSettings {
 
     enum class ValueType { String, Int, Float, Bool, PathExists, PathParentExists };
-    using Value = std::variant<std::string, int, unsigned int, bool, float>;
+    using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
     struct Definition {
@@ -105,7 +105,7 @@ namespace CliSettings {
                 else if constexpr (std::is_same_v<T, std::string>) {
                     throw AppError::makeInvalidParameters("Expected string for group setting \"" + name + "\".");
                 }
-                else if constexpr (std::is_same_v < T, float>) {
+                else if constexpr (std::is_same_v < T, double>) {
 					throw AppError::makeInvalidParameters("Expected decimal number for group setting \"" + name + "\".");
 				}
                 else if constexpr (std::is_same_v<T, uint32_t>) {

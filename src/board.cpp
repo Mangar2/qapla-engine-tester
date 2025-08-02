@@ -141,6 +141,9 @@ void Board::doMoveSpecialities(Move move) {
 			movePiece(_queenRookStartSquare[BLACK], D8);
 		}
 		break;
+	default:
+		// Nothing to do
+		break;
 	}
 }
 
@@ -246,6 +249,9 @@ void Board::undoMoveSpecialities(Move move) {
 		}
 		addPiece(_kingStartSquare[BLACK], BLACK_KING);
 		kingSquares[BLACK] = _kingStartSquare[BLACK];
+		break;
+	default:
+		// Nothing to do
 		break;
 	}
 

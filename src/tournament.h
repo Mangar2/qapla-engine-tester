@@ -36,13 +36,13 @@ struct TournamentConfig {
     std::string event;
     std::string type;
     std::string tournamentFilename;
-    int saveInterval = 0;
-    int games = 2;
-    int rounds = 1;
-    int repeat = 2;
-    int ratingInterval = 0;
-    int averageElo = 2600; 
-    int outcomeInterval = 0; 
+    uint32_t saveInterval = 0;
+    uint32_t games = 2;
+    uint32_t rounds = 1;
+    uint32_t repeat = 2;
+    uint32_t ratingInterval = 0;
+    uint32_t outcomeInterval = 0;
+    int averageElo = 2600;
     bool noSwap = false;
     Openings openings;
 };
@@ -70,7 +70,7 @@ public:
      * 
 	 * @param concurrency Number of parallel workers to use.
      */
-    void scheduleAll(int concurrency);
+    void scheduleAll(uint32_t concurrency);
 
     /**
      * @brief Waits for all engines to finish.
@@ -157,9 +157,9 @@ private:
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;
     std::vector<std::shared_ptr<PairTournament>> pairings_;
-    int raitingTrigger_ = 0;
-    int outcomeTrigger_ = 0;
-    int saveTrigger_ = 0;
+    uint32_t raitingTrigger_ = 0;
+    uint32_t outcomeTrigger_ = 0;
+    uint32_t saveTrigger_ = 0;
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;

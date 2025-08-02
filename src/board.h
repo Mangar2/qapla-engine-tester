@@ -55,7 +55,7 @@ namespace QaplaBasics {
 		/**
 		 * Checks, if two positions are identical
 		 */
-		const bool isIdenticalPosition(const Board& boardToCompare) {
+		bool isIdenticalPosition(const Board& boardToCompare) {
 			return _whiteToMove == boardToCompare._whiteToMove && _board == boardToCompare._board;
 		}
 
@@ -100,7 +100,7 @@ namespace QaplaBasics {
 		 * @returns board hash for the current position
 		 */
 		inline auto computeBoardHash() const {
-			return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[(int32_t)_whiteToMove];
+			return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[static_cast<int32_t>(_whiteToMove)];
 		}
 
 

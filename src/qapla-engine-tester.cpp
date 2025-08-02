@@ -66,23 +66,24 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 }
 
 static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
-	int concurrency = CliSettings::Manager::get<int>("concurrency");
+    uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
 	for (auto& epd : epdList) {
         std::string file;
-        int maxTime = 10;
-        int minTime = 2;
-        int seenPlies = 3;
+        uint32_t maxTime = 10;
+        uint32_t minTime = 2;
+        uint32_t seenPlies = 3;
 		file = epd.get<std::string>("file");
-		maxTime = epd.get<int>("maxtime");
-		minTime = epd.get<int>("mintime");
-		seenPlies = epd.get<int>("seenplies");
+		maxTime = epd.get<uint32_t>("maxtime");
+		minTime = epd.get<uint32_t>("mintime");
+		seenPlies = epd.get<uint32_t>("seenplies");
 
 		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
             std::string name = engine.getName();
-            std::string earlyStop = minTime < 0 ? "" : "Early stop - Seen plies: " + std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
+            std::string earlyStop = "Early stop - Seen plies: " + 
+                std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
 			Logger::testLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
                 + earlyStop);
@@ -181,11 +182,11 @@ static std::optional<Openings> readOpenings() {
         .format = opening->get<std::string>("format"),
         .order = opening->get<std::string>("order"),
         .plies = plies,
-        .start = opening->get<int>("start") - 1, // 1 based index in gui.
-        .seed = static_cast<uint32_t>(opening->get<int>("srand")),
+        .start = opening->get<uint32_t>("start") - 1, // 1 based index in gui.
+        .seed = opening->get<uint32_t>("srand"),
         .policy = opening->get<std::string>("policy")
     };
-    if (openings.start < 0) {
+    if (openings.start < 1) {
         throw AppError::makeInvalidParameters("Openings: Start index must be at least 1, but got " +
             std::to_string(openings.start + 1));
     }
@@ -236,12 +237,12 @@ static auto runSprt(AppReturnCode code) {
         SprtConfig config{
             .eloUpper = sprt->get<int>("eloUpper"),
             .eloLower = sprt->get<int>("eloLower"),
-            .alpha = sprt->get<float>("alpha"),
-            .beta = sprt->get<float>("beta"),
-            .maxGames = sprt->get<int>("maxgames"),
+            .alpha = sprt->get<double>("alpha"),
+            .beta = sprt->get<double>("beta"),
+            .maxGames = sprt->get<uint32_t>("maxgames"),
             .openings = openings
         };
-        int concurrency = CliSettings::Manager::get<int>("concurrency");
+        uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
 
         auto manager = std::make_shared<SprtManager>();
 		if (isMontecarlo) {
@@ -303,18 +304,18 @@ static AppReturnCode runTournament(AppReturnCode code) {
             .event = tournamentGroup->get<std::string>("event"),
             .type = tournamentGroup->get<std::string>("type"),
             .tournamentFilename = tournamentFilename,
-            .saveInterval = tournamentGroup->get<int>("saveinterval"),
-            .games = tournamentGroup->get<int>("games"),
-            .rounds = tournamentGroup->get<int>("rounds"),
-            .repeat = tournamentGroup->get<int>("repeat"),
-            .ratingInterval = tournamentGroup->get<int>("ratinginterval"),
+            .saveInterval = tournamentGroup->get<uint32_t>("saveinterval"),
+            .games = tournamentGroup->get<uint32_t>("games"),
+            .rounds = tournamentGroup->get<uint32_t>("rounds"),
+            .repeat = tournamentGroup->get<uint32_t>("repeat"),
+            .ratingInterval = tournamentGroup->get<uint32_t>("ratinginterval"),
+            .outcomeInterval = tournamentGroup->get<uint32_t>("outcomeinterval"),
             .averageElo = tournamentGroup->get<int>("averageelo"),
-            .outcomeInterval = tournamentGroup->get<int>("outcomeinterval"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
             .openings = *openings
         };
 
-        int concurrency = CliSettings::Manager::get<int>("concurrency");
+        uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
 
         Tournament tournament;
         

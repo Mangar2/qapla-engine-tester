@@ -434,12 +434,12 @@ namespace QaplaBasics
 			std::array<value_t, static_cast<size_t>(SignatureMask::SIZE)> result{};
 			for (uint32_t index = 0; index < static_cast<uint32_t>(SignatureMask::ALL); index++)
 			{
-				result[index] =
+				result[index] = static_cast<value_t>(
 					getPieceAmount<QUEEN>(index) * 9 +
 					getPieceAmount<ROOK>(index) * 5 +
 					getPieceAmount<BISHOP>(index) * 3 +
 					getPieceAmount<KNIGHT>(index) * 3 +
-					(getPieceAmount<PAWN>(index) >= 3 ? 1 : 0);
+					(getPieceAmount<PAWN>(index) >= 3 ? 1 : 0));
 			}
 			return result;
 		}();

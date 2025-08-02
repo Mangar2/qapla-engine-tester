@@ -47,9 +47,10 @@ public:
      */
     std::size_t count(EngineEvent::Type type) const {
         std::lock_guard<std::mutex> lock(mutex_);
-        return std::count_if(events_.begin(), events_.end(), [type](const EngineEvent& e) {
-            return e.type == type;
-            });
+        return static_cast<std::size_t>
+            (std::count_if(events_.begin(), events_.end(), [type](const EngineEvent& e) {
+                return e.type == type;
+            }));
     }
 
     /**

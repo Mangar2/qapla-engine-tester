@@ -183,7 +183,7 @@ namespace QaplaBasics {
 	/**
 	 * Chess piece definition
 	 */
-	enum Piece {
+	enum Piece : uint32_t {
 		NO_PIECE = 0x00,
 		WHITE = 0x00,
 		BLACK = 0x01,
@@ -211,11 +211,11 @@ namespace QaplaBasics {
 		COLOR_COUNT = 0x02,
 		COLOR_MASK = 0x01
 	};
-	constexpr Piece operator+(Piece a, int32_t b) { return Piece(int32_t(a) + b); }
-	constexpr Piece operator-(Piece a, int32_t b) { return Piece(int32_t(a) - b); }
-	inline Piece& operator++(Piece& piece) { return piece = Piece(piece + 1); }
-	inline Piece& operator+=(Piece& a, int32_t b) { return a = Piece(a + b); }
-	inline Piece& operator-=(Piece& a, int32_t b) { return a = Piece(a - b); }
+	constexpr Piece operator+(Piece a, uint32_t b) { return Piece(uint32_t(a) + b); }
+	constexpr Piece operator-(Piece a, uint32_t b) { return Piece(uint32_t(a) - b); }
+	inline Piece& operator++(Piece& piece) { return piece = Piece(uint32_t(piece) + 1); }
+	inline Piece& operator+=(Piece& a, uint32_t b) { return a = Piece(a + b); }
+	inline Piece& operator-=(Piece& a, uint32_t b) { return a = Piece(a - b); }
 
 	template <Piece COLOR> constexpr Piece opponentColor() {
 		return COLOR == WHITE ? BLACK : WHITE;

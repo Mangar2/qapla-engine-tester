@@ -60,7 +60,6 @@ void SprtManager::createTournament(
     else {
         throw AppError::makeInvalidParameters(
             "Unsupported openings format: " + config.openings.format);
-        return;
     }
 
     PairTournamentConfig ptc;
@@ -74,7 +73,7 @@ void SprtManager::createTournament(
 	tournament_.setVerbose(false);
 }
 
-void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, int concurrency) {
+void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency) {
     sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
         InputHandler::ImmediateCommand::Info,
         [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
@@ -318,7 +317,7 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
             uint64_t g = 0;
 
             for (; g < config_.maxGames; ++g) {
-                double r = (double)rand() / RAND_MAX;
+                double r = static_cast<double>(rand()) / RAND_MAX;
                 if (r < winProb) ++winsP1;
                 else if (r < winProb + drawRate) ++draws;
                 else ++winsP2;

@@ -22,7 +22,7 @@
 #include "handle-closer.h"
 #include "timer.h"
 #include "logger.h"
-#include <windows.h>
+#include <Windows.h>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -53,7 +53,7 @@ public:
     }
 
     void stopWorkerThread() {
-        std::lock_guard lock(queueMutex);
+        std::lock_guard<std::mutex> lock(queueMutex);
         if (workerThread) {
             TerminateThread(workerThread, 1);
             CloseHandle(workerThread);
@@ -79,7 +79,7 @@ public:
         }
 
         {
-            std::lock_guard lock(queueMutex);
+            std::lock_guard<std::mutex> lock(queueMutex);
             handleQueue.push(handle);
         }
         workCond.notify_one();
@@ -88,7 +88,7 @@ public:
     void startCountdown() {
         {
 			if (verbose) std::cout << "before abortTimeout = false" << std::endl;
-            std::lock_guard lock(timeoutMutex); // signal: begin waiting
+            std::lock_guard<std::mutex> lock(timeoutMutex); // signal: begin waiting
             abortTimeout = false;
         }
         if (verbose) std::cout << "Notify to wakeup timeout thread" << std::endl;
@@ -98,7 +98,7 @@ public:
     void abortCountdown() {
         {
             if (verbose) std::cout << "before abortTimeout = true" << std::endl;
-            std::lock_guard lock(timeoutMutex); // signal: begin waiting
+            std::lock_guard<std::mutex> lock(timeoutMutex); // signal: begin waiting
             abortTimeout = true;
         }
         if (verbose) std::cout << "notify timeout wait to stop waiting" << std::endl;
@@ -114,7 +114,7 @@ public:
         controlThread = std::thread([this] {
 			if (verbose) std::cout << "HandleCloser: Control thread started." << std::endl;
             // Waiting takes over the lock and releases ist. We needed to adopt the lock as it is created by another thread
-            std::unique_lock timeoutLock(timeoutMutex, std::adopt_lock);
+            std::unique_lock<std::mutex> timeoutLock(timeoutMutex, std::adopt_lock);
             while (!stopControl) {
                 if (verbose) std::cout << "Waiting for next timeout task" << std::endl;
 				
@@ -167,7 +167,7 @@ private:
 
     DWORD workerLoop() {
         if (verbose) std::cout << "Worker thread started." << std::endl;
-        std::unique_lock queueLock(queueMutex);
+        std::unique_lock<std::mutex> queueLock(queueMutex);
         while (true) {
 
             if (handleQueue.empty()) {
@@ -191,7 +191,7 @@ private:
                 
                 queueLock.lock();
                 if (verbose) std::cout << "Waiting for timeoutMutex" << std::endl;
-                std::unique_lock timeoutLock(timeoutMutex);
+                std::lock_guard<std::mutex> timeoutLock(timeoutMutex);
                 if (verbose) std::cout << "Waiting for timeoutMutex done" << std::endl;
                 //workCond.wait(timeoutLock, [&] { return stopWorker || abortTimeout; });
             }
@@ -202,7 +202,7 @@ private:
 
 // Public forwarding
 HandleCloser::HandleCloser() : impl(new Impl()) {}
-void HandleCloser::closeAllHandles() { delete impl; impl = 0; }
+void HandleCloser::closeAllHandles() { delete impl; impl = nullptr; }
 void HandleCloser::close(void* h) { impl->close(h); }
 
 #endif
