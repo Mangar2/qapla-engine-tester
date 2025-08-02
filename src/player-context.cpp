@@ -242,7 +242,7 @@ void PlayerContext::restartEngine() {
 	}
     computeState_ = ComputeState::Idle;
     // Create a fully initialized new engine instance (incl. UCI handshake)
-    engine_ = std::move(EngineWorkerFactory::restart(*engine_));
+    engine_ = EngineWorkerFactory::restart(*engine_);
 }
 
 bool PlayerContext::restartIfNotReady() {

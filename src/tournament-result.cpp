@@ -325,8 +325,6 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
                 int total = duel.total();
                 if (total == 0) continue;
 
-                double score = duel.engineARate();
-
                 int targetEloDiff = computeEloWithError(duel.winsEngineA, duel.winsEngineB, duel.draws).first;
                 double currentEloDiff = s.elo - opponentScore->elo;
                 double neededDelta = static_cast<double>(targetEloDiff) - currentEloDiff;

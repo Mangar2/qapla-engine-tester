@@ -189,7 +189,6 @@ void AdjudicationManager::onGameFinished(const GameRecord& game) {
         drawStats.totalGames++;
 
         if (auto index = findDrawAdjudicationIndex(game)) {
-            uint64_t saved = 0;
             for (size_t i = *index + 1; i < moves.size(); ++i) drawStats.savedTimeMs += moves[i].timeMs;
 
             if (finalResult == GameResult::Draw) {
@@ -207,7 +206,6 @@ void AdjudicationManager::onGameFinished(const GameRecord& game) {
         resignStats.totalGames++;
         auto [adjudicatedResult, index] = findResignAdjudicationIndex(game);
         if (adjudicatedResult != GameResult::Unterminated) {
-            uint64_t saved = 0;
             for (size_t i = index + 1; i < moves.size(); ++i) resignStats.savedTimeMs += moves[i].timeMs;
 
             if (finalResult == adjudicatedResult) {

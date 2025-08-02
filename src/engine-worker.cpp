@@ -26,7 +26,7 @@
 
 EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, 
     const EngineConfig& engineConfig)
-    : adapter_(std::move(adapter)), identifier_(identifier)
+    : identifier_(identifier), adapter_(std::move(adapter))
 {
     cliTraceLevel_ = Logger::engineLogger().getCliThreshold();
     if (!adapter_) {

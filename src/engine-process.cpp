@@ -261,7 +261,6 @@ void EngineProcess::startWin32Overlapped() {
 
 void EngineProcess::start()
 {
-    constexpr bool useStdErr = false;
 #ifdef _WIN32
     startWin32Overlapped();
 #else
@@ -561,8 +560,6 @@ EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
 
 void EngineProcess::readFromPipeBlocking()
 {
-
-    int64_t now = Timer::getCurrentTimeMs();
     if (stdoutRead_ == 0)
     {
         return;

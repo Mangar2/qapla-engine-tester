@@ -229,11 +229,8 @@ std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap()
 
     result["proto"] = to_string(protocol_);
 
-    if (ponder_)
-        result["ponder"] = "";
-
-	if (gauntlet_)
-		result["gauntlet"] = "";
+    if (ponder_) result["ponder"] = "";
+	if (gauntlet_) result["gauntlet"] = "";
 
     for (const auto& [_, value] : optionValues_) {
         result[value.originalName] = value.value;

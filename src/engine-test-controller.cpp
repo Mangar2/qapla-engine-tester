@@ -383,7 +383,7 @@ void EngineTestController::runEngineOptionTests() {
     auto engine = computeTask_->getEngine();
     const EngineOptions& options = engine->getSupportedOptions();
 	std::cout << "Randomizing engine settings, please wait...\r";
-    for (const auto opt : options) {
+    for (const auto& opt : options) {
         if (opt.name == "Hash" || opt.type == EngineOption::Type::Button) {
             continue;
         }

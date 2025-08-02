@@ -477,7 +477,6 @@ int main(int argc, char** argv) {
     #ifndef _WIN32
     signal(SIGPIPE, SIG_IGN);
     #endif
-    bool isEngineTest = false;
     Timer timer;
     timer.start();
     

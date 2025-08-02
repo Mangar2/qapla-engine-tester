@@ -179,7 +179,6 @@ private:
                 workCond.wait(queueLock, [&] { return stopWorker || !handleQueue.empty(); });
                 continue;
             }
-            Timer timer;
             while (!handleQueue.empty()) {
                 HANDLE h = handleQueue.front();
                 handleQueue.pop();
