@@ -405,7 +405,7 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
     while (pos < tokens.size() && tokens[pos] != "}") {
         const std::string& tok = tokens[pos];
 
-        if (tok.size() > 1 && tok[0] == '+' || tok[0] == '-') {
+        if (tok.size() > 1 && (tok[0] == '+' || tok[0] == '-')) {
             if (tok[1] == '#') {
                 // Mate score, e.g. +#3 or -#4
                 try {

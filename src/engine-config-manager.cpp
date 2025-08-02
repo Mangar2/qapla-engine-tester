@@ -26,7 +26,6 @@ void EngineConfigManager::loadFromStream(std::istream& in) {
     errors.clear();
 
     while (in) {
-        std::streampos startPos = in.tellg();
         EngineConfig config;
 
         in >> config;

@@ -158,9 +158,7 @@ public:
 
         uint64_t timeLeft = availableTime - usedTimeMs;
 
-        bool inMinRange = usageRatio >= minRatio;
         bool inMaxRange = usageRatio <= maxRatio;
-
         std::string detail = "time control " + tc.toPgnTimeControlString()
             + " used " + std::to_string(usedTimeMs) + "ms, ratio: "
             + std::to_string(usageRatio) + ", expected [" + std::to_string(minRatio)

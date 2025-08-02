@@ -58,7 +58,7 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
     else if (config.openings.format == "pgn") {
         PgnIO pgnReader;
-        startPositions_->games = std::move(pgnReader.loadGames(config.openings.file));
+        startPositions_->games = pgnReader.loadGames(config.openings.file);
     }
     else {
 		throw AppError::makeInvalidParameters(

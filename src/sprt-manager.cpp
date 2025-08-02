@@ -55,7 +55,7 @@ void SprtManager::createTournament(
     }
     else if (config.openings.format == "pgn") {
         PgnIO pgnReader;
-        startPositions_->games = std::move(pgnReader.loadGames(config.openings.file));
+        startPositions_->games = pgnReader.loadGames(config.openings.file);
     }
     else {
         throw AppError::makeInvalidParameters(
@@ -313,7 +313,6 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
             */
             const double trueScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
             const double winProb = (1.0 - drawRate) * trueScore;
-            const double lossProb = (1.0 - drawRate) * (1.0 - trueScore);
 
             std::optional<bool> decision;
             int g = 0;
