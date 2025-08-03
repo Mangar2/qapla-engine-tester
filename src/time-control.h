@@ -38,7 +38,7 @@ struct GoLimits {
 	bool hasTimeControl = false;  
 
     std::optional<uint32_t> depth;
-    std::optional<uint32_t> nodes;
+    std::optional<uint64_t> nodes;
     std::optional<uint32_t> mateIn;
     std::optional<uint64_t> movetimeMs;
     std::optional<std::vector<std::string>> limitMoves;

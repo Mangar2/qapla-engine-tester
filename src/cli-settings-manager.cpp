@@ -208,7 +208,7 @@ namespace CliSettings
         return it->second;
     }
 
-    const std::optional<GroupInstance> Manager::getGroupInstance(const std::string &groupName)
+    std::optional<GroupInstance> Manager::getGroupInstance(const std::string &groupName)
     {
         std::string key = to_lowercase(groupName);
         auto it = groupInstances_.find(key);

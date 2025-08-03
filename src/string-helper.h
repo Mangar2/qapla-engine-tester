@@ -30,7 +30,7 @@
 inline std::string to_lowercase(const std::string& input) {
     std::string result = input;
     std::transform(result.begin(), result.end(), result.begin(),
-        [](unsigned char c) { return std::tolower(c); });
+        [](char c) { return static_cast<char>(std::tolower(c)); });
     return result;
 }
 

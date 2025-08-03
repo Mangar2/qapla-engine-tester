@@ -351,15 +351,15 @@ namespace QaplaBasics
 		template <Piece KIND>
 		constexpr static uint32_t getPieceAmount(pieceSignature_t signature)
 		{
-			if (KIND == Piece::QUEEN)
+			if constexpr (KIND == Piece::QUEEN)
 				return (signature & SignatureMask::QUEEN) / Signature::QUEEN;
-			else if (KIND == Piece::ROOK)
+			else if constexpr (KIND == Piece::ROOK)
 				return (signature & SignatureMask::ROOK) / Signature::ROOK;
-			else if (KIND == Piece::BISHOP)
+			else if constexpr (KIND == Piece::BISHOP)
 				return (signature & SignatureMask::BISHOP) / Signature::BISHOP;
-			else if (KIND == Piece::KNIGHT)
+			else if constexpr (KIND == Piece::KNIGHT)
 				return (signature & SignatureMask::KNIGHT) / Signature::KNIGHT;
-			else if (KIND == Piece::PAWN)
+			else if constexpr (KIND == Piece::PAWN)
 				return (signature & SignatureMask::PAWN) / Signature::PAWN;
 			else
 				return 0;

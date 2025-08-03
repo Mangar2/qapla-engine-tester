@@ -267,7 +267,9 @@ std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
 	auto [cause, result] = gameContext_.checkGameResult();
     
     // If any player detects a game  - end return it. 
-	if (cause != GameEndCause::Ongoing) return { cause, result };
+    if (cause != GameEndCause::Ongoing) {
+        return { cause, result };
+    }
 
 	auto& gameRecord = gameContext_.gameRecord();
 
