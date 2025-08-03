@@ -134,20 +134,16 @@ const GameRecord& GameContext::gameRecord() const {
 }
 
 std::tuple<GameEndCause, GameResult> GameContext::checkGameResult() {
-    GameEndCause cause = GameEndCause::Ongoing;
-    GameResult result = GameResult::Unterminated;
 
     for (auto& player : players_) {
         auto [pcause, presult] = player->getGameResult();
-        if (pcause != GameEndCause::Ongoing) {
-            return { pcause, presult };
+        if (presult != GameResult::Unterminated) {
+            gameRecord_.setGameEnd(pcause, presult);
+            break;
         }
     }
-    if (result != GameResult::Unterminated) {
-        gameRecord_.setGameEnd(cause, result);
-    }
 
-    return { GameEndCause::Ongoing, GameResult::Unterminated };
+    return gameRecord_.getGameResult();
 }
 
 bool GameContext::checkForTimeoutsAndRestart() {

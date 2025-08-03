@@ -108,6 +108,7 @@ inline bitBoard_t MoveGenerator::computeAttackMaskForPiece(Square square, bitBoa
 	case KING: result = BitBoardMasks::kingMoves[square]; break;
 	default:
 		// Pawn attack mask is computed separately with bit shifts of the pawn bitboard
+		result = 0;
 		break;
 	}
 	pieceAttackMask[square] = result;
@@ -369,7 +370,7 @@ genMovesForPiece(MoveList& moveList)
 		pieces &= pieces - 1;
 
 		attack = pieceAttackMask[departure];
-		if (PIECE == BLACK_KING || PIECE == WHITE_KING) {
+		if constexpr (PIECE == BLACK_KING || PIECE == WHITE_KING) {
 			attack &= ~attackMask[OPPONENT_COLOR];
 		}
 
@@ -377,7 +378,7 @@ genMovesForPiece(MoveList& moveList)
 
 		for (; attack; attack &= attack - 1) {
 			Square destination = lsb(attack);
-			if (TYPE == SILENT) {
+			if constexpr (TYPE == SILENT) {
 				moveList.addSilentMove(Move(departure, destination, PIECE));
 			}
 			else {
@@ -392,7 +393,7 @@ genMovesForPiece(MoveList& moveList)
 template<MoveGenerator::moveGenType_t TYPE, Piece COLOR>
 void MoveGenerator::genNonPinnedMovesForAllPieces(MoveList& moveList) {
 
-	if (TYPE == NON_SILENT) {
+	if constexpr (TYPE == NON_SILENT) {
 		genNonSilentPawnMoves<COLOR>(moveList, getEP());
 	}
 	else {

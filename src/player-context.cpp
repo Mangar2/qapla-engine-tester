@@ -188,7 +188,9 @@ bool PlayerContext::checkEngineTimeout() {
 	const uint64_t GRACE_MS = 1000;
     const uint64_t OVERRUN_TIMEOUT = 5000;
 
-    const uint64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_ - GRACE_MS;
+    uint64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_;
+    moveElapsedMs = moveElapsedMs < GRACE_MS ? 0 : moveElapsedMs - GRACE_MS;
+
     const bool white = gameState_.isWhiteToMove();
     bool restarted = false;
 
@@ -271,7 +273,7 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
         // moveNow with option true will wait until bestmove received and consider the bestmove as
         // handshake. The bestmove is then not send to the GameManager
 		auto success = engine_->moveNow(true);
-        auto id = engine_->getIdentifier();
+        const auto& id = engine_->getIdentifier();
         if (!checklist_->logReport("correct-pondering", success,
             "stop command to engine " + id + " did not return a bestmove while in pondermode in time")) {
 			Logger::engineLogger().log(id + " Stop on ponder-miss did not return a bestmove in time", TraceLevel::error);

@@ -96,7 +96,6 @@ namespace CliSettings {
                 return std::get<T>(*defIt->second.defaultValue);
             }
             if (!std::holds_alternative<T>(it->second)) {
-                std::cout << "type" << it->second.index() << std::endl;
                 if constexpr (std::is_same_v<T, int>) {
                     throw AppError::makeInvalidParameters("Expected whole number for group setting \"" + name + "\".");
                 }
@@ -221,7 +220,7 @@ namespace CliSettings {
         static const GroupInstances getGroupInstances(const std::string& groupName);
 
 
-        static const std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
+        static std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
 
         /**
 		 * @brief Displays help information for all registered settings and groups.

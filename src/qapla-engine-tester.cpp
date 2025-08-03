@@ -126,7 +126,7 @@ static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCo
         std::string name = engine.getName();
         try {
 			EngineReport::reportUnderruns = test.get<bool>("underrun");
-            controller.runAllTests(engine, test.get<int>("numgames"));
+            controller.runAllTests(engine, test.get<uint32_t>("numgames"));
         }
         catch (const AppError& ex) {
             Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 

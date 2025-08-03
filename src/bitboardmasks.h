@@ -53,7 +53,7 @@ namespace QaplaMoveGenerator {
 		 */
 		template<uint32_t COLOR, QaplaBasics::Square DIRECTION>
 		inline static QaplaBasics::bitBoard_t shiftColor(QaplaBasics::bitBoard_t bitboard) {
-			if (COLOR == QaplaBasics::WHITE) {
+			if constexpr (COLOR == QaplaBasics::WHITE) {
 				return shift<DIRECTION>(bitboard);
 			}
 			else {
