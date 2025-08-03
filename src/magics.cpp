@@ -242,12 +242,12 @@ bitBoard_t Magics::_bishopMask(Square square)
 // -------------------------- IndexToBitBoard ---------------------------------
 static bitBoard_t indexToBitBoard(uint32_t index, uint32_t bitAmount, bitBoard_t mask)
 {
-	int32_t i, j;
+	uint32_t i, j;
 	bitBoard_t res = 0ULL;
 
 	for(i = 0; i < bitAmount; i++) 
 	{
-		j = popLSB(mask);
+		j = static_cast<uint32_t>(popLSB(mask));
 		if (index & (1 << i)) 
 			res |= (1ULL << j);
 	}
@@ -300,7 +300,7 @@ void Magics::fillAttackMap(Square square, const tMagicEntry& entry, bool isRook)
 	uint32_t i;
 	bitBoard_t board;
 	bitBoard_t aAttackMask;
-	uint32_t bitAmount = BOARD_SIZE - entry.shift;
+	uint32_t bitAmount = static_cast<uint32_t>(BOARD_SIZE - entry.shift);
 	for (i = 0; i < (1UL << bitAmount); i++)
 	{
 		// Calculate the board bits for current index

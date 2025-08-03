@@ -26,23 +26,23 @@
 #include "logger.h"
 
 struct SearchInfo {
-    std::optional<int> depth;
-    std::optional<int> selDepth;
-    std::optional<int> multipv;
+    std::optional<uint32_t> depth;
+    std::optional<uint32_t> selDepth;
+    std::optional<uint32_t> multipv;
     std::optional<int> scoreCp;
-    std::optional<int> scoreMate;
+    std::optional<int32_t> scoreMate;
     std::optional<bool> scoreLowerbound;
     std::optional<bool> scoreUpperbound;
-    std::optional<int64_t> timeMs;
-    std::optional<int64_t> nodes;
-    std::optional<int64_t> nps;
-    std::optional<int> hashFull;
-    std::optional<int64_t> tbhits;
-    std::optional<int> sbhits;
-    std::optional<int> cpuload;
-    std::optional<int> currMoveNumber;
+    std::optional<uint64_t> timeMs;
+    std::optional<uint64_t> nodes;
+    std::optional<uint64_t> nps;
+    std::optional<uint32_t> hashFull;
+    std::optional<uint64_t> tbhits;
+    std::optional<uint32_t> sbhits;
+    std::optional<uint32_t> cpuload;
+    std::optional<uint32_t> currMoveNumber;
     std::optional<std::string> currMove;
-    std::optional<int> refutationIndex;
+    std::optional<uint32_t> refutationIndex;
     std::optional<std::string> pvText;
     std::vector<std::string> pv;
 	std::vector<std::string> refutation;
@@ -106,7 +106,7 @@ struct EngineEvent {
         NoData,
         KeepAlive,
     };
-    static EngineEvent create(Type type, const std::string& id, int64_t ts, const std::string& rawLine = "") {
+    static EngineEvent create(Type type, const std::string& id, uint64_t ts, const std::string& rawLine = "") {
         EngineEvent e; 
         e.type = type;
         e.engineIdentifier = id;
@@ -114,37 +114,37 @@ struct EngineEvent {
         e.rawLine = rawLine;
         return e;
     }
-    static EngineEvent createInfo(const std::string& id, int64_t ts, const std::string& rawLine) {
+    static EngineEvent createInfo(const std::string& id, uint64_t ts, const std::string& rawLine) {
         auto e = create(Type::Info, id, ts, rawLine);
         e.searchInfo = SearchInfo{};
         return e;
 	}
-    static EngineEvent createError(const std::string& id, int64_t ts, const std::string& rawLine) {
+    static EngineEvent createError(const std::string& id, uint64_t ts, const std::string& rawLine) {
         EngineEvent e = create(Type::Error, id, ts, rawLine);
         e.errors.push_back({ "no-engine-error-report", rawLine });
         return e;
 	}
-	static EngineEvent createEngineDisconnected(const std::string& id, int64_t ts, const std::string& errorMessage) {
+	static EngineEvent createEngineDisconnected(const std::string& id, uint64_t ts, const std::string& errorMessage) {
         EngineEvent e = create(Type::EngineDisconnected, id, ts, "");
 		e.errors.push_back({ "no-disconnect", errorMessage });
 		return e;
 	}
-	static EngineEvent createNoData(const std::string& id, int64_t ts) {
+	static EngineEvent createNoData(const std::string& id, uint64_t ts) {
 		return create(Type::NoData, id, ts);
 	}
-	static EngineEvent createProtocolOk(const std::string& id, int64_t ts, const std::string& rawLine) {
+	static EngineEvent createProtocolOk(const std::string& id, uint64_t ts, const std::string& rawLine) {
 		return create(Type::ProtocolOk, id, ts, rawLine);
 	}
-	static EngineEvent createReadyOk(const std::string& id, int64_t ts, const std::string& rawLine) {
+	static EngineEvent createReadyOk(const std::string& id, uint64_t ts, const std::string& rawLine) {
 		return create(Type::ReadyOk, id, ts, rawLine);
 	}
-    static EngineEvent createPonderHit(const std::string& id, int64_t ts, const std::string& rawLine) {
+    static EngineEvent createPonderHit(const std::string& id, uint64_t ts, const std::string& rawLine) {
 		return create(Type::PonderHit, id, ts, rawLine);
 	}
-	static EngineEvent createUnknown(const std::string& id, int64_t ts, const std::string& rawLine) {
+	static EngineEvent createUnknown(const std::string& id, uint64_t ts, const std::string& rawLine) {
 		return create(Type::Unknown, id, ts, rawLine);
 	}
-	static EngineEvent createBestMove(const std::string& id, int64_t ts, const std::string& rawLine, 
+	static EngineEvent createBestMove(const std::string& id, uint64_t ts, const std::string& rawLine, 
         const std::string& bestMove, const std::string& ponderMove) {
 		EngineEvent e = create(Type::BestMove, id, ts, rawLine);
 		e.bestMove = bestMove;
@@ -159,7 +159,7 @@ struct EngineEvent {
     };
 
     Type type;
-    int64_t timestampMs;
+    uint64_t timestampMs;
     bool computing = false; // Indicates if the event is related to the engine computing a move
     std::string rawLine;
 

@@ -39,7 +39,7 @@ struct EngineLine {
     };
     std::string content{};
     bool complete = false;
-    int64_t timestampMs = 0; 
+    uint64_t timestampMs = 0; 
     Error error = Error::NoError;
 };
 
@@ -80,7 +80,7 @@ public:
      * @throws std::runtime_error if writing fails.
      * @returns timestamp when the data has been written
      */
-    int64_t writeLine(const std::string& line);
+    uint64_t writeLine(const std::string& line);
 
     /**
      * Blocks until a complete line from the engine has been read or a timeout occurs and returns it with timestamp.

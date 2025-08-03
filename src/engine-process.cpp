@@ -415,9 +415,9 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
 #endif
 }
 
-int64_t EngineProcess::writeLine(const std::string &line)
+uint64_t EngineProcess::writeLine(const std::string &line)
 {
-    int64_t now = Timer::getCurrentTimeMs();
+    uint64_t now = Timer::getCurrentTimeMs();
     std::string withNewline = line + '\n';
 #ifdef _WIN32
     writeLineOverlapped(withNewline);
@@ -486,7 +486,7 @@ std::size_t EngineProcess::getMemoryUsage() const
 
 void EngineProcess::appendErrorToLineQueue(EngineLine::Error error, const std::string &text)
 {
-    int64_t now = Timer::getCurrentTimeMs();
+    uint64_t now = Timer::getCurrentTimeMs();
     if (error == EngineLine::Error::NoError)
     {
         assert(error != EngineLine::Error::NoError && "appendErrorToLineQueue called with NoError");
@@ -503,7 +503,7 @@ void EngineProcess::appendErrorToLineQueue(EngineLine::Error error, const std::s
 
 void EngineProcess::appendToLineQueue(const std::string &text, bool lineTerminated)
 {
-    int64_t now = Timer::getCurrentTimeMs();
+    uint64_t now = Timer::getCurrentTimeMs();
 
     if (!lineQueue_.empty() && !lineQueue_.back().complete)
     {

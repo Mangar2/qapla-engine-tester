@@ -357,7 +357,7 @@ namespace QaplaBasics {
 	/**
 	 * Computes the piece number from a piece symbol
 	 */
-	constexpr auto charToPiece(char piece) {
+	constexpr auto charToPiece(int piece) {
 		switch (piece)
 		{
 		case 'p':return BLACK_PAWN;

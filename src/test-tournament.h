@@ -130,7 +130,7 @@ public:
                 const auto& low = usageTable[i - 1];
                 const auto& high = usageTable[i];
                 double factor = static_cast<double>(moveCount - low.moveThreshold) /
-                    (high.moveThreshold - low.moveThreshold);
+                    static_cast<double>(high.moveThreshold - low.moveThreshold);
                 double minRatio = low.minRatio + factor * (high.minRatio - low.minRatio);
                 double maxRatio = low.maxRatio + factor * (high.maxRatio - low.maxRatio);
                 return { minRatio, maxRatio };
@@ -153,8 +153,10 @@ public:
 
         double usageRatio = static_cast<double>(usedTimeMs) / static_cast<double>(availableTime);
         auto [minRatio, maxRatio] = expectedUsageRatioRange(moveCount);
-        minRatio += (1.0 - minRatio) * std::min(1.0, seg.incrementMs * 20.0 / (seg.baseTimeMs + 1));
-        maxRatio += (1.0 - maxRatio) * std::min(1.0, seg.incrementMs * 100.0 / (seg.baseTimeMs + 1));
+		double incMs = static_cast<double>(seg.incrementMs);
+		double baseMs = static_cast<double>(seg.baseTimeMs);
+        minRatio += (1.0 - minRatio) * std::min(1.0, incMs * 20.0 / (baseMs + 1));
+        maxRatio += (1.0 - maxRatio) * std::min(1.0, incMs * 100.0 / (baseMs + 1));
 
         uint64_t timeLeft = availableTime - usedTimeMs;
 
@@ -175,8 +177,8 @@ public:
 
     void logStatus() {
         std::lock_guard<std::mutex> lock(mutex_);
-		auto lastWhiteTimeControl = gameRecords_.back().getWhiteTimeControl();
-		auto lastBlackTimeControl = gameRecords_.back().getBlackTimeControl();
+		auto& lastWhiteTimeControl = gameRecords_.back().getWhiteTimeControl();
+		auto& lastBlackTimeControl = gameRecords_.back().getBlackTimeControl();
 		std::string whiteTimeControl = lastWhiteTimeControl.toPgnTimeControlString();
 		std::string blackTimeControl = lastBlackTimeControl.toPgnTimeControlString();
 

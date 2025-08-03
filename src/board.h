@@ -99,7 +99,7 @@ namespace QaplaBasics {
 		 * Computes the hash value of the current board
 		 * @returns board hash for the current position
 		 */
-		inline auto computeBoardHash() const {
+		constexpr uint64_t computeBoardHash() const {
 			return _boardState.computeBoardHash() ^ HashConstants::COLOR_RANDOMS[static_cast<int32_t>(_whiteToMove)];
 		}
 
@@ -108,7 +108,7 @@ namespace QaplaBasics {
 		 * Gets the amount of half moves without pawn move or capture to implement the repetitive moves draw rule
 		 * Note: the fen value is not included as there are no corresponding moves stored
 		 */
-		inline auto getHalfmovesWithoutPawnMoveOrCapture() const {
+		constexpr uint32_t getHalfmovesWithoutPawnMoveOrCapture() const {
 			return _boardState.halfmovesWithoutPawnMoveOrCapture;
 		}
 
@@ -116,7 +116,7 @@ namespace QaplaBasics {
 		 * Gets the amount of half moves without pawn move or capture including the start value from fen to implement
 		 * the 50-moves-draw rule
 		 */
-		inline auto getTotalHalfmovesWithoutPawnMoveOrCapture() const {
+		constexpr uint32_t getTotalHalfmovesWithoutPawnMoveOrCapture() const {
 			return _boardState.halfmovesWithoutPawnMoveOrCapture 
 				+ _boardState.fenHalfmovesWithoutPawnMoveOrCapture;
 		}

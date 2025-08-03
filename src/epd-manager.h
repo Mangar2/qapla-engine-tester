@@ -154,7 +154,7 @@ private:
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
      * @param clearTests true, if the tests shall be fully clear (old results gets forgotten)
      */
-    void initializeTestCases(uint32_t maxTimeInS, uint32_t minTimeInS, uint32_t seenPlies, bool clearTests = true);
+    void initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies, bool clearTests = true);
     /**
      * @brief Retrieves and transforms the next EPD entry into a test case.
      * @return Optional EpdTestCase or std::nullopt if no more entries are available.

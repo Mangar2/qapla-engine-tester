@@ -66,7 +66,7 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 }
 
 static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
-    uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
+    uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
     Logger::testLogger().setLogFile("epd-report");
     Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
@@ -76,9 +76,9 @@ static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode cod
         uint32_t minTime = 2;
         uint32_t seenPlies = 3;
 		file = epd.get<std::string>("file");
-		maxTime = epd.get<uint32_t>("maxtime");
-		minTime = epd.get<uint32_t>("mintime");
-		seenPlies = epd.get<uint32_t>("seenplies");
+		maxTime = epd.get<unsigned int>("maxtime");
+		minTime = epd.get<unsigned int>("mintime");
+		seenPlies = epd.get<unsigned int>("seenplies");
 
 		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
             std::string name = engine.getName();
@@ -172,24 +172,20 @@ static std::optional<Openings> readOpenings() {
         }
     }
 
-    if (opening->get<int>("srand") < 0) {
-        throw AppError::makeInvalidParameters("Openings: Seed must be a non-negative integer, but got " +
-            std::to_string(opening->get<int>("srand")));
-    }
-
     Openings openings{
         .file = opening->get<std::string>("file"),
         .format = opening->get<std::string>("format"),
         .order = opening->get<std::string>("order"),
         .plies = plies,
-        .start = opening->get<uint32_t>("start") - 1, // 1 based index in gui.
-        .seed = opening->get<uint32_t>("srand"),
+        .start = opening->get<unsigned int>("start"), 
+        .seed = opening->get<unsigned int>("srand"),
         .policy = opening->get<std::string>("policy")
     };
     if (openings.start < 1) {
         throw AppError::makeInvalidParameters("Openings: Start index must be at least 1, but got " +
-            std::to_string(openings.start + 1));
+            std::to_string(openings.start));
     }
+    openings.start--; // 0-based
     if (openings.format != "epd" && openings.format != "raw" && openings.format != "pgn") {
 		throw AppError::makeInvalidParameters("Unsupported openings format: " + openings.format);
     }
@@ -239,10 +235,10 @@ static auto runSprt(AppReturnCode code) {
             .eloLower = sprt->get<int>("eloLower"),
             .alpha = sprt->get<double>("alpha"),
             .beta = sprt->get<double>("beta"),
-            .maxGames = sprt->get<uint32_t>("maxgames"),
+            .maxGames = sprt->get<unsigned int>("maxgames"),
             .openings = openings
         };
-        uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
+        uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
 
         auto manager = std::make_shared<SprtManager>();
 		if (isMontecarlo) {
@@ -304,18 +300,18 @@ static AppReturnCode runTournament(AppReturnCode code) {
             .event = tournamentGroup->get<std::string>("event"),
             .type = tournamentGroup->get<std::string>("type"),
             .tournamentFilename = tournamentFilename,
-            .saveInterval = tournamentGroup->get<uint32_t>("saveinterval"),
-            .games = tournamentGroup->get<uint32_t>("games"),
-            .rounds = tournamentGroup->get<uint32_t>("rounds"),
-            .repeat = tournamentGroup->get<uint32_t>("repeat"),
-            .ratingInterval = tournamentGroup->get<uint32_t>("ratinginterval"),
-            .outcomeInterval = tournamentGroup->get<uint32_t>("outcomeinterval"),
+            .saveInterval = tournamentGroup->get<unsigned int>("saveinterval"),
+            .games = tournamentGroup->get<unsigned int>("games"),
+            .rounds = tournamentGroup->get<unsigned int>("rounds"),
+            .repeat = tournamentGroup->get<unsigned int>("repeat"),
+            .ratingInterval = tournamentGroup->get<unsigned int>("ratinginterval"),
+            .outcomeInterval = tournamentGroup->get<unsigned int>("outcomeinterval"),
             .averageElo = tournamentGroup->get<int>("averageelo"),
             .noSwap = tournamentGroup->get<bool>("noswap"),
             .openings = *openings
         };
 
-        uint32_t concurrency = CliSettings::Manager::get<uint32_t>("concurrency");
+        uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
 
         Tournament tournament;
         
@@ -349,8 +345,8 @@ static void handleAdjudicationOptions() {
     auto draw = CliSettings::Manager::getGroupInstance("draw");
     if (draw) {
         AdjudicationManager::instance().setDrawAdjudicationConfig({
-            .minFullMoves = draw->get<uint32_t>("movenumber"),
-            .requiredConsecutiveMoves = draw->get<uint32_t>("movecount"),
+            .minFullMoves = draw->get<unsigned int>("movenumber"),
+            .requiredConsecutiveMoves = draw->get<unsigned int>("movecount"),
             .centipawnThreshold = draw->get<int>("score"),
             .testOnly = draw->get<bool>("test")
         });
@@ -358,7 +354,7 @@ static void handleAdjudicationOptions() {
     auto resign = CliSettings::Manager::getGroupInstance("resign");
     if (resign) {
         AdjudicationManager::instance().setResignAdjudicationConfig({
-            .requiredConsecutiveMoves = resign->get<uint32_t>("movecount"),
+            .requiredConsecutiveMoves = resign->get<unsigned int>("movecount"),
             .centipawnThreshold = resign->get<int>("score"),
             .testOnly = resign->get<bool>("test")
         });
@@ -489,7 +485,7 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerSetting("interactive", "Enables interactive mode", false, false,  CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
-            CliSettings::ValueType::Int);
+            CliSettings::ValueType::UInt);
         CliSettings::Manager::registerSetting("rapid", "Ignores engine info output. Speeds up games with <10s total compute time",
             false, false, CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
@@ -531,10 +527,10 @@ int main(int argc, char** argv) {
 
         CliSettings::Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
             { "file",      { "Path and file name to the epd file", true, "", CliSettings::ValueType::PathExists } },
-            { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::Int } },
-            { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::Int } },
-            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (-1 = off)", false, -1, CliSettings::ValueType::Int } },
-            { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::Int} }
+            { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, CliSettings::ValueType::UInt } },
+            { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, CliSettings::ValueType::UInt } },
+            { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (0 = off)", false, 0, CliSettings::ValueType::UInt } },
+            { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, CliSettings::ValueType::UInt} }
             });
 
         CliSettings::Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
@@ -543,7 +539,7 @@ int main(int argc, char** argv) {
             { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, CliSettings::ValueType::Int } },
             { "alpha", { "Type I error threshold", false, 0.05f, CliSettings::ValueType::Float } },
             { "beta",  { "Type II error threshold", false, 0.05f, CliSettings::ValueType::Float } },
-            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, 0, CliSettings::ValueType::Int } },
+            { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, 0, CliSettings::ValueType::UInt } },
 			{ "montecarlo", { "Run Monte Carlo test instead of SPRT", false, false, CliSettings::ValueType::Bool } }
             });
 
@@ -551,16 +547,16 @@ int main(int argc, char** argv) {
             { "file",  { "Path to file with opening positions", true, "", CliSettings::ValueType::PathExists } },
             { "format", { "Format of the file: epd, raw, pgn", false, "epd", CliSettings::ValueType::String } },
             { "order", { "Order of position selection: random, sequential", false, "sequential", CliSettings::ValueType::String } },
-            { "srand", { "Seed for random opening selection", false, 5489, CliSettings::ValueType::Int } },
+            { "srand", { "Seed for random opening selection", false, 5489, CliSettings::ValueType::UInt } },
             { "plies", { "Max number of plies per opening (all = unlimited)", false, "all", CliSettings::ValueType::String}},
-            { "start", { "Index of first opening (1-based)", false, 1, CliSettings::ValueType::Int } },
+            { "start", { "Index of first opening (1-based)", false, 1, CliSettings::ValueType::UInt } },
             { "policy", { "Opening switch policy: default, encounter, round", false, "default", CliSettings::ValueType::String } }
             });
 
         CliSettings::Manager::registerGroup("test", "Test the engine", true, {
             { "underrun",   { "Check for movetime underruns", false, false, CliSettings::ValueType::Bool } },
             { "timeusage",  { "Check time usage in test games", false, false, CliSettings::ValueType::Bool } },
-            { "numgames",   { "Number of test games to run", false, 20, CliSettings::ValueType::Int } },
+            { "numgames",   { "Number of test games to run", false, 20, CliSettings::ValueType::UInt } },
             { "noponder",   { "Skip pondering test", false, false, CliSettings::ValueType::Bool } },
             { "noepd",      { "Skip EPD bestmove test", false, false, CliSettings::ValueType::Bool } },
             { "nomemory",   { "Skip hash table memory usage test", false, false, CliSettings::ValueType::Bool } },
@@ -584,27 +580,27 @@ int main(int argc, char** argv) {
         CliSettings::Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
             { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", CliSettings::ValueType::String } },
             { "resultfile", { "File to save tournament state", false, "", CliSettings::ValueType::PathParentExists } },
-            { "saveinterval", { "Interval in games to save tournament state", false, 10, CliSettings::ValueType::Int } },
+            { "saveinterval", { "Interval in games to save tournament state", false, 10, CliSettings::ValueType::UInt } },
             { "append", { "Append to result file instead of overwriting it", false, false, CliSettings::ValueType::Bool } },
             { "event", { "Optional event name for PGN or logging", false, "", CliSettings::ValueType::String } },
-            { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, CliSettings::ValueType::Int } },
-            { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::Int } },
-            { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::Int } },
+            { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, CliSettings::ValueType::UInt } },
+            { "rounds", { "Repeat all pairings this many times", false, 1, CliSettings::ValueType::UInt } },
+            { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, CliSettings::ValueType::UInt } },
             { "noswap", { "Disable automatic color swap after each game", false, false, CliSettings::ValueType::Bool } },
-            { "ratinginterval", { "Interval (in games) for printing rating table", false, 100, CliSettings::ValueType::Int } },
+            { "ratinginterval", { "Interval (in games) for printing rating table", false, 100, CliSettings::ValueType::UInt } },
             { "averageelo", { "Set average Elo level for scaling rating output", false, 2600, CliSettings::ValueType::Int } },
-            { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, CliSettings::ValueType::Int } }
+            { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, CliSettings::ValueType::UInt } }
             });
 
         CliSettings::Manager::registerGroup("draw", "Draw adjudication settings", true, {
-            { "movenumber", { "Minimum number of full moves before draw adjudication can occur", true, 0, CliSettings::ValueType::Int } },
-            { "movecount",  { "Required number of consecutive moves with evaluation in range", true, 0, CliSettings::ValueType::Int } },
+            { "movenumber", { "Minimum number of full moves before draw adjudication can occur", true, 0, CliSettings::ValueType::UInt } },
+            { "movecount",  { "Required number of consecutive moves with evaluation in range", true, 0, CliSettings::ValueType::UInt } },
             { "score",      { "Centipawn score range (+/-) around zero for draw adjudication", true, 0, CliSettings::ValueType::Int } },
             { "test",       { "If true, only reports what would be adjudicated without taking action", false, false, CliSettings::ValueType::Bool } }
             });
 
         CliSettings::Manager::registerGroup("resign", "Resign adjudication settings", true, {
-            { "movecount", { "Required number of consecutive moves with score below threshold for resignation", true, 0, CliSettings::ValueType::Int } },
+            { "movecount", { "Required number of consecutive moves with score below threshold for resignation", true, 0, CliSettings::ValueType::UInt } },
             { "score",     { "Centipawn score below zero that triggers resignation", true, 0, CliSettings::ValueType::Int } },
             { "twosided",  { "If true, both sides must meet respective score conditions", false, false, CliSettings::ValueType::Bool } },
             { "test",      { "If true, only reports what would be adjudicated without taking action", false, false, CliSettings::ValueType::Bool } }

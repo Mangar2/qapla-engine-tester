@@ -96,14 +96,14 @@ void WinboardAdapter::ticker() {
     // Currently unused in UCI
 }
 
-int64_t WinboardAdapter::allowPonder(
+uint64_t WinboardAdapter::allowPonder(
     [[maybe_unused]] const GameRecord & game, 
     [[maybe_unused]] const GoLimits & limits, 
     [[maybe_unused]] std::string ponderMove) {
     return 0;
 }
 
-int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
+uint64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
     const auto& newMoves = game.history();
     auto& oldMoves = gameRecord_.history();
 
@@ -136,7 +136,7 @@ int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
         writeCommand("force");
         forceMode_ = true;
     }
-    int64_t lastTimestamp = 0;
+    uint64_t lastTimestamp = 0;
     for (size_t ply = oldMoves.size(); ply < newMoves.size(); ++ply) {
         std::string move = isEnabled("san") ? newMoves[ply].san : newMoves[ply].lan;
         if (!move.empty()) {
@@ -154,7 +154,7 @@ int64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
     return lastTimestamp;
 }
 
-int64_t WinboardAdapter::computeMove(const GameRecord& game,
+uint64_t WinboardAdapter::computeMove(const GameRecord& game,
     const GoLimits& limits,
     [[maybe_unused]] bool ponderHit) {
     if (isEnabled("time")) {
@@ -285,14 +285,14 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
  * @return True if the value was read successfully no matter if in bounds, false otherwise.
  */
 template <typename T>
-bool readBoundedInt(std::istringstream& iss,
+static bool readBoundedInt(std::istringstream& iss,
     const std::string& fieldName,
     T min,
     T max,
     std::optional<T>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
-    T value;
+    int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
             "missing-thinking-output",
@@ -301,7 +301,7 @@ bool readBoundedInt(std::istringstream& iss,
         return false;
     }
 
-    if (value < min || value > max) {
+    if (value < static_cast<int64_t>(min) || value > static_cast<int64_t>(max)) {
         errors.push_back({
             fieldName,
             "Reported value " + std::to_string(value) +
@@ -312,7 +312,7 @@ bool readBoundedInt(std::istringstream& iss,
         return true;
     }
 
-    target = value;
+    target = static_cast<T>(value);
     return true;
 }
 
@@ -325,9 +325,9 @@ void storeBoundedInt(
     std::optional<T>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
-    T value = std::stol(token);
+    int64_t value = std::stol(token);
 
-    if (value < min || value > max) {
+    if (value < static_cast<int64_t>(min) || value > static_cast<int64_t>(max)) {
         errors.push_back({
             fieldName,
             "Reported value " + std::to_string(value) +
@@ -368,15 +368,15 @@ static std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, E
     }
 	if (!optionals.empty()) {
 		const auto& last = optionals.back();
-		storeBoundedInt<int64_t>(last, "tbhits", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->tbhits, event.errors);
+		storeBoundedInt<uint64_t>(last, "tbhits", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->tbhits, event.errors);
 	}
     if (optionals.size() > 1) {
         const auto& selDepth = optionals[0];
-		storeBoundedInt<int32_t>(selDepth, "seldepth", 0, 1000, event.searchInfo->selDepth, event.errors);
+		storeBoundedInt<uint32_t>(selDepth, "seldepth", 0, 1000, event.searchInfo->selDepth, event.errors);
     }
     if (optionals.size() > 2) {
         const auto& nps = optionals[1];
-        storeBoundedInt<int64_t>(nps, "nps", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nps, event.errors);
+        storeBoundedInt<uint64_t>(nps, "nps", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nps, event.errors);
     }
 	iss.seekg(pvStart);
     iss >> std::ws;
@@ -403,7 +403,8 @@ static void parsePV(const std::vector<std::string>& pv, EngineEvent& event) {
     }
 }
 
-EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& originalLine) {
+EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istringstream& iss, 
+    uint64_t timestamp, const std::string& originalLine) {
     EngineEvent event = EngineEvent::createInfo(identifier_, timestamp, originalLine);
 
     event.searchInfo->depth = std::stoi(depthStr);
@@ -414,12 +415,12 @@ EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istrings
     if (*event.searchInfo->scoreCp <= -10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp + 10000;
 	if (*event.searchInfo->scoreCp >= 10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp - 10000;
 
-	if (!readBoundedInt<int64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
+	if (!readBoundedInt<uint64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
 		return event;
 	}
     *event.searchInfo->timeMs *= 10;
 
-	if (!readBoundedInt<int64_t>(iss, "nodes", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nodes, event.errors)) {
+	if (!readBoundedInt<uint64_t>(iss, "nodes", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nodes, event.errors)) {
 		return event;
 	}
 
@@ -484,7 +485,7 @@ void WinboardAdapter::parseOptionFeature(const std::string& optionStr, EngineEve
     supportedOptions_.push_back(std::move(opt));
 }
 
-EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption) {
+EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, uint64_t timestamp, bool onlyOption) {
     std::string token;
     EngineEvent event = EngineEvent::createNoData(identifier_, timestamp);
 

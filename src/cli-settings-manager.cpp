@@ -118,6 +118,10 @@ namespace CliSettings
             if (!std::holds_alternative<int>(value))
                 typeMismatch("int");
             break;
+        case ValueType::UInt:
+            if (!std::holds_alternative<unsigned int>(value))
+                typeMismatch("unsigned int");
+            break;
         case ValueType::Float:
             if (!std::holds_alternative<double>(value))
                 typeMismatch("double");
@@ -156,6 +160,11 @@ namespace CliSettings
 
         if (defaultValue)
         {
+            if (type == ValueType::UInt && std::holds_alternative<int>(*defaultValue) 
+                && (std::get<int>(*defaultValue) >= 0))
+            {
+                *defaultValue = static_cast<unsigned int>(std::get<int>(*defaultValue));
+			}
             validateDefaultValue(name, *defaultValue, type);
         }
 
@@ -168,15 +177,24 @@ namespace CliSettings
                                 bool unique,
                                 const std::unordered_map<std::string, Definition> &keys)
     {
-        for (const auto &[name, def] : keys)
-        {
-            if (!def.defaultValue)
-                continue;
-            validateDefaultValue(name, *def.defaultValue, def.type);
-        }
+
 
         std::string key = to_lowercase(groupName);
         groupDefs_[key] = GroupDefinition{groupDescription, unique, keys};
+
+        for (auto& [name, def] : groupDefs_[key].keys)
+        {
+            if (!def.defaultValue)
+                continue;
+			auto type = def.type;
+			auto& defaultValue = def.defaultValue;
+            if (type == ValueType::UInt && std::holds_alternative<int>(*defaultValue)
+                && (std::get<int>(*defaultValue) >= 0))
+            {
+                *defaultValue = static_cast<unsigned int>(std::get<int>(*defaultValue));
+            }
+            validateDefaultValue(name, *def.defaultValue, def.type);
+        }
     }
 
     const GroupInstances Manager::getGroupInstances(const std::string &groupName)
@@ -265,7 +283,7 @@ namespace CliSettings
         finalizeGlobalParameters();
     }
 
-    int Manager::parseGlobalParameter(int index, const std::vector<std::string> &args)
+    size_t Manager::parseGlobalParameter(size_t index, const std::vector<std::string> &args)
     {
         auto arg = parseParameter(args[index]);
 
@@ -319,7 +337,7 @@ namespace CliSettings
         return nullptr;
     }
 
-    int Manager::parseGroupedParameter(size_t index, const std::vector<std::string> &args)
+    size_t Manager::parseGroupedParameter(size_t index, const std::vector<std::string> &args)
     {
         auto groupArg = parseParameter(args[index]);
         index++;
@@ -397,6 +415,27 @@ namespace CliSettings
         }
     }
 
+    static std::string to_string(ValueType type) {
+        switch (type)
+        {
+        case ValueType::Int:
+            return "<number>";
+        case ValueType::UInt:
+            return "<number>";
+        case ValueType::Float:
+            return "<number>";
+        case ValueType::Bool:
+            return "<bool>";
+        case ValueType::PathExists:
+            return "<path>";
+        case ValueType::PathParentExists:
+            return "<path>";
+        default:
+            return "string";
+		}
+
+    }
+
     void Manager::showHelp()
     {
         constexpr int nameWidth = 30;
@@ -407,9 +446,7 @@ namespace CliSettings
             std::ostringstream line;
             line << "  --" << key << "=";
 
-            std::string typeStr = (def.type == ValueType::Int) ? "<int>" : (def.type == ValueType::Bool)     ? "<bool>"
-                                                                       : (def.type == ValueType::PathExists) ? "<path>"
-                                                                                                             : "<string>";
+			std::string typeStr = to_string(def.type);
 
             line << typeStr;
             std::cout << std::left << std::setw(nameWidth) << line.str();
@@ -445,9 +482,7 @@ namespace CliSettings
                 std::ostringstream line;
                 line << "    " << param << "=";
 
-                std::string typeStr = (meta.type == ValueType::Int) ? "<int>" : (meta.type == ValueType::Bool)     ? "<bool>"
-                                                                            : (meta.type == ValueType::PathExists) ? "<path>"
-                                                                                                                   : "<string>";
+				std::string typeStr = to_string(meta.type);
 
                 line << typeStr;
                 std::cout << std::left << std::setw(nameWidth) << line.str();
@@ -504,6 +539,22 @@ namespace CliSettings
             catch (...)
             {
                 throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected integer");
+            }
+        }
+        if (def.type == ValueType::UInt)
+        {
+            try
+            {
+                int value = stoi(*arg.value);
+                if (value < 0)
+                {
+					throw "expected positive integer";
+				}
+                return static_cast<uint32_t>(value);
+            }
+            catch (...)
+            {
+                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected positive integer");
             }
         }
         if (def.type == ValueType::Float)

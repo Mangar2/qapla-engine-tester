@@ -106,7 +106,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/clang:-Wno-c++98-compat /clang:-Wno-pre-c++14-compat /clang:-Wno-c++98-compat-pedantic /clang:-Wno-unsafe-buffer-usage /clang:-Wno-duplicate-enum  /clang:-Wno-switch-enum /clang:-Wno-implicit-int-conversion /clang:-Wno-implicit-int-float-conversion /clang:-Wno-global-constructors /clang:-Wno-exit-time-destructors %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/clang:-Wno-c++98-compat /clang:-Wno-pre-c++14-compat /clang:-Wno-c++98-compat-pedantic /clang:-Wno-unsafe-buffer-usage /clang:-Wno-duplicate-enum  /clang:-Wno-global-constructors /clang:-Wno-exit-time-destructors /clang:-Wno-sign-conversion /clang:-Wno-switch-enum %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -115,7 +115,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>

@@ -39,8 +39,8 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
 
     uint32_t consecutiveOk = 0;
 
-    for (int i = static_cast<int>(moves.size()) - 1; i >= 0; --i) {
-        const auto& move = moves[i];
+    for (int32_t i = static_cast<int32_t>(moves.size()) - 1; i >= 0; --i) {
+        const auto& move = moves[static_cast<uint32_t>(i)];
 
         if (!move.scoreCp || std::abs(*move.scoreCp) > cfg.centipawnThreshold) {
             break;
@@ -76,7 +76,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
     GameResult prospectiveResult = game.isWhiteToMove() == curLoosing ? GameResult::WhiteWins : GameResult::BlackWins;
 
     for (int i = static_cast<int>(moves.size()) - 1; i >= 0; --i) {
-        const auto& move = moves[i];
+        const auto& move = moves[static_cast<uint32_t>(i)];
 
         if (curLoosing) {
             if (!move.scoreCp || *move.scoreCp > -cfg.centipawnThreshold) break;
@@ -144,10 +144,10 @@ std::pair<GameResult, size_t> AdjudicationManager::findResignAdjudicationIndex(c
     bool wtm = wtmAtPly(game, 0);
 
     // Separate counters are required to independently track each side’s uninterrupted losing streak
-    int wConsecutive = 0;
-    int bConsecutive = 0;
+    uint32_t wConsecutive = 0;
+    uint32_t bConsecutive = 0;
     // Required to ensure that both sides satisfy their respective conditions when two-sided resign is active
-    int requiredConsecutive = cfg.twoSided ? 2 * cfg.requiredConsecutiveMoves : cfg.requiredConsecutiveMoves;
+    uint32_t requiredConsecutive = cfg.twoSided ? 2 * cfg.requiredConsecutiveMoves : cfg.requiredConsecutiveMoves;
 
     for (size_t i = 0; i < moves.size(); ++i) {
         const auto& move = moves[i];
