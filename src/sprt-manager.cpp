@@ -341,9 +341,9 @@ void SprtManager::runMonteCarloTest(const SprtConfig& config) {
         double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
         std::cout << std::fixed << std::setprecision(1)
             << "Simulated elo difference: " << std::setw(6) << elo
-            << "  No Decisions: " << std::setw(6) << (noDecisions * 100.0) / simulationsPerElo << "%"
-            << "  H0 Accepted: " << std::setw(6) << (numH0 * 100.0) / simulationsPerElo << "%"
-            << "  H1 Accepted: " << std::setw(6) << (numH1 * 100.0) / simulationsPerElo << "%"
+            << "  No Decisions: " << std::setw(6) << (static_cast<double>(noDecisions) * 100.0) / simulationsPerElo << "%"
+            << "  H0 Accepted: " << std::setw(6) << (static_cast<double>(numH0) * 100.0) / simulationsPerElo << "%"
+            << "  H1 Accepted: " << std::setw(6) << (static_cast<double>(numH1) * 100.0) / simulationsPerElo << "%"
             << "  Average Games: " << std::setw(6) << avgGames << "\n";
     }
 }

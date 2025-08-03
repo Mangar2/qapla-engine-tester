@@ -46,26 +46,24 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
     }
 
 	duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
-
+    bool white = true;
     for (const auto& r : results_) {
-        bool aWhite = true;
-        size_t i = &r - results_.data();
-        if (config_.swapColors) {
-            aWhite = (i % 2 == 0);
-        }
 
         switch (r) {
         case GameResult::WhiteWins:
-            aWhite ? ++duelResult_.winsEngineA : ++duelResult_.winsEngineB;
+            white ? ++duelResult_.winsEngineA : ++duelResult_.winsEngineB;
             break;
         case GameResult::BlackWins:
-			aWhite ? ++duelResult_.winsEngineB : ++duelResult_.winsEngineA;
+			white ? ++duelResult_.winsEngineB : ++duelResult_.winsEngineA;
             break;
         case GameResult::Draw:
 			++duelResult_.draws;
             break;
         default:
             break;
+        }
+        if (config_.swapColors) {
+			white = !white; 
         }
     }
 

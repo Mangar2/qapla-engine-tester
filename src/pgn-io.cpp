@@ -183,7 +183,8 @@ void PgnIO::saveMove(std::ostream& out, const std::string& san,
         }
 
         if (options_.includeClock && move.timeMs > 0) {
-            out << sep << std::fixed << std::setprecision(2) << (move.timeMs / 1000.0) << "s";
+            out << sep << std::fixed << std::setprecision(2) 
+                << (static_cast<double>(move.timeMs) / 1000.0) << "s";
             sep = " ";
         }
 
@@ -424,7 +425,8 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
         }
         else if (tok.size() > 1 && tok[0] == '/') {
             try {
-                move.depth = std::stoi(tok.substr(1));
+                int depth = std::stoi(tok.substr(1));
+                move.depth = static_cast<uint32_t>(depth < 0 ? 0: depth);
             }
             catch (...) {}
         }

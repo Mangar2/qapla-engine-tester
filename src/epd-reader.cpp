@@ -20,7 +20,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
-#include <stdexcept>
 #include <fstream>
 #include <optional>
 #include "epd-reader.h"
@@ -89,7 +88,7 @@ void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
     std::string opCode;
 
     while (stream >> std::ws) {
-        char ch = stream.peek();
+        char ch = static_cast<char>(stream.peek());
         if (ch == '"') {
             stream.get(); // skip opening quote
             std::getline(stream, token, '"');

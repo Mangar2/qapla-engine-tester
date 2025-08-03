@@ -94,9 +94,11 @@ public:
             if (segment.movesToPlay > 0) {
                 oss << segment.movesToPlay << "/";
             }
-            oss << std::fixed << std::setprecision(1) << segment.baseTimeMs / 1000.0;
+            oss << std::fixed << std::setprecision(1) 
+                << static_cast<double>(segment.baseTimeMs) / 1000.0;
             if (segment.incrementMs > 0) {
-                oss << "+" << std::fixed << std::setprecision(2) << segment.incrementMs / 1000.0;
+                oss << "+" << std::fixed << std::setprecision(2) 
+                    << static_cast<double>(segment.incrementMs) / 1000.0;
             }
         }
         return oss.str();

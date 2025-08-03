@@ -209,7 +209,7 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
                 eventSink_(EngineEvent::create(EngineEvent::Type::SendingComputeMove, identifier_, 
                     Timer::getCurrentTimeMs()));
             }
-            int64_t sendTimestamp = adapter.computeMove(gameRecord, limits, ponderHit);
+            uint64_t sendTimestamp = adapter.computeMove(gameRecord, limits, ponderHit);
             if (eventSink_) {
 				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
             }
@@ -244,7 +244,7 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
 void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& limits, std::string ponderMove) {
     post([this, gameRecord, limits, ponderMove](EngineAdapter& adapter) {
         try {
-			int64_t sendTimestamp = adapter.allowPonder(gameRecord, limits, ponderMove);
+			uint64_t sendTimestamp = adapter.allowPonder(gameRecord, limits, ponderMove);
             if (eventSink_) {
                 eventSink_(EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, sendTimestamp));
             }

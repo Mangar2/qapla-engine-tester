@@ -29,7 +29,7 @@
 
 namespace CliSettings {
 
-    enum class ValueType { String, Int, Float, Bool, PathExists, PathParentExists };
+    enum class ValueType { String, Int, UInt, Float, Bool, PathExists, PathParentExists };
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
@@ -96,6 +96,7 @@ namespace CliSettings {
                 return std::get<T>(*defIt->second.defaultValue);
             }
             if (!std::holds_alternative<T>(it->second)) {
+                std::cout << "type" << it->second.index() << std::endl;
                 if constexpr (std::is_same_v<T, int>) {
                     throw AppError::makeInvalidParameters("Expected whole number for group setting \"" + name + "\".");
                 }
@@ -108,11 +109,12 @@ namespace CliSettings {
                 else if constexpr (std::is_same_v < T, double>) {
 					throw AppError::makeInvalidParameters("Expected decimal number for group setting \"" + name + "\".");
 				}
-                else if constexpr (std::is_same_v<T, uint32_t>) {
-                    throw AppError::makeInvalidParameters("Expected whole number ≥ 0 for group setting \"" + name + "\".");
+                else if constexpr (std::is_same_v<T, unsigned int>) {
+                    throw AppError::makeInvalidParameters("Expected positive whole number for group setting \"" + name + "\".");
                 }
             }
-            return std::get<T>(it->second);
+            auto value = std::get<T>(it->second);
+            return value;
         }
 
         const GroupDefinition& getDefinition() const {
@@ -272,7 +274,7 @@ namespace CliSettings {
 		 * @param args Vector of command line arguments.
          * @return Index of the next unprocessed argument.
          */
-        static int parseGlobalParameter(int index, const std::vector<std::string>& args);
+        static size_t parseGlobalParameter(size_t index, const std::vector<std::string>& args);
 
         /**
          * @brief Parses an entire grouped parameter block starting at the given position.
@@ -280,7 +282,7 @@ namespace CliSettings {
          * @param args Vector of command line arguments.
          * @return Index of the next unprocessed argument after the group block.
          */
-        static int parseGroupedParameter(size_t index, const std::vector<std::string>& args);
+        static size_t parseGroupedParameter(size_t index, const std::vector<std::string>& args);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.

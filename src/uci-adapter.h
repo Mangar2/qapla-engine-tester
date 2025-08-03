@@ -78,8 +78,8 @@ public:
     void setPonder(bool enabled) override;
     void ticker() override;
 
-    int64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
-    int64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
+    uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
+    uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -142,7 +142,7 @@ private:
 	 */
     void sendPosition(const GameRecord& game, std::string ponderMove = "");   
 
-    EngineEvent parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& originalLine);
+    EngineEvent parseSearchInfo(std::istringstream& iss, uint64_t timestamp, const std::string& originalLine);
 
 	static inline int numOptionError_ = 0; 
     static inline int numIdError_ = 0;

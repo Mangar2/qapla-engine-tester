@@ -98,7 +98,7 @@ void UciAdapter::ticker() {
     // Currently unused in UCI
 }
 
-int64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limits, std::string ponderMove) {
+uint64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limits, std::string ponderMove) {
     if (ponderMove == "") return 0;
 	sendPosition(game, ponderMove);
 
@@ -108,7 +108,7 @@ int64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limits
     return writeCommand(oss.str());
 }
 
-int64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) {
+uint64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) {
     if (ponderHit) {
 		return writeCommand("ponderhit");
     }
@@ -222,45 +222,12 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
  * @param target Optional to assign the result.
  * @param errors Vector collecting parse errors.
  */
-static void readBoundedInt32(std::istringstream& iss,
+template <typename T>
+static void readBoundedInt(std::istringstream& iss,
     const std::string& fieldName,
-    int32_t min,
-    int32_t max,
-    std::optional<int>& target,
-    std::vector<EngineEvent::ParseError>& errors)
-{
-    int value;
-    if (!(iss >> value)) {
-        errors.push_back({
-            fieldName,
-            "Expected an integer after '" + fieldName + "'"
-            });
-        iss.clear();
-        return;
-    }
-
-    if (value < min || value > max) {
-        errors.push_back({
-            fieldName,
-            "Reported value " + std::to_string(value) +
-            " is outside the expected range [" +
-            std::to_string(min) + ", " + std::to_string(max) + "]"
-            });
-        return;
-    }
-    if (target.has_value()) {
-        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
-        return;
-    }
-    target = value;
-}
-
-
-static void readBoundedInt64(std::istringstream& iss,
-    const std::string& fieldName,
-    int64_t min,
-    int64_t max,
-    std::optional<int64_t>& target,
+    T min,
+    T max,
+    std::optional<T>& target,
     std::vector<EngineEvent::ParseError>& errors)
 {
     int64_t value;
@@ -273,7 +240,7 @@ static void readBoundedInt64(std::istringstream& iss,
         return;
     }
 
-    if (value < min || value > max) {
+    if (value < static_cast<int64_t>(min) || value > static_cast<int64_t>(max)) {
         errors.push_back({
             fieldName,
             "Reported value " + std::to_string(value) +
@@ -286,8 +253,7 @@ static void readBoundedInt64(std::istringstream& iss,
         errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
         return;
     }
-
-    target = value;
+    target = static_cast<T>(value);
 }
 
 static bool isLanMoveToken(const std::string& token) {
@@ -301,7 +267,7 @@ static bool isLanMoveToken(const std::string& token) {
 	return true;
 }
 
-EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timestamp, const std::string& rawLine) {
+EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timestamp, const std::string& rawLine) {
     SearchInfo info;
     EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, rawLine);
     std::string token;
@@ -325,8 +291,8 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
     while (iss >> token) {
         try {
             if (parent == "score") {
-                if (token == "cp") readBoundedInt32(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
-                else if (token == "mate") readBoundedInt32(iss, "score mate", -500, 500, info.scoreMate, event.errors);
+                if (token == "cp") readBoundedInt<int32_t>(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
+                else if (token == "mate") readBoundedInt<int32_t>(iss, "score mate", -500, 500, info.scoreMate, event.errors);
                 else if (token == "lowerbound") info.scoreLowerbound = true;
                 else if (token == "upperbound") info.scoreUpperbound = true;
                 else parent = ""; // terminate score parsing, allow re-processing of current token
@@ -357,17 +323,17 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, int64_t timesta
 			else if (token == "refutation") checkDuplicateField(info.refutation.size() > 0, token);
 			else if (token == "currline") checkDuplicateField(info.currline.size() > 0, token);
             // ReadBoundInt checks for duplicate field. 
-            else if (token == "depth") readBoundedInt32(iss, token, 0, 1000, info.depth, event.errors);
-            else if (token == "seldepth") readBoundedInt32(iss, token, 0, 1000, info.selDepth, event.errors);
-            else if (token == "multipv") readBoundedInt32(iss, token, 1, 220, info.multipv, event.errors);
-            else if (token == "time") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
-            else if (token == "nodes") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
-            else if (token == "nps") readBoundedInt64(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
-            else if (token == "hashfull") readBoundedInt32(iss, token, 0, 1000, info.hashFull, event.errors);
-            else if (token == "tbhits") readBoundedInt64(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
-            else if (token == "sbhits") readBoundedInt32(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
-            else if (token == "cpuload") readBoundedInt32(iss, token, 0, 1000, info.cpuload, event.errors);
-            else if (token == "currmovenumber") readBoundedInt32(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
+            else if (token == "depth") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.depth, event.errors);
+            else if (token == "seldepth") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.selDepth, event.errors);
+            else if (token == "multipv") readBoundedInt<uint32_t>(iss, token, 1, 220, info.multipv, event.errors);
+            else if (token == "time") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
+            else if (token == "nodes") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
+            else if (token == "nps") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
+            else if (token == "hashfull") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.hashFull, event.errors);
+            else if (token == "tbhits") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
+            else if (token == "sbhits") readBoundedInt<uint32_t>(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
+            else if (token == "cpuload") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.cpuload, event.errors);
+            else if (token == "currmovenumber") readBoundedInt<uint32_t>(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
             else {
                 event.errors.push_back({ "wrong-token-in-info-line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
             }

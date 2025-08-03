@@ -25,13 +25,14 @@
 
 void EpdManager::printHeaderLine() const {
     auto formatEngineName = [](const std::string& name) -> std::string {
-        constexpr uint32_t totalWidth = 25;
-        if (static_cast<int>(name.length()) > totalWidth) {
-            return "..." + name.substr(name.length() - (totalWidth - 3));
+        constexpr size_t totalWidth = 25;
+        size_t len = name.length();
+        if (len > totalWidth) {
+            return "..." + name.substr(len - (totalWidth - 3));
         }
-        uint32_t padding = totalWidth - static_cast<uint32_t>(name.length());
-        uint32_t leftPad = padding / 2;
-        uint32_t rightPad = padding - leftPad;
+        size_t padding = totalWidth - static_cast<uint32_t>(name.length());
+        size_t leftPad = padding / 2;
+        size_t rightPad = padding - leftPad;
         return std::string(leftPad, ' ') + name + std::string(rightPad, ' ');
         };
 
@@ -121,7 +122,7 @@ inline std::ostream& operator<<(std::ostream& os, const EpdTestCase& test) {
     return os;
 }
 
-void EpdManager::initializeTestCases(uint32_t maxTimeInS, uint32_t minTimeInS, uint32_t seenPlies, bool clearTests) {
+void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies, bool clearTests) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
     }
@@ -241,7 +242,7 @@ bool EpdManager::setPV(const std::string& taskId,
     }
 
     bool earlyStop =
-		test.seenPlies >= 0 && test.correctAtDepth >= 0 && depth.has_value() &&
+		test.seenPlies > 0 && test.correctAtDepth >= 0 && depth.has_value() &&
         timeInMs >= test.minTimeInS * 1000 &&
         static_cast<int>(*depth) - test.correctAtDepth >= test.seenPlies;
 
@@ -282,12 +283,12 @@ void EpdManager::setGameRecord(const std::string& taskId, const GameRecord& reco
         }
     );
     test.timeMs = move.timeMs;
-    test.searchDepth = move.depth;
+    test.searchDepth = static_cast<int>(move.depth);
     test.nodeCount = move.nodes;
 
     // Note: SetPV might have set the correct depth, time, nodes already
     if (test.correct && test.correctAtDepth == -1) {
-        test.correctAtDepth = move.depth;
+        test.correctAtDepth = static_cast<int>(move.depth);
         test.correctAtTimeInMs = move.timeMs;
         test.correctAtNodeCount = move.nodes;
     }

@@ -41,9 +41,20 @@ GameManagerPool::GameManagerPool() {
             } 
             else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
 				if (value) {
-                    std::cout << "\n\nSetting concurrency to " << *value << "\n" << std::endl;
-					int concurrency = std::stoi(*value);
-					this->setConcurrency(concurrency, true, true);
+                    try {
+                        int concurrency = std::stoi(*value);
+                        if (concurrency >= 0) {
+                            this->setConcurrency(static_cast<uint32_t>(concurrency), true, true);
+                            std::cout << "\n\nSetting concurrency to " << *value << "\n" << std::endl;
+                        }
+                        else {
+							throw std::invalid_argument("Negative concurrency value");
+                        }
+					}
+                    catch (...) {
+                        std::cout << "\n\nInvalid concurrency value: " << *value 
+                            << ". Please provide a non-negative whole number.\n" << std::endl;
+                    }
 				}
 			}
             else if (cmd == InputHandler::ImmediateCommand::Running) {

@@ -54,10 +54,10 @@ namespace QaplaBasics {
 				pieceSignature <<= SIG_SHIFT_BLACK;
 				pieceMask <<= SIG_SHIFT_BLACK;
 			}
-			uint32_t remainingPieces = 0;
+			int32_t remainingPieces = 0;
 			if (pieceChar) {
 				uint32_t maxPieces = std::min(pieceMask / pieceSignature, static_cast<uint32_t>(8));
-				remainingPieces = maxPieces - ((curSig & pieceMask) / pieceSignature);
+				remainingPieces = static_cast<int32_t>(maxPieces - ((curSig & pieceMask) / pieceSignature));
 			}
 
 			if (index >= pattern.size()) {
@@ -138,7 +138,7 @@ namespace QaplaBasics {
 			}
 		}
 
-		for (int color = 0; color < 2; ++color) {
+		for (uint32_t color = 0; color < 2; ++color) {
 			const std::string& part = parts[color];
 			for (char pieceChar : {'Q', 'R', 'B', 'N', 'P'}) {
 				auto [minCount, allowMore, valid] = parsePieceInPattern(pieceChar, part);

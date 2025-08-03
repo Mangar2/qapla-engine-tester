@@ -85,7 +85,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
 
 static std::string bytesToMB(uint64_t bytes) {
 	std::ostringstream oss;
-	oss << std::fixed << std::setprecision(1) << (bytes / (1024.0 * 1024.0));
+	oss << std::fixed << std::setprecision(1) << (static_cast<double>(bytes) / (1024.0 * 1024.0));
 	return oss.str();
 }
 

@@ -83,7 +83,7 @@ public:
 	 * 
 	 * @return int32_t 
 	 */
-	int32_t getHalfmoveClock() const {
+	uint32_t getHalfmoveClock() const {
 		return position_.getTotalHalfmovesWithoutPawnMoveOrCapture();
 	}
 
@@ -102,7 +102,7 @@ public:
 	 * @param record The game record to set the state from.
 	 * @param plies The ply number to set the game state to.
 	 */
-	GameRecord setFromGameRecord(const GameRecord& record, std::optional<int> plies = std::nullopt);
+	GameRecord setFromGameRecord(const GameRecord& record, std::optional<uint32_t> plies = std::nullopt);
 
 	/**
 	 * @brief Incrementally synchronizes this GameState to match the move history of the given reference state.

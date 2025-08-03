@@ -95,8 +95,8 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 }
 
 bool GameState::isThreefoldRepetition() const {
-	const uint16_t reversiblePlies = position_.getHalfmovesWithoutPawnMoveOrCapture();
-	uint32_t positionsToCheck = std::min(reversiblePlies, static_cast<uint16_t>(hashList_.size()));
+	const uint32_t reversiblePlies = position_.getHalfmovesWithoutPawnMoveOrCapture();
+	uint32_t positionsToCheck = std::min(reversiblePlies, static_cast<uint32_t>(hashList_.size()));
 	if (positionsToCheck < 4) return false;
 
 	const auto currentHash = hashList_.back(); // == position_.getZobristHash();
@@ -202,18 +202,18 @@ QaplaBasics::Move GameState::stringToMove(std::string moveStr, bool requireLan)
 	return foundMove;
 }
 
-GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<int> plies) {
+GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<uint32_t> plies) {
 	GameRecord copy;
 	setFen(game.getStartPos(), game.getStartFen());
 	copy.setStartPosition(game.getStartPos(), getFen(),
 		isWhiteToMove(), game.getWhiteEngineName(), game.getBlackEngineName());
 	const auto& moves = game.history();
-	int maxPly = static_cast<int>(moves.size());
+	uint32_t maxPly = static_cast<uint32_t>(moves.size());
 	if (plies) {
 		maxPly = std::min(maxPly, *plies);
 	}
-	for (int i = 0; i < maxPly; ++i) {
-		auto move = moves[i];
+	for (uint32_t i = 0; i < maxPly; ++i) {
+		MoveRecord move = moves[i];
 		auto& moveStr = move.original;
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {

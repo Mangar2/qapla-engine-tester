@@ -124,18 +124,17 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
 }
 
 void PlayerContext::checkTime(const EngineEvent& event) {
-    const int64_t GRACE_MS = 100;
-    const int64_t GRACE_NODES = 1000;
-
-    
+    const uint64_t GRACE_MS = 100;
+    const uint64_t GRACE_NODES = 1000;
+        
     const bool white = gameState_.isWhiteToMove();
-    const int64_t moveElapsedMs = event.timestampMs - computeMoveStartTimestamp_;
+    const uint64_t moveElapsedMs = event.timestampMs - computeMoveStartTimestamp_;
 
-    const int64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
-    int numLimits = (timeLeft > 0) + goLimits_.movetimeMs.has_value() +
+    const uint64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
+    int numLimits = goLimits_.hasTimeControl + goLimits_.movetimeMs.has_value() +
         goLimits_.depth.has_value() + goLimits_.nodes.has_value();
 
-    if (timeLeft > 0) {
+    if (goLimits_.hasTimeControl) {
 		timeControl_.toPgnTimeControlString();
         if (!checklist_->logReport("no-loss-on-time", moveElapsedMs <= timeLeft,
             "Timecontrol: " + timeControl_.toPgnTimeControlString() + " Used time: " + 
@@ -160,7 +159,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (checklist_->logReport("depth", event.searchInfo->depth.has_value())) {
         if (goLimits_.depth.has_value()) {
-            int depth = *event.searchInfo->depth;
+            uint32_t depth = *event.searchInfo->depth;
             checklist_->logReport("no-depth-overrun", depth <= *goLimits_.depth,
                 std::to_string(depth) + " > " + std::to_string(*goLimits_.depth));
             if (numLimits == 1) {
@@ -172,7 +171,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 
     if (checklist_->logReport("nodes", event.searchInfo->nodes.has_value())) {
         if (goLimits_.nodes.has_value()) {
-            int64_t nodes = *event.searchInfo->nodes;
+            uint64_t nodes = *event.searchInfo->nodes;
             checklist_->logReport("no-nodes-overrun", nodes <= *goLimits_.nodes + GRACE_NODES,
                 std::to_string(nodes) + " > " + std::to_string(*goLimits_.nodes));
             if (numLimits == 1) {

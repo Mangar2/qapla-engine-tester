@@ -138,7 +138,7 @@ namespace QaplaBasics {
 		 * Retrieves the EP square = the square the opponent pawn moved to
 		 */
 		Square getEP() const { return Square(_info & EP_MASK); }
-		void setEP(Square epSquare) { _info = (_info & ~EP_MASK) | static_cast<uint32_t>(epSquare); }
+		void setEP(Square epSquare) { _info = (_info & ~EP_MASK) | static_cast<uint16_t>(epSquare); }
 
 		bool hasEP() const { return (_info & EP_MASK) != 0; }
 		void clearEP() { _info &= ~EP_MASK; }

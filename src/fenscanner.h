@@ -221,7 +221,7 @@ namespace QaplaInterface {
 			uint32_t result = 0;
 			while (fenIterator != fen.end() && *fenIterator >= '0' && *fenIterator <= '9') {
 				result *= 10;
-				result += *fenIterator - '0';
+				result += static_cast<uint32_t>(*fenIterator - '0');
 				++fenIterator;
 			}
 			return result;

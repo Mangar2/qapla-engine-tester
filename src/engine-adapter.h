@@ -100,7 +100,7 @@ public:
      * @param limits      Calculation limits (time, depth, etc.).
      * @param ponderMove  Move to ponder on
      */
-    virtual int64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) = 0;
+    virtual uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) = 0;
 
     /**
      * @brief Requests the engine to calculate a move.
@@ -109,13 +109,13 @@ public:
 	 * @param ponderHit   true, if the engine is currently pondering on the right move.
 	 * @returns the timestamp the calculate move commad has been sent to the engine.
      */
-    virtual int64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) = 0;
+    virtual uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) = 0;
 
 	/**
 	 * @brief Sends a command to the engine's stdin.
 	 * @param command Command to send (without newline).
 	 */
-    int64_t writeCommand(const std::string& command);
+    uint64_t writeCommand(const std::string& command);
 
     /**
      * @brief Assigns a logger function to use for engine communication output.

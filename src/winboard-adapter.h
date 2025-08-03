@@ -80,8 +80,8 @@ public:
     void setPonder(bool enabled) override;
     void ticker() override;
 
-    int64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
-    int64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
+    uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
+    uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -157,7 +157,7 @@ private:
      *
      * @param game The current game state with full move history.
      */
-    int64_t catchupMovesAndGo(const GameRecord& game);
+    uint64_t catchupMovesAndGo(const GameRecord& game);
 
     /**
      * Ensures all known boolean features are present in featureMap_ with correct defaults.
@@ -170,8 +170,8 @@ private:
         return it != featureMap_.end() && it->second == "1";
     }
 
-    EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, int64_t timestamp, const std::string& rawLine);
-	EngineEvent parseFeatureLine(std::istringstream& iss, int64_t timestamp, bool onlyOption);
+    EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, uint64_t timestamp, const std::string& rawLine);
+	EngineEvent parseFeatureLine(std::istringstream& iss, uint64_t timestamp, bool onlyOption);
     void parseOptionFeature(const std::string& optionStr, EngineEvent& event);
     EngineEvent parseResult(std::istringstream& iss, const std::string& command, EngineEvent event);
     
