@@ -18,20 +18,24 @@
  */
 #pragma once
 
-#include <memory>
-#include <future>
-#include <mutex>
-
 #include "engine-report.h"
 #include "engine-worker.h"
 #include "timer.h"
+#include "game-task.h"
 #include "time-control.h"
 #include "game-state.h"
 #include "move-record.h"
 #include "game-record.h"
-#include "test-tournament.h"
 #include "player-context.h"
 #include "game-context.h"
+
+#include <memory>
+#include <future>
+#include <mutex>
+
+namespace QaplaTester {
+
+class GameManagerPool;
 
  /**
   * @brief Manages a single chess game between the application and an engine.
@@ -46,8 +50,7 @@ public:
         std::unique_ptr<EngineWorker> black;
     };
 
-public:
-	GameManager();
+	explicit GameManager(GameManagerPool* pool);
 	~GameManager();
 
     /**
@@ -108,14 +111,31 @@ public:
 		return white ? gameContext_.getWhite()->getEngine() : gameContext_.getBlack()->getEngine();
     }
 
+    /**
+     * @brief Returns a const reference to the GameContext instance.
+     *
+     * @return A const reference to the GameContext.
+     */
+    const GameContext& getGameContext() const {
+        return gameContext_;
+    }
+
 	/**
 	 * @brief Returns the task provider used by this GameManager.
 	 *
 	 * @return A reference to the used GameTaskProvider.
 	 */
-    const std::shared_ptr<GameTaskProvider> getTaskProvider() {
+    std::shared_ptr<GameTaskProvider> getTaskProvider() {
 		return taskProvider_;
     }
+
+    /**
+	 * @brief Returns information about the engine players.
+     */
+    EngineRecords getEngineRecords() const {
+        return gameContext_.getEngineRecords();
+	}
+
     /**
      * @brief stops the engine if it is running.
      */
@@ -130,12 +150,31 @@ public:
 
     bool isPaused() const {
         return paused_;
-	}
+    }
+    
+    /**
+     * @brief Returns true, if the game manager is running. 
+     */
+    [[nodiscard]] bool isRunning() const {
+        return finishedPromiseValid_;
+    }
 
     /**
      * @brief Resumes task processing if previously paused.
      */
     void resume();
+
+    /**
+     * Executes the given callable with thread-safe access to the game record.
+     * The callable receives a const reference to the game record.
+     *
+     * @param accessFn A callable that takes a const GameRecord&.
+     */
+    void withGameRecord(const std::function<void(const GameRecord&)>& accessFn) const {
+        gameContext_.withGameRecord(accessFn);
+    }
+
+
 private:
     /**
      * @brief Tells the engine to stop the current move calculation and sends the best move
@@ -146,7 +185,7 @@ private:
      * Adds a new engine event to the processing queue.
      * This method is thread-safe and does not block.
      */
-    void enqueueEvent(const EngineEvent& event);
+    void enqueueEvent(EngineEvent&& event);
     /**
      * Continuously processes events from the queue and performs periodic tasks.
      * Intended to run in a dedicated thread.
@@ -176,6 +215,16 @@ private:
      * @param event The engine event containing the best move information.
 	 */
 	void handleBestMove(const EngineEvent& event);
+
+    /**
+     * @brief Handles the ponder move event from the engine.
+     * 
+     * Received if an engine sends an information about the move it will ponder on. (xboard protocol)
+     * It is usually sent in the format "Hint: <move>".
+     * 
+     * @param event The engine event containing the ponder move information.
+     */
+    void handlePonderMove(const EngineEvent &event);
 
 	/**
 	 * Informs the task provider about the event, allowing it to react to engine information.
@@ -214,13 +263,17 @@ private:
 	 * This function checks if the game has ended and handles the end of the game.
 	 * It returns true if the game has ended, false otherwise.
 	 */
-    bool checkForGameEnd();
+    bool checkForGameEnd(bool verbose = false);
     std::tuple<GameEndCause, GameResult> getGameResult();
 
     /**
-     * @brief Signals that a computation has completed. Call once per compute cycle.
+     * @brief Signals that a computation has completed. 
      */
     void markFinished();
+
+    /**
+     * @brief Initializes the signal and sets the signal to valid
+     */
     void markRunning();
 
     /**
@@ -229,11 +282,6 @@ private:
      * This method releases resources and marks the GameManager as finished.
      */
     void tearDown();
-
-    /**
-     * Callback to get new tasks
-     */
-    std::shared_ptr<GameTaskProvider> taskProvider_;
 
     /**
 	 * Computes the next task from the task provider
@@ -278,17 +326,26 @@ private:
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
 
+    std::mutex taskProviderMutex_;
+    std::shared_ptr<GameTaskProvider> taskProvider_;
 	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
     std::string taskId_;
 
-    // Queue management
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };
+
+    // Pause Management
     std::mutex pauseMutex_;
 	std::atomic<bool> pauseRequested_{ false };
 	std::atomic<bool> paused_{ false };
     std::atomic<bool> debug_{ false };
+
+    // Queue management
     std::mutex queueMutex_;
     std::condition_variable queueCondition_;
     std::queue<EngineEvent> eventQueue_;
+
+    GameManagerPool* pool_;
 };
+
+} // namespace QaplaTester

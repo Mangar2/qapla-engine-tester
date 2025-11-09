@@ -25,6 +25,8 @@
 #include "time-control.h"
 #include "openings.h"
 #include "tournament-result.h"
+#include "ini-file.h"
+
 #include <vector>
 #include <memory>
 #include <optional>
@@ -36,6 +38,9 @@
 #include <sstream>
 #include <random>
 #include <functional>
+#include <atomic>
+
+namespace QaplaTester {
 
 /**
  * @brief Represents a collection of chess openings for a tournament.
@@ -43,10 +48,10 @@
 struct StartPositions {
     std::vector<std::string> fens;
     std::vector<GameRecord> games;
-	uint32_t size() const {
+	[[nodiscard]] uint32_t size() const {
 		return std::max(static_cast<uint32_t>(fens.size()), static_cast<uint32_t>(games.size()));
 	}
-	bool empty() const {
+	[[nodiscard]] bool empty() const {
 		return fens.empty() && games.empty();
 	}
 };
@@ -63,6 +68,8 @@ struct PairTournamentConfig {
     bool swapColors = true;
     Openings openings;
 };
+
+class GameManagerPool;
 
  /**
   * @brief Represents an autonomous two-engine tournament with defined number of games.
@@ -110,11 +117,11 @@ public:
      *
      * Must be called after initialize(). Adds this pairing to the pool with the configured concurrency limit.
      */
-    void schedule(const std::shared_ptr<PairTournament>& self);
+    void schedule(const std::shared_ptr<PairTournament>& self, GameManagerPool& pool);
 
     void clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
-        started_ = false;
+        std::scoped_lock lock(mutex_);
+        initialized_ = false;
         results_.clear();
         duelResult_ = EngineDuelResult(engineA_.getName(), engineB_.getName());
         nextIndex_ = 0;
@@ -150,10 +157,21 @@ public:
      *
      * Must be called only after initialize(). Does not validate engine names.
      *
-     * @param line A single line in the format: "games: <result-sequence>"
+     * @param line A single line in the format: "games: <result-sequence>" or "<result-sequence>"
      */
     void fromString(const std::string& line);
 
+    /**
+     * @brief Copies results and duel statistics from another PairTournament instance.
+     *
+     * Both tournaments must have been initialized with the same engines and configuration.
+     *
+     * @param other Another PairTournament instance to copy results from.
+     */
+    void copyResultsFrom(const PairTournament& other) {
+       duelResult_ = other.duelResult_;
+       results_ = other.results_;
+    }
 
     /**
 	 * @brief Returns the result of the duel between the two engines.
@@ -174,26 +192,16 @@ public:
 	}
     
 	/**
-	 * @brief Saves the current tournament state to the given output stream if it is not empty.
+	 * @brief Returns the tournament state as a section if it is not empty.
 	 *
-	 * Writes the round header, results, and engine names.
+	 * Returns the round information, results, and engine names as an IniFile section.
 	 *
-	 * @param out Output stream to write the state to.
+	 * @param id The ID to use in the section (e.g., "tournament" or "sprt-tournament").
+	 * @return Optional section containing the tournament state, or std::nullopt if empty.
 	 */
-    void trySaveIfNotEmpty(std::ostream& out) const;
+    std::optional<QaplaHelpers::IniFile::Section> getSectionIfNotEmpty(const std::string& id) const;
 
-    /**
-     * @brief Parses a round header line and extracts round number and engine names.
-     *
-     * Format must be: [round <N> engines <engineA> vs <engineB>]
-     *
-     * @param line Full line including brackets.
-     * @return Tuple with round, engineA, engineB
-     * @throws std::runtime_error if the line is malformed
-     */
-    static std::tuple<uint32_t, std::string, std::string> parseRoundHeader(const std::string& line);
-
-    /**
+     /**
      * @brief Checks if this pairing matches the given round and engine names.
      *
      * @param round Round number to match (0-based).
@@ -202,7 +210,17 @@ public:
      * @return true if round and engine names match exactly.
      */
     bool matches(uint32_t round, const std::string& engineA, const std::string& engineB) const;
-    
+
+    /**
+     * @brief Compares this pairing with another to see if they involve the same engines and round.
+     *
+     * Ignores results and internal state.
+     *
+     * @param other Another PairTournament instance to compare against.
+     * @return true if both pairings have the same engines and round number.
+     */
+    bool matches(const PairTournament& other) const;
+
     /**
      * @brief Loads result block data from input stream (one round).
      *
@@ -210,10 +228,46 @@ public:
      * Reads until next round header or EOF.
      *
      * @param in Input stream positioned after round header line.
-	 * @returns The next round header line or an empty string if EOF reached.
      */
-    std::string load(std::istream& in);
+    void fromSection(const QaplaHelpers::IniFile::Section& section);
 
+    /**
+	 * @brief Checks, if the tournament is finished.
+     *
+	 * @return true if all games have been played, false otherwise.
+	 */
+    bool isFinished() const {
+        return isFinished_.load();
+	}
+
+	/**
+	 * @brief Checks if this tournament has any results (finished or unfinished games).
+	 *
+	 * @return true if there are any game results recorded, false if tournament is fresh.
+	 */
+	bool hasResults() const {
+		return !results_.empty();
+	}
+
+    /**
+     * @brief Returns the tournament configuration.
+     *
+     * @return PairTournamentConfig containing all configuration parameters.
+     */
+    const PairTournamentConfig& getConfig() const {
+        return config_;
+    }
+
+    /**
+     * @brief Sets a custom position name for the pair tournament.
+     *
+     * It is set as position name in each GameRecord created + a number for each game.
+     *
+     * @param name The position name to set.
+     */
+    void setPositionName(const std::string& name) {
+        positionName_ = name;
+    }
 
 private:
 
@@ -241,6 +295,7 @@ private:
     EngineConfig engineB_;
 	PairTournamentConfig config_;
     std::shared_ptr<StartPositions> startPositions_;
+    std::string positionName_;
 
     // // Results from the engine pairing perspective, not from the white-player view
     GameRecord curRecord_;
@@ -250,6 +305,9 @@ private:
     mutable std::mutex mutex_;
     std::mt19937 rng_;
     size_t nextIndex_ = 0;
-    bool started_ = false;
+    bool initialized_ = false;
     bool verbose_ = true;
+    std::atomic<bool> isFinished_ = false;
 };
+
+} // namespace QaplaTester

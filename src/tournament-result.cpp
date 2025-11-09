@@ -26,6 +26,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace QaplaTester {
+
 void EngineDuelResult::addResult(const GameRecord &record)
 {
     bool engineAIsWhite = engineA == record.getWhiteEngineName();
@@ -105,8 +107,9 @@ EngineDuelResult &EngineDuelResult::operator+=(const EngineDuelResult &other)
 
 EngineDuelResult EngineResult::aggregate(const std::string &targetEngine) const
 {
-    if (duels.empty())
+    if (duels.empty()) {
         return {};
+    }
 
     EngineDuelResult result(targetEngine, std::string(EngineDuelResult::ANY_ENGINE));
 
@@ -196,9 +199,27 @@ void EngineResult::printResults(std::ostream &os) const
     }
 }
 
-void TournamentResult::add(const EngineDuelResult &result)
+void TournamentResult::push_back(const EngineDuelResult &result)
 {
     results_.push_back(result);
+}
+
+void TournamentResult::add(const EngineDuelResult& result) {
+    // We do not skip if engineB is empty, because this is a wildercard 
+    if (result.getEngineA().empty()) {
+        return;
+    }
+
+    auto it = std::ranges::find_if(results_,
+        [&result](const EngineDuelResult& r) {
+            return r.engineNamesMatch(result);
+        });
+    if (it != results_.end()) {
+        *it += result;
+    }
+    else {
+        results_.push_back(result);
+    }
 }
 
 std::vector<std::string> TournamentResult::engineNames() const
@@ -209,7 +230,7 @@ std::vector<std::string> TournamentResult::engineNames() const
         names.insert(duel.getEngineA());
         names.insert(duel.getEngineB());
     }
-    return std::vector<std::string>(names.begin(), names.end());
+    return {names.begin(), names.end()};
 }
 
 std::optional<EngineResult> TournamentResult::forEngine(const std::string &name) const
@@ -234,8 +255,9 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string &name)
         }
     }
 
-    if (aggregated.empty())
+    if (aggregated.empty()) {
         return std::nullopt;
+    }
 
     EngineResult result;
     result.engineName = name;
@@ -247,37 +269,56 @@ std::optional<EngineResult> TournamentResult::forEngine(const std::string &name)
     return result;
 }
 
-std::vector<TournamentResult::Scored> TournamentResult::initializeScoredEngines() const
+void TournamentResult::initializeScoredEngines(bool update, double baseElo)
 {
-    std::vector<Scored> result;
+    if (!update) {
+        scoredEngines_.clear();
+    }
 
-    for (const auto &name : engineNames())
+    std::unordered_map<std::string, Scored*> scoredMap;
+    for (auto& scored : scoredEngines_) {
+        scoredMap[scored.engineName] = &scored;
+    }
+
+    for (const auto& name : engineNames())
     {
         auto opt = forEngine(name);
-        if (!opt)
+        if (!opt) {
             continue;
+        }
 
         EngineDuelResult agg = opt->aggregate(name);
         int total = agg.total();
-        if (total == 0)
+        if (total == 0) {
             continue;
+        }
 
         double score = (agg.winsEngineA + 0.5 * agg.draws) / total;
 
-        result.push_back(Scored{
-            .engineName = name,
-            .result = std::move(*opt),
-            .score = score,
-            .elo = 0,
-            .total = static_cast<double>(total),
-            .error = 0});
+        auto it = scoredMap.find(name);
+        if (it != scoredMap.end()) {
+            // Update existing element
+            Scored* existing = it->second;
+            existing->result = std::move(*opt);
+            existing->score = score;
+            existing->total = static_cast<double>(total);
+        }
+        else {
+            // Add new element
+            scoredEngines_.push_back(Scored{
+                .engineName = name,
+                .result = std::move(*opt),
+                .score = score,
+                .elo = baseElo,
+                .total = static_cast<double>(total),
+                .error = 0
+                });
+        }
     }
-
-    return result;
 }
 
 double TournamentResult::averageOpponentElo(const Scored &s,
-                                            const std::unordered_map<std::string, double> &currentElo) const
+                                            const std::unordered_map<std::string, double> &currentElo)
 {
     const std::string &name = s.engineName;
     const auto &duels = s.result.duels;
@@ -289,8 +330,9 @@ double TournamentResult::averageOpponentElo(const Scored &s,
     {
         std::string opponent = duel.getEngineA() == name ? duel.getEngineB() : duel.getEngineA();
         int games = duel.total();
-        if (games == 0)
+        if (games == 0) {
             continue;
+        }
 
         weightedSum += currentElo.at(opponent) * games;
         totalGames += games;
@@ -299,31 +341,38 @@ double TournamentResult::averageOpponentElo(const Scored &s,
     return totalGames > 0 ? weightedSum / totalGames : 0.0;
 }
 
-std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseElo, int passes) const {
+std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(
+    int baseElo, int passes, bool update) 
+{
     constexpr double convergenceFactor = 0.5;
     constexpr double weightConstant = 200.0;
 
-    std::vector<Scored> scored = initializeScoredEngines();
+    initializeScoredEngines(update, baseElo);
     std::unordered_map<std::string, Scored*> scoredMap;
-    for (auto& s : scored) {
+    for (auto& s : scoredEngines_) {
         scoredMap[s.engineName] = &s;
-        s.elo = baseElo;
     }
 
     for (int pass = 0; pass < passes; ++pass) {
 
-        for (auto& s : scored) {
+        for (auto& s : scoredEngines_) {
             const std::string& name = s.engineName;
 
             for (const auto& duel : s.result.duels) {
-                if (duel.getEngineA() != name) continue;
+                if (duel.getEngineA() != name) {
+                    continue;
+                }
                 std::string opponent = duel.getEngineB();
                 auto it = scoredMap.find(opponent);
-                if (it == scoredMap.end()) continue;
+                if (it == scoredMap.end()) {
+                    continue;
+                }
                 Scored* opponentScore = it->second;
 
                 int total = duel.total();
-                if (total == 0) continue;
+                if (total == 0) {
+                    continue;
+                }
 
                 int targetEloDiff = computeEloWithError(duel.winsEngineA, duel.winsEngineB, duel.draws).first;
                 double currentEloDiff = s.elo - opponentScore->elo;
@@ -339,20 +388,20 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(int baseE
         }
     }
 
-    for (auto& s : scored) {
+    for (auto& s : scoredEngines_) {
         const auto& agg = s.result.aggregate(s.engineName);
         s.error = computeEloWithError(agg.winsEngineA, agg.winsEngineB, agg.draws).second;
     }
 
-    std::sort(scored.begin(), scored.end(), [](const Scored& a, const Scored& b) {
+    std::ranges::sort(scoredEngines_, [](const Scored& a, const Scored& b) {
         return a.elo > b.elo;
     });
 
-    return scored;
+    return scoredEngines_;
 }
 
 
-void TournamentResult::printRatingTableUciStyle(std::ostream &os, int averageElo) const
+void TournamentResult::printRatingTableUciStyle(std::ostream &os, int averageElo) 
 {
     os << "\nTournament result:\n";
 
@@ -383,7 +432,7 @@ void TournamentResult::printRatingTableUciStyle(std::ostream &os, int averageElo
            << " score " << std::setw(7) << oss.str()
            << " draw "  << drawPct << "%\n";
     }
-    os << std::endl;
+    os << "\n" << std::flush;
 }
 
 void TournamentResult::printOutcome(std::ostream &os) const
@@ -393,25 +442,26 @@ void TournamentResult::printOutcome(std::ostream &os) const
     for (const auto &name : engineNames())
     {
         auto optResult = forEngine(name);
-        if (!optResult)
+        if (!optResult) {
             continue;
+        }
 
         optResult->printOutcome(os);
     }
-    os << std::endl;
+    os << "\n" << std::flush;
 }
 
-void TournamentResult::printSummary(std::ostream &os) const
+std::vector<std::vector<std::string>> TournamentResult::getSummary() const
 {
-    os << "\nTournament result:\n";
+    std::vector<std::vector<std::string>> lines;
+    lines.reserve(engineNames().size());
 
-    std::vector<std::pair<double, std::string>> lines;
-
-    for (const auto &name : engineNames())
+    for (const auto& name : engineNames())
     {
         auto optResult = forEngine(name);
-        if (!optResult)
+        if (!optResult) {
             continue;
+        }
 
         EngineDuelResult agg = optResult->aggregate(name);
         int wins = agg.winsEngineA;
@@ -420,24 +470,42 @@ void TournamentResult::printSummary(std::ostream &os) const
         int total = wins + losses + draws;
 
         double score = total > 0 ? (wins + 0.5 * draws) / total : 0.0;
+        std::vector<std::string> row;
+        
+        row.push_back(name); 
+        row.push_back(std::format("{:.1f}%", score * 100));
+        row.push_back(std::to_string(wins)); 
+        row.push_back(std::to_string(draws));
+        row.push_back(std::to_string(losses));
 
-        std::ostringstream line;
-        line << std::fixed << std::setprecision(2)
-             << std::setw(30) << std::left << name
-             << " " << score
-             << "  W:" << wins << " D:" << draws << " L:" << losses;
-
-        lines.emplace_back(score, line.str());
+        lines.emplace_back(row);
     }
 
-    std::sort(lines.begin(), lines.end(), [](const auto &a, const auto &b)
-              {
-                  return b.first < a.first; // descending
-              });
+    std::ranges::sort(lines, [](const auto& a, const auto& b)
+        {
+            return b[1] < a[1]; // descending
+        });
 
-    for (const auto &entry : lines)
-    {
-        os << entry.second << "\n";
-    }
-    os << std::endl;
+    return lines;
+
 }
+
+void TournamentResult::printSummary(std::ostream &os) const
+{
+    os << "\nTournament result:\n";
+
+    auto lines = getSummary();
+    for (const auto& entry : lines)
+    {
+        os << std::left << std::fixed << std::setprecision(2)
+            << std::setw(30) << entry[0] // Name
+            << " " << entry[1]           // Score
+            << "  W:" << entry[2]        // Wins
+            << " D:" << entry[3]         // Draws
+            << " L:" << entry[4]         // Losses
+            << "\n";
+    }
+    os << "\n" << std::flush;
+}
+
+} // namespace QaplaTester

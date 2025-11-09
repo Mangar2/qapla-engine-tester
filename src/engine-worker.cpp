@@ -24,9 +24,13 @@
 
 #include <stdexcept>
 
+namespace QaplaTester {
+
+using QaplaHelpers::Timer;
+
 EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string identifier, 
     const EngineConfig& engineConfig)
-    : identifier_(identifier), adapter_(std::move(adapter))
+    : identifier_(std::move(identifier)), adapter_(std::move(adapter))
 {
     cliTraceLevel_ = Logger::engineLogger().getCliThreshold();
     if (!adapter_) {
@@ -50,7 +54,6 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
     post([this, options = optionValues](EngineAdapter& adapter) {
         try {
             readThread_ = std::thread(&EngineWorker::readLoop, this);
-            
             // Define expected response for the reader before initiating the protocol command.
             // This ensures the read thread knows which handshake response to watch for.
             waitForHandshake_ = EngineEvent::Type::ProtocolOk;
@@ -68,7 +71,9 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
                     throw std::runtime_error("Engine " + getEngineName() + " failed ready ok handshake after setoptions");
                 }
             }
+            adapter.setPonder(engineConfig_.isPonderEnabled());
             startupPromise_.set_value(); 
+			workerState_ = WorkerState::running;
         }
         catch (...) {
             workerState_ = WorkerState::failure;
@@ -111,7 +116,9 @@ void EngineWorker::stop(bool wait) {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::writeLoop() {
-    if (workerState_ == WorkerState::stopped) return;
+    if (workerState_ == WorkerState::stopped) {
+        return;
+    }
     while (true) {
         std::optional<std::function<void(EngineAdapter&)>> task;
 
@@ -146,7 +153,7 @@ void EngineWorker::writeLoop() {
 
 void EngineWorker::post(std::optional<std::function<void(EngineAdapter&)>> task) {
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
         writeQueue_.push(std::move(task));
     }
     cv_.notify_one();
@@ -174,13 +181,40 @@ bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
 
 bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
     post([this, wait](EngineAdapter& adapter) {
-        waitForHandshake_ = wait ? EngineEvent::Type::BestMove : EngineEvent::Type::None;
+        waitForHandshake_ = EngineEvent::Type::None;
+        if (wait) {
+            waitForHandshake_ = adapter.waitAfterMoveNowHandshake();
+            if (waitForHandshake_ == EngineEvent::Type::None) {
+                // Notify for handshake right away
+                {
+                    std::scoped_lock lock(handshakeMutex_);
+                    handshakeReceived_ = true;
+                }
+                handshakeCv_.notify_all();
+            }
+        }
         adapter.moveNow();
         });
-    if (!wait) return true;
+    if (!wait) {
+        return true;
+    }
     return waitForHandshake(timeout);
 }
 
+bool EngineWorker::handlePonderMiss(std::chrono::milliseconds timeout) {
+    post([this](EngineAdapter& adapter) {
+        waitForHandshake_ = adapter.handlePonderMiss();
+        if (waitForHandshake_ == EngineEvent::Type::None) {
+            // Notify for handshake right away (XBoard case)
+            {
+                std::scoped_lock lock(handshakeMutex_);
+                handshakeReceived_ = true;
+            }
+            handshakeCv_.notify_all();
+        }
+        });
+    return waitForHandshake(timeout);
+}
 
 bool EngineWorker::setOption(const std::string& name, const std::string& value) {
     post([this, name, value](EngineAdapter& adapter) {
@@ -201,7 +235,8 @@ bool EngineWorker::setOptionValues(const OptionValues& optionValues) {
 }
 
 void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& limits, bool ponderHit) {
-    post([this, gameRecord, limits, ponderHit](EngineAdapter& adapter) {
+    GameStruct game = gameRecord.createGameStruct();
+    post([this, game = std::move(game), limits, ponderHit](EngineAdapter& adapter) {
         try {
             if (eventSink_) {
                 // This ensures that all remaining info packets from pondering arrive before this marker,
@@ -209,7 +244,7 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
                 eventSink_(EngineEvent::create(EngineEvent::Type::SendingComputeMove, identifier_, 
                     Timer::getCurrentTimeMs()));
             }
-            uint64_t sendTimestamp = adapter.computeMove(gameRecord, limits, ponderHit);
+            uint64_t sendTimestamp = adapter.computeMove(game, limits, ponderHit);
             if (eventSink_) {
 				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
             }
@@ -241,20 +276,22 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
         });
 }
 
-void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& limits, std::string ponderMove) {
-    post([this, gameRecord, limits, ponderMove](EngineAdapter& adapter) {
+void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& limits, 
+    const std::string& ponderMove) {
+    GameStruct game = gameRecord.createGameStruct();
+    post([this, game, limits, ponderMove](EngineAdapter& adapter) {
         try {
-			uint64_t sendTimestamp = adapter.allowPonder(gameRecord, limits, ponderMove);
+			uint64_t sendTimestamp = adapter.allowPonder(game, limits, ponderMove);
             if (eventSink_) {
                 eventSink_(EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, sendTimestamp));
             }
         }
         catch (...) {
             if (eventSink_) {
-                auto e = EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, 
+                auto error = EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, 
                     Timer::getCurrentTimeMs());
-                e.errors.push_back({ "I/O Error", "Failed to send go ponder command" });
-                eventSink_(std::move(e));
+                error.errors.push_back({ .name = "I/O Error", .detail = "Failed to send go ponder command" });
+                eventSink_(std::move(error));
             }
         }
         });
@@ -269,7 +306,7 @@ void EngineWorker::readLoop() {
 
             if (event.type == waitForHandshake_) {
                 {
-                    std::lock_guard<std::mutex> lock(handshakeMutex_);
+                    std::scoped_lock lock(handshakeMutex_);
                     // We wait for a single handshake. waitForHandshake_ must be set
                     // again for each new handshake request.
                     waitForHandshake_ = EngineEvent::Type::None;
@@ -302,3 +339,5 @@ void EngineWorker::readLoop() {
 		}
     }
 }
+
+} // namespace QaplaTester

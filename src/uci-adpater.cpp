@@ -30,7 +30,9 @@
 #include "engine-process.h"
 #include "logger.h"
 
-UciAdapter::UciAdapter(std::filesystem::path enginePath,
+namespace QaplaTester {
+
+UciAdapter::UciAdapter(const std::filesystem::path& enginePath,
     const std::optional<std::filesystem::path>& workingDirectory,
     const std::string& identifier)
 	: EngineAdapter(enginePath, workingDirectory, identifier)
@@ -39,7 +41,7 @@ UciAdapter::UciAdapter(std::filesystem::path enginePath,
 }
 
 UciAdapter::~UciAdapter() {
-    terminateEngine();
+    UciAdapter::terminateEngine();
 }
 
 void UciAdapter::terminateEngine() {
@@ -98,8 +100,10 @@ void UciAdapter::ticker() {
     // Currently unused in UCI
 }
 
-uint64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limits, std::string ponderMove) {
-    if (ponderMove == "") return 0;
+uint64_t UciAdapter::allowPonder(const GameStruct & game, const GoLimits & limits, std::string ponderMove) {
+    if (ponderMove.empty()) {
+        return 0;
+    }
 	sendPosition(game, ponderMove);
 
     std::ostringstream oss;
@@ -108,7 +112,7 @@ uint64_t UciAdapter::allowPonder(const GameRecord & game, const GoLimits & limit
     return writeCommand(oss.str());
 }
 
-uint64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) {
+uint64_t UciAdapter::computeMove(const GameStruct& game, const GoLimits& limits, bool ponderHit) {
     if (ponderHit) {
 		return writeCommand("ponderhit");
     }
@@ -120,20 +124,40 @@ uint64_t UciAdapter::computeMove(const GameRecord& game, const GoLimits& limits,
     return writeCommand(oss.str());
 }
 
-std::string UciAdapter::computeGoOptions(const GoLimits& limits) const {
+std::string UciAdapter::computeGoOptions(const GoLimits& limits) {
     std::ostringstream oss;
-    if (limits.infinite) oss << " infinite";
-    if (limits.movetimeMs) oss << " movetime " << *limits.movetimeMs;
-    if (limits.depth) oss << " depth " << *limits.depth;
-    if (limits.nodes) oss << " nodes " << *limits.nodes;
-    if (limits.mateIn) oss << " mate " << *limits.mateIn;
+    if (limits.infinite) {
+        oss << " infinite";
+    }
+    if (limits.moveTimeMs) {
+        oss << " movetime " << *limits.moveTimeMs;
+    }
+    if (limits.depth) {
+        oss << " depth " << *limits.depth;
+    }
+    if (limits.nodes) {
+        oss << " nodes " << *limits.nodes;
+    }
+    if (limits.mateIn) {
+        oss << " mate " << *limits.mateIn;
+    }
 
-    if (limits.wtimeMs > 0) oss << " wtime " << limits.wtimeMs;
-    if (limits.btimeMs > 0) oss << " btime " << limits.btimeMs;
-    if (limits.wincMs > 0)  oss << " winc " << limits.wincMs;
-    if (limits.bincMs > 0)  oss << " binc " << limits.bincMs;
+    if (limits.wtimeMs > 0) {
+        oss << " wtime " << limits.wtimeMs;
+    }
+    if (limits.btimeMs > 0) {
+        oss << " btime " << limits.btimeMs;
+    }
+    if (limits.wincMs > 0) {
+        oss << " winc " << limits.wincMs;
+    }
+    if (limits.bincMs > 0) {
+        oss << " binc " << limits.bincMs;
+    }
 
-    if (limits.movesToGo > 0) oss << " movestogo " << limits.movesToGo;
+    if (limits.movesToGo > 0) {
+        oss << " movestogo " << limits.movesToGo;
+    }
 	return oss.str();
 }
 
@@ -141,20 +165,17 @@ void UciAdapter::askForReady() {
 	writeCommand("isready");
 }
 
-void UciAdapter::sendPosition(const GameRecord& game, std::string ponderMove) {
+void UciAdapter::sendPosition(const GameStruct& game, const std::string& ponderMove) {
     std::ostringstream oss;
-    if (game.getStartPos()) {
+    if (game.fen.empty()) {
         oss << "position startpos";
     }
     else {
-        oss << "position fen " << game.getStartFen();
+        oss << "position fen " << game.fen;
     }
-    if (game.nextMoveIndex() != 0 || ponderMove != "") {
-        oss << " moves";
-		for (uint32_t ply = 0; ply < game.nextMoveIndex(); ++ply) {
-            oss << " " << game.history()[ply].lan;
-		}
-        if (ponderMove != "") {
+    if (!game.lanMoves.empty()) {
+        oss << " moves " << game.lanMoves;
+        if (!ponderMove.empty()) {
             oss << " " << ponderMove;
         }
     }
@@ -185,19 +206,19 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
             else if (supportedOption.type == EngineOption::Type::Spin) {
                 int intValue = std::stoi(value);
                 if (intValue < supportedOption.min || intValue > supportedOption.max) {
-                    Logger::testLogger().log("Option value for " + name + " is out of bounds", TraceLevel::info);
+                    Logger::testLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
                     continue;
                 }
             }
-			else if (supportedOption.type == EngineOption::Type::Check) {
+            else if (supportedOption.type == EngineOption::Type::Check) {
 				if (value != "true" && value != "false") {
-					Logger::testLogger().log("Invalid boolean value for option " + name, TraceLevel::info);
+					Logger::testLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
 					continue;
 				}
 			}
-			else if (supportedOption.type == EngineOption::Type::Combo) {
-				if (std::find(supportedOption.vars.begin(), supportedOption.vars.end(), value) == supportedOption.vars.end()) {
-					Logger::testLogger().log("Invalid value for combo option " + name, TraceLevel::info);
+            else if (supportedOption.type == EngineOption::Type::Combo) {
+				if (std::ranges::find(supportedOption.vars, value) == supportedOption.vars.end()) {
+					Logger::testLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
 					continue;
 				}
 			}
@@ -205,7 +226,7 @@ void UciAdapter::setOptionValues(const OptionValues& optionValues) {
             writeCommand(command);
         }
         catch (...) {
-            Logger::testLogger().log("Invalid value " + value + " for option " + name, TraceLevel::info);
+            Logger::testLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
         }
 
 	}
@@ -233,8 +254,8 @@ static void readBoundedInt(std::istringstream& iss,
     int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
-            fieldName,
-            "Expected an integer after '" + fieldName + "'"
+            .name=fieldName,
+            .detail=std::format("Expected an integer after '{}'", fieldName)
             });
         iss.clear();
         return;
@@ -243,14 +264,12 @@ static void readBoundedInt(std::istringstream& iss,
     if (value < static_cast<int64_t>(min) || value > static_cast<int64_t>(max)) {
         errors.push_back({
             fieldName,
-            "Reported value " + std::to_string(value) +
-            " is outside the expected range [" +
-            std::to_string(min) + ", " + std::to_string(max) + "]"
+            std::format("Reported value {} is outside the expected range [{}, {}]", value, min, max)
             });
         return;
     }
     if (target.has_value()) {
-        errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
+        errors.push_back({.name="duplicate-info-field", .detail="Field '" + fieldName + "' specified more than once"});
         return;
     }
     target = static_cast<T>(value);
@@ -259,23 +278,34 @@ static void readBoundedInt(std::istringstream& iss,
 static bool isLanMoveToken(const std::string& token) {
 	// A valid LAN move token is a string of 4 or 5 characters, starting with a letter
 	// and followed by 3 or 4 digits (e.g., "e2e4", "g1f3", "d7d5").
-	if (token.size() < 4 || token.size() > 5) return false;
-	if (token[0] < 'a' || token[0] > 'h') return false; // First character must be a letter a-h
-	if (token[1] < '1' || token[1] > '8') return false; // Second character must be a digit 1-8
-	if (token[2] < 'a' || token[2] > 'h') return false; // Third character must be a letter a-h
-	if (token[3] < '1' || token[3] > '8') return false; // Fourth character must be a digit 1-8
+	if (token.size() < 4 || token.size() > 5) {
+        return false;
+    }
+	if (token[0] < 'a' || token[0] > 'h') {
+        return false; // First character must be a letter a-h
+    }
+	if (token[1] < '1' || token[1] > '8') {
+        return false; // Second character must be a digit 1-8
+    }
+	if (token[2] < 'a' || token[2] > 'h') {
+        return false; // Third character must be a letter a-h
+    }
+	if (token[3] < '1' || token[3] > '8') {
+        return false; // Fourth character must be a digit 1-8
+    }
 	return true;
 }
 
-EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timestamp, const std::string& rawLine) {
+EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timestamp, 
+    const std::string& originalLine) {  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     SearchInfo info;
-    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, rawLine);
+    EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, originalLine);
     std::string token;
     std::string parent;
 
     auto checkDuplicateField = [&](bool check, const std::string& fieldName) {
         if (check) {
-            event.errors.push_back({ "duplicate-info-field", "Field '" + fieldName + "' specified more than once" });
+            event.errors.push_back({.name="duplicate-info-field", .detail=std::format("Field '{}' specified more than once", fieldName)});
         }
         return check;
         };
@@ -291,12 +321,12 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timest
     while (iss >> token) {
         try {
             if (parent == "score") {
-                if (token == "cp") readBoundedInt<int32_t>(iss, "score cp", -100000, 100000, info.scoreCp, event.errors);
-                else if (token == "mate") readBoundedInt<int32_t>(iss, "score mate", -500, 500, info.scoreMate, event.errors);
-                else if (token == "lowerbound") info.scoreLowerbound = true;
-                else if (token == "upperbound") info.scoreUpperbound = true;
-                else parent = ""; // terminate score parsing, allow re-processing of current token
-                if (parent == "score") continue;
+                if (token == "cp") { readBoundedInt<int32_t>(iss, "score cp", -100000, 100000, info.scoreCp, event.errors); }
+                else if (token == "mate") { readBoundedInt<int32_t>(iss, "score mate", -500, 500, info.scoreMate, event.errors); }
+                else if (token == "lowerbound") { info.scoreLowerbound = true; }
+                else if (token == "upperbound") { info.scoreUpperbound = true; }
+                else { parent = ""; } // terminate score parsing, allow re-processing of current token
+                if (parent == "score") { continue; }
             }
             if (isLanMoveToken(token)) {
                 if (parent == "currmove") {
@@ -306,9 +336,9 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timest
                 else if (parent == "pv") { info.pv.push_back(token); }
                 else if (parent == "refutation") { info.refutation.push_back(token); continue; }
                 else if (parent == "currline") { info.currline.push_back(token); continue; }
-				else {
+                else {
 					// If we encounter a move token without a parent, it is an error
-					event.errors.push_back({ "unexpected-move-token", "Unexpected move token '" + token + "' without context" });
+					event.errors.push_back({.name="unexpected-move-token", .detail=std::format("Unexpected move token '{}' without context", token)});
 				}
                 continue;
             }
@@ -318,29 +348,29 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timest
                 event.stringInfo = restOfLine;
             }
             else if (token == "score") {}
-            else if (token == "currmove") checkDuplicateField(info.currMove.has_value(), token);
-            else if (token == "pv") checkDuplicateField(info.pv.size() > 0, token);
-			else if (token == "refutation") checkDuplicateField(info.refutation.size() > 0, token);
-			else if (token == "currline") checkDuplicateField(info.currline.size() > 0, token);
+            else if (token == "currmove") { checkDuplicateField(info.currMove.has_value(), token); }
+            else if (token == "pv") { checkDuplicateField(!info.pv.empty(), token); }
+            else if (token == "refutation") { checkDuplicateField(!info.refutation.empty(), token); }
+            else if (token == "currline") { checkDuplicateField(!info.currline.empty(), token); }
             // ReadBoundInt checks for duplicate field. 
-            else if (token == "depth") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.depth, event.errors);
-            else if (token == "seldepth") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.selDepth, event.errors);
-            else if (token == "multipv") readBoundedInt<uint32_t>(iss, token, 1, 220, info.multipv, event.errors);
-            else if (token == "time") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors);
-            else if (token == "nodes") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors);
-            else if (token == "nps") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors);
-            else if (token == "hashfull") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.hashFull, event.errors);
-            else if (token == "tbhits") readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors);
-            else if (token == "sbhits") readBoundedInt<uint32_t>(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors);
-            else if (token == "cpuload") readBoundedInt<uint32_t>(iss, token, 0, 1000, info.cpuload, event.errors);
-            else if (token == "currmovenumber") readBoundedInt<uint32_t>(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors);
+            else if (token == "depth") { readBoundedInt<uint32_t>(iss, token, 0, 1000, info.depth, event.errors); }
+            else if (token == "seldepth") { readBoundedInt<uint32_t>(iss, token, 0, 1000, info.selDepth, event.errors); }
+            else if (token == "multipv") { readBoundedInt<uint32_t>(iss, token, 1, 220, info.multipv, event.errors); }
+            else if (token == "time") { readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.timeMs, event.errors); }
+            else if (token == "nodes") { readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nodes, event.errors); }
+            else if (token == "nps") { readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int64_t>::max(), info.nps, event.errors); }
+            else if (token == "hashfull") { readBoundedInt<uint32_t>(iss, token, 0, 1000, info.hashFull, event.errors); }
+            else if (token == "tbhits") { readBoundedInt<uint64_t>(iss, token, 0, std::numeric_limits<int>::max(), info.tbhits, event.errors); }
+            else if (token == "sbhits") { readBoundedInt<uint32_t>(iss, token, 0, std::numeric_limits<int>::max(), info.sbhits, event.errors); }
+            else if (token == "cpuload") { readBoundedInt<uint32_t>(iss, token, 0, 1000, info.cpuload, event.errors); }
+            else if (token == "currmovenumber") { readBoundedInt<uint32_t>(iss, token, 1, std::numeric_limits<int>::max(), info.currMoveNumber, event.errors); }
             else {
-                event.errors.push_back({ "wrong-token-in-info-line", "Unrecognized or misplaced token: '" + token + "' after " + parent });
+                event.errors.push_back({.name="wrong-token-in-info-line", .detail=std::format("Unrecognized or misplaced token: '{}' after {}", token, parent)});
             }
             parent = token;
         }
         catch (const std::exception& e) {
-            event.errors.push_back({ "parsing-exception", e.what() });
+            event.errors.push_back({.name="parsing-exception", .detail=e.what()});
         }
     }
     assert(!info.scoreCp || !info.scoreMate);
@@ -383,12 +413,12 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
     return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
 }
 
-EngineEvent UciAdapter::readEvent() {
+EngineEvent UciAdapter::readEvent() { // NOLINT(readability-function-cognitive-complexity)
     EngineLine engineLine = process_.readLineBlocking();
     const std::string& line = engineLine.content;
 
     if (!engineLine.complete || engineLine.error == EngineLine::Error::IncompleteLine) {
-        if (engineLine.complete) logFromEngine(line, TraceLevel::info);
+        if (engineLine.complete) { logFromEngine(line, TraceLevel::info); }
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
@@ -428,7 +458,10 @@ EngineEvent UciAdapter::readEvent() {
 
     if (command == "bestmove") {
         logFromEngine(line, TraceLevel::command);
-        std::string best, token, ponder, err;
+        std::string best;
+        std::string token;
+        std::string ponder;
+        std::string err;
         iss >> best;
         iss >> token;
         if (token == "ponder") {
@@ -438,9 +471,9 @@ EngineEvent UciAdapter::readEvent() {
             ponder = "";
         }
         EngineEvent e = EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, best, ponder);
-        if (token != "ponder" && token != "") {
-            err = "Expected 'ponder' or nothing after bestmove, got '" + token + "'";
-            e.errors.push_back({ "bestmove", err });
+        if (token != "ponder" && !token.empty()) {
+            err = std::format("Expected 'ponder' or nothing after bestmove, got '{}'", token);;
+            e.errors.push_back({.name="bestmove", .detail=err});
         }
         return e;
     }
@@ -492,3 +525,5 @@ EngineEvent UciAdapter::readEvent() {
     }
     return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
 }
+
+} // namespace QaplaTester

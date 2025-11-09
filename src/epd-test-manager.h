@@ -18,13 +18,17 @@
  */
 #pragma once
 
+#include "game-task.h"
+#include "game-record.h"
+#include "logger.h"
+#include "engine-report.h"
+
 #include <vector>
 #include <optional>
 #include <string>
 #include <sstream>
-#include "game-task.h"
-#include "game-record.h"
-#include "logger.h"
+
+namespace QaplaTester {
 
 struct EpdTest {
     std::string fen;
@@ -45,12 +49,12 @@ class EpdTestManager : public GameTaskProvider {
 public:
     EpdTestManager(EngineReport* checklist) : checklist_(checklist) {
         tests_ = {
-            { "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", "e1f1", "zugzwang", true},
-            { "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", "g5h6", "zugzwang", true},
-            { "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1", "d6d1", "mate", false },
-            { "8/8/8/1k6/4K3/2R5/8/8 w - - 0 1", "e4d5", "KRK", false },
-            { "8/8/1k6/8/4K3/2N5/2B5/8 w - - 0 1", "e4d5", "KBNK", false },
-            { "6r1/1p3k2/pPp4R/K1P1p1p1/1P2Pp1p/5P1P/6P1/8 w - - 0 1", "h6c6", "passed pawn", true }
+            { .fen = "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", .expectedMove = "e1f1", .topic = "zugzwang", .whiteToPlay = true},
+            { .fen = "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", .expectedMove = "g5h6", .topic = "zugzwang", .whiteToPlay = true},
+            { .fen = "1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1", .expectedMove = "d6d1", .topic = "mate", .whiteToPlay = false },
+            { .fen = "8/8/8/1k6/4K3/2R5/8/8 w - - 0 1", .expectedMove = "e4d5", .topic = "KRK", .whiteToPlay = false },
+            { .fen = "8/8/1k6/8/4K3/2N5/2B5/8 w - - 0 1", .expectedMove = "e4d5", .topic = "KBNK", .whiteToPlay = false },
+            { .fen = "6r1/1p3k2/pPp4R/K1P1p1p1/1P2Pp1p/5P1P/6P1/8 w - - 0 1", .expectedMove = "h6c6", .topic = "passed pawn", .whiteToPlay = true }
         };
     }
 
@@ -60,8 +64,10 @@ public:
      * @param expectedMove The expected best move in LAN notation.
      * @param whiteToPlay True if it is white to move, false for black.
      */
-    void addTest(const std::string& fen, const std::string& expectedMove, const std::string& topic, bool whiteToPlay) {
-        tests_.push_back({ fen, expectedMove, topic, whiteToPlay });
+    void addTest(const std::string& fen, const std::string& expectedMove, 
+        const std::string& topic, bool whiteToPlay) {
+        tests_.push_back({ .fen = fen, .expectedMove = expectedMove, .topic = topic, 
+            .whiteToPlay = whiteToPlay });
     }
 
     /**
@@ -79,7 +85,7 @@ public:
         t.setMoveTime(5000);
         task.taskType = GameTask::Type::ComputeMove;
 		task.gameRecord.setStartPosition(
-			false, test.fen, test.whiteToPlay, "", "");
+			false, test.fen, test.whiteToPlay, 0, "", "");
         task.gameRecord.setTimeControl(t, t);
         Logger::testLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
         ++currentIndex_;
@@ -106,11 +112,11 @@ public:
 
         if (!history.empty()) {
             const auto& lastMove = history.back();
-            bool success = (lastMove.lan == test.expectedMove);
+            bool success = (lastMove.lan_ == test.expectedMove);
             std::ostringstream oss;
             oss << test.fen << " topic " << test.topic  
                 << " | Expected: " << test.expectedMove
-                << ", Got: " << lastMove.lan
+                << ", Got: " << lastMove.lan_
                 << ", Depth: " << lastMove.depth
                 << ", Time: " << lastMove.timeMs << "ms\n";
             
@@ -123,3 +129,5 @@ private:
     size_t currentIndex_ = 0;
     EngineReport* checklist_;
 };
+
+} // namespace QaplaTester

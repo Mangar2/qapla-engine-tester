@@ -21,6 +21,9 @@
 #include "game-manager-pool.h"
 #include "engine-worker-factory.h"
 #include "app-error.h"
+#include "string-helper.h"
+
+namespace QaplaTester {
 
 GameManagerPool::GameManagerPool() {
     inputCallback_ = InputHandler::getInstance().registerCommandCallback(
@@ -32,60 +35,117 @@ GameManagerPool::GameManagerPool() {
           InputHandler::ImmediateCommand::ViewGame },
         [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue value) {
 			if (cmd == InputHandler::ImmediateCommand::Quit) {
-				std::cout << "\n\nQuit received, finishing all games and analyses before exiting.\n" << std::endl;
+				std::cout << "\n\nQuit received, finishing all games and analyses before exiting.\n\n" << std::flush;
                 this->setConcurrency(0, true);
-			}
-            else if (cmd == InputHandler::ImmediateCommand::Abort) {
-				std::cout << "\n\nAbort received, terminating all ongoing games and analyses immediately.\n" << std::endl;
-				this->stopAll();
-            } 
-            else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
-				if (value) {
-                    try {
-                        int concurrency = std::stoi(*value);
-                        if (concurrency >= 0) {
-                            this->setConcurrency(static_cast<uint32_t>(concurrency), true, true);
-                            std::cout << "\n\nSetting concurrency to " << *value << "\n" << std::endl;
-                        }
-                        else {
-							throw std::invalid_argument("Negative concurrency value");
-                        }
-					}
-                    catch (...) {
-                        std::cout << "\n\nInvalid concurrency value: " << *value 
-                            << ". Please provide a non-negative whole number.\n" << std::endl;
-                    }
-				}
-			}
-            else if (cmd == InputHandler::ImmediateCommand::Running) {
-                this->printRunningGames();
-            }
-            else if (cmd == InputHandler::ImmediateCommand::ViewGame) {
+			} else if (cmd == InputHandler::ImmediateCommand::Abort) {
+				std::cout << "\n\nAbort received, terminating all ongoing games and analyses immediately.\n\n" << std::flush;
+			 	this->stopAll();
+            } else if (cmd == InputHandler::ImmediateCommand::Concurrency) {
+                updateConcurrency(value);
+            } else if (cmd == InputHandler::ImmediateCommand::Running) {
+                this->printRunningGames(std::cout);
+            } else if (cmd == InputHandler::ImmediateCommand::ViewGame) {
                 this->viewEngineTrace(value ? std::stoi(*value) : 0);
-            } 
-            else if (cmd == InputHandler::ImmediateCommand::Pause) {
+            } else if (cmd == InputHandler::ImmediateCommand::Pause) {
                 if (paused_) {
-					std::cout << "\n\nResuming.\n" << std::endl;
-                } 
-                else {
-					std::cout << "\n\nPausing. All current tasks will finish before pause takes effect.\n" << std::endl;
+					std::cout << "\n\nResuming.\n\n" << std::flush;
+                } else {
+					std::cout << "\n\nPausing. All current tasks will finish before pause takes effect.\n\n" << std::flush;
                 }
                 this->togglePause();
 			}
         });
 }
 
-void GameManagerPool::printRunningGames() const {
-    std::cout << "\n\nCurrently running games:\n";
+void GameManagerPool::updateConcurrency(InputHandler::CommandValue &value)
+{
+    if (value)
+    {
+        try
+        {
+            auto concurrency = QaplaHelpers::to_int(*value);
+            if (concurrency && *concurrency >= 0)
+            {
+                this->setConcurrency(static_cast<uint32_t>(*concurrency), true, true);
+                std::cout << "\n\nSetting concurrency to " << *value << "\n\n"
+                          << std::flush;
+            }
+            else
+            {
+                throw std::invalid_argument("Negative concurrency value");
+            }
+        }
+        catch (...)
+        {
+            std::cout << "\n\nInvalid concurrency value: " << *value
+                      << ". Please provide a non-negative whole number.\n\n"
+                      << std::flush;
+        }
+    }
+}
+
+void GameManagerPool::withGameRecords(
+    const std::function<void(const GameRecord&, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::scoped_lock lock(managerMutex_); 
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager->isRunning()) {
+            gameManager->withGameRecord([&](const GameRecord& record) {
+                accessFn(record, gameIndex);
+            });
+        }
+        gameIndex++;
+    }
+}
+
+void GameManagerPool::withEngineRecords(
+    const std::function<void(const EngineRecords&, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::scoped_lock lock(managerMutex_);
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager->isRunning()) {
+            // Check if the access function is interested before calculating EngineRecords
+            gameManager->getGameContext().withEngineRecords([&](const EngineRecords& records) {
+                accessFn(records, gameIndex);
+            });
+        }
+        gameIndex++;
+    }
+}
+
+void GameManagerPool::withMoveRecord(
+    const std::function<void(const MoveRecord&, uint32_t, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::scoped_lock lock(managerMutex_);
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager && gameManager->isRunning()) {
+            gameManager->getGameContext().withMoveRecord([&](const MoveRecord& record, uint32_t playerIndex) {
+                accessFn(record, gameIndex, playerIndex);
+            });
+        }
+        gameIndex++;
+    }
+}
+
+void GameManagerPool::printRunningGames(std::ostream& out) const {
+    out << "\n\nCurrently running games:\n";
     int pos = 1;
     for (const auto& managerPtr : managers_) {
         GameManager* manager = managerPtr.get();
-        if (!manager->getTaskProvider()) {
+        if (!manager->isRunning()) {
             continue;
         }
-		auto& whiteName = manager->getEngine(true)->getConfig().getName();
-        auto& blackName = manager->getEngine(false)->getConfig().getName();
-        std::cout << std::setw(2) << pos << ". "
+        auto* whiteEngine = manager->getEngine(true);
+		auto whiteName = whiteEngine != nullptr ? whiteEngine->getConfig().getName() : "";
+		auto* blackEngine = manager->getEngine(false);
+		auto blackName = blackEngine != nullptr ? blackEngine->getConfig().getName() : "";
+        out << std::setw(2) << pos << ". "
               << std::left << std::setw(30) << whiteName
               << " vs "
               << std::left << std::setw(30) << blackName
@@ -93,7 +153,18 @@ void GameManagerPool::printRunningGames() const {
               << "\n";
         ++pos;
     }
-    std::cout << std::endl;
+    std::cout << "\n" << std::flush;
+}
+
+size_t GameManagerPool::runningGameCount() const {
+    size_t count = 0;
+    for (const auto& managerPtr : managers_) {
+        GameManager* manager = managerPtr.get();
+        if (manager->isRunning()) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 void GameManagerPool::viewEngineTrace(int gameManagerIndex) const {
@@ -112,12 +183,14 @@ void GameManagerPool::viewEngineTrace(int gameManagerIndex) const {
     }
 }
 
-void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, const EngineConfig& engineName) {
+void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProvider, 
+    const EngineConfig& engineName) 
+{
     TaskAssignment task;
-    task.provider = taskProvider;
+    task.provider = std::move(taskProvider);
     task.engine1 = engineName;
     {
-        std::lock_guard<std::mutex> lock(taskMutex_);
+        std::scoped_lock lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
 }
@@ -126,34 +199,52 @@ void GameManagerPool::addTaskProvider(std::shared_ptr<GameTaskProvider> taskProv
     const EngineConfig& whiteEngine, const EngineConfig& blackEngine) 
 {
     TaskAssignment task;
-    task.provider = taskProvider;
+    task.provider = std::move(taskProvider);
     task.engine1 = whiteEngine;
     task.engine2 = blackEngine;
     {
-        std::lock_guard<std::mutex> lock(taskMutex_);
+        std::scoped_lock lock(taskMutex_);
         taskAssignments_.push_back(std::move(task));
     }
 }
 
-void GameManagerPool::setConcurrency(uint32_t count, bool nice, bool start) {
-    std::lock_guard<std::mutex> lock(managerMutex_);
+void GameManagerPool::setConcurrency(uint32_t count, bool nice, bool start) 
+{
+    if (count == maxConcurrency_ && !start) {
+        return;
+    }
     maxConcurrency_ = count;
     niceMode_ = nice;
+    ensureManagerCount(maxConcurrency_);
     if (start) {
-        tryReactivateManagers();
+        startManagers();
     }
-    ensureManagerCount(maxConcurrency_, start);
 }
 
 void GameManagerPool::stopAll() {
-    std::lock_guard<std::mutex> lock(taskMutex_);
+    std::scoped_lock lockManager(managerMutex_);
+    std::scoped_lock lockTask(taskMutex_);
     for (auto& manager : managers_) {
         manager->stop();
     }
 }
 
+void GameManagerPool::clearAll() {
+    stopAll();
+    std::scoped_lock lockManager(managerMutex_);
+    for (auto& manager : managers_) {
+        const auto& future = manager->getFinishedFuture();
+        if (future.valid()) {
+            future.wait();
+        }
+    }
+
+    std::scoped_lock lock(taskMutex_);
+    taskAssignments_.clear();
+}
+
 void GameManagerPool::togglePause() {
-    std::lock_guard<std::mutex> lock(taskMutex_);
+    std::scoped_lock lock(taskMutex_);
     for (auto& manager : managers_) {
         if (paused_) {
             manager->resume();
@@ -164,15 +255,41 @@ void GameManagerPool::togglePause() {
     paused_ = !paused_;
 }
 
+void GameManagerPool::waitForTaskPolling(std::chrono::milliseconds pollingIntervalMs) {
+    while (true) {
+        {
+            std::scoped_lock lock(managerMutex_);
+            bool allIdle = true;
+            for (const auto& managerPtr : managers_) {
+                GameManager* manager = managerPtr.get();
+                const auto& future = manager->getFinishedFuture();
+                if (future.valid() &&
+                    future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) 
+                {
+                    allIdle = false;
+                    break;
+                }
+            }
+            if (allIdle) {
+                break;
+            }
+        }
+        std::this_thread::sleep_for(pollingIntervalMs);
+    }
+
+    std::scoped_lock lock(taskMutex_);
+    taskAssignments_.clear();
+}
+
 void GameManagerPool::waitForTask() {
 
     while (true) {
+        std::scoped_lock lock(managerMutex_);
         std::vector<GameManager*> managers;
         {
-            std::lock_guard<std::mutex> lock(taskMutex_);
             for (const auto& managerPtr : managers_) {
                 GameManager* manager = managerPtr.get();
-                auto& future = manager->getFinishedFuture();
+                const auto& future = manager->getFinishedFuture();
                 if (future.valid() &&
                     future.wait_for(std::chrono::seconds(0)) != std::future_status::ready) 
                 {
@@ -186,40 +303,63 @@ void GameManagerPool::waitForTask() {
 		}
 
         for (auto& manager : managers) {
-            manager->getFinishedFuture().wait();
+            const auto& future = manager->getFinishedFuture();
+            if (future.valid()) {
+                future.wait();
+            }
         }
     }
 
-    std::lock_guard<std::mutex> lock(taskMutex_);
+    std::scoped_lock lock(taskMutex_);
     taskAssignments_.clear();
 }
 
-void GameManagerPool::tryReactivateManagers() {
-	for (size_t i = 0; i < managers_.size() && i < maxConcurrency_; ++i) {
+bool GameManagerPool::areAllTasksFinished() {
+    std::scoped_lock lock(managerMutex_);
+    return std::ranges::all_of(managers_, [](const auto& managerPtr) {
+        GameManager* manager = managerPtr.get();
+        const auto& future = manager->getFinishedFuture();
+        return (!future.valid() || future.wait_for(std::chrono::seconds(0)) == std::future_status::ready);
+    });
+}
+
+void GameManagerPool::startManagers() {
+    auto toStart = maxConcurrency_;
+    std::scoped_lock lock(startManagerMutex_);
+    {
+        std::scoped_lock lock(managerMutex_);
+        auto runningCnt = countActiveManagers();
+        if (maxConcurrency_ <= runningCnt) {
+            return;
+        }
+        toStart -= runningCnt;
+    }
+    for (size_t i = 0; i < managers_.size() && toStart > 0; ++i) {
         GameManager* manager;
         {
-            std::lock_guard<std::mutex> lock(taskMutex_);
+            std::scoped_lock lock(taskMutex_);
             manager = managers_[i].get();
         }
-		if (manager && manager->getTaskProvider() == nullptr) {
+		if (manager != nullptr && !manager->isRunning()) {
 			manager->start();
+            toStart--;
 		}
 	}
 }
 
-void GameManagerPool::ensureManagerCount(size_t count, bool start) {
+void GameManagerPool::ensureManagerCount(size_t count) {
+    std::scoped_lock lock(managerMutex_);
+
     size_t current = managers_.size();
-    if (count <= current) return;
+    if (count <= current) {
+        return;
+    }
 
     for (size_t i = current; i < count; ++i) {
-        auto newManager = std::make_unique<GameManager>();
-        GameManager* rawPtr = newManager.get();
+        auto newManager = std::make_unique<GameManager>(this);
         {
-            std::lock_guard<std::mutex> lock(taskMutex_);
+            std::scoped_lock lock(taskMutex_);
             managers_.push_back(std::move(newManager));
-        }
-        if (start) {
-            rawPtr->start();
         }
     }
 }
@@ -239,36 +379,28 @@ uint32_t GameManagerPool::countActiveManagers() const {
     uint32_t count = 0;
     for (const auto& managerPtr : managers_) {
         GameManager* manager = managerPtr.get();
-        if (manager->getTaskProvider() != nullptr) {
+        if (manager->isRunning()) {
             ++count;
         }
     }
     return count;
 }
 
-void GameManagerPool::assignTaskToManagers() {
-    std::lock_guard<std::mutex> lock(managerMutex_);
-	auto availableManagers = collectAvailableManagers();
-    if (availableManagers.empty()) {
-        return; 
-	}
-
-    for (size_t i = 0; i < availableManagers.size(); ++i) {
-        GameManager* manager = availableManagers[i];
-        if (!manager->start()) break;
-	}
-}
-
 std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
-    std::lock_guard<std::mutex> lock(taskMutex_);
+    std::scoped_lock lock(taskMutex_);
 
     for (auto& assignment : taskAssignments_) {
-        if (!assignment.engine1) continue;
-        if (!assignment.provider) continue;
+        if (!assignment.engine1) {
+            continue;
+        }
+        if (!assignment.provider) {
+            continue;
+        }
 
         auto taskOpt = assignment.provider->nextTask();
-        if (!taskOpt.has_value())
+        if (!taskOpt.has_value()) {
             continue;
+        }
 
         GameManager::ExtendedTask result;
         result.task = std::move(taskOpt.value());
@@ -301,12 +433,15 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
 }
 
 bool GameManagerPool::maybeDeactivateManager(std::shared_ptr<GameTaskProvider>& taskProvider) {
-    std::lock_guard<std::mutex> lock(deactivateMutex_);
-	if (taskProvider == nullptr)
+    std::scoped_lock lock(managerMutex_);
+	if (taskProvider == nullptr) {
 		return false;
+    }
 	bool tooMany = countActiveManagers() > maxConcurrency_;
 	if (tooMany) {
 		taskProvider.reset();
 	}
     return tooMany;
 }
+
+} // namespace QaplaTester

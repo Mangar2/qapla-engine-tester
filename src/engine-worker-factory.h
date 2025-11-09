@@ -26,6 +26,9 @@
 
 #include "engine-worker.h"
 #include "engine-config-manager.h"
+#include "engine-report.h"
+
+namespace QaplaTester {
 
 using EngineList = std::vector<std::unique_ptr<EngineWorker>>;
 using ActiveEngines = std::vector<EngineConfig>;
@@ -35,22 +38,42 @@ using ActiveEngines = std::vector<EngineConfig>;
 class EngineWorkerFactory {
 public:
 
+	/**
+	 * @brief Sets the engine configuration manager.
+	 * @param configManager The EngineConfigManager to set.
+	 */
 	static void setConfigManager(const EngineConfigManager& configManager) {
 		configManager_ = configManager;
 	}
 
+	/**
+	 * @brief Retrieves the engine configuration manager.
+	 * @return A constant reference to the EngineConfigManager.
+	 */
 	static const EngineConfigManager& getConfigManager() {
 		return configManager_;
 	}
 
+	/**
+	 * @brief Retrieves a mutable reference to the engine configuration manager.
+	 * @return A reference to the EngineConfigManager.
+	 */
 	static EngineConfigManager& getConfigManagerMutable() {
 		return configManager_;
 	}
 
+	/**
+	 * @brief Retrieves the list of active engine configurations.
+	 * @return A constant reference to the vector of active engine configurations.
+	 */
 	static const ActiveEngines& getActiveEngines() {
 		return activeEngines_;
 	}
 
+	/**
+	 * @brief Retrieves a mutable reference to the list of active engines.
+	 * @return A reference to the vector of active engine configurations.
+	 */
 	static ActiveEngines& getActiveEnginesMutable() {
 		return activeEngines_;
 	}
@@ -63,11 +86,28 @@ public:
 	 */
 	static EngineList createEngines(const EngineConfig& config, std::size_t count = 1);
 
+	/**
+	 * @brief Creates a list of EngineWorker instances, one for each configuration in the provided vector.
+	 * @param configs Vector of engine configurations to create workers for.
+	 * @param noWait If true, the engines are created without waiting for their startup to complete.
+	 * @return A vector of unique pointers to EngineWorker instances.
+	 */
+	static EngineList createEngines(const std::vector<EngineConfig>& configs, bool noWait = false);
+
+	/**
+	 * @brief Sets whether to suppress info lines from the engine output.
+	 * @param suppress True to suppress info lines, false to allow them.
+	 */
 	static void setSuppressInfoLines(bool suppress) {
 		suppressInfoLines_ = suppress;
 	}
 
-	static std::unique_ptr<EngineWorker> restart(const EngineWorker& engine);
+	/**
+	 * @brief Restarts an existing engine worker by creating a new one with the same configuration.
+	 * @param worker The existing EngineWorker to restart.
+	 * @return A unique pointer to the newly created EngineWorker.
+	 */
+	static std::unique_ptr<EngineWorker> restart(const EngineWorker& worker);
 
 	/**
 	 * @brief Assigns unique display names to all active engine configurations.
@@ -76,10 +116,32 @@ public:
 	static void assignUniqueDisplayNames();
 
 private:
+	/**
+	 * @brief Creates an EngineWorker instance based on the provided engine configuration.
+	 * @param config The engine configuration.
+	 * @return A unique pointer to the created EngineWorker.
+	 */
 	static std::unique_ptr<EngineWorker> createEngine(const EngineConfig& config);
-	static inline uint32_t identifier_ = 0;
-	static inline EngineConfigManager configManager_;
-	static inline ActiveEngines activeEngines_; // List of currently active engines
 
-	static inline bool suppressInfoLines_ = false;
+	/**
+	 * @brief Waits for all newly created engines to complete their startup.
+	 * @param futures The futures to wait for.
+	 * @param config The engine configuration.
+	 */
+	static void waitUntilAllEnginesStarted(std::vector<std::future<void>>& futures, const EngineConfig& config);
+
+	/**
+	 * @brief Waits for all newly created engines to complete their startup, using config names for checklists.
+	 * @param futures The futures to wait for.
+	 * @param configs The engine configs corresponding to the futures.
+	 */
+	static void waitUntilAllEnginesStarted(std::vector<std::future<void>>& futures, const std::vector<EngineConfig>& configs);
+
+	static inline uint32_t identifier_ = 0; ///> Unique identifier for engine workers
+	static inline EngineConfigManager configManager_; ///> Engine configuration manager
+	static inline ActiveEngines activeEngines_; ///> List of currently active engines
+
+	static inline bool suppressInfoLines_ = false; ///> Flag to ignore any info lines from engines (more performance)
 };
+
+} // namespace QaplaTester

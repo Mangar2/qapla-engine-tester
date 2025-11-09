@@ -26,6 +26,7 @@
 
 #include "engine-event.h"
 
+namespace QaplaTester {
 
  /**
   * @brief A thread-safe sink that records all EngineEvents for analysis in tests.
@@ -37,7 +38,7 @@ public:
      */
     std::function<void(EngineEvent&&)> getCallback() {
         return [this](EngineEvent&& event) {
-            std::lock_guard<std::mutex> lock(mutex_);
+            std::scoped_lock lock(mutex_);
             events_.emplace_back(std::move(event));
             };
     }
@@ -46,7 +47,7 @@ public:
      * @brief Returns the number of recorded events of the given type.
      */
     std::size_t count(EngineEvent::Type type) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
         return static_cast<std::size_t>
             (std::count_if(events_.begin(), events_.end(), [type](const EngineEvent& e) {
                 return e.type == type;
@@ -57,7 +58,7 @@ public:
      * @brief Returns all recorded events.
      */
     std::vector<EngineEvent> getAll() const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
         return events_;
     }
 
@@ -65,7 +66,7 @@ public:
      * @brief Returns the last recorded event of the given type, if any.
      */
     std::optional<EngineEvent> getLastOfType(EngineEvent::Type type) const {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
         for (auto it = events_.rbegin(); it != events_.rend(); ++it) {
             if (it->type == type) {
                 return *it;
@@ -78,7 +79,7 @@ public:
      * @brief Clears all recorded events.
      */
     void clear() {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::scoped_lock lock(mutex_);
         events_.clear();
     }
 
@@ -86,3 +87,5 @@ private:
     mutable std::mutex mutex_;
     std::vector<EngineEvent> events_;
 };
+
+} // namespace QaplaTester

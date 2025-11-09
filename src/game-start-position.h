@@ -22,10 +22,12 @@
 #include <string>
 #include <string_view>
 
+namespace QaplaTester {
+
  /**
   * @brief Type of starting position for a game.
   */
-enum class GameType {
+enum class GameType: std::uint8_t {
     Classical,
     Chess960,
     Unknown
@@ -42,10 +44,10 @@ public:
         : type_(type), fen_(std::move(fen)) {
     }
 
-    GameType type() const { return type_; }
+    [[nodiscard]] GameType type() const { return type_; }
     void setType(GameType type) { type_ = type; }
 
-    const std::string& fen() const { return fen_; }
+    [[nodiscard]] const std::string& fen() const { return fen_; }
     void setFen(std::string fen) { fen_ = std::move(fen); }
 
     bool operator==(const GameStartPosition& other) const {
@@ -56,3 +58,5 @@ private:
     GameType type_ = GameType::Classical;
     std::string fen_;
 };
+
+} // namespace QaplaTester

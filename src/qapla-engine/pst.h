@@ -21,9 +21,11 @@
 
 #pragma once
 
-#include <vector>
 #include "types.h"
 #include "evalvalue.h"
+
+#include <vector>
+
 
 namespace QaplaBasics {
 	class PST
@@ -32,8 +34,12 @@ namespace QaplaBasics {
 		/**
 		 * Gets a value from the piece square tables
 		 */
-		static EvalValue getValue(Square square, Piece piece) { return _pst[piece][square]; }
-		static std::vector<EvalValue> getPSTLookup(Piece piece) { return std::vector<EvalValue>(_pst[piece], _pst[piece] + BOARD_SIZE); }
+		static EvalValue getValue(Square square, Piece piece) { 
+			return _pst[piece][square]; 
+		}
+		static std::vector<EvalValue> getPSTLookup(Piece piece) { 
+			return { _pst[piece], _pst[piece] + BOARD_SIZE }; 
+		}
 	private:
 
 		/**

@@ -22,16 +22,19 @@
 #include <string>
 #include <optional>
 
+namespace QaplaTester {
+
  /**
   * @brief Configuration for loading and selecting opening positions.
   */
 struct Openings {
     std::string file;
-    std::string format;
-    std::string order;
+    std::string format = "raw";
+    std::string order = "sequential";
     std::optional<int> plies;
-    uint32_t start;
-    uint32_t seed;
-    std::string policy;
+    uint32_t start = 0;
+    uint32_t seed = 815;
+    std::string policy = "default";
 };
 
+} // namespace QaplaTester

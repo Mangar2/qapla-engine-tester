@@ -87,7 +87,7 @@ namespace QaplaInterface {
          *
          * @return true if the move was fully parsed and valid; false otherwise
          */
-        bool isLegal() {
+        [[nodiscard]] bool isLegal() const {
             return legal;
         }
 
@@ -137,7 +137,7 @@ namespace QaplaInterface {
          * e.g. "e2e4", "g1f3", "e7e8q", "e5f6q", "e1g1", etc.
          *
          */
-        constexpr bool isLan() noexcept {
+        [[nodiscard]] constexpr bool isLan() const noexcept {
             return departureFile != NO_POS &&
                 departureRank != NO_POS &&
                 destinationFile != NO_POS &&
@@ -148,12 +148,14 @@ namespace QaplaInterface {
         void scanMove(const std::string& move) {
             int32_t curIndex = static_cast<int32_t>(move.size()) - 1;
 
-            while (curIndex >= 0 && move[static_cast<size_t>(curIndex)] == ' ') {
+            // Skips trailing whitespaces and any move annotation like check '+' or mate '#'
+            while (curIndex >= 0 && 
+                std::isalnum(static_cast<unsigned char>(move[static_cast<size_t>(curIndex)])) == 0 ) {
                 --curIndex;
             }
+
             legal = true;
-            if (!handleCastleNotation(move)) {
-                skipCheckAndMateSigns(move, curIndex);
+            if (!handleCastleNotation(move.substr(0, static_cast<size_t>(curIndex + 1)) )) {
                 promote = getPiece(move, curIndex);
                 skipEPInfo(move, curIndex);
                 skipCaptureChar(move, curIndex);
@@ -175,15 +177,17 @@ namespace QaplaInterface {
             int count = 0;
             for (size_t i = 0; i < move.size(); ++i) {
                 if (i % 2 == 0) {
-                    if (!isCastleNotationChar(move[i])) return false;
-                    count++;
+                    {
+                        if (!isCastleNotationChar(move[i])) { return false; }
+                        count++;
+                    }
                 }
                 else if (move[i] != '-') {
                     return false;
                 }
             }
 
-            if (count != 2 && count != 3) return false;
+            if (count != 2 && count != 3) { return false; }
 
             departureFile = 4;
             departureRank = NO_POS;
@@ -194,14 +198,14 @@ namespace QaplaInterface {
             return true;
         }
 
-        void skipCheckAndMateSigns(const std::string& move, int32_t& curIndex) {
+        static void skipCheckAndMateSigns(const std::string& move, int32_t& curIndex) {
             while (curIndex >= 0 && (isCheckSign(move[static_cast<size_t>(curIndex)]) ||
                 isMateSign(move[static_cast<size_t>(curIndex)]))) {
                 --curIndex;
             }
         }
 
-        char getPiece(const std::string& move, int32_t& curIndex) {
+        static char getPiece(const std::string& move, int32_t& curIndex) {
             if (curIndex >= 0 && isPieceChar(move[static_cast<size_t>(curIndex)])) {
                 char p = move[static_cast<size_t>(curIndex--)];
                 if (curIndex >= 0 && isPromoteChar(move[static_cast<size_t>(curIndex)])) {
@@ -212,7 +216,7 @@ namespace QaplaInterface {
             return 0;
         }
 
-        void skipEPInfo(const std::string& move, int32_t& curIndex) {
+        static void skipEPInfo(const std::string& move, int32_t& curIndex) {
             if (curIndex >= 3 &&
                 move[static_cast<size_t>(curIndex - 3)] == 'e' &&
                 move[static_cast<size_t>(curIndex - 2)] == '.' &&
@@ -222,20 +226,20 @@ namespace QaplaInterface {
             }
         }
 
-        void skipCaptureChar(const std::string& move, int32_t& curIndex) {
+        static void skipCaptureChar(const std::string& move, int32_t& curIndex) {
             if (curIndex >= 0 && isCaptureChar(move[static_cast<size_t>(curIndex)])) {
                 --curIndex;
             }
         }
 
-        int32_t getRank(const std::string& move, int32_t& curIndex) {
+        static int32_t getRank(const std::string& move, int32_t& curIndex) {
             if (curIndex >= 0 && isRankChar(move[static_cast<size_t>(curIndex)])) {
                 return static_cast<int32_t>(charToRank(move[static_cast<size_t>(curIndex--)]));
             }
             return NO_POS;
         }
 
-        int32_t getFile(const std::string& move, int32_t& curIndex) {
+        static int32_t getFile(const std::string& move, int32_t& curIndex) {
             if (curIndex >= 0 && isFileChar(move[static_cast<size_t>(curIndex)])) {
                 return static_cast<int32_t>(charToFile(move[static_cast<size_t>(curIndex--)]));
             }

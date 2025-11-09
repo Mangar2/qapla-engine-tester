@@ -19,13 +19,15 @@
  
 #pragma once
 
-#include <iostream>
+#include <iostream> 
 #include <string>
 #include <filesystem>
 #include "engine-config.h"
 #include "game-manager.h"
 #include "compute-task.h"
 #include "engine-worker-factory.h"
+
+namespace QaplaTester {
 
 /**
  * @brief Controls the execution flow of chess engine tests.
@@ -53,7 +55,7 @@ private:
 
 	void runMultipleStartStopTest(uint32_t numEngines);
 
-    void runPlaceholderTest();
+    static void runPlaceholderTest();
 
     void runEpFromFenTest();
 
@@ -110,13 +112,6 @@ private:
     void runAnalyzeTest();
     void runImmediateStopTest();
 	void runInfiniteAnalyzeTest();
-
-    void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
-        const std::string ponderMove, const std::string testname,
-        std::chrono::milliseconds sleep = std::chrono::seconds{ 1 });
-    void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
-        const std::string ponderMove, const std::string testname,
-        std::chrono::milliseconds sleep = std::chrono::seconds{ 1 });
     void runUciPonderTest();
 
     /**
@@ -141,16 +136,10 @@ private:
 	 */
     void runMultipleGamesTest();
     
-    /**
-	 * @brief Sets a specific option for the engine and checks if it runs without crashing.
-	 * @param name Name of the option to set.
-	 * @param value Value to set for the option.
-	 * @return True if the option was set successfully, false otherwise.
-     */
-    std::pair<bool, std::string> setOption(const std::string& name, const std::string& value);
-
     EngineReport* checklist_;
     std::unique_ptr<ComputeTask> computeTask_;
     EngineConfig engineConfig_;
     int numGames_ = 20;
 };
+
+} // namespace QaplaTester

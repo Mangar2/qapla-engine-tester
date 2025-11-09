@@ -108,25 +108,25 @@ public:
 	static constexpr uint32_t WHITE_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + WHITE_KING_SHIFT;
 	static constexpr uint32_t BLACK_CASTLES_QUEEN_SIDE = CASTLES_QUEEN_SIDE + BLACK_KING_SHIFT;
 
-	constexpr Square getDeparture() const { return Square(_move & 0x0000003F); }
-	constexpr Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }
-	constexpr Piece getMovingPiece() const { return Piece((_move & 0x000F0000) >> MOVING_PIECE_SHIFT); }
-	constexpr uint32_t getPiceAndDestination() const { return (_move & 0x000F3F00) >> DESTINATION_SHIFT; }
-	constexpr auto getAction() const { return (_move & 0x00300000); }
-	constexpr auto getActionAndMovingPiece() const { return (_move & 0x003F0000); }
-	constexpr auto getCaptureFlag() const { return (_move & 0x00400000); }
-	constexpr Piece getCapture() const { return Piece((_move & 0x0F000000) >> CAPTURE_SHIFT); }
-	constexpr Piece getPromotion() const { return Piece((_move & 0xF0000000) >> PROMOTION_SHIFT); }
+	[[nodiscard]] constexpr Square getDeparture() const { return Square(_move & 0x0000003F); }
+	[[nodiscard]] constexpr Square getDestination() const { return Square((_move & 0x00003F00) >> DESTINATION_SHIFT); }
+	[[nodiscard]] constexpr Piece getMovingPiece() const { return Piece((_move & 0x000F0000) >> MOVING_PIECE_SHIFT); }
+	[[nodiscard]] constexpr uint32_t getPiceAndDestination() const { return (_move & 0x000F3F00) >> DESTINATION_SHIFT; }
+	[[nodiscard]] constexpr auto getAction() const { return (_move & 0x00300000); }
+	[[nodiscard]] constexpr auto getActionAndMovingPiece() const { return (_move & 0x003F0000); }
+	[[nodiscard]] constexpr auto getCaptureFlag() const { return (_move & 0x00400000); }
+	[[nodiscard]] constexpr Piece getCapture() const { return Piece((_move & 0x0F000000) >> CAPTURE_SHIFT); }
+	[[nodiscard]] constexpr Piece getPromotion() const { return Piece((_move & 0xF0000000) >> PROMOTION_SHIFT); }
 
-	constexpr auto isEmpty() const { return _move == EMPTY_MOVE; }
+	[[nodiscard]] constexpr auto isEmpty() const { return _move == EMPTY_MOVE; }
 	constexpr void setEmpty() { _move = EMPTY_MOVE;  }
 
-	constexpr auto isNullMove() const { return _move == NULL_MOVE; }
+	[[nodiscard]] constexpr auto isNullMove() const { return _move == NULL_MOVE; }
 
 	/**
 	 * True, if the move is a castle move
 	 */
-	constexpr auto isCastleMove() const {
+	[[nodiscard]] constexpr auto isCastleMove() const {
 		const auto action = getActionAndMovingPiece();
 		return action == WHITE_CASTLES_KING_SIDE || action == WHITE_CASTLES_QUEEN_SIDE || action == BLACK_CASTLES_KING_SIDE || action == BLACK_CASTLES_QUEEN_SIDE;
 	}
@@ -134,7 +134,7 @@ public:
 	/**
 	 * True, if the move is an en passant move
 	 */
-	constexpr auto isEPMove() const {
+	[[nodiscard]] constexpr auto isEPMove() const {
 		const auto action = getActionAndMovingPiece();
 		return action == WHITE_EP || action == BLACK_EP;
 	}
@@ -142,21 +142,21 @@ public:
 	/**
 	 * Checks, if a move is a Capture
 	 */
-	constexpr auto isCapture() const {
+	[[nodiscard]] constexpr auto isCapture() const {
 		return getCapture() != 0;
 	}
 
 	/**
 	 * Checks, if a move is a Capture, but not an EP move
 	 */
-	constexpr auto isCaptureMoveButNotEP() const {
+	[[nodiscard]] constexpr auto isCaptureMoveButNotEP() const {
 		return getCapture() != 0 && !isEPMove();
 	}
 
 	/**
 	 * Checks, if a move is promoting a pawn
 	 */
-	constexpr auto isPromote() const
+	[[nodiscard]] constexpr auto isPromote() const
 	{
 		return (_move & 0xF0000000) != 0;
 	}
@@ -164,37 +164,37 @@ public:
 	/**
      * Checks, if a move is a Capture or a promote move
      */
-	constexpr auto isCaptureOrPromote() const
+	[[nodiscard]] constexpr auto isCaptureOrPromote() const
 	{
 		return (_move & 0xFF000000) != 0;
 	}
 
-	constexpr inline Move& setDeparture(square_t square) {
+	constexpr Move& setDeparture(square_t square) {
 		_move |= static_cast<uint32_t>(square);
 		return *this;
 	}
 
-	constexpr inline Move& setDestination(square_t square) {
+	constexpr Move& setDestination(square_t square) {
 		_move |= static_cast<uint32_t>(square) << DESTINATION_SHIFT;
 		return *this;
 	}
 
-	constexpr inline Move& setMovingPiece(Piece piece) {
+	constexpr Move& setMovingPiece(Piece piece) {
 		_move |= piece << MOVING_PIECE_SHIFT;
 		return *this;
 	}
 
-	constexpr inline Move& setAction(uint32_t action) {
+	constexpr Move& setAction(uint32_t action) {
 		_move |= action << 20;
 		return *this;
 	}
 
-	constexpr inline Move& setCapture(Piece capture) {
+	constexpr Move& setCapture(Piece capture) {
 		_move |= (capture << CAPTURE_SHIFT) + 0x00400000;
 		return *this;
 	}
 
-	constexpr inline Move& setPromotion(Piece promotion) {
+	constexpr Move& setPromotion(Piece promotion) {
 		_move |= promotion << PROMOTION_SHIFT;
 		return *this;
 	}
@@ -203,7 +203,7 @@ public:
 	/**
 	 * Gets a long algebraic notation of the current move
 	 */
-	auto getLAN() const {
+	[[nodiscard]] auto getLAN() const {
 		std::string result = "??";
 		if (isNullMove()) {
 			result = "null";
@@ -227,7 +227,7 @@ public:
 		std::cout << moveString;
 	}
 
-	uint32_t getData() const { return _move;  }
+	[[nodiscard]] uint32_t getData() const { return _move;  }
 
 private:
 

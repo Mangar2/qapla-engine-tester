@@ -7,7 +7,7 @@
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSevent.  See the
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
@@ -25,7 +25,10 @@
 #include "game-result.h"
 #include "logger.h"
 
+namespace QaplaTester {
+
 struct SearchInfo {
+    uint32_t halfMoveNo = 0;
     std::optional<uint32_t> depth;
     std::optional<uint32_t> selDepth;
     std::optional<uint32_t> multipv;
@@ -50,44 +53,72 @@ struct SearchInfo {
     std::vector<std::string> errors;  // für Parsing-Fehler oder unklare Angaben
 };
 
-inline std::ostream& operator<<(std::ostream& os, const SearchInfo& info) {
-    os << "info";
+inline std::ostream& operator<<(std::ostream& outs, const SearchInfo& info) {
+    outs << "info";
 
-    if (info.depth)          os << " depth " << *info.depth;
-    if (info.selDepth)       os << " seldepth " << *info.selDepth;
-    if (info.multipv)        os << " multipv " << *info.multipv;
-
-    if (info.scoreCp || info.scoreMate) {
-        os << " score";
-        if (info.scoreCp)    os << " cp " << *info.scoreCp;
-        else if (info.scoreMate) os << " mate " << *info.scoreMate;
-
-        if (info.scoreLowerbound && *info.scoreLowerbound) os << " lowerbound";
-        if (info.scoreUpperbound && *info.scoreUpperbound) os << " upperbound";
+    if (info.depth) {
+        outs << " depth " << *info.depth;
+    }
+    if (info.selDepth) {
+        outs << " seldepth " << *info.selDepth;
+    }
+    if (info.multipv) {
+        outs << " multipv " << *info.multipv;
     }
 
-    if (info.timeMs)         os << " time " << *info.timeMs;
-    if (info.nodes)          os << " nodes " << *info.nodes;
-    if (info.nps)            os << " nps " << *info.nps;
-    if (info.hashFull)       os << " hashfull " << *info.hashFull;
-    if (info.tbhits)         os << " tbhits " << *info.tbhits;
-    if (info.cpuload)        os << " cpuload " << *info.cpuload;
-    if (info.currMove)       os << " currmove " << *info.currMove;
-    if (info.currMoveNumber) os << " currmovenumber " << *info.currMoveNumber;
+    if (info.scoreCp || info.scoreMate) {
+        outs << " score";
+        if (info.scoreCp) {
+            outs << " cp " << *info.scoreCp;
+        } else if (info.scoreMate) {
+            outs << " mate " << *info.scoreMate;
+        }
 
-    if (!info.pv.empty()) {
-        os << " pv";
-        for (const auto& move : info.pv) {
-            os << " " << move;
+        if (info.scoreLowerbound && *info.scoreLowerbound) { outs << " lowerbound";
+            outs << " lowerbound";
+        }
+        if (info.scoreUpperbound && *info.scoreUpperbound) {
+            outs << " upperbound";
         }
     }
 
-    return os;
+    if (info.timeMs) {
+        outs << " time " << *info.timeMs;
+    }
+    if (info.nodes) {
+        outs << " nodes " << *info.nodes;
+    }
+    if (info.nps) {
+        outs << " nps " << *info.nps;
+    }
+    if (info.hashFull) {
+        outs << " hashfull " << *info.hashFull;
+    }
+    if (info.tbhits) {
+        outs << " tbhits " << *info.tbhits;
+    }
+    if (info.cpuload) {
+        outs << " cpuload " << *info.cpuload;
+    }
+    if (info.currMove) {
+        outs << " currmove " << *info.currMove;
+    }
+    if (info.currMoveNumber) {
+        outs << " currmovenumber " << *info.currMoveNumber;
+    }
+
+    if (!info.pv.empty()) {
+        outs << " pv";
+        for (const auto& move : info.pv) {
+            outs << " " << move;
+        }
+    }
+
+    return outs;
 }
 
 struct EngineEvent {
-    EngineEvent() = default;
-    enum class Type {
+    enum class Type : std::int8_t {
         None,
         SendingComputeMove,
         ComputeMoveSent,
@@ -96,6 +127,7 @@ struct EngineEvent {
         ProtocolOk,
         ExtendTimeout,
         BestMove,
+        PonderMove,
         Info,
         PonderHit,
         Resign,
@@ -106,51 +138,57 @@ struct EngineEvent {
         NoData,
         KeepAlive,
     };
-    static EngineEvent create(Type type, const std::string& id, uint64_t ts, const std::string& rawLine = "") {
-        EngineEvent e; 
-        e.type = type;
-        e.engineIdentifier = id;
-        e.timestampMs = ts;
-        e.rawLine = rawLine;
-        return e;
+    static EngineEvent create(Type type, const std::string& eid, uint64_t timestamp, const std::string& rawLine = "") {
+        EngineEvent event;
+        event.type = type;
+        event.engineIdentifier = eid;
+        event.timestampMs = timestamp;
+        event.rawLine = rawLine;
+        return event;
     }
-    static EngineEvent createInfo(const std::string& id, uint64_t ts, const std::string& rawLine) {
-        auto e = create(Type::Info, id, ts, rawLine);
-        e.searchInfo = SearchInfo{};
-        return e;
+    static EngineEvent createInfo(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+        auto event = create(Type::Info, eid, timestamp, rawLine);
+        event.searchInfo = SearchInfo{};
+        return event;
 	}
-    static EngineEvent createError(const std::string& id, uint64_t ts, const std::string& rawLine) {
-        EngineEvent e = create(Type::Error, id, ts, rawLine);
-        e.errors.push_back({ "no-engine-error-report", rawLine });
-        return e;
+    static EngineEvent createError(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+        EngineEvent event = create(Type::Error, eid, timestamp, rawLine);
+        event.errors.push_back({ .name = "no-engine-error-report", .detail = rawLine });
+        return event;
 	}
-	static EngineEvent createEngineDisconnected(const std::string& id, uint64_t ts, const std::string& errorMessage) {
-        EngineEvent e = create(Type::EngineDisconnected, id, ts, "");
-		e.errors.push_back({ "no-disconnect", errorMessage });
-		return e;
+	static EngineEvent createEngineDisconnected(const std::string& eid, uint64_t timestamp, const std::string& errorMessage) {
+        EngineEvent event = create(Type::EngineDisconnected, eid, timestamp, "");
+		event.errors.push_back({ .name = "no-disconnect", .detail = errorMessage });
+		return event;
 	}
-	static EngineEvent createNoData(const std::string& id, uint64_t ts) {
-		return create(Type::NoData, id, ts);
+	static EngineEvent createNoData(const std::string& eid, uint64_t timestamp) {
+		return create(Type::NoData, eid, timestamp);
 	}
-	static EngineEvent createProtocolOk(const std::string& id, uint64_t ts, const std::string& rawLine) {
-		return create(Type::ProtocolOk, id, ts, rawLine);
+	static EngineEvent createProtocolOk(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+		return create(Type::ProtocolOk, eid, timestamp, rawLine);
 	}
-	static EngineEvent createReadyOk(const std::string& id, uint64_t ts, const std::string& rawLine) {
-		return create(Type::ReadyOk, id, ts, rawLine);
+	static EngineEvent createReadyOk(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+		return create(Type::ReadyOk, eid, timestamp, rawLine);
 	}
-    static EngineEvent createPonderHit(const std::string& id, uint64_t ts, const std::string& rawLine) {
-		return create(Type::PonderHit, id, ts, rawLine);
+    static EngineEvent createPonderHit(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+		return create(Type::PonderHit, eid, timestamp, rawLine);
 	}
-	static EngineEvent createUnknown(const std::string& id, uint64_t ts, const std::string& rawLine) {
-		return create(Type::Unknown, id, ts, rawLine);
+	static EngineEvent createUnknown(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
+		return create(Type::Unknown, eid, timestamp, rawLine);
 	}
-	static EngineEvent createBestMove(const std::string& id, uint64_t ts, const std::string& rawLine, 
+	static EngineEvent createBestMove(const std::string& eid, uint64_t timestamp, const std::string& rawLine, 
         const std::string& bestMove, const std::string& ponderMove) {
-		EngineEvent e = create(Type::BestMove, id, ts, rawLine);
-		e.bestMove = bestMove;
-		e.ponderMove = ponderMove;
-		return e;
+		EngineEvent event = create(Type::BestMove, eid, timestamp, rawLine);
+		event.bestMove = bestMove;
+		event.ponderMove = ponderMove;
+		return event;
 	}
+    static EngineEvent createPonderMove(const std::string&eid, uint64_t timestamp, const std::string& rawLine,
+        const std::string& ponderMove) {
+        EngineEvent event = create(Type::PonderMove, eid, timestamp, rawLine);
+        event.ponderMove = ponderMove;
+        return event;
+    }
 
     struct ParseError {
         std::string name;
@@ -175,3 +213,4 @@ private:
 
 };
 
+} // namespace QaplaTester

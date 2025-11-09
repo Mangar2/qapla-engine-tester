@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include <assert.h>
 #include <bit>
+#include <cassert>
 #include "types.h"
 
 namespace QaplaBasics {

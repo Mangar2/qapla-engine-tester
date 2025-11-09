@@ -18,6 +18,7 @@
  */
 
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <ctime>
 #include <random>
@@ -30,15 +31,14 @@
 #include "input-handler.h"
 #include "adjudication-manager.h"
 
-bool Tournament::wait() {
-    GameManagerPool::getInstance().waitForTask();
-    return true;
-};
+namespace QaplaTester {
 
 void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {
 
-    if (!startPositions_) startPositions_ = std::make_shared<StartPositions>();
+    if (!startPositions_) {
+        startPositions_ = std::make_shared<StartPositions>();
+    }
 
     if (config.openings.file.empty()) {
         Logger::testLogger().log("No openings file provided.", TraceLevel::error);
@@ -70,17 +70,18 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
 			"No valid openings found in file: " + config.openings.file);
     }
 
-    PgnIO::tournament().initialize(config.event);
     AppError::throwOnInvalidOption({ "gauntlet", "round-robin" }, config.type, "Unsupported tournament type");
-
+    auto savedPairings = std::move(pairings_);
+    pairings_.clear();
     if (config.type == "gauntlet") {
         createGauntletPairings(engines, config);
     }
     else {
         createRoundRobinPairings(engines, config);
     }
+    restoreResults(savedPairings);
+    updateCnt_ ++;
 }
-
 
 void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {
@@ -95,7 +96,7 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
         std::string message = "Gauntlet tournament requires both gauntlet and opponent engines. ";
         message += "Found: " + std::to_string(gauntlets.size()) + " gauntlet(s), ";
         message += std::to_string(opponents.size()) + " opponent(s).";
-        throw AppError::makeInvalidParameters(message);
+        throw AppError::make(message);
     }
 
     createPairings(gauntlets, opponents, config, false);
@@ -117,7 +118,7 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
     uint32_t openingOffset = config.openings.start;
     std::mt19937 rng(config.openings.seed);    
     std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
-    uint32_t posSize = static_cast<uint32_t>(startPositions_->size());
+    auto posSize = startPositions_->size();
 
     PairTournamentConfig ptc;
     ptc.games = config.games;
@@ -141,17 +142,17 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 
         for (size_t i = 0; i < players.size(); ++i) {
             for (size_t j = symmetric ? i + 1 : 0; j < opponents.size(); ++j) {
-                auto pt = std::make_shared<PairTournament>();
+                auto pairTour = std::make_shared<PairTournament>();
                 if (config.openings.policy == "encounter") {
                     ptc.openings.start = openingOffset;
                     openingOffset = (openingOffset + 1) % posSize;
                     ptc.seed = static_cast<uint32_t>(dist(rng));
                 }
-                pt->initialize(players[i], opponents[j], ptc, startPositions_);
-                pt->setGameFinishedCallback([this](PairTournament* sender) {
+                pairTour->initialize(players[i], opponents[j], ptc, startPositions_);
+                pairTour->setGameFinishedCallback([this](PairTournament* sender) {
                     this->onGameFinished(sender);
                 });
-                pairings_.push_back(std::move(pt));
+                pairings_.push_back(std::move(pairTour));
                 ptc.gameNumberOffset += ptc.games;
             }
         }
@@ -159,11 +160,15 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 
 }
 
-void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
+void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     ++raitingTrigger_;
     ++outcomeTrigger_;
     ++saveTrigger_;
-
+    ++updateCnt_;
+    {
+        std::scoped_lock lock(stateMutex_);
+        result_ = getResult();
+    }
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
         auto result = getResult();
@@ -186,70 +191,167 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament*) {
     }
 }
 
-void Tournament::scheduleAll(uint32_t concurrency) {
-	GameManagerPool::getInstance().setConcurrency(concurrency, true);
-    tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
-        { 
-            InputHandler::ImmediateCommand::Info,
-			InputHandler::ImmediateCommand::Outcome
-        },
-        [this](InputHandler::ImmediateCommand cmd, InputHandler::CommandValue) {
-            auto result = getResult();
-            if (cmd == InputHandler::ImmediateCommand::Info) {
-                result.printRatingTableUciStyle(std::cout, config_.averageElo);
-                AdjudicationManager::instance().printTestResult(std::cout);
-            }
-            else if (cmd == InputHandler::ImmediateCommand::Outcome) {
-                result.printOutcome(std::cout);
-			}
-        });
+void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler,  GameManagerPool& pool) {
+	// Initialize PGN output - at this point all tournament data is loaded
+	// Check if we're resuming by seeing if any pairing has existing results
+	bool isResumingTournament = false;
 	for (const auto& pairing : pairings_) {
-		pairing->schedule(pairing);
+		if (pairing->hasResults()) {
+			isResumingTournament = true;
+			break;
+		}
+	}
+	PgnIO::tournament().initialize(config_.event, isResumingTournament);
+	
+	pool.setConcurrency(concurrency, true);
+    if (registerToInputhandler) {
+        tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
+            {
+                InputHandler::ImmediateCommand::Info,
+                InputHandler::ImmediateCommand::Outcome
+            },
+            [this](InputHandler::ImmediateCommand cmd, [[maybe_unused]] const InputHandler::CommandValue& value) {
+                auto result = getResult();
+                if (cmd == InputHandler::ImmediateCommand::Info) {
+                    result.printRatingTableUciStyle(std::cout, config_.averageElo);
+                    QaplaTester::AdjudicationManager::poolInstance().printTestResult(std::cout);
+                }
+                else if (cmd == InputHandler::ImmediateCommand::Outcome) {
+                    result.printOutcome(std::cout);
+                }
+            });
+    }
+	for (const auto& pairing : pairings_) {
+		pairing->schedule(pairing, pool);
 	}
 }
 
-void Tournament::save(std::ostream& out) const {
+std::vector<QaplaHelpers::IniFile::Section> Tournament::getSections() const {
+    std::vector<QaplaHelpers::IniFile::Section> sections;
+    
+    for (const auto& pairing : pairings_) {
+        auto section = pairing->getSectionIfNotEmpty("tournament");
+        if (section.has_value()) {
+            sections.push_back(std::move(section.value()));
+        }
+    }
+    
+    return sections;
+}
+
+void Tournament::save(const std::string& filename) const {
+    std::ofstream out(filename);
+    if (!out) {
+        throw std::runtime_error("Failed to open file for saving tournament results: " + filename);
+    }
+    
+    // Write engine configurations
     for (const auto& config : engineConfig_) {
         out << config << "\n";
     }
-
-    for (auto & pairing : pairings_) {
-        pairing->trySaveIfNotEmpty(out);
+    
+    // Write tournament round sections
+    auto sections = getSections();
+    for (const auto& section : sections) {
+        QaplaHelpers::IniFile::saveSection(out, section);
     }
 }
 
-std::string Tournament::loadRound(std::istream& in, const std::string& roundHeader,
-    const std::unordered_set<std::string>& validEngines) {
-    auto [round, engineA, engineB] = PairTournament::parseRoundHeader(roundHeader);
-
-    if (validEngines.contains(engineA) && validEngines.contains(engineB)) {
+void Tournament::restoreResults(const std::vector<std::shared_ptr<PairTournament>>& savedPairings) {
+    for (const auto& saved : savedPairings) {
         for (const auto& pairing : pairings_) {
-            if (pairing->matches(round - 1, engineA, engineB)) {
-                return pairing->load(in);
+            if (pairing->matches(*saved)) 
+            {
+                pairing->copyResultsFrom(*saved);
+                break;
             }
         }
     }
-
-    PairTournament tmp;
-    return tmp.load(in);
 }
 
-void Tournament::load(std::istream& in) {
-    std::stringstream configStream;
-    std::string line;
-
-    while (std::getline(in, line)) {
-        if (line.starts_with("[round ")) break;
-        configStream << line << "\n";
-    }
-
-    EngineConfigManager configLoader;
-    configLoader.loadFromStream(configStream);
-    const std::unordered_set<std::string> validEngines =
-        configLoader.findMatchingNames(engineConfig_);
-
-    while (!line.empty()) {
-        // Every loader ensures that we have a round header as next line
-        line = loadRound(in, line, validEngines);
+void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
+    std::string engineA;
+    std::string engineB;
+    uint32_t round = 0;
+    std::string games;
+    updateCnt_++;
+    try {
+        for (const auto& [key, value]: section.entries) {
+            if (key == "engineA") {
+                engineA = value;
+            } else if (key == "engineB") {
+                engineB = value;
+            } else if (key == "round") {
+                round = std::stoul(value) - 1;
+            } else if (key == "games") {
+                games = value;
+            }
+        }
+        for (const auto& pairing : pairings_) {
+            if (!games.empty() && pairing->matches(round, engineA, engineB)) {
+                pairing->fromSection(section);
+                break;
+            }
+        }
+    } catch (const std::exception& ex) {
+        // Ignore invalid section
     }
 }
+
+void Tournament::load(const QaplaHelpers::IniFile::SectionList& sections) {
+
+    for (const auto& section : sections) {
+        load(section);
+    }
+}
+
+uint32_t Tournament::calculateTotalGames(const std::vector<EngineConfig>& engines, const TournamentConfig& config) {
+    if (engines.empty()) {
+        return 0;
+    }
+
+    // Separate gauntlets from opponents
+    std::vector<EngineConfig> gauntlets;
+    std::vector<EngineConfig> opponents;
+    
+    for (const auto& e : engines) {
+        (e.isGauntlet() ? gauntlets : opponents).push_back(e);
+    }
+
+    // Determine tournament type and player/opponent counts
+    size_t playerCount = 0;
+    size_t opponentCount = 0;
+    bool isSymmetric = false;
+
+    if (config.type == "gauntlet") {
+        if (gauntlets.empty() || opponents.empty()) {
+            return 0; // Invalid gauntlet configuration
+        }
+        playerCount = gauntlets.size();
+        opponentCount = opponents.size();
+        isSymmetric = false;
+    } else { // round-robin
+        if (engines.size() < 2) {
+            return 0; // Invalid round-robin configuration
+        }
+        playerCount = engines.size();
+        opponentCount = engines.size();
+        isSymmetric = true;
+    }
+
+    // Calculate number of pairings
+    uint32_t pairingsPerRound = 0;
+    if (isSymmetric) {
+        // Round-robin: each player plays against each other player once per round
+        // This is playerCount * (playerCount - 1) / 2
+        pairingsPerRound = static_cast<uint32_t>(playerCount * (opponentCount - 1) / 2);
+    } else {
+        // Gauntlet: each gauntlet plays against each opponent
+        pairingsPerRound = static_cast<uint32_t>(playerCount * opponentCount);
+    }
+
+    // Total games = pairings * rounds * games per pairing
+    return pairingsPerRound * config.rounds * config.games;
+}
+
+} // namespace QaplaTester

@@ -26,7 +26,7 @@
 
 namespace QaplaBasics {
 
-	typedef uint64_t hash_t;
+	using hash_t = uint64_t;
 
 	class HashConstants
 	{

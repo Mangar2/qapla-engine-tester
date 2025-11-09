@@ -30,6 +30,8 @@
 #include "engine-adapter.h"
 #include "uci-option.h"
 
+namespace QaplaTester {
+
  /**
   * @brief UCI protocol adapter implementing EngineAdapter.
   *        Runs the engine in a dedicated thread, handles UCI I/O.
@@ -42,7 +44,7 @@ public:
 	 * @param workingDirectory Optional working directory for the engine.
 	 * @param identifier Unique identifier for this engine instance.
 	 */
-    explicit UciAdapter(std::filesystem::path enginePath,
+    explicit UciAdapter(const std::filesystem::path& enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
     ~UciAdapter() override;
@@ -71,15 +73,36 @@ public:
      */
     void terminateEngine() override;
 
+    /**
+     * @brief Is called after a moveNow command with wait=true. Runs handshake steps if needed.
+     * @returns The event to wait for completing the handshake.
+     */
+    EngineEvent::Type waitAfterMoveNowHandshake() override {
+        return EngineEvent::Type::BestMove;
+    }
+
+    /**
+     * @brief Handles a ponder miss by sending 'stop' and waiting for bestmove.
+     */
+    EngineEvent::Type handlePonderMiss() override {
+        moveNow();
+        return EngineEvent::Type::BestMove;
+    }
+
     EngineEvent readEvent() override;
 
     void newGame(const GameRecord& gameRecord, bool engineIsWhite) override;
+    void setTimeControl(
+        [[maybe_unused]] const GameRecord& gameRecord, 
+        [[maybe_unused]] bool engineIsWhite) override {
+        // Nothing to do for UCI, time control is sent with 'go' command
+    }
     void moveNow() override;
     void setPonder(bool enabled) override;
     void ticker() override;
 
-    uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
-    uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
+    uint64_t allowPonder(const GameStruct& game, const GoLimits& limits, std::string ponderMove) override;
+    uint64_t computeMove(const GameStruct& game, const GoLimits& limits, bool ponderHit) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -133,14 +156,14 @@ private:
     /**
      * @brief Compute the time setting options required for the go command
      */
-	std::string computeGoOptions(const GoLimits& limits) const;
+	static std::string computeGoOptions(const GoLimits& limits);
 
 	/**
 	 * @brief Sends the current position to the engine.
-	 * @param game The current game record containing the position and moves played.
+	 * @param game The current game structure containing the position and moves played.
 	 * @param ponderMove Optional move to ponder on, if any.
 	 */
-    void sendPosition(const GameRecord& game, std::string ponderMove = "");   
+    void sendPosition(const GameStruct& game, const std::string& ponderMove = "");   
 
     EngineEvent parseSearchInfo(std::istringstream& iss, uint64_t timestamp, const std::string& originalLine);
 
@@ -151,3 +174,5 @@ private:
     bool inUciHandshake_ = false;
 
 };
+
+} // namespace QaplaTester

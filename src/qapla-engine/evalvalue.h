@@ -90,8 +90,14 @@ namespace QaplaBasics {
 	 * @return Evaluation in centipawns
 	 */
 	constexpr value_t propToValue(int prop) {
-		if (prop <= props.front()) return values.front();
-		if (prop >= props.back())  return values.back();
+		if (prop <= props.front())
+		{
+			return values.front();
+		}
+		if (prop >= props.back())
+		{
+			return values.back();
+		}
 
 		for (size_t i = 1; i < props.size(); ++i) {
 			if (prop <= props[i]) {
@@ -125,17 +131,17 @@ namespace QaplaBasics {
 		 * @param midgameInPercent Percentage weight of the midgame component (0..100).
 		 * @return Combined tapered evaluation value.
 		 */
-		constexpr value_t getValue(value_t midgameInPercent) const {
+		[[nodiscard]] constexpr value_t getValue(value_t midgameInPercent) const {
 			return (value_t(_midgame) * midgameInPercent + value_t(_endgame) * (100 - midgameInPercent)) / 100;
 		}
 
-		constexpr std::array<value_t, 2> getValue() const {
+		[[nodiscard]] constexpr std::array<value_t, 2> getValue() const {
 			const std::array<value_t, 2> result = { _midgame, _endgame };
 			return result;
 		}
 
-		constexpr value_t midgame() const { return _midgame; }
-		constexpr value_t endgame() const { return _endgame; }
+		[[nodiscard]] constexpr value_t midgame() const { return _midgame; }
+		[[nodiscard]] constexpr value_t endgame() const { return _endgame; }
 		value_t& midgame() { return _midgame; }
 		value_t& endgame() { return _endgame; }
 
@@ -143,7 +149,9 @@ namespace QaplaBasics {
 		constexpr  EvalValue& operator-=(EvalValue sub) { _midgame -= sub._midgame; _endgame -= sub._endgame; return *this; }
 		constexpr  EvalValue& operator*=(EvalValue mul) { _midgame *= mul._midgame; _endgame *= mul._endgame; return *this; }
 		constexpr  EvalValue& operator/=(EvalValue div) { _midgame /= div._midgame; _endgame /= div._endgame; return *this; }
-		constexpr  EvalValue abs() const { return EvalValue(std::abs(_midgame), std::abs(_endgame)); }
+		[[nodiscard]] constexpr  EvalValue abs() const { 
+			return { EvalValue(std::abs(_midgame), std::abs(_endgame)) }; 
+		}
 
 
 		constexpr friend EvalValue operator+(EvalValue a, EvalValue b);
@@ -156,7 +164,7 @@ namespace QaplaBasics {
 		
 		constexpr friend EvalValue operator*(EvalValue a, EvalValue b);
 
-		inline std::string toString() const {
+		[[nodiscard]] std::string toString() const {
 			return std::to_string(_midgame) + ", " + std::to_string(_endgame);
 		}
 
@@ -174,11 +182,11 @@ namespace QaplaBasics {
 	}
 
 	constexpr EvalValue operator+(EvalValue a, EvalValue b) {
-		return EvalValue(value_t(a._midgame + b._midgame), value_t(a._endgame + b._endgame));
+		return EvalValue((a._midgame + b._midgame), (a._endgame + b._endgame));
 	}
 
 	constexpr EvalValue operator-(EvalValue a, EvalValue b) {
-		return EvalValue(value_t(a._midgame - b._midgame), value_t(a._endgame - b._endgame));
+		return EvalValue((a._midgame - b._midgame), (a._endgame - b._endgame));
 	}
 
 	constexpr EvalValue operator-(EvalValue a) {
@@ -189,7 +197,7 @@ namespace QaplaBasics {
 	 * Component-wise multiplication. 
 	 */
 	constexpr EvalValue operator*(const EvalValue a, const EvalValue b) {
-		return EvalValue(value_t(a._midgame * b._midgame), value_t(a._endgame * b._endgame));
+		return EvalValue((a._midgame * b._midgame), (a._endgame * b._endgame));
 	}
 
 	constexpr EvalValue operator*(const EvalValue v, value_t scale) {

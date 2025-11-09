@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <optional>
 
+namespace QaplaTester {
+
 /**
  * Represents the parsed contents of a single EPD line.
  */
@@ -59,9 +61,9 @@ public:
      *
      * @return const reference to the vector of all entries.
      */
-    const std::vector<EpdEntry>& all() const;
+    [[nodiscard]] const std::vector<EpdEntry>& all() const;
 
-	const std::string getFilePath() const {
+	[[nodiscard]] const std::string& getFilePath() const {
 		return filePath_;
 	}
 
@@ -77,10 +79,12 @@ private:
      * @return Parsed EpdEntry structure.
      * @throws std::runtime_error on invalid format.
      */
-    EpdEntry parseEpdLine(const std::string& line);
+    static EpdEntry parseEpdLine(const std::string& line);
 
-    std::string extractFen(std::istringstream& stream);
+    static std::pair<std::string, std::string> extractFen(std::istringstream& stream);
 
-    void parseOperations(const std::string& input, EpdEntry& result);
+    static void parseOperations(const std::string& input, EpdEntry& result);
 
 };
+
+} // namespace QaplaTester

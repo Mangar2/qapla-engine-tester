@@ -32,6 +32,8 @@
 #include "game-result.h"
 #include "game-record.h"
 
+namespace QaplaTester {
+
 /**
  * @brief Stores result breakdowns per game termination cause.
  */
@@ -42,6 +44,8 @@ struct CauseStats
     int draw = 0; ///< Number of draws by this cause
 };
 
+using CauseStatsArray = std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)>;
+
 /**
  * @brief Aggregates duel results between two engines, tracking win/draw/loss counts and termination causes.
  */
@@ -51,38 +55,40 @@ private:
     std::string engineA; ///< First engine name
     std::string engineB; ///< Second engine name
 public:
-    EngineDuelResult(const std::string &a, const std::string &b)
-        : engineA(a), engineB(b), causeStats{}
+    EngineDuelResult(std::string a, std::string b)
+        : engineA(std::move(a)), engineB(std::move(b)  ), causeStats{}
     {
     }
     EngineDuelResult() = default;
 
-    int winsEngineA = 0;                                                         ///< Wins by engineA
-    int winsEngineB = 0;                                                         ///< Wins by engineB
-    int draws = 0;                                                               ///< Draw count
-    std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)> causeStats; ///< Stats per end cause
+    int winsEngineA = 0;        ///< Wins by engineA
+    int winsEngineB = 0;        ///< Wins by engineB
+    int draws = 0;              ///< Draw count
+    CauseStatsArray causeStats; ///< Stats per end cause
 
-    const std::string &getEngineA() const
+    [[nodiscard]] const std::string &getEngineA() const
     {
         return engineA;
     }
-    const std::string &getEngineB() const
+    [[nodiscard]] const std::string &getEngineB() const
     {
         return engineB;
     }
+
     /**
      * @brief Resets all counters to zero.
      */
-    inline void clear()
+    void clear()
     {
         winsEngineA = 0;
         winsEngineB = 0;
         draws = 0;
-        for (auto &cs : causeStats)
+        for (auto &cs : causeStats) {
             cs = {};
+        }
     }
 
-    int total() const
+    [[nodiscard]] int total() const
     {
         return winsEngineA + winsEngineB + draws;
     }
@@ -91,7 +97,7 @@ public:
      * @brief Computes the normalized score for engineA.
      * @return Score between 0.0 and 1.0
      */
-    inline double engineARate() const
+    [[nodiscard]] double engineARate() const
     {
         double totalGames = winsEngineA + winsEngineB + draws;
         return totalGames > 0 ? (winsEngineA * 1.0 + draws * 0.5) / totalGames : 0.0;
@@ -101,7 +107,7 @@ public:
      * @brief Computes the normalized score for engineB.
      * @return Score between 0.0 and 1.0
      */
-    inline double engineBRate() const
+    [[nodiscard]] double engineBRate() const
     {
         double totalGames = winsEngineA + winsEngineB + draws;
         return totalGames > 0 ? (winsEngineB * 1.0 + draws * 0.5) / totalGames : 0.0;
@@ -117,13 +123,13 @@ public:
      * @brief Returns a version of this result with sides switched.
      * @return Reversed EngineDuelResult
      */
-    EngineDuelResult switchedSides() const;
+    [[nodiscard]] EngineDuelResult switchedSides() const;
 
     /**
      * @brief Produces a string summary including player names and score.
      * @return Human-readable result string
      */
-    inline std::string toString() const
+    [[nodiscard]] std::string toString() const
     {
         std::ostringstream oss;
         oss << engineA << " vs " << engineB
@@ -135,7 +141,7 @@ public:
      * @brief Returns a compact string with only the score portion.
      * @return Result string with W/D/L only
      */
-    inline std::string toResultString() const
+    [[nodiscard]] std::string toResultString() const
     {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2)
@@ -145,13 +151,24 @@ public:
     }
 
     /**
+     * @brief Checks if the engine names match, allowing for ANY_ENGINE wildcard.
+     * @param other The other duel result to compare against
+     * @return True if engine names match, false otherwise
+	 */
+    [[nodiscard]] bool engineNamesMatch(const EngineDuelResult& other) const
+    {
+        return (engineA == other.engineA && (engineB == other.engineB || engineB == ANY_ENGINE)) ||
+			(engineA == other.engineB && (engineB == other.engineA || engineB == ANY_ENGINE));
+	}
+
+    /**
      * @brief Adds the stats from another duel result.
      * @param other The result to accumulate
      * @return Reference to this object
      */
     EngineDuelResult &operator+=(const EngineDuelResult &other);
 
-    static constexpr std::string_view ANY_ENGINE = "";
+    static constexpr std::string_view ANY_ENGINE;
 };
 
 /**
@@ -167,7 +184,7 @@ struct EngineResult
      *        engineA is set, engineB is empty.
      * @param targetEngine The name of the engine to aggregate results for.
      */
-    EngineDuelResult aggregate(const std::string &targetEngine) const;
+    [[nodiscard]] EngineDuelResult aggregate(const std::string &targetEngine) const;
 
     void printResults(std::ostream &os) const;
     void printOutcome(std::ostream &os) const;
@@ -190,26 +207,35 @@ public:
         int error;              ///< Error margin for the Elo rating
     };
     /**
-     * @brief Adds a single EngineDuelResult to the internal collection.
+     * @brief pushes a single EngineDuelResult to the internal collection.
      *        Can include matches between any engine pair.
      * @param result A duel result to include.
      */
-    void add(const EngineDuelResult &result);
+    void push_back(const EngineDuelResult &result);
+
+    /**
+     * @brief Adds a duel result to the collection.
+     *        If the engines match, it accumulates the results.
+     * @param result The duel result to add.
+	 */
+    void add(const EngineDuelResult& result);
 
     /**
      * @brief Returns the names of all engines for which results have been recorded.
      * @return A vector of unique engine names.
      */
-    std::vector<std::string> engineNames() const;
+    [[nodiscard]] std::vector<std::string> engineNames() const;
 
     /**
      * @brief Computes and returns all duel results for the given engine.
      * @param name The engine name.
      * @return An EngineResult object with individual duels and aggregate data, or std::nullopt if unknown.
      */
-    std::optional<EngineResult> forEngine(const std::string &name) const;
+    [[nodiscard]] std::optional<EngineResult> forEngine(const std::string &name) const;
 
+    [[nodiscard]] std::vector<std::vector<std::string>> getSummary() const;
     void printSummary(std::ostream &os) const;
+    
 
     /**
      * @brief Prints the outcome (result causes) of the tournament, including all engines and their results.
@@ -225,7 +251,7 @@ public:
      * @param os Output stream to write to
      * @param averageElo Average Elo level for scaling ratings (e.g. 2600)
      */
-    void printRatingTableUciStyle(std::ostream &os, int averageElo) const;
+    void printRatingTableUciStyle(std::ostream &os, int averageElo);
 
     /**
      * @brief Computes iterative Elo ratings and error estimates for all engines.
@@ -235,19 +261,39 @@ public:
      *
      * @param baseElo Starting Elo value (e.g. 2600)
      * @param passes Number of update iterations (e.g. 10)
+	 * @param update If true, updates elo and error instead of computing it from the scratch.
      * @return Vector of scored engines sorted by descending Elo
      */
-    std::vector<Scored> computeAllElos(int baseElo = 2600, int passes = 50) const;
+    std::vector<Scored> computeAllElos(int baseElo = 2600, int passes = 50, bool update = false);
+
+    /**
+     * @brief Clears all stored results and resets the internal state.
+     *
+     * This will remove all duel results and reset the collection.
+	 */ 
+    void clear()
+    {
+        results_.clear();
+	}
+
+    /**
+	 * @brief Returns the engines with their scores and Elo ratings.
+	 * @return Vector of Scored entries with aggregated results and normalized scores.
+	 */
+    [[nodiscard]] const std::vector<Scored>& scoredEngines() const
+    {
+        return scoredEngines_;
+	}
 
 private:
     /**
      * @brief Initializes scored engine data with aggregated results and normalized score.
-     *
-     * Elo and error remain unset (0) and must be computed separately.
+	 * @param update If true, updates the existing scored engines but keep the current Elo values.
+	 * @param baseElo The starting Elo value for all engines (e.g. 2600).
      *
      * @return Vector of Scored entries for all engines with valid game data
      */
-    std::vector<Scored> initializeScoredEngines() const;
+    void initializeScoredEngines(bool update, double baseElo);
 
     /**
      * @brief Computes the average opponent Elo weighted by number of games.
@@ -256,7 +302,10 @@ private:
      * @param currentElo All scored engines with current Elo values
      * @return Weighted average Elo of all opponents
      */
-    double averageOpponentElo(const Scored &s, const std::unordered_map<std::string, double>& currentElo) const; 
+    static double averageOpponentElo(const Scored &s, const std::unordered_map<std::string, double>& currentElo);
 
     std::vector<EngineDuelResult> results_;
+	std::vector<Scored> scoredEngines_;
 };
+
+} // namespace QaplaTester

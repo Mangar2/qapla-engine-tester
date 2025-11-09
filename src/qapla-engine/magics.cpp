@@ -19,7 +19,7 @@
 
 #include "magics.h"
 #include "bitboardmasks.h"
-#include <assert.h>
+#include <cassert>
 
 using namespace QaplaMoveGenerator;
 using namespace QaplaBasics;
@@ -204,11 +204,23 @@ bitBoard_t Magics::_rookMask(Square square)
   File file = getFile(square);
 
   // Set every bit on current file, except itself and first and last field in file
-  for (File curFile = file + 1; curFile < File::H; ++curFile) res |= (1ULL << computeSquare(curFile, rank));
-  for (File curFile = File::B; curFile < file; ++curFile) res |= (1ULL << computeSquare(curFile, rank));
+  for (File curFile = file + 1; curFile < File::H; ++curFile)
+  {
+    res |= (1ULL << computeSquare(curFile, rank));
+  }
+  for (File curFile = File::B; curFile < file; ++curFile)
+  {
+    res |= (1ULL << computeSquare(curFile, rank));
+  }
   // Set every bit on current column, except itself and first and last field in column
-  for (Rank curRank = rank + 1; curRank < Rank::R8; ++curRank) res |= (1ULL << computeSquare(file, curRank));
-  for (Rank curRank = Rank::R2; curRank < rank; ++curRank) res |= (1ULL << computeSquare(file, curRank));
+  for (Rank curRank = rank + 1; curRank < Rank::R8; ++curRank)
+  {
+    res |= (1ULL << computeSquare(file, curRank));
+  }
+  for (Rank curRank = Rank::R2; curRank < rank; ++curRank)
+  {
+    res |= (1ULL << computeSquare(file, curRank));
+  }
 
   return res;
 }
@@ -228,13 +240,21 @@ bitBoard_t Magics::_bishopMask(Square square)
 
   // Set every bit on bishop diagonals, except itself and first and last field in diagonal
   for (curFile = file + 1, curRank = rank + 1; curFile < File::H && curRank < Rank::R8; ++curFile, ++curRank )
-	  res |= (1ULL << computeSquare(curFile, curRank));
+  {
+    res |= (1ULL << computeSquare(curFile, curRank));
+  }
   for (curFile = file - 1, curRank = rank + 1; curFile > File::A && curRank < Rank::R8; --curFile, ++curRank)
-	  res |= (1ULL << computeSquare(curFile, curRank));
+  {
+    res |= (1ULL << computeSquare(curFile, curRank));
+  }
   for (curFile = file + 1, curRank = rank - 1; curFile < File::H && curRank > Rank::R1; ++curFile, --curRank)
-	  res |= (1ULL << computeSquare(curFile, curRank));
+  {
+    res |= (1ULL << computeSquare(curFile, curRank));
+  }
   for (curFile = file - 1, curRank = rank - 1; curFile > File::A && curRank > Rank::R1; --curFile, --curRank)
-	  res |= (1ULL << computeSquare(curFile, curRank));
+  {
+    res |= (1ULL << computeSquare(curFile, curRank));
+  }
 
   return res;
 }
@@ -242,14 +262,17 @@ bitBoard_t Magics::_bishopMask(Square square)
 // -------------------------- IndexToBitBoard ---------------------------------
 static bitBoard_t indexToBitBoard(uint32_t index, uint32_t bitAmount, bitBoard_t mask)
 {
-	uint32_t i, j;
+	uint32_t i;
+	uint32_t j;
 	bitBoard_t res = 0ULL;
 
 	for(i = 0; i < bitAmount; i++) 
 	{
 		j = static_cast<uint32_t>(popLSB(mask));
-		if (index & (1 << i)) 
+		if (index & (1 << i))
+		{
 			res |= (1ULL << j);
+		}
 	}
 	return res;
 }
@@ -268,7 +291,10 @@ bitBoard_t Magics::rookAttack(Square square, bitBoard_t board)
 		for (; isRankInBoard(rank) && isFileInBoard(file); rank += dir[i][0], file += dir[i][1]) { 
 			add = 1ULL << computeSquare(file, rank);
 			res |= add; 
-			if (board & add) break;
+			if (board & add)
+			{
+				break;
+			}
 		}
 	}
 	return res;
@@ -287,7 +313,10 @@ bitBoard_t Magics::bishopAttack(Square square, bitBoard_t board) {
 		for (; isRankInBoard(rank) && isFileInBoard(file); rank += dir[i][0], file += dir[i][1]) { 
 			add = 1ULL << computeSquare(file, rank);
 			res |= add; 
-			if (board & add) break;
+			if (board & add)
+			{
+				break;
+			}
 		}
 	}
 
@@ -300,15 +329,19 @@ void Magics::fillAttackMap(Square square, const tMagicEntry& entry, bool isRook)
 	uint32_t i;
 	bitBoard_t board;
 	bitBoard_t aAttackMask;
-	uint32_t bitAmount = static_cast<uint32_t>(BOARD_SIZE - entry.shift);
+	auto bitAmount = static_cast<uint32_t>(BOARD_SIZE - entry.shift);
 	for (i = 0; i < (1UL << bitAmount); i++)
 	{
 		// Calculate the board bits for current index
 		board = indexToBitBoard(i, bitAmount, entry.mask);
 		if (isRook)
+		{
 			aAttackMask = rookAttack(square,  board);
-		else 
+		}
+		else
+		{
 			aAttackMask = bishopAttack(square, board);
+		}
 		// Calculate its index
 		// Multiply with magic
 		board *= entry.magic;

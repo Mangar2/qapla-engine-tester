@@ -32,6 +32,9 @@
 #include "uci-option.h"
 #include "game-record.h"
 
+
+namespace QaplaTester {
+
  /**
   * @brief Winboard protocol adapter implementing EngineAdapter.
   *        Runs the engine in a dedicated thread, handles Winboard I/O.
@@ -44,9 +47,12 @@ public:
      * @param workingDirectory Optional working directory for the engine.
      * @param identifier Unique identifier for this engine instance.
      */
-    explicit WinboardAdapter(std::filesystem::path enginePath,
+    explicit WinboardAdapter(const std::filesystem::path& enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
+    /**
+     * @brief Destructor for WinboardAdapter.
+     */
     ~WinboardAdapter() override;
 
     /**
@@ -71,17 +77,96 @@ public:
      * terminated or unreachable, this is treated as a normal condition.
      * If forced termination fails, the adapter reports a critical error.
      */
+    /**
+     * @brief Attempts to gracefully terminate the Winboard engine. If the engine is already
+     * terminated or unreachable, this is treated as a normal condition.
+     * If forced termination fails, the adapter reports a critical error.
+     */
     void terminateEngine() override;
 
+    /**
+     * @brief Reads the next event from the engine.
+     * @return The next EngineEvent from the engine.
+     */
     EngineEvent readEvent() override;
 
+    /**
+     * @brief Is called after a moveNow command with wait=true. Runs handshake steps if needed.
+     * @returns The event to wait for completing the handshake.
+     */
+    EngineEvent::Type waitAfterMoveNowHandshake() override;
+
+    /**
+     * @brief Handles a ponder miss - XBoard engines don't send bestmove when pondering is stopped.
+     */
+    EngineEvent::Type handlePonderMiss() override;
+
+    /**
+     * @brief Starts a new game with the given parameters.
+     * 
+     * @param gameRecord Current game state.
+     * @param engineIsWhite True if the engine plays as white, false for black.
+     */
     void newGame(const GameRecord& gameRecord, bool engineIsWhite) override;
+    
+    /**
+     * @brief Sets the time control for the engine. 
+     * 
+     * This will start a new game and then send the time control according to Winboard protocol.
+     * Supports asymmetric time controls and all xboard-compliant formats:
+     *  - level (classical, increment)
+     *  - st (movetime)
+     *  - sd (depth)
+     *  - nps (nodes-per-second)
+     * 
+     * @param game Current game state.
+	 * @param engineIsWhite True if the engine plays as white, false for black.
+     */
+    void setTimeControl(const GameRecord& game, bool engineIsWhite) override;
+
+    /**
+     * @brief Notifies the adapter that a best move has been received from the engine.
+     * @param sanMove The move in SAN notation.
+     * @param lanMove The move in LAN notation.
+     */
+    void bestMoveReceived(const std::string& sanMove, const std::string& lanMove) override;
+
+    /**
+     * @brief Sends a move now command to the engine.
+     */
     void moveNow() override;
+
+    /**
+     * @brief Enables or disables pondering for the engine.
+     * @param enabled True to enable pondering, false to disable.
+     */
     void setPonder(bool enabled) override;
+
+    /**
+     * @brief Periodic ticker function for engine management.
+     */
+    /**
+     * @brief Periodic ticker function for engine management.
+     */
     void ticker() override;
 
-    uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) override;
-    uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) override;
+    /**
+     * @brief Allows the engine to ponder on a move.
+     * @param game The current game state.
+     * @param limits The search limits.
+     * @param ponderMove The move to ponder on.
+     * @return Timestamp when pondering was initiated.
+     */
+    uint64_t allowPonder(const GameStruct& game, const GoLimits& limits, std::string ponderMove) override;
+
+    /**
+     * @brief Requests the engine to compute a move.
+     * @param game The current game state.
+     * @param limits The search limits.
+     * @param ponderHit True if pondering hit, false otherwise.
+     * @return Timestamp when the move computation was requested.
+     */
+    uint64_t computeMove(const GameStruct& game, const GoLimits& limits, bool ponderHit) override;
 
     /**
      * @brief Sends a are you ready command to the engine.
@@ -111,7 +196,7 @@ public:
 
 private:
     /**
-     * Parses a line received during the Winboard handshake phase.
+     * @brief Parses a line received during the Winboard handshake phase.
      * This function should be called only when waiting for the Winboard handshake.
      * It handles 'feature', 'xboard', and readiness lines specifically.
      * Any unexpected input is reported as a protocol error.
@@ -133,49 +218,142 @@ private:
     std::vector<ProtocolError> protocolErrors_;
 
     /**
-     * @brief Sends time control to the engine according to Winboard protocol.
-     *        Supports asymmetric time controls and all xboard-compliant formats:
-     *        - level (classical, increment)
-     *        - st (movetime)
-     *        - sd (depth)
-     *        - nps (nodes-per-second)
-     *
-     * @param gameRecord GameRecord with time control settings.
-     * @param engineIsWhite True if engine is playing white.
-     */
-    void sendTimeControl(const GameRecord& gameRecord, bool engineIsWhite);
-
-    /**
      * @brief Sends the current position to the engine.
-     * @param game The current game record containing the position and moves played.
+     * @param game The current game structure containing the position and moves played.
      */
-    void sendPosition(const GameRecord& game);
+    void sendPosition(const GameStruct& game);
 
     /**
      * @brief Sends only the new opponent moves from the given GameRecord compared to the last known state.
      *        Skips the last own move if it matches the stored original move string.
      *
      * @param game The current game state with full move history.
+     * @param isInfinite If true, enable analyze mode if not already enabled.
+     * @return Timestamp when the 'go' or 'analyze' command was sent.
      */
-    uint64_t catchupMovesAndGo(const GameRecord& game);
+    uint64_t catchupMovesAndGo(const GameStruct& game, bool isInfinite = false);
 
     /**
-     * Ensures all known boolean features are present in featureMap_ with correct defaults.
+     * @brief Sets the time control for the engine.
+     * 
+     * This will send the time control according to Winboard protocol.
+     * Supports asymmetric time controls and all xboard-compliant formats:
+     *  - level (classical, increment)
+     *  - st (movetime)
+     *  - sd (depth)
+     *  - nps (nodes-per-second)
+     * 
+     * @param timeControl The time control to set.
+     */
+    void setTimeControl(const TimeControl& timeControl);
+
+    /**
+     * @brief Sends a 'go' or 'analyze' command to the engine based on current mode.
+     * @param isInfinite If true, sends 'analyze' command - if not in analyzeMode; otherwise, sends 'go'.
+     * @return Timestamp when the command was sent or 0, if nothing has been sent.
+     */
+    uint64_t go(bool isInfinite);
+
+    /**
+     * @brief Sets the engine into force mode and remember this in forceMode_.
+     */
+    void setForceMode();
+
+    /**
+     * @brief Ensures all known boolean features are present in featureMap_ with correct defaults.
      * Should be called once after parsing all incoming 'feature' lines from GUI.
      */
     void finalizeFeatures();
 
+    /**
+     * @brief Checks if a feature is enabled.
+     * @param key The feature key to check.
+     * @return True if the feature is enabled, false otherwise.
+     */
+    /**
+     * @brief Checks if a feature is enabled.
+     * @param key The feature key to check.
+     * @return True if the feature is enabled, false otherwise.
+     */
     bool isEnabled(const std::string& key) const {
         auto it = featureMap_.find(key);
         return it != featureMap_.end() && it->second == "1";
     }
 
-    EngineEvent parseSearchInfo(std::string depthStr, std::istringstream& iss, uint64_t timestamp, const std::string& rawLine);
-	EngineEvent parseFeatureLine(std::istringstream& iss, uint64_t timestamp, bool onlyOption);
-    void parseOptionFeature(const std::string& optionStr, EngineEvent& event);
-    EngineEvent parseResult(std::istringstream& iss, const std::string& command, EngineEvent event);
-    
+    /**
+     * @brief Parses search information from engine output.
+     * @param depthStr The depth string.
+     * @param iss The input string stream.
+     * @param timestamp The timestamp of the line.
+     * @param originalLine The original line for error reporting.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseSearchInfo(const std::string& depthStr, std::istringstream& iss, uint64_t timestamp, 
+        const std::string& originalLine);
 
+    /**
+     * @brief Parses a feature line from the engine.
+     * @param iss The input string stream.
+     * @param timestamp The timestamp of the line.
+     * @param onlyOption True if only option parsing is expected.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseFeatureLine(std::istringstream& iss, uint64_t timestamp, bool onlyOption);
+
+    /**
+     * @brief Parses a comment or debug line from the engine.
+     * @param engineLine The full engine output line with timestamp and completeness status.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseCommentLine(const EngineLine& engineLine);
+
+    /**
+     * @brief Parses a move string from the engine.
+     * @param iss The input string stream.
+     * @param engineLine The full engine output line with timestamp and completeness status.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseMove(std::istringstream& iss, const EngineLine& engineLine);
+
+    /**
+     * @brief Parses a hint command from the engine.
+     * @param iss The input string stream.
+     * @param engineLine The full engine output line with timestamp and completeness status.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseHint(std::istringstream& iss, const EngineLine& engineLine);
+
+    /**
+     * @brief Parses an option feature from the feature line.
+     * @param optionStr The option string.
+     * @param event The EngineEvent to populate.
+     */
+    void parseOptionFeature(const std::string& optionStr, EngineEvent& event);
+
+    /**
+     * @brief Parses the result of a command.
+     * @param iss The input string stream.
+     * @param command The command that was sent.
+     * @param event The EngineEvent to populate.
+     * @return The parsed EngineEvent.
+     */
+    static EngineEvent parseResult(std::istringstream& iss, const std::string& command, EngineEvent event);
+
+    /**
+     * @brief Computes windows standard option strings.
+     * @param supportedOption The supported engine option.
+     * @param value The value to set.
+     * @return The computed Winboard option command string.
+     */
+    std::string computeStandardOptions(const EngineOption& supportedOption, const std::string& value);
+
+    /**
+     * @brief Parses a command from the engine.
+     * @param engineLine The full engine output line with timestamp and completeness status.
+     * @return The parsed EngineEvent.
+     */
+    EngineEvent parseCommand(const EngineLine& engineLine);
+    
     static inline int numOptionError_ = 0;
     static inline int numFeatureError_ = 0;
     static inline int numNameError_ = 0;
@@ -184,7 +362,12 @@ private:
     std::map<std::string, std::string> featureMap_;
 	uint64_t pingCounter_ = 0;
     bool forceMode_ = false;
+    bool isAnalyzeMode_ = false;
 
-	GameRecord gameRecord_; 
+    std::string lastOwnMove_; ///> The last move made by the engine in original format.
+    std::string clearTimeControlCommand_; ///> The command to clear the time control before setting a new one.
+
+	GameStruct gameStruct_; 
 };
 
+} // namespace QaplaTester

@@ -28,23 +28,49 @@
 #include <iomanip>
 #include <sstream>
 
-enum class TraceLevel : int {
-    error,
-    command,
-    result,
-    warning,
-    info,
-    none
+namespace QaplaTester {
+
+/**
+ * @brief Trace levels for logging control.
+ * IMPORTANT: Order and numeric values matter for comparison logic!
+ * Lower enum values = higher priority (more restrictive filtering).
+ * Comparison logic: if (messageLevel <= threshold) -> message is logged
+ * 
+ * Example: If threshold is 'command', only 'none', 'error' and 'command' messages are logged.
+ */
+enum class TraceLevel : std::uint8_t {
+    none = 0,    // Log nothing (most restrictive)
+    error = 1,   // Log only errors
+    command = 2, // Log errors + commands
+    result = 3,  // Log errors + commands + results
+    warning = 4, // Log errors + commands + results + warnings
+    info = 5     // Log everything (least restrictive)
 };
 
 /**
+ * @brief Converts TraceLevel enum to its string representation.
+ * @param level The trace level to convert.
+ * @return String representation of the trace level.
+ */
+std::string to_string(QaplaTester::TraceLevel level);
+
+
+/**
  * @brief Thread-safe logger with optional file output and trace filtering.
+ * 
+ * Provides singleton instances for engine and test logging with configurable
+ * trace levels for both console and file output.
  */
 class Logger {
 public:
-    Logger() : cliThreshold_(TraceLevel::error) {
-    }
+    /**
+     * @brief Constructs a logger with default error-level threshold.
+     */
+    Logger() = default;
 
+    /**
+     * @brief Destructor - closes the log file if open.
+     */
     ~Logger() {
         if (fileStream_.is_open()) {
             fileStream_.close();
@@ -52,134 +78,125 @@ public:
     }
 
     /**
-	 * @brief Logs a message with a given prefix. It logs all messages to the file and some based on trace level to stdout.
-     * @param prefix Logical source (e.g. engine identifier).
-     * @param message Log content (no newline required).
-     * @param isOutput true if engine output, false if input.
+     * @brief Logs a message with prefix and direction indicator.
+     * 
+     * Messages are written to both file and console based on their respective trace level thresholds.
+     * The direction is indicated by -> (output) or <- (input).
+     * 
+     * @param prefix Logical source identifier (e.g., engine name).
+     * @param message The message content to log.
+     * @param isOutput true for outgoing messages (->), false for incoming (<-).
      * @param cliThreshold Trace level threshold for console output.
-	 * @param fileThreshold Trace level threshold for file logging.
-     * @param level Trace level of this message for logging t cout (default: info).
+     * @param fileThreshold Trace level threshold for file logging.
+     * @param level The trace level of this message (default: info).
      */
-    void log(std::string_view prefix, std::string_view message, bool isOutput, TraceLevel cliThreshold, TraceLevel fileThreshold,
-        TraceLevel level = TraceLevel::info) {
+    void log(std::string_view prefix, std::string_view message, bool isOutput, 
+        TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level = TraceLevel::info);
 
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (level <= fileThreshold && fileStream_.is_open()) {
-            fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
-        }
-        
-        if (level > cliThreshold) return;
-		std::cout << prefix << (isOutput ? " -> " : " <- ") << message << std::endl;
+    /**
+     * @brief Logs a simple message without prefix.
+     * 
+     * Uses the logger's configured trace level thresholds for filtering.
+     * 
+     * @param message The message content to log.
+     * @param level The trace level of this message (default: command).
+     */
+    void log(std::string_view message, TraceLevel level = TraceLevel::command);
+
+    /**
+     * @brief Logs a message with aligned topic and content.
+     * 
+     * The topic is left-aligned with a fixed width for consistent formatting.
+     * 
+     * @param topic The topic or label to display (will be aligned).
+     * @param message The message content to display after the topic.
+     * @param level The trace level of this message (default: command).
+     */
+    void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command);
+
+    /**
+     * @brief Sets the output log file with timestamp.
+     * 
+     * Creates a new log file with a timestamped filename in the configured log directory.
+     * If a file is already open, it will be closed first.
+     * 
+     * @param basename Base name for the log file (timestamp will be appended).
+     */
+    void setLogFile(const std::string& basename);
+
+    /**
+     * @brief Returns the current log filename.
+     * @return The full path and name of the log file.
+     */
+    [[nodiscard]] std::string getFilename() const {
+        return filename_;
     }
 
     /**
-     * @brief Logs a message 
-     * @param message Log content (no newline required).
-     * @param level Trace level of this message for logging t cout (default: info).
-     */
-    void log(std::string_view message, TraceLevel level = TraceLevel::command) {
-
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (level <= fileThreshold_ && fileStream_.is_open()) {
-            fileStream_ << message << std::endl;
-        }
-
-        if (level > cliThreshold_) return;
-        std::cout << message << std::endl;
-    }
-
-    /**
-     * @brief Logs a message
-     * @param message Log content (no newline required).
-     * @param level Trace level of this message for logging t cout (default: info).
-     */
-    void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command) {
-		std::ostringstream oss;
-        oss << std::left << std::setw(30) << topic
-            << message;
-		log(oss.str(), level);
-    }
-
-    /**
-     * @brief Sets the output log file.
-	 * @param basename Base name for the log file. The timestamp will be appended.
-     */
-    void setLogFile(const std::string& basename) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        namespace fs = std::filesystem;
-        fs::path path = logPath_.empty() ? "" : fs::path(logPath_);
-        filename_ = (path / generateTimestampedFilename(basename)).string();
-        fileStream_.close();
-        fileStream_.open(filename_, std::ios::app);
-    }
-
-	/**
-	 * @brief Returns the current log file name.
-	 * @return The name of the log file.
-	 */
-	std::string getFilename() const {
-		return filename_;
-	}
-
-    /**
-     * @brief Sets the minimum trace level to log.
-	 * @param cli The minimum trace level for console output.
-	 * @param file The minimum trace level for file logging (default: info).
+     * @brief Sets the trace level thresholds for console and file logging.
+     * 
+     * Only messages with a level less than or equal to the threshold will be logged.
+     * 
+     * @param cli The minimum trace level for console output.
+     * @param file The minimum trace level for file logging (default: info).
      */
     void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info) {
-		cliThreshold_ = cli;
-		fileThreshold_ = file;
+        cliThreshold_ = cli;
+        fileThreshold_ = file;
     }
 
     /**
-     * @brief Returns the global logger instance.
+     * @brief Returns the global engine logger instance.
+     * 
+     * Provides a singleton logger instance specifically for engine communication.
+     * 
+     * @return Reference to the singleton engine logger.
      */
-    static Logger& engineLogger() {
-        static Logger instance;
-        return instance;
+    static Logger& engineLogger();
+
+    /**
+     * @brief Returns the global test logger instance.
+     * 
+     * Provides a singleton logger instance specifically for test execution.
+     * 
+     * @return Reference to the singleton test logger.
+     */
+    static Logger& testLogger();
+
+    /**
+     * @brief Sets the directory path for log files.
+     * @param path The directory where log files will be created.
+     */
+    static void setLogPath(const std::string& path) {
+        logPath_ = path;
     }
 
-    static Logger& testLogger() {
-        static Logger instance;
-        return instance;
-    }
-
-	static void setLogPath(const std::string& path) {
-		logPath_ = path;
-	}
-
-    TraceLevel getCliThreshold() const {
+    /**
+     * @brief Returns the current console trace level threshold.
+     * @return The trace level threshold for console output.
+     */
+    [[nodiscard]] TraceLevel getCliThreshold() const {
         return cliThreshold_;
     }
 
 private:
+    /**
+     * @brief Generates a timestamped filename.
+     * 
+     * Creates a filename in the format: basename-YYYY-MM-DD_HH-MM-SS.mmm.log
+     * 
+     * @param baseName The base name for the file.
+     * @return Complete filename with timestamp and .log extension.
+     */
+    static std::string generateTimestampedFilename(const std::string& baseName);
 
-    std::string generateTimestampedFilename(const std::string& baseName) {
-        using namespace std::chrono;
-
-        auto now = system_clock::now();
-        auto now_time_t = system_clock::to_time_t(now);
-        auto now_ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-
-        std::tm local_tm;
-#ifdef _WIN32
-        localtime_s(&local_tm, &now_time_t);
-#else
-        localtime_r(&now_time_t, &local_tm);
-#endif
-
-        std::ostringstream oss;
-        oss << baseName << '-'
-            << std::put_time(&local_tm, "%Y-%m-%d_%H-%M-%S")
-            << '.' << std::setw(3) << std::setfill('0') << now_ms.count()
-            << ".log";
-        return oss.str();
-    }
-
-    std::mutex mutex_;
-    std::ofstream fileStream_;
-    TraceLevel cliThreshold_ = TraceLevel::error;
-	TraceLevel fileThreshold_ = TraceLevel::info;
-	std::string filename_;
-    static inline std::string logPath_ = "";
+    std::mutex mutex_;                          ///< Mutex for thread-safe logging
+    std::ofstream fileStream_;                  ///< Output file stream for log file
+    TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
+    TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
+    std::string filename_;                      ///< Current log filename
+    static inline std::string logPath_;    ///< Directory path for log files
 };
+
+} // namespace QaplaTester
+

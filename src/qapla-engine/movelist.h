@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <assert.h>
+#include <cassert>
 #include <array>
 #include "evalvalue.h"
 #include "move.h"
@@ -35,7 +35,7 @@ namespace QaplaBasics {
 	class MoveList
 	{
 	public:
-		MoveList(void) { clear(); }
+		MoveList() { clear(); }
 
 		void clear() { totalMoveAmount = 0; nonSilentMoveAmount = 0; }
 
@@ -46,7 +46,7 @@ namespace QaplaBasics {
 		 *
 		 * This keeps non-silent moves contiguous and in order of addition.
 		 */
-		inline void addMove(Move move) {
+		void addMove(Move move) {
 			if (move.isCaptureOrPromote()) {
 				moveList[totalMoveAmount] = moveList[nonSilentMoveAmount];
 				moveList[nonSilentMoveAmount] = move;
@@ -61,7 +61,7 @@ namespace QaplaBasics {
 		/**
 		 * Inserts a non silent move to the end of the non silent move list
 		 */
-		inline void addNonSilentMove(Move move) {
+		void addNonSilentMove(Move move) {
 			assert(move.isCaptureOrPromote());
 			moveList[totalMoveAmount] = moveList[nonSilentMoveAmount];
 			moveList[nonSilentMoveAmount] = move;
@@ -72,7 +72,7 @@ namespace QaplaBasics {
 		/**
 	     * Adds a silent move end of the move list
 		 */
-		inline void addSilentMove(Move move) {
+		void addSilentMove(Move move) {
 			moveList[totalMoveAmount] = move;
 			totalMoveAmount++;
 		}
@@ -141,17 +141,17 @@ namespace QaplaBasics {
 		}
 
 		// Gets a move from an index
-		Move getMove(uint32_t index) const { return moveList[index]; }
+		[[nodiscard]] Move getMove(uint32_t index) const { return moveList[index]; }
 
 		Move operator[](uint32_t index) const { return moveList[index]; }
 		Move& operator[](uint32_t index) { return moveList[index]; }
 
-		bool isMoveAvailable(uint32_t index) const { return totalMoveAmount > index; }
+		[[nodiscard]] bool isMoveAvailable(uint32_t index) const { return totalMoveAmount > index; }
 
-		uint32_t getTotalMoveAmount() const { return totalMoveAmount; }
-		uint32_t getNonSilentMoveAmount() const { return nonSilentMoveAmount; }
+		[[nodiscard]] uint32_t getTotalMoveAmount() const { return totalMoveAmount; }
+		[[nodiscard]] uint32_t getNonSilentMoveAmount() const { return nonSilentMoveAmount; }
 
-		value_t getWeight(uint32_t index) const { return moveWeights[index]; }
+		[[nodiscard]] value_t getWeight(uint32_t index) const { return moveWeights[index]; }
 		void setWeight(uint32_t index, value_t weight) { moveWeights[index] = weight; }
 
 		// Prints all moves to stdout
@@ -160,8 +160,9 @@ namespace QaplaBasics {
 			for (uint32_t i = 0; i < totalMoveAmount; i++)
 			{
 				moveList[i].print();
-				std::cout << std::endl;
+				std::cout << "\n";
 			}
+			std::cout << std::flush;
 		}
 
 	protected:

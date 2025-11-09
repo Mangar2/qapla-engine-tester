@@ -17,22 +17,50 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include "epd-reader.h"
+#include "string-helper.h"
+
+#include <array>
 #include <sstream>
 #include <stdexcept>
 #include <cctype>
 #include <fstream>
 #include <optional>
-#include "epd-reader.h"
+#include <string>
+#include <algorithm>
+
+namespace QaplaTester {
 
 EpdReader::EpdReader(const std::string& filePath): filePath_(filePath) {
     std::ifstream file(filePath);
     if (!file) {
-        throw std::runtime_error("Failed to open EPD file: " + filePath);
+        int err = errno;
+
+        std::string errMsg;
+    #ifdef _WIN32
+        std::array<char, 256> buf{};
+        strerror_s(buf.data(), buf.size(), err);
+        errMsg = buf.data();
+    #else
+        std::error_code ec(err, std::generic_category());
+        errMsg = ec.message();
+    #endif
+        throw std::runtime_error(
+            "Failed to open EPD file: " + filePath +
+            " (errno: " + std::to_string(err) + ", " + errMsg + ")"
+        );
     }
     std::string line;
+    size_t lineNumber = 0;
     while (std::getline(file, line)) {
         if (!line.empty()) {
-            entries_.emplace_back(parseEpdLine(line));
+            ++lineNumber;
+            auto entry = parseEpdLine(line);
+            // Add auto-generated ID if not present
+            if (!entry.operations.contains("id") || entry.operations["id"].empty()) {
+                entry.operations["id"] = { std::to_string(lineNumber) };
+            }
+            entries_.emplace_back(std::move(entry));
         }
     }
     currentIndex_ = 0;
@@ -53,37 +81,54 @@ const std::vector<EpdEntry>& EpdReader::all() const {
     return entries_;
 }
 
-
 EpdEntry EpdReader::parseEpdLine(const std::string& line) {
     std::istringstream stream(line);
-    std::string resultLine;
-    std::getline(stream, resultLine);
     EpdEntry result;
 
-    std::string rest;
-    std::istringstream lineStream(resultLine);
-    result.fen = extractFen(lineStream);
-    std::getline(lineStream, rest);
+    auto [fen, rest] = extractFen(stream); // liefert FEN + Rest
+    result.fen = std::move(fen);
     parseOperations(rest, result);
 
     return result;
 }
 
-std::string EpdReader::extractFen(std::istringstream& stream) {
+std::pair<std::string, std::string>
+EpdReader::extractFen(std::istringstream& stream) {
     std::ostringstream fenStream;
     std::string token;
-    for (int i = 0; i < 4; ++i) {
+
+    for (int part = 0; part < 4; ++part) {
         if (!(stream >> token)) {
             throw std::runtime_error("Incomplete FEN in EPD line");
         }
-        if (i > 0) fenStream << ' ';
+        if (part != 0) {
+            fenStream << ' ';
+        }
         fenStream << token;
     }
-    return fenStream.str();
+
+    for (int i = 0; i < 2; ++i) {
+        int v;
+        bool isInt = static_cast<bool>(stream >> v);
+        if (isInt && v >= 0) {
+            fenStream << ' ' << v;
+        } else {
+            stream.clear();
+            break;
+        }
+    }
+
+    std::string rest;
+    std::getline(stream, rest);
+    return { fenStream.str(), rest };
 }
 
 void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
-    std::istringstream stream(input);
+    // Remove all carriage returns from input before parsing
+    std::string cleanedInput = input;
+    std::erase(cleanedInput, '\r');
+    
+    std::istringstream stream(cleanedInput);
     std::string token;
     std::string opCode;
 
@@ -117,3 +162,4 @@ void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
     }
 }
 
+} // namespace QaplaTester
