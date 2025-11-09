@@ -28,7 +28,7 @@
 #include "pgn-io.h"
 #include "engine-config-manager.h"
 #include "input-handler.h"
-#include "adjucation-manager.h"
+#include "adjudication-manager.h"
 
 bool Tournament::wait() {
     GameManagerPool::getInstance().waitForTask();

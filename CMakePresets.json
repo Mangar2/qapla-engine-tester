@@ -2,33 +2,26 @@
   "version": 3,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 16,
-    "patch": 0
+    "minor": 20
   },
   "configurePresets": [
     {
-      "name": "default-base",
-      "hidden": true,
+      "name": "default",
+      "displayName": "Default (Clang + Ninja)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",
-        "CMAKE_CXX_STANDARD": "20",
-        "CMAKE_POSITION_INDEPENDENT_CODE": "ON"
-      }
-    },
-    {
-      "name": "debug",
-      "inherits": "default-base",
-      "description": "Debug build with debug info",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra"
       }
     },
     {
       "name": "release",
-      "inherits": "default-base",
-      "description": "Release build with optimizations",
+      "displayName": "Release (Clang + Ninja)",
+      "inherits": "default",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -36,8 +29,8 @@
   ],
   "buildPresets": [
     {
-      "name": "debug",
-      "configurePreset": "debug"
+      "name": "default",
+      "configurePreset": "default"
     },
     {
       "name": "release",

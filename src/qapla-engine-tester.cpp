@@ -42,7 +42,7 @@
 #include "pgn-io.h"
 #include "input-handler.h"
 #include "game-manager-pool.h"
-#include "adjucation-manager.h"
+#include "adjudication-manager.h"
 
 static auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {

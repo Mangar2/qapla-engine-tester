@@ -37,7 +37,7 @@
 #include <iostream>
 #include "game-manager-pool.h"
 #include "input-handler.h"
-#include "adjucation-manager.h"
+#include "adjudication-manager.h"
 
 GameManager::GameManager(): taskProvider_(nullptr) {
     eventThread_ = std::thread(&GameManager::processQueue, this);
