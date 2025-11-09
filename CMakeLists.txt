@@ -7,7 +7,7 @@ if(NOT WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
-file(GLOB SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 add_executable(qapla-engine-tester ${SOURCES})
 target_compile_definitions(qapla-engine-tester PRIVATE _REENTRANT)
 

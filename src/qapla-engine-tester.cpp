@@ -44,6 +44,9 @@
 #include "game-manager-pool.h"
 #include "adjudication-manager.h"
 
+using namespace QaplaTester;
+using QaplaHelpers::Timer;
+
 static auto updateCode(AppReturnCode code, AppReturnCode newCode) {
 	if (code == AppReturnCode::NoError) {
 		return newCode;
@@ -87,9 +90,9 @@ static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode cod
 			Logger::testLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
                 + earlyStop);
-            epdManager->analyzeEpd(file, engine, concurrency, maxTime, minTime, seenPlies);
-            epdManager->schedule(epdManager, engine);
-            epdManager->wait();
+            epdManager->initialize(file, maxTime, minTime, seenPlies);
+            epdManager->schedule(engine);
+            GameManagerPool::getInstance().waitForTask();
 			code = logChecklist(code, TraceLevel::info);
 			auto minSuccess = epd.get<int>("minsuccess");
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
@@ -247,9 +250,9 @@ static auto runSprt(AppReturnCode code) {
         else {
             auto filename = sprt->get<std::string>("resultfile");
             manager->createTournament(activeEngines[0], activeEngines[1], config);
-            manager->load(filename);
-            manager->schedule(manager, concurrency);
-            manager->wait();
+            // manager->load(filename);
+            // manager->schedule(manager, concurrency);
+            // manager->wait();
             if (!filename.empty()) {
                 manager->save(filename);
             }
@@ -318,9 +321,9 @@ static AppReturnCode runTournament(AppReturnCode code) {
         tournament.createTournament(activeEngines, config);
 		tournament.load(tournamentFilename);
         tournament.scheduleAll(concurrency);
-        tournament.wait();
+        // tournament.wait();
 		if (!tournamentFilename.empty()) {
-			tournament.save(tournamentFilename);
+			// tournament.save(tournamentFilename);
 		}
         Logger::testLogger().log("tournament all games completed", TraceLevel::result);
         AdjudicationManager::instance().printTestResult(std::cout);
