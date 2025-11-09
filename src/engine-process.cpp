@@ -26,6 +26,7 @@
 #include <thread>
 #include <string>
 #include <cassert>
+#include <ranges>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -95,8 +96,8 @@ EngineProcess::EngineProcess(const std::filesystem::path &path,
     start();
 }
 
-void EngineProcess::startWin32Overlapped() {
 #ifdef _WIN32
+void EngineProcess::startWin32Overlapped() {
 
     constexpr bool useStdErr = false;
     constexpr DWORD READ_PUFFER_SIZE = 64 * 1024;
@@ -181,8 +182,8 @@ void EngineProcess::startWin32Overlapped() {
     CloseHandle(piProcInfo.hThread);
     win32IoData_ = std::make_unique<Win32IoData>();
 
-#endif
 }
+#endif
 
 
 void EngineProcess::start()
@@ -322,9 +323,9 @@ void EngineProcess::closeAllHandles()
 #endif
 }
 
+#ifdef _WIN32
 void EngineProcess::writeLineOverlapped(const std::string& withNewline)
 {
-#ifdef _WIN32
     constexpr DWORD writeTimeoutMs = 500;
     auto& overlapped = win32IoData_->overlappedWrite;
     overlapped.Offset = 0;
@@ -343,8 +344,8 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
             throw std::runtime_error("Failed to complete overlapped write");
         }
     }
-#endif
 }
+#endif
 
 uint64_t EngineProcess::writeLine(const std::string &line)
 {
@@ -446,8 +447,8 @@ void EngineProcess::appendToLineQueue(const std::string &text, bool lineTerminat
     lineQueue_.emplace_back(EngineLine{.content = text, .complete = lineTerminated, .timestampMs = now, .error = EngineLine::Error::NoError});
 }
 
-EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
 #ifdef _WIN32
+EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
     constexpr DWORD readTimeoutMs = 500;
 
     ReadResult result{};
@@ -482,10 +483,9 @@ EngineProcess::ReadResult EngineProcess::readFromStdOutOverlapped() {
     result.bytesRead = bytesTransferred;
     result.success = true;
     return result;
-#else
     return {};
-#endif
 }
+#endif
 
 
 
