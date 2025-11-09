@@ -48,7 +48,7 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConf
     adapter->setSuppressInfoLines(suppressInfoLines_);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, config);
     identifier_++;
-    return std::move(worker);
+    return worker;
 }
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::restart(const EngineWorker& worker) {
