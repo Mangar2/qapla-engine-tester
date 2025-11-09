@@ -21,8 +21,7 @@
 
 #include "move-record.h"
 #include "game-record.h"
-
-#include "qapla-tester/game-result.h"
+#include "game-result.h"
 
 #include <string>
 #include <vector>

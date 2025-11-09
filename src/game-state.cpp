@@ -22,9 +22,9 @@
 #include <cstdint>
 #include <tuple>
 #include "game-start-position.h"  
-#include "../qapla-engine/movegenerator.h"
-#include "../qapla-engine/movescanner.h"
-#include "../qapla-engine/fenscanner.h"
+#include "qapla-engine/movegenerator.h"
+#include "qapla-engine/movescanner.h"
+#include "qapla-engine/fenscanner.h"
 #include "game-state.h"
 #include "logger.h"
 

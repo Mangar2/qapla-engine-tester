@@ -33,7 +33,7 @@
 #include "game-result.h"
 #include "change-tracker.h"
 
-#include "../qapla-engine/move.h"
+#include "qapla-engine/move.h"
 
 namespace QaplaTester {
 

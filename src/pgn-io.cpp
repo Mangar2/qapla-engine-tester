@@ -25,7 +25,7 @@
 #include "game-state.h"
 #include "string-helper.h"
 
-#include "qapla-tester/game-result.h"
+#include "game-result.h"
 
 #include <chrono>
 #include <ctime>

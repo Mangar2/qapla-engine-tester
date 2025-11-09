@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include "../qapla-engine/movegenerator.h"
+#include "qapla-engine/movegenerator.h"
 #include "game-result.h"
 #include "game-record.h"
 
