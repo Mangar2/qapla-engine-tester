@@ -23,13 +23,15 @@
 #include <unordered_map>
 #include <optional>
 
+namespace QaplaTester {
+
 /**
  * @brief Enumerates all meaningful game termination types.
  *
  * Includes PGN-standard outcomes and additional technical results relevant
  * for engine testing or protocol-level termination.
  */
-enum class GameEndCause {
+enum class GameEndCause : std::uint8_t {
 	Ongoing,               // The game is still in progress
 	Checkmate,             // One player is checkmated
 	Stalemate,             // The game ended in stalemate
@@ -47,8 +49,16 @@ enum class GameEndCause {
 	Count
 };
 
-enum class GameResult { WhiteWins, BlackWins, Draw, Unterminated };
+/**
+ * @brief Enumerates the possible game results.
+ */
+enum class GameResult : std::uint8_t { WhiteWins, BlackWins, Draw, Unterminated };
 
+/**
+ * @brief Converts a GameEndCause to a PGN-style termination string.
+ * @param cause The game end cause.
+ * @return The corresponding PGN termination string.
+ */
 inline std::string gameEndCauseToPgnTermination(GameEndCause cause) {
 	switch (cause) {
 	case GameEndCause::Checkmate: return "checkmate";
@@ -78,6 +88,9 @@ inline std::optional<GameEndCause> tryParseGameEndCause(std::string_view str) {
 		{"stalemate", GameEndCause::Stalemate},
 		{"threefold repetition", GameEndCause::DrawByRepetition},
 		{"50-move rule", GameEndCause::DrawByFiftyMoveRule},
+		{"50 move rule", GameEndCause::DrawByFiftyMoveRule},
+		{"threefold repetition", GameEndCause::DrawByRepetition},
+		{"repetition", GameEndCause::DrawByRepetition},
 		{"insufficient material", GameEndCause::DrawByInsufficientMaterial},
 		{"draw agreement", GameEndCause::DrawByAgreement},
 		{"resignation", GameEndCause::Resignation},
@@ -93,8 +106,18 @@ inline std::optional<GameEndCause> tryParseGameEndCause(std::string_view str) {
 	return it != map.end() ? std::optional<GameEndCause>(it->second) : std::nullopt;
 }
 
+/**
+ * @brief Converts a GameEndCause to its string representation.
+ * @param cause The game end cause.
+ * @return The string representation.
+ */
 inline std::string to_string(GameEndCause cause) { return gameEndCauseToPgnTermination(cause); }
 
+/**
+ * @brief Converts a GameResult to a PGN result string.
+ * @param result The game result.
+ * @return The corresponding PGN result string.
+ */
 inline std::string gameResultToPgnResult(GameResult result) {
 	switch (result) {
 		case GameResult::WhiteWins: return "1-0"; break;
@@ -104,6 +127,11 @@ inline std::string gameResultToPgnResult(GameResult result) {
 	}
 }
 
+/**
+ * @brief Switches the game result (white/black wins swapped, draw unchanged).
+ * @param result The original game result.
+ * @return The switched game result.
+ */
 inline GameResult switchGameResult(GameResult result) {
 	switch (result) {
 	case GameResult::WhiteWins: return GameResult::BlackWins;
@@ -113,6 +141,13 @@ inline GameResult switchGameResult(GameResult result) {
 	}
 }
 
+/**
+ * @brief Converts a GameResult to its string representation.
+ * @param result The game result.
+ * @return The string representation.
+ */
 inline std::string to_string(GameResult result) {
 	return gameResultToPgnResult(result);
 }
+
+} // namespace QaplaTester

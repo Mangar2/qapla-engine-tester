@@ -55,6 +55,12 @@ namespace QaplaInterface {
 				scanHalfMovesWithouthPawnMoveOrCapture(fen, fenIterator, position);
 			}
 
+			if (!error && skipBlank(fen, fenIterator)) {
+				scanFullMoves(fen, fenIterator, position);
+			} else {
+				position.setStartHalfmoves(position.isWhiteToMove() ? 0 : 1);
+			}
+
 			if (!error) {
 				//position->finishBoardSetup();
 			}
@@ -79,15 +85,18 @@ namespace QaplaInterface {
 				if (curChar == 0 || curChar == ' ') {
 					break;
 				}
-				else if (curChar == '/') {
+				if (curChar == '/') {
 					error = file != QaplaBasics::NORTH;
 					file = 0;
 					rank--;
 				}
 				else if (isPieceChar(curChar)) {
-					chessBoard.setPiece(
-						computeSquare(static_cast<QaplaBasics::File>(file), static_cast<QaplaBasics::Rank>(rank)), 
-						QaplaBasics::charToPiece(curChar));
+					auto square = computeSquare(static_cast<QaplaBasics::File>(file), static_cast<QaplaBasics::Rank>(rank));	
+					if (square < QaplaBasics::A1 || square > QaplaBasics::H8) {
+						error = true;
+						break;
+					}
+					chessBoard.setPiece(square, QaplaBasics::charToPiece(curChar));
 					file++;
 				}
 				else if (isColChar(curChar)) {
@@ -107,7 +116,7 @@ namespace QaplaInterface {
 		/**
 		 * Skips a mandatory blank
 		 */
-		bool skipBlank(const std::string& fen, std::string::iterator& fenIterator) {
+		static bool skipBlank(const std::string& fen, std::string::iterator& fenIterator) {
 			bool hasBlank = false;
 			if (fenIterator != fen.end()) {
 				if (*fenIterator == ' ') {
@@ -217,7 +226,7 @@ namespace QaplaInterface {
 		/**
 		 * Scans a positive integer in the fen
 		 */
-		uint32_t scanInteger(const std::string& fen, std::string::iterator& fenIterator) {
+		static uint32_t scanInteger(const std::string& fen, std::string::iterator& fenIterator) {
 			uint32_t result = 0;
 			while (fenIterator != fen.end() && *fenIterator >= '0' && *fenIterator <= '9') {
 				result *= 10;
@@ -227,16 +236,29 @@ namespace QaplaInterface {
 			return result;
 		}
 
-		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
+		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::iterator& fenIterator, 
+			QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			chessBoard.setHalfmovesWithoutPawnMoveOrCapture(static_cast<uint8_t>(scanInteger(fen, fenIterator)));
 		}
 
-		bool isPieceChar(char pieceChar) {
+		void scanFullMoves(const std::string& fen, std::string::iterator& fenIterator, 
+			QaplaMoveGenerator::MoveGenerator& chessBoard) {
+			auto fullmoves = scanInteger(fen, fenIterator);
+			// fullmoves are not 0 indexed
+			if (fullmoves > 0)
+			{
+				fullmoves--;
+			}
+			auto halfmoves = fullmoves * 2 + (chessBoard.isWhiteToMove() ? 0 : 1);
+			chessBoard.setStartHalfmoves(halfmoves);
+		}
+
+		static bool isPieceChar(char pieceChar) {
 			std::string supportedChars = "PpNnBbRrQqKk";
 			return supportedChars.find(pieceChar) != std::string::npos;
 		}
 
-		bool isColChar(char colChar) {
+		static bool isColChar(char colChar) {
 			std::string supportedChars = "12345678";
 			return supportedChars.find(colChar) != std::string::npos;
 		}

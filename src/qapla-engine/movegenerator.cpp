@@ -23,7 +23,7 @@
 using namespace QaplaBasics;
 using namespace QaplaMoveGenerator;
 
-MoveGenerator::MoveGenerator(void)
+MoveGenerator::MoveGenerator()
 {
 	clear();
 }
@@ -79,16 +79,18 @@ void MoveGenerator::computePinnedMask()
 	ray &= (bitBoardsPiece[BISHOP + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
 	// Every piece set on Ray is pinning a white piece
 	// Set every piece from pinning piece to white king
-	for (; ray; ray &= ray - 1)
+	for (; ray; ray &= ray - 1) {
 		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
+	}
 	// Now same thing with rooks
 	ray = Magics::genRookAttackMask(kingSquares[COLOR], allPieceNoPinned);
 	// Set bits on ray with white rook or queen 
 	ray &= (bitBoardsPiece[ROOK + OPPONENT_COLOR] | bitBoardsPiece[QUEEN + OPPONENT_COLOR]);
 	// Every piece set on Ray is pinning a black piece
 	// Set every piece from pinning piece to own king
-	for (; ray; ray &= ray - 1)
+	for (; ray; ray &= ray - 1) {
 		result |= BitBoardMasks::Ray[kingSquares[COLOR] + lsb(ray) * 64];
+	}
 	
 	// Now every bit on result is a position with black pinned piece or a position
 	// the black piece may move to without setting the king to check
@@ -119,8 +121,9 @@ inline bitBoard_t MoveGenerator::computeAttackMaskForPiece(Square square, bitBoa
 template<Piece PIECE>
 bitBoard_t MoveGenerator::computeAttackMaskForPieces(bitBoard_t pieceBB, bitBoard_t allPiecesWithoutKing) {
 	bitBoard_t result = 0;
-	for (; pieceBB; pieceBB &= pieceBB - 1)
+	for (; pieceBB; pieceBB &= pieceBB - 1) {
 		result |= computeAttackMaskForPiece<PIECE>(lsb(pieceBB), allPiecesWithoutKing);
+	}
 	return result;
 }
 
@@ -172,12 +175,16 @@ void MoveGenerator::computeCastlingMasksForMoveGeneration()
 	}
 
 	for (square = getKingSquare<COLOR>() + 1; square <= kingSideCastlingTarget; ++square) {
-		if (square != getKingRookStartSquare<COLOR>()) castlePieceMaskKingSide[COLOR] |= 1ULL << square;
+		if (square != getKingRookStartSquare<COLOR>()) {
+			castlePieceMaskKingSide[COLOR] |= 1ULL << square;
+		}
 	}
 	for (square = getKingSquare<COLOR>() - 1; 
 		 square >= std::min(queenSideCastlingTarget, getQueenRookStartSquare<COLOR>());
 		--square) {
-		if (square != getQueenRookStartSquare<COLOR>()) castlePieceMaskQueenSide[COLOR] |= 1ULL << square;
+		if (square != getQueenRookStartSquare<COLOR>()) {
+			castlePieceMaskQueenSide[COLOR] |= 1ULL << square;
+		}
 	}
 }
 
@@ -654,10 +661,14 @@ void MoveGenerator::genMoves(MoveList& moveList)
 		// are standing in the row
 		if (isKingSideCastleAllowed<COLOR>() && (attackMask[OPPONENT_COLOR] & castleAttackMaskKingSide[COLOR]) == 0 &&
 			(castlePieceMaskKingSide[COLOR] & bitBoardAllPieces) == 0)
+		{
 			moveList.addSilentMove(Move(kingSquares[COLOR], KING_SIDE_CASTLE, Move::KING_CASTLES_KING_SIDE + COLOR));
+		}
 		if (isQueenSideCastleAllowed<COLOR>() && (attackMask[OPPONENT_COLOR] & castleAttackMaskQueenSide[COLOR]) == 0 &&
 			(castlePieceMaskQueenSide[COLOR] & bitBoardAllPieces) == 0)
+		{
 			moveList.addSilentMove(Move(kingSquares[COLOR], QUEEN_SIDE_CASTLE, Move::KING_CASTLES_QUEEN_SIDE + COLOR));
+		}
 
 		genPinnedMovesForAllPieces<COLOR>(moveList, getEP());
 	}
@@ -728,13 +739,11 @@ std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitma
 std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2> MoveGenerator::computeCheckBitmapsForMovingColor() const {
 	if (isWhiteToMove()) {
 		return computeCheckBitmaps<BLACK>();
-	}
-	else {
-		return computeCheckBitmaps<WHITE>();
-	}
+	} 
+	return computeCheckBitmaps<WHITE>();
 }
 
-bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkBitmaps) {
+bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::PIECE_AMOUNT / 2>& checkBitmaps) const {
 	const auto piece = move.getMovingPiece();
 	const auto destinationBit = squareToBB(move.getDestination());
 	// First, check if the target position of the move is a check square for the piece
@@ -753,7 +762,7 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	// For promotions, check if the promotion piece attacks the king
 	case Move::WHITE_PROMOTE:
 	case Move::BLACK_PROMOTE:
-		return checkBitmaps[move.getPromotion() >> 1] & destinationBit;
+		return static_cast<bool>(checkBitmaps[move.getPromotion() >> 1] & destinationBit);
 	// For EP, we have a complicated situation. We might "move" two pieces from a row and the discovered attack does not work.
 	// EP is seldom, so we can afford to do a slow check here
 	case Move::WHITE_EP:
@@ -763,7 +772,7 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 		const auto attack =
 			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + WHITE] | bitBoardsPiece[QUEEN + WHITE])) |
 			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + WHITE] | bitBoardsPiece[QUEEN + WHITE]));
-		return attack ? true : false;
+		return static_cast<bool>(attack);
 	}
 	case Move::BLACK_EP:
 	{
@@ -772,7 +781,7 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 		const auto attack =
 			(Magics::genRookAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[ROOK + BLACK] | bitBoardsPiece[QUEEN + BLACK])) |
 			(Magics::genBishopAttackMask(kingPos, allPiecesEPMovedBB) & (bitBoardsPiece[BISHOP + BLACK] | bitBoardsPiece[QUEEN + BLACK]));
-		return attack ? true : false;
+		return static_cast<bool>(attack);
 	}
 	// Check if the rook delivers check to the king after castling. There are two scenarios:
 	// 1. The rook is on a square that attacks the king (a computed check square).
@@ -794,32 +803,44 @@ bool MoveGenerator::isCheckMove(Move move, const std::array<bitBoard_t, Piece::P
 	return false;
 }
 
+namespace {
+	std::string moveToCastleSan(Move move) {
+		switch (move.getActionAndMovingPiece())
+		{
+		case Move::WHITE_CASTLES_KING_SIDE:
+		case Move::BLACK_CASTLES_KING_SIDE:
+			return "O-O";
+		case Move::WHITE_CASTLES_QUEEN_SIDE:
+		case Move::BLACK_CASTLES_QUEEN_SIDE:
+			return "O-O-O";
+		default:
+			return "";
+		}
+	}
+}
+
 std::string MoveGenerator::moveToSan(Move move) const
 {
 	std::string san;
 	auto piece = (*this)[move.getDeparture()];
 	auto capture = (*this)[move.getDestination()];
 	auto action = move.getActionAndMovingPiece();
-	switch (action)
-	{
-	case Move::WHITE_EP:
-		capture = BLACK_PAWN;
-		break;
-	case Move::BLACK_EP:
-		capture = WHITE_PAWN;
-		break;
-	case Move::WHITE_CASTLES_KING_SIDE:
-		return "O-O";
-	case Move::BLACK_CASTLES_KING_SIDE:
-		return "O-O";
-	case Move::WHITE_CASTLES_QUEEN_SIDE:
-		return "O-O-O";
-	case Move::BLACK_CASTLES_QUEEN_SIDE:
-		return "O-O-O";
-	default:
-		// Nothing to do
-		break;
+	
+	// Handle castling moves early (they need special handling for check/mate)
+	san = moveToCastleSan(move);
+	bool isCastling = !san.empty();
+	if (action == Move::WHITE_EP || action == Move::BLACK_EP) {
+		capture = action == Move::WHITE_EP ? BLACK_PAWN : WHITE_PAWN;
 	}
+	auto checkBitmaps = computeCheckBitmapsForMovingColor();
+	if (isCastling) {
+		if (isCheckMove(move, checkBitmaps)) {
+			san += "+";
+		}
+		return san;
+	}
+
+	
 	san = pieceToSan(piece);
 	// Add start position (column, row or both) if ambigous
 	if (!isPawn(piece)) {
@@ -860,6 +881,9 @@ std::string MoveGenerator::moveToSan(Move move) const
 	if (move.getPromotion() != NO_PIECE)
 	{
 		san += static_cast<std::string>("=") + pieceToSan(move.getPromotion());
+	}
+	if (isCheckMove(move, checkBitmaps)) {
+		san += "+";
 	}
 	return san;
 }

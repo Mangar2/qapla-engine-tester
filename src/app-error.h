@@ -19,13 +19,16 @@
 
 #pragma once
 
+#include "string-helper.h"
+
 #include <stdexcept>
 #include <string>
 #include <algorithm>
 #include <limits>
-#include "string-helper.h"
 
-enum class AppReturnCode {
+namespace QaplaTester {
+
+enum class AppReturnCode : std::uint8_t {
     NoError = 0,
     GeneralError = 1,
     InvalidParameters = 2,
@@ -45,17 +48,33 @@ class AppError : public std::runtime_error {
 public:
 
 
-    int getInternalCode() const noexcept { return internalCode_; }
-    AppReturnCode getReturnCode() const noexcept { return returnCode_; }
-    const std::string& getUserHint() const noexcept { return userHint_; }
-    const std::string& getInternalDetail() const noexcept { return internalDetail_; }
+    /**
+     * @brief Gets the internal error code.
+     * @return The internal error code.
+     */
+    [[nodiscard]] int getInternalCode() const noexcept { return internalCode_; }
+    /**
+     * @brief Gets the return code.
+     * @return The return code.
+     */
+    [[nodiscard]] AppReturnCode getReturnCode() const noexcept { return returnCode_; }
+    /**
+     * @brief Gets the user hint.
+     * @return The user hint string.
+     */
+    [[nodiscard]] const std::string& getUserHint() const noexcept { return userHint_; }
+    /**
+     * @brief Gets the internal detail.
+     * @return The internal detail string.
+     */
+    [[nodiscard]] const std::string& getInternalDetail() const noexcept { return internalDetail_; }
 
 	/**
 	 * Creates an AppError with a default internal code and return code of 1.
 	 * @param externalText The error message to display to the user.
 	 */
     static AppError make(const std::string& externalText) {
-        return AppError(0, AppReturnCode::GeneralError, externalText, {}, {});
+        return {0, AppReturnCode::GeneralError, externalText, {}, {}};
     }
 
 	/**
@@ -64,7 +83,7 @@ public:
 	 * @param externalText The error message to display to the user.
 	 */
     static AppError make(int internalCode, const std::string& externalText) {
-        return AppError(internalCode, AppReturnCode::GeneralError, externalText, {}, {});
+        return {internalCode, AppReturnCode::GeneralError, externalText, {}, {}};
     }
 
 	/**
@@ -74,7 +93,7 @@ public:
 	 * @param externalText The error message to display to the user.
 	 */
     static AppError make(int internalCode, AppReturnCode returnCode, const std::string& externalText) {
-        return AppError(internalCode, returnCode, externalText, {}, {});
+        return {internalCode, returnCode, externalText, {}, {}};
     }
 
 	/** 
@@ -87,7 +106,7 @@ public:
      */
     static AppError make(int internalCode, AppReturnCode returnCode, const std::string& externalText,
         const std::string& userHint, const std::string& internalDetail) {
-        return AppError(internalCode, returnCode, externalText, userHint, internalDetail);
+        return {internalCode, returnCode, externalText, userHint, internalDetail};
     }
 
     /**
@@ -96,26 +115,29 @@ public:
      * @return An AppError with internal code 0 and return code 2.
      */
     static AppError makeInvalidParameters(const std::string& externalText) {
-        return AppError(0, AppReturnCode::InvalidParameters, externalText, 
-            "Use --help to display all supported parameters.", {});
+        return {0, AppReturnCode::InvalidParameters, externalText,
+            defaultInvalidParameterUserHint_, {}};
     }
 
     /**
-     * Throws an AppError if the given option is not in the list of allowed options.
+     * @brief Throws an AppError if the given option is not in the list of allowed options.
      * Suggests a similar option if available.
      * @param allowedOptions List of valid options.
      * @param givenOption The provided option to validate.
      * @param contextText The context or description for the error message.
+     * @throws AppError If the option is invalid.
      */
     static void throwOnInvalidOption(const std::vector<std::string>& allowedOptions, 
         const std::string& givenOption, const std::string& contextText) {
 
-        if (std::find(allowedOptions.begin(), allowedOptions.end(), givenOption) != allowedOptions.end()) return;
+        if (std::ranges::find(allowedOptions, givenOption) != allowedOptions.end()) {
+            return;
+        }
 
         std::string suggestion;
         size_t minDistance = std::numeric_limits<int>::max();
         for (const auto& option : allowedOptions) {
-            size_t dist = levenshteinDistance(givenOption, option);
+            size_t dist = QaplaHelpers::levenshteinDistance(givenOption, option);
             if (dist < minDistance && dist <= 3) {
                 minDistance = dist;
                 suggestion = option;
@@ -123,29 +145,42 @@ public:
         }
 
         std::string hint = "\nValid options: ";
-        for (const auto& opt : allowedOptions) hint += opt + ", ";
+        for (const auto& opt : allowedOptions) {
+            hint += opt + ", ";
+        }
         hint.pop_back(); hint.pop_back(); // remove trailing comma and space
 
-        if (!suggestion.empty()) hint += ".\nDid you mean '" + suggestion + "'?";
+        if (!suggestion.empty()) {
+            hint += ".\nDid you mean '" + suggestion + "'?";
+        }
 
         throw makeInvalidParameters("\n" + contextText + ": '" + givenOption + "' " + hint);
+    }
+
+    /**
+     * @brief Sets the default user hint for AppError.
+     * @param hint The default user hint to set.
+     */
+    static void setDefaultInvalidParameterUserHint(const std::string& hint) {
+        defaultInvalidParameterUserHint_ = hint;
     }
 
 
 private:
 
     AppError(int internalCode, AppReturnCode returnCode, const std::string& externalText,
-        const std::string& userHint, const std::string& internalDetail)
+        std::string userHint, std::string internalDetail)
         : std::runtime_error(userHint.empty() ? externalText : externalText + "\nHint: " + userHint),
         internalCode_(internalCode),
         returnCode_(returnCode),
-        userHint_(userHint),
-        internalDetail_(internalDetail) {
+        userHint_(std::move(userHint)),
+        internalDetail_(std::move(internalDetail)) {
     }
     int internalCode_;
     AppReturnCode returnCode_;
     std::string userHint_;
     std::string internalDetail_;
+    static inline std::string defaultInvalidParameterUserHint_ = "Use --help to display all supported parameters.";
 };
 
-
+} // namespace QaplaTester

@@ -21,7 +21,6 @@
 
 #pragma once 
 
-#include <assert.h>
 #include "types.h"
 #include "evalvalue.h"
 #include "move.h"
@@ -42,7 +41,7 @@ namespace QaplaMoveGenerator {
 		 * Computes the attack mask for pawns
 		 */
 		template <uint32_t COLOR>
-		inline static QaplaBasics::bitBoard_t computePawnAttackMask(QaplaBasics::bitBoard_t pawns) {
+		static QaplaBasics::bitBoard_t computePawnAttackMask(QaplaBasics::bitBoard_t pawns) {
 			QaplaBasics::bitBoard_t attack = 
 				shiftColor<COLOR, QaplaBasics::NW>(pawns) | shiftColor<COLOR, QaplaBasics::NE>(pawns);
 			return attack;
@@ -52,7 +51,7 @@ namespace QaplaMoveGenerator {
 		 * Shifts the pawn bitboard by one move
 		 */
 		template<uint32_t COLOR, QaplaBasics::Square DIRECTION>
-		inline static QaplaBasics::bitBoard_t shiftColor(QaplaBasics::bitBoard_t bitboard) {
+		static QaplaBasics::bitBoard_t shiftColor(QaplaBasics::bitBoard_t bitboard) {
 			if constexpr (COLOR == QaplaBasics::WHITE) {
 				return shift<DIRECTION>(bitboard);
 			}
@@ -171,7 +170,7 @@ namespace QaplaMoveGenerator {
 		/**
 		 * Logical or of a bitboard moved to all 4 directions
 		 */
-		inline static QaplaBasics::bitBoard_t moveInAllDirections(QaplaBasics::bitBoard_t board) {
+		static QaplaBasics::bitBoard_t moveInAllDirections(QaplaBasics::bitBoard_t board) {
 			board |= shift<QaplaBasics::WEST>(board) | shift<QaplaBasics::EAST>(board);
 			board |= shift<QaplaBasics::NORTH>(board) | shift<QaplaBasics::SOUTH>(board);
 			return board;

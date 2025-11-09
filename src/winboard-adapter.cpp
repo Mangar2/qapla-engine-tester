@@ -30,7 +30,9 @@
 #include "engine-process.h"
 #include "logger.h"
 
-WinboardAdapter::WinboardAdapter(std::filesystem::path enginePath,
+namespace QaplaTester {
+
+WinboardAdapter::WinboardAdapter(const std::filesystem::path& enginePath,
     const std::optional<std::filesystem::path>& workingDirectory,
     const std::string& identifier)
 	: EngineAdapter(enginePath, workingDirectory, identifier)
@@ -39,7 +41,7 @@ WinboardAdapter::WinboardAdapter(std::filesystem::path enginePath,
 }
 
 WinboardAdapter::~WinboardAdapter() {
-    terminateEngine();
+    WinboardAdapter::terminateEngine();
 }
 
 void WinboardAdapter::terminateEngine() {
@@ -79,13 +81,114 @@ void WinboardAdapter::startProtocol() {
 }
 
 void WinboardAdapter::newGame(const GameRecord& gameRecord, bool engineIsWhite) {
-	sendPosition(gameRecord);
-    gameRecord_ = gameRecord;
-	sendTimeControl(gameRecord, engineIsWhite);
+    gameStruct_ = gameRecord.createGameStruct();
+    sendPosition(gameStruct_);
+    const auto& timeControl = engineIsWhite ? 
+        gameRecord.getWhiteTimeControl() : 
+        gameRecord.getBlackTimeControl();
+
+	setTimeControl(timeControl);
+    lastOwnMove_.clear();
+    // Post mode shows thinking output
+    writeCommand("post");
+}
+
+void WinboardAdapter::setTimeControl(const GameRecord& gameRecord, bool engineIsWhite) {
+    const auto& timeControl = engineIsWhite ? 
+        gameRecord.getWhiteTimeControl() : 
+        gameRecord.getBlackTimeControl();
+
+	setTimeControl(timeControl);
+}
+
+void WinboardAdapter::setTimeControl(const TimeControl& timeControl) {
+    if (!timeControl.isValid()) {
+        return;
+    }
+
+
+    const auto& segments = timeControl.timeSegments();
+    if (!segments.empty()) {
+        const auto& seg = segments[0];
+        int moves = seg.movesToPlay > 0 ? seg.movesToPlay : 0;
+        int baseSeconds = static_cast<int>(seg.baseTimeMs / 1000);
+		int baseMinutes = baseSeconds / 60;
+		baseSeconds %= 60;
+        int incSeconds = static_cast<int>(seg.incrementMs / 1000);
+        std::ostringstream oss;
+        if (!clearTimeControlCommand_.empty()) {
+            writeCommand(clearTimeControlCommand_);
+            clearTimeControlCommand_.clear();
+        }
+        oss << "level " << moves << " "
+            << baseMinutes << ":"
+            << baseSeconds << " "
+			<< incSeconds;
+        writeCommand(oss.str());
+        return;
+    }
+
+    if (timeControl.moveTimeMs()) {
+        if (!clearTimeControlCommand_.empty() && clearTimeControlCommand_ != "st 0") {
+            writeCommand(clearTimeControlCommand_);
+            clearTimeControlCommand_.clear();
+        }
+        clearTimeControlCommand_ = "st 0";
+        writeCommand("st " + std::to_string(static_cast<int>(*timeControl.moveTimeMs() / 1000)));
+        return;
+    }
+
+    if (timeControl.depth()) {
+        if (!clearTimeControlCommand_.empty() && clearTimeControlCommand_ != "sd 0") {
+            writeCommand(clearTimeControlCommand_);
+            clearTimeControlCommand_.clear();
+        }
+        clearTimeControlCommand_ = "sd 0";
+        writeCommand("sd " + std::to_string(*timeControl.depth()));
+        return;
+    }
+
+    if (timeControl.nodes()) {
+        if (!clearTimeControlCommand_.empty() && clearTimeControlCommand_ != "nps 0") {
+            writeCommand(clearTimeControlCommand_);
+            clearTimeControlCommand_.clear();
+        }
+        clearTimeControlCommand_ = "nps 0";
+        writeCommand("nps " + std::to_string(*timeControl.nodes()));
+        return;
+    }
+}
+
+void WinboardAdapter::setForceMode() {
+    if (forceMode_) {
+        return;
+    }
+    writeCommand("force");
+    forceMode_ = true;
 }
 
 void WinboardAdapter::moveNow() {
-    writeCommand("?");
+    if (forceMode_) {
+        // If we are in force mode, the engine is not doing anything and cannot move now.
+        return;
+    }
+    if (isAnalyzeMode_) {
+        writeCommand("exit");
+        isAnalyzeMode_ = false;
+    } else {
+        writeCommand("?");
+    }
+    setForceMode();
+}
+
+EngineEvent::Type WinboardAdapter::waitAfterMoveNowHandshake() {
+    return isAnalyzeMode_ ? EngineEvent::Type::None : EngineEvent::Type::BestMove;
+}
+
+EngineEvent::Type WinboardAdapter::handlePonderMiss() {
+    // XBoard engines don't send bestmove when stopping pondering
+    // We just stop pondering silently, no handshake possible
+    return EngineEvent::Type::None;
 }
 
 void WinboardAdapter::setPonder(bool enabled) {
@@ -97,69 +200,99 @@ void WinboardAdapter::ticker() {
 }
 
 uint64_t WinboardAdapter::allowPonder(
-    [[maybe_unused]] const GameRecord & game, 
+    [[maybe_unused]] const GameStruct & game, 
     [[maybe_unused]] const GoLimits & limits, 
     [[maybe_unused]] std::string ponderMove) {
     return 0;
 }
 
-uint64_t WinboardAdapter::catchupMovesAndGo(const GameRecord& game) {
-    const auto& newMoves = game.history();
-    auto& oldMoves = gameRecord_.history();
+void WinboardAdapter::bestMoveReceived(const std::string& sanMove, const std::string& lanMove) {
+    if (!sanMove.empty()) {
+        gameStruct_.sanMoves += (gameStruct_.sanMoves.empty() ? "" : " ") + sanMove;
+    }
+    if (!lanMove.empty()) {
+        gameStruct_.lanMoves += (gameStruct_.lanMoves.empty() ? "" : " ") + lanMove;
+    }
+    // The last own move is now in the move list
+    lastOwnMove_.clear();
+}
 
-    if (game.getStartPos() != gameRecord_.getStartPos() ||
-        game.getStartFen() != gameRecord_.getStartFen() ||
-		oldMoves.size() > newMoves.size()) {
-		throw std::runtime_error("Different start position or FEN detected in sendMissingMoves");
+uint64_t WinboardAdapter::go(bool isInfinite) {
+    if (isAnalyzeMode_) {
+        return 0;
+    }
+    forceMode_ = false;
+    if (isInfinite) {
+        isAnalyzeMode_ = true;
+        return writeCommand("analyze");
+    }
+    return writeCommand("go");
+}
+
+uint64_t WinboardAdapter::catchupMovesAndGo(const GameStruct& game, bool isInfinite) {
+
+	const auto& newMoves = isEnabled("san") ? game.sanMoves : game.lanMoves;
+	const auto& oldMoves = isEnabled("san") ? gameStruct_.sanMoves : gameStruct_.lanMoves;
+    
+    if (game.fen != gameStruct_.fen || !newMoves.starts_with(oldMoves)) {
+        sendPosition(game);
+        return go(isInfinite);
+    }
+    // If we have a last own move that was not reflected by "bestMoveReceived", the engine has made
+    // an additional move (e.g. in force mode). We need to undo it first as the position is now out of sync.
+    if (!lastOwnMove_.empty()) {
+        setForceMode();
+        writeCommand("undo");
+        lastOwnMove_.clear();
+    }
+	std::string additionalMoves = newMoves.substr(oldMoves.size());
+
+    if (additionalMoves.empty()) {
+        return go(isInfinite);
     }
 
-    for (size_t ply = 0; ply < oldMoves.size(); ply++) {
-        if (!oldMoves[ply].lan.empty() &&
-            oldMoves[ply].lan != newMoves[ply].lan) {
-            throw std::runtime_error("Different move history detected in sendMissingMoves");
-		}
-        else if (oldMoves[ply].original == newMoves[ply].original) {
-            oldMoves[ply] = newMoves[ply];
-        } else {
-            throw std::runtime_error("Different move history detected in sendMissingMoves");
-		}
-	}
-    // We need either a move command or a go command to tell the engine to play a move
-    if (newMoves.size() == oldMoves.size()) {
-        forceMode_ = false;
-        size_t size = newMoves.size();
-        if (size > 0) oldMoves[size - 1] = newMoves[size - 1];
-        return writeCommand("go");
-    }
+    std::istringstream lanStream(additionalMoves);
+    std::string move;
 
-    if (newMoves.size() - oldMoves.size() > 1) {
-        writeCommand("force");
-        forceMode_ = true;
-    }
+    std::string firstMove;
+    lanStream >> firstMove;
     uint64_t lastTimestamp = 0;
-    for (size_t ply = oldMoves.size(); ply < newMoves.size(); ++ply) {
-        std::string move = isEnabled("san") ? newMoves[ply].san : newMoves[ply].lan;
-        if (!move.empty()) {
-            gameRecord_.addMove(newMoves[ply]);
-            lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + newMoves[ply].lan);
+
+	while (lanStream >> move) {
+        if (!firstMove.empty()) {
+			// If we have more than one move, we need to set winboard to force mode to prevent the engine
+			// from playing its own move immediately.
+            setForceMode();
+            writeCommand((isEnabled("usermove") ? "usermove " : "") + firstMove);
+			firstMove.clear();
         }
-        else {
-            throw std::runtime_error("Empty LAN or SAN string in move history in sendMissingMoves");
-        }
+        lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + move);
 	}
-    if (forceMode_) {
-        forceMode_ = false;
-        lastTimestamp = writeCommand("go");
+    if (!firstMove.empty()) {
+		lastTimestamp = writeCommand((isEnabled("usermove") ? "usermove " : "") + firstMove);
     }
+
+    bool switchSides = lastTimestamp == 0;
+    // Check for isInfinite is redundant as isInfinite sets forceMode_ to true, but clearer
+    if (forceMode_ || switchSides || isInfinite) {
+        lastTimestamp = go(isInfinite);
+    }
+
+    gameStruct_ = game;
     return lastTimestamp;
 }
 
-uint64_t WinboardAdapter::computeMove(const GameRecord& game,
+uint64_t WinboardAdapter::computeMove(const GameStruct& game,
     const GoLimits& limits,
-    [[maybe_unused]] bool ponderHit) {
-    if (isEnabled("time")) {
-        uint64_t time = game.isWhiteToMove() ? limits.wtimeMs : limits.btimeMs;
-        uint64_t otim = game.isWhiteToMove() ? limits.btimeMs : limits.wtimeMs;
+    [[maybe_unused]] bool ponderHit) 
+{
+    if (limits.infinite) {
+        setForceMode();
+        return catchupMovesAndGo(game, true);
+    } 
+    if (isEnabled("time") && !limits.mateIn && !limits.depth && !limits.nodes && !limits.moveTimeMs) {
+        uint64_t time = game.isWhiteToMove ? limits.wtimeMs : limits.btimeMs;
+        uint64_t otim = game.isWhiteToMove ? limits.btimeMs : limits.wtimeMs;
         writeCommand("time " + std::to_string(time / 10));
         writeCommand("otim " + std::to_string(otim / 10));
     }
@@ -171,54 +304,24 @@ void WinboardAdapter::askForReady() {
     writeCommand("ping " + std::to_string(pingCounter_));
 }
 
-void WinboardAdapter::sendTimeControl(const GameRecord& gameRecord, bool engineIsWhite) {
-    const TimeControl& tc = engineIsWhite ? gameRecord.getWhiteTimeControl()
-        : gameRecord.getBlackTimeControl();
-
-    if (!tc.isValid()) return;
-
-    const auto& segments = tc.timeSegments();
-    if (!segments.empty()) {
-        const auto& seg = segments[0];
-        int moves = seg.movesToPlay > 0 ? seg.movesToPlay : 0;
-        int baseSeconds = static_cast<int>(seg.baseTimeMs / 1000);
-		int baseMinutes = baseSeconds / 60;
-		baseSeconds %= 60;
-        int incSeconds = static_cast<int>(seg.incrementMs / 1000);
-        std::ostringstream oss;
-        oss << "level " << moves << " "
-            << baseMinutes << ":"
-            << baseSeconds << " "
-			<< incSeconds;
-        writeCommand(oss.str());
-    }
-
-    if (tc.moveTimeMs()) {
-        writeCommand("st " + std::to_string(static_cast<int>(*tc.moveTimeMs() / 1000)));
-    }
-
-    if (tc.depth()) {
-        writeCommand("sd " + std::to_string(*tc.depth()));
-    }
-
-    if (tc.nodes()) {
-        writeCommand("nps " + std::to_string(*tc.nodes()));
-    }
-}
-
-void WinboardAdapter::sendPosition(const GameRecord& game) {
+void WinboardAdapter::sendPosition(const GameStruct& game) {
     writeCommand("new");
-    writeCommand("easy");
-    writeCommand("force");
-	forceMode_ = true;
+    // The new command leaves force mode and sets white to move
+    forceMode_ = false;
+    writeCommand(ponderMode_ ? "hard" : "easy");
+    setForceMode();
 
-    if (!game.getStartPos()) {
-        writeCommand("setboard " + game.getStartFen());
+    if (!game.fen.empty()) {
+        writeCommand("setboard " + game.fen);
     }
 
-    for (uint32_t ply = 0; ply < game.nextMoveIndex(); ++ply) {
-        writeCommand((isEnabled("usermove") ? "usermove " : "") + game.history()[ply].lan);
+    std::istringstream lanStream(game.lanMoves);
+    std::string move;
+
+    while (lanStream >> move) {
+        writeCommand((isEnabled("usermove") ? "usermove " : "") + move);
     }
+
 }
 
 void WinboardAdapter::setTestOption(
@@ -227,46 +330,60 @@ void WinboardAdapter::setTestOption(
 	throw AppError::make("WinboardAdapter does not support setTestOption");
 }
 
+std::string WinboardAdapter::computeStandardOptions(const EngineOption& supportedOption, const std::string& value) {
+    // We use uci compatible option names for memory and smp
+    std::string command;
+    if (supportedOption.name == "Hash" && isEnabled("memory")) {
+        command = "memory " + value;
+    } else if (supportedOption.name == "Threads" && isEnabled("smp")) {
+        command = "cores " + value;
+    } else {
+        // XBoard protocol: options are set with "option <name>=<value>"
+        command = "option " + supportedOption.name + "=" + value;
+    }
+    return command;
+}
+
 void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
     for (const auto& [name, value] : optionValues) {
         try {
 			auto opt = getSupportedOption(name);
             if (!opt) {
-                Logger::testLogger().log("Unsupported option: " + name, TraceLevel::info);
+                Logger::testLogger().log(std::format("Unsupported option: {}", name), TraceLevel::info);
                 continue;
             }
 			const auto& supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
-                    Logger::testLogger().log("Option value for " + name + " is too long", TraceLevel::info);
+                    Logger::testLogger().log(std::format("Option value for {} is too long", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Spin) {
                 int intValue = std::stoi(value);
                 if (intValue < supportedOption.min || intValue > supportedOption.max) {
-                    Logger::testLogger().log("Option value for " + name + " is out of bounds", TraceLevel::info);
+                    Logger::testLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
                     continue;
                 }
             }
-			else if (supportedOption.type == EngineOption::Type::Check) {
-				if (value != "true" && value != "false") {
-					Logger::testLogger().log("Invalid boolean value for option " + name, TraceLevel::info);
-					continue;
-				}
-			}
-			else if (supportedOption.type == EngineOption::Type::Combo) {
-				if (std::find(supportedOption.vars.begin(), supportedOption.vars.end(), value) == supportedOption.vars.end()) {
-					Logger::testLogger().log("Invalid value for combo option " + name, TraceLevel::info);
-					continue;
-				}
-			}
-            std::string command = "setoption name " + supportedOption.name + " value " + value;
+            else if (supportedOption.type == EngineOption::Type::Check) {
+                if (value != "true" && value != "false") {
+                    Logger::testLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
+                    continue;
+                }
+            }
+            else if (supportedOption.type == EngineOption::Type::Combo) {
+                if (std::ranges::find(supportedOption.vars, value) == supportedOption.vars.end()) {
+                    Logger::testLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
+                    continue;
+                }
+            }
+            std::string command = computeStandardOptions(supportedOption, value);
             writeCommand(command);
         }
         catch (...) {
-            Logger::testLogger().log("Invalid value " + value + " for option " + name, TraceLevel::info);
+            Logger::testLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
         }
 
 	}
@@ -295,8 +412,8 @@ static bool readBoundedInt(std::istringstream& iss,
     int64_t value;
     if (!(iss >> value)) {
         errors.push_back({
-            "missing-thinking-output",
-            "Expected an integer for '" + fieldName + "'"
+            .name = "missing-thinking-output",
+            .detail = "Expected an integer for '" + fieldName + "'"
             });
         return false;
     }
@@ -348,7 +465,7 @@ void storeBoundedInt(
  * @return true if the next non-whitespace character is a tab, false otherwise.
  */
 static bool comesTab(std::istream& stream) {
-    while (std::isspace(stream.peek()) && stream.peek() != '\t') {
+    while (std::isspace(static_cast<unsigned char>(stream.peek())) != 0 && stream.peek() != '\t') {
         stream.get();
     }
     return stream.peek() == '\t';
@@ -363,6 +480,7 @@ static std::vector<std::string> parseOptionalIntegers(std::istringstream& iss, E
 		pv.push_back(token);
 		if (comesTab(iss)) {
             optionals = std::move(pv);
+            pv.clear();
 			pvStart = iss.tellg();
 		}
     }
@@ -396,24 +514,32 @@ static void parsePV(const std::vector<std::string>& pv, EngineEvent& event) {
         if (token.find(')') != std::string::npos) {
             inParens = false;
         }
-        if (inParens) continue;
-        if (std::isalpha(token[0]) || token == "0-0" || token == "0-0-0") {
+        if (inParens) {
+            continue;
+        }
+        if (std::isalpha(static_cast<unsigned char>(token[0])) != 0 || token == "0-0" || token == "0-0-0") {
 			event.searchInfo->pv.push_back(token);
         }
     }
 }
 
-EngineEvent WinboardAdapter::parseSearchInfo(std::string depthStr, std::istringstream& iss, 
+EngineEvent WinboardAdapter::parseSearchInfo(const std::string& depthStr, std::istringstream& iss, 
     uint64_t timestamp, const std::string& originalLine) {
     EngineEvent event = EngineEvent::createInfo(identifier_, timestamp, originalLine);
+    constexpr int32_t MATE_VALUE = 100000;
+    constexpr int32_t MAX_SCORE = MATE_VALUE + 10000;
 
     event.searchInfo->depth = std::stoi(depthStr);
 
-	if (!readBoundedInt<int32_t>(iss, "score", -110000, 110000, event.searchInfo->scoreCp, event.errors)) {
+	if (!readBoundedInt<int32_t>(iss, "score", -MAX_SCORE, MAX_SCORE, event.searchInfo->scoreCp, event.errors)) {
         return event;
 	}
-    if (*event.searchInfo->scoreCp <= -10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp + 10000;
-	if (*event.searchInfo->scoreCp >= 10000) event.searchInfo->scoreMate = *event.searchInfo->scoreCp - 10000;
+    if (*event.searchInfo->scoreCp <= -MATE_VALUE) {
+        event.searchInfo->scoreMate = *event.searchInfo->scoreCp + MATE_VALUE;
+    }
+    else if (*event.searchInfo->scoreCp >= MATE_VALUE) {
+        event.searchInfo->scoreMate = *event.searchInfo->scoreCp - MATE_VALUE;
+    }
 
 	if (!readBoundedInt<uint64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
 		return event;
@@ -438,27 +564,28 @@ void WinboardAdapter::parseOptionFeature(const std::string& optionStr, EngineEve
     std::string name;
     std::getline(iss, name, '-');
     if (name.find(' ') != std::string::npos) {
-        event.errors.push_back({ "feature-report", "Option name '" + name + "' contains space" });
+        event.errors.push_back({ .name = "feature-report", .detail = "Option name '" + name + "' contains space" });
     }
-    trim(name);
+    QaplaHelpers::trim(name);
 
     std::string kind;
     iss >> kind;
 
     EngineOption opt;
     opt.name = name;
-    opt.type = parseOptionType(kind);
+    opt.type = EngineOption::parseType(kind);
 
     if (opt.type == EngineOption::Type::Spin || opt.type == EngineOption::Type::Slider) {
         std::string value;
-        int min, max;
+        int min;
+        int max;
         if (iss >> value >> min >> max) {
             opt.defaultValue = value;
             opt.min = min;
             opt.max = max;
         }
         else {
-            event.errors.push_back({ "feature-report", "Invalid spin/slider definition for '" + name + "'" });
+            event.errors.push_back({ .name = "feature-report", .detail = "Invalid spin/slider definition for '" + name + "'" });
             return;
         }
     }
@@ -478,7 +605,7 @@ void WinboardAdapter::parseOptionFeature(const std::string& optionStr, EngineEve
         opt.type == EngineOption::Type::File || opt.type == EngineOption::Type::Path) {
         std::string value;
         std::getline(iss, value);
-        trim(value);
+        QaplaHelpers::trim(value);
         opt.defaultValue = value;
     }
 
@@ -497,10 +624,12 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, uint64_t 
         // feature supports quoted values (strings)
         if (!value.empty() && value.front() == '"') {
             std::string remainder;
-            while (!value.ends_with("\"") && iss >> remainder)
+            while (!value.ends_with("\"") && iss >> remainder) {
                 value += " " + remainder;
-            if (value.ends_with("\""))
+            }
+            if (value.ends_with("\"")) {
                 value = value.substr(1, value.size() - 2);
+            }
         }
 
         if (key == "option") {
@@ -509,13 +638,13 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, uint64_t 
         }
 
         if (onlyOption) {
-			event.errors.push_back({ "feature-report", "Unexpected feature '" + key + "' outside protocol initialization" });
+			event.errors.push_back({ .name = "feature-report", .detail = "Unexpected feature '" + key + "' outside protocol initialization" });
             continue;
         }
 
         auto it = featureMap_.find(key);
         if (it != featureMap_.end() && key != "done") {
-            event.errors.push_back({ "feature-report", "Feature '" + key + "' specified more than once" });
+            event.errors.push_back({ .name = "feature-report", .detail = "Feature '" + key + "' specified more than once" });
         }
         featureMap_[key] = value;
     }
@@ -550,14 +679,43 @@ void WinboardAdapter::finalizeFeatures() {
     };
 
     for (const auto& [key, defaultValue] : booleanFeatureDefaults) {
-        if (featureMap_.find(key) == featureMap_.end()) {
+        if (!featureMap_.contains(key)) {
             featureMap_[key] = defaultValue ? "1" : "0";
         }
+    }
+    if (featureMap_.contains("myname")) {
+        engineName_ = featureMap_["myname"];
+    }
+
+    // XBoard protocol: if feature memory=1, add a Hash option for UCI compatibility (once)
+    if (isEnabled("memory") && !getSupportedOption("Hash")) {
+        EngineOption hashOption = {
+            .name = "Hash",
+            .type = EngineOption::Type::Spin,
+            .defaultValue = "32",
+            .min = 1,
+            .max = 131072,
+            .vars = {}
+        };
+        supportedOptions_.push_back(std::move(hashOption));
+    }
+
+    // XBoard protocol: if feature smp=1, add a Threads option
+    if (isEnabled("smp") && !getSupportedOption("Threads")) {
+        EngineOption threadsOption = {
+            .name = "Threads",
+            .type = EngineOption::Type::Spin,
+            .defaultValue = "1",
+            .min = 1,
+            .max = 512,
+            .vars = {}
+        };
+        supportedOptions_.push_back(std::move(threadsOption));
     }
 }
 
 EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
-    const std::string& line = trim(engineLine.content);
+    const std::string& line = QaplaHelpers::trim(engineLine.content);
 
     if (!line.starts_with("feature ")) {
         logFromEngine(line, TraceLevel::info);
@@ -580,7 +738,7 @@ EngineEvent WinboardAdapter::readFeatureSection(const EngineLine& engineLine) {
             event.type = EngineEvent::Type::ExtendTimeout;
         }
         else {
-			event.errors.push_back({ "feature-report", "Invalid 'done' value: '" + it->second + "'" });
+			event.errors.push_back({ .name = "feature-report", .detail = "Invalid 'done' value: '" + it->second + "'" });
             event.type = EngineEvent::Type::Error;
         }
     }
@@ -594,25 +752,25 @@ EngineEvent WinboardAdapter::parseResult(std::istringstream& iss, const std::str
     char openBrace;
     if (!(iss >> openBrace) || openBrace != '{') {
         event.errors.push_back({
-            "result-parsing",
-            "Expected opening '{' after game result command, in line: " + event.rawLine
+            .name = "result-parsing",
+            .detail = "Expected opening '{' after game result command, in line: " + event.rawLine
 			});
     }
     std::string text;
     if (!std::getline(iss, text, '}')) {
         event.errors.push_back({
-            "result-parsing",
-            "Expected closing '}' at the end of a result command in line: " + event.rawLine
+            .name = "result-parsing",
+            .detail = "Expected closing '}' at the end of a result command in line: " + event.rawLine
             });
     }
-    text = trim(text);
+    text = QaplaHelpers::trim(text);
 
     if (command == "0-1") {
         event.gameResult = GameResult::BlackWins;
         if (text != "Black mates") {
             event.errors.push_back({
-                "result-parsing",
-                "Expected 'Black mates' after '0-1' in: " + event.rawLine
+                .name = "result-parsing",
+                .detail = "Expected 'Black mates' after '0-1' in: " + event.rawLine
             });
 		}
     }
@@ -620,8 +778,8 @@ EngineEvent WinboardAdapter::parseResult(std::istringstream& iss, const std::str
         event.gameResult = GameResult::WhiteWins;
         if (text != "White mates") {
             event.errors.push_back({
-                "result-parsing",
-                "Expected 'White mates' after '1-0' in: " + event.rawLine
+                .name = "result-parsing",
+                .detail = "Expected 'White mates' after '1-0' in: " + event.rawLine
                 });
         }
     }
@@ -630,46 +788,55 @@ EngineEvent WinboardAdapter::parseResult(std::istringstream& iss, const std::str
     }
     else {
         event.errors.push_back({
-            "result-parsing",
-            "Unexpected game result command: " + command + " in line: " + event.rawLine
+            .name = "result-parsing",
+            .detail = "Unexpected game result command: " + command + " in line: " + event.rawLine
 			});
 	}
     return event;
 }
 
-EngineEvent WinboardAdapter::readEvent() {
-    EngineLine engineLine = process_.readLineBlocking();
-    const std::string& line = engineLine.content;
-
-    if (!engineLine.complete || engineLine.error == EngineLine::Error::IncompleteLine) {
-        if (engineLine.complete) logFromEngine(line, TraceLevel::info);
+EngineEvent WinboardAdapter::parseCommentLine(const EngineLine& engineLine) {
+    // XBoard protocol: engines with "feature debug=1" may send lines starting with '#' for debugging
+    // These lines should be ignored when debug mode is enabled, but trigger an error otherwise
+    if (isEnabled("debug")) {
+        logFromEngine(engineLine.content, TraceLevel::info);
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
+    logFromEngine(engineLine.content, TraceLevel::error);
+    return EngineEvent::createError(identifier_, engineLine.timestampMs, 
+        "Engine sent debug output without debug mode enabled");
+}
 
-    if (engineLine.error == EngineLine::Error::EngineTerminated) {
-        if (terminating_) {
-            return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
-        }
-        return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);
-    }
+EngineEvent WinboardAdapter::parseMove(std::istringstream& iss, const EngineLine& engineLine) {
+    logFromEngine(engineLine.content, TraceLevel::command);
+    std::string move;
+    iss >> move;
+    gameStruct_.originalMove = move;
+    // lastOwnMove is used to remember that the engine is one move ahead until bestMoveReceived is called
+    // reflecting that the move is now known to the game management
+    lastOwnMove_ = move;
+    return EngineEvent::createBestMove(identifier_, engineLine.timestampMs, engineLine.content, move, "");
+}
 
-    if (inFeatureSection_) {
-        return readFeatureSection(engineLine);
+EngineEvent WinboardAdapter::parseHint(std::istringstream& iss, const EngineLine& engineLine) {
+    logFromEngine(engineLine.content, TraceLevel::command);
+    std::string hintMove;
+    iss >> hintMove;
+    if (!hintMove.empty()) {
+        return EngineEvent::createPonderMove(identifier_, engineLine.timestampMs, engineLine.content, hintMove);
     }
-	/* Timeout test code, uncomment to use
-    static int64_t count = 0;
-    count++;
-    if (count == 100) {
-		std::cout << identifier_ << " WinboardAdapter: readEvent() called 100 times, sleeping for 200 seconds" << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(200));
-		std::cout << identifier_ << " WinboardAdapter: resuming after sleep" << std::endl;
-    }
-    */
+    return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+}
+
+EngineEvent WinboardAdapter::parseCommand(const EngineLine& engineLine) {
+
+    const auto& line = engineLine.content;
     std::istringstream iss(line);
     std::string command;
     iss >> command;
+    command = QaplaHelpers::to_lowercase(command);
 
-    if (isInteger(command)) {
+    if (QaplaHelpers::isInteger(command)) {
         if (suppressInfoLines_) {
             return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
         }
@@ -688,11 +855,7 @@ EngineEvent WinboardAdapter::readEvent() {
     }
 
     if (command == "move") {
-        logFromEngine(line, TraceLevel::command);
-        std::string move;
-		iss >> move;
-        gameRecord_.addMove({ .original = move });
-		return EngineEvent::createBestMove(identifier_, engineLine.timestampMs, line, move, "");
+        return parseMove(iss, engineLine);
     }
 
     if (command == "tellics" || command == "tellicsnoalias" 
@@ -702,9 +865,8 @@ EngineEvent WinboardAdapter::readEvent() {
         return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
     }
 
-    if (command == "hint") {
-        logFromEngine(line, TraceLevel::info);
-        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    if (command == "hint:") {
+        return parseHint(iss, engineLine);
     }
 
     if (command == "feature") {
@@ -740,3 +902,37 @@ EngineEvent WinboardAdapter::readEvent() {
 
     return EngineEvent::createUnknown(identifier_, engineLine.timestampMs, line);
 }
+
+EngineEvent WinboardAdapter::readEvent() {
+    EngineLine engineLine = process_.readLineBlocking();
+    const auto& line = engineLine.content;
+
+    if (!engineLine.complete) {
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (engineLine.error == EngineLine::Error::IncompleteLine) {
+        logFromEngine(line, TraceLevel::error);
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+
+    if (engineLine.error == EngineLine::Error::EngineTerminated && terminating_) {
+        return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+    }
+    if (engineLine.error == EngineLine::Error::EngineTerminated && !terminating_) {
+        return EngineEvent::createEngineDisconnected(identifier_, engineLine.timestampMs, engineLine.content);
+    }
+
+    if (inFeatureSection_) {
+        return readFeatureSection(engineLine);
+    }
+
+    if (!line.empty() && line[0] == '#') {
+        return parseCommentLine(engineLine);
+    }
+
+    return parseCommand(engineLine);
+   
+}
+
+} // namespace QaplaTester

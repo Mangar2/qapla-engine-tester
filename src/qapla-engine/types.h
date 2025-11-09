@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Boehm
- * @copyright Copyright (c) 2021 Volker Boehm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
  * Defines basic types for a chess engine like piece and move
  */
@@ -29,9 +29,10 @@
 
 namespace QaplaBasics {
 
-	typedef int32_t square_t;
-	typedef uint64_t bitBoard_t;
-	typedef std::array<bitBoard_t, 2> colorBB_t;
+	using square_t = int32_t;
+	using bitBoard_t = uint64_t;
+	using colorBB_t = std::array<bitBoard_t, 2>;
+
 
 	/**
 	 * Prints a bitboard to stdout
@@ -308,10 +309,19 @@ namespace QaplaBasics {
 	 * @example stringToSquare("e1")
 	 */
 	constexpr auto stringToSquare(std::string squareAsString) {
+		if (squareAsString.length() != 2) {
+			return NO_SQUARE;
+		}
+		if (squareAsString[0] < 'a' || squareAsString[0] > 'h') {
+			return NO_SQUARE;
+		}
+		if (squareAsString[1] < '1' || squareAsString[1] > '8') {
+			return NO_SQUARE;
+		}
 		square_t result =
 			(squareAsString[0] - 'a') * EAST +
 			(squareAsString[1] - '1') * NORTH;
-		return result;
+		return static_cast<Square>(result);
 	}
 
 	/**

@@ -47,7 +47,7 @@ namespace QaplaBasics {
 		 * Checks, if castling king side is allowed
 		 */
 		template <Piece COLOR>
-		bool isKingSideCastleAllowed() const {
+		[[nodiscard]] bool isKingSideCastleAllowed() const {
 			return (_info & (COLOR == WHITE ? WHITE_KING_SIDE_CASTLE_BIT : BLACK_KING_SIDE_CASTLE_BIT)) != 0;
 		}
 
@@ -55,7 +55,7 @@ namespace QaplaBasics {
 		 * Checks, if castling queen side is allowed
 		 */
 		template <Piece COLOR>
-		bool isQueenSideCastleAllowed() const {
+		[[nodiscard]] bool isQueenSideCastleAllowed() const {
 			return (_info & (COLOR == WHITE ? WHITE_QUEEN_SIDE_CASTLE_BIT : BLACK_QUEEN_SIDE_CASTLE_BIT)) != 0;
 		}
 
@@ -130,23 +130,23 @@ namespace QaplaBasics {
 		/**
 		 * Gets the castling right mask
 		 */
-		uint16_t getCastlingRightsMask() const {
+		[[nodiscard]] uint16_t getCastlingRightsMask() const {
 			return (_info & CASTLE_MASK) >> CASTLE_SHIFT;
 		}
 
 		/**
 		 * Retrieves the EP square = the square the opponent pawn moved to
 		 */
-		Square getEP() const { return Square(_info & EP_MASK); }
+		[[nodiscard]] Square getEP() const { return Square(_info & EP_MASK); }
 		void setEP(Square epSquare) { _info = (_info & ~EP_MASK) | static_cast<uint16_t>(epSquare); }
 
-		bool hasEP() const { return (_info & EP_MASK) != 0; }
+		[[nodiscard]] bool hasEP() const { return (_info & EP_MASK) != 0; }
 		void clearEP() { _info &= ~EP_MASK; }
 
 		/**
 		 * computes the current board hash
 		 */
-		inline hash_t computeBoardHash() const {
+		[[nodiscard]] hash_t computeBoardHash() const {
 			hash_t result = boardHash
 				^ HashConstants::EP_RANDOMS[getEP()]
 				^ HashConstants::CASTLE_RANDOMS[getCastlingRightsMask()];
@@ -156,7 +156,7 @@ namespace QaplaBasics {
 		/**
 		 * Updates the hashes for a piece
 		 */
-		inline void updateHash(Square square, Piece piece) {
+		void updateHash(Square square, Piece piece) {
 			boardHash ^= HashConstants::cHashBoardRandoms[square][piece];
 			if (isPawn(piece)) {
 				pawnHash ^= HashConstants::cHashBoardRandoms[square][piece];

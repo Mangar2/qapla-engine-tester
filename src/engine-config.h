@@ -27,11 +27,15 @@
 #include <sstream>
 #include <stdexcept>
 #include <variant>
+#include <set>
+
+#include "ini-file.h"
 #include "string-helper.h"
 #include "time-control.h"
 #include "engine-option.h"
 #include "logger.h"
 
+namespace QaplaTester {
 
 /**
  * Stores configuration for a chess engine including its executable path,
@@ -56,21 +60,33 @@ public:
 		config.setCommandLineOptions(values);
 		return config;
     }
-    static EngineConfig createFromPath(const std::string executablePath) {
+    /**
+     * @brief Creates an EngineConfig instance from an executable path.
+     * @param executablePath The path to the engine executable.
+     * @return EngineConfig instance with the executable path set.
+     */
+    static EngineConfig createFromPath(const std::string& executablePath) {
 		EngineConfig config;
         config.setCmd(executablePath);
         config.finalizeSetOptions();
 		return config;
     }
+
     /**
-     * 
-     * Sets the name of the engine.
+     * @brief Sets the name of the engine.
      * @param engineName The name to assign.
      */
     void setName(const std::string& engineName) { name_ = engineName; }
 
     /**
-     * Sets the path to the engine executable.
+     * @brief Sets the author of the engine.
+     *
+     * @param engineAuthor The name of the engine's author.
+     */
+    void setAuthor(const std::string& engineAuthor) { author_ = engineAuthor; }
+
+    /**
+     * @brief Sets the path to the engine executable.
      * @param path The executable path.
      */
     void setCmd(const std::string& path) { 
@@ -78,59 +94,127 @@ public:
     }
 
     /**
-     * Sets the working directory for the engine.
+     * @brief Sets the working directory for the engine.
      * @param path The working directory path.
      */
     void setDir(const std::string& path) { dir_ = path; }
 
 	/**
-	 * Sets the protocol used by the engine.
+	 * @brief Sets the protocol used by the engine.
 	 * @param proto The protocol to set (Uci, XBoard, etc.).
 	 */
 	void setProtocol(EngineProtocol proto) { protocol_ = proto; }
+    /**
+     * @brief Sets the protocol used by the engine from a string.
+     * @param proto The protocol string.
+     */
     void setProtocol(const std::string& proto);
 
     /**
-     * Gets the engine name.
+     * @brief Gets the engine name.
      * @return The engine name.
      */
-    const std::string& getName() const { return name_; }
+    [[nodiscard]] const std::string& getName() const { return name_; }
 
     /**
-     * Gets the path to the engine executable.
+     * @brief Gets the engines author.
+     * @return the engines author.
+     */
+    [[nodiscard]] const std::string& getAuthor() const { return author_; }
+
+    /**
+     * @brief Gets the path to the engine executable.
      * @return The executable path.
      */
-    const std::string& getCmd() const { return cmd_; }
+    [[nodiscard]] const std::string& getCmd() const { return cmd_; }
 
     /**
-     * Gets the working directory.
+     * @brief Gets the working directory.
      * @return The working directory path.
      */
-    const std::string& getDir() const { return dir_; }
+    [[nodiscard]] const std::string& getDir() const { return dir_; }
 
 	/**
-	 * Gets the protocol used by the engine.
+	 * @brief Gets the protocol used by the engine.
 	 * @return The engine protocol.
 	 */
-	EngineProtocol getProtocol() const { return protocol_; }
+	[[nodiscard]] EngineProtocol getProtocol() const { return protocol_; }
 
+	/**
+	 * @brief Enables or disables pondering for the engine.
+	 * @param enabled True to enable pondering, false to disable.
+	 */
 	void setPonder(bool enabled) { ponder_ = enabled; }
-	bool isPonderEnabled() const { return ponder_; }
+	/**
+	 * @brief Checks if pondering is enabled.
+	 * @return True if pondering is enabled, false otherwise.
+	 */
+	[[nodiscard]] bool isPonderEnabled() const { return ponder_; }
 
+	/**
+	 * @brief Enables or disables gauntlet mode.
+	 * @param enabled True to enable gauntlet mode, false to disable.
+	 */
 	void setGauntlet(bool enabled) { gauntlet_ = enabled; }
-	bool isGauntlet() const { return gauntlet_; }
+	/**
+	 * @brief Checks if gauntlet mode is enabled.
+	 * @return True if gauntlet mode is enabled, false otherwise.
+	 */
+	[[nodiscard]] bool isGauntlet() const { return gauntlet_; }
+    /**
+     * @brief Provides mutable access to the gauntlet flag.
+     * @return Reference to the gauntlet flag.
+     */
+    bool& gauntlet() { return gauntlet_; }
 
+	/**
+	 * @brief Sets whether scores are from white's point of view.
+	 * @param enabled True if scores are from white's POV, false otherwise.
+	 */
+	void setScoreFromWhitePov(bool enabled) { scoreFromWhitePov_ = enabled; }
+	/**
+	 * @brief Checks if scores are from white's point of view.
+	 * @return True if scores are from white's POV, false otherwise.
+	 */
+	[[nodiscard]] bool isScoreFromWhitePov() const { return scoreFromWhitePov_; }
+    /**
+     * @brief Provides mutable access to the score POV flag.
+     * @return Reference to the score POV flag.
+     */
+    bool& scoreFromWhitePov() { return scoreFromWhitePov_; }
+
+    /**
+     * @brief Sets the time control for the engine.
+     * @param tc The time control string.
+     */
     void setTimeControl(const std::string& tc);
-	const TimeControl& getTimeControl() const { return tc_; }
+	/**
+	 * @brief Gets the time control configuration.
+	 * @return The time control object.
+	 */
+	[[nodiscard]] const TimeControl& getTimeControl() const { return tc_; }
 
+    /**
+     * @brief Sets the trace level for the engine.
+     * @param level The trace level string.
+     */
     void setTraceLevel(const std::string& level);
-	TraceLevel getTraceLevel() const { return traceLevel_; }
+	/**
+	 * @brief Gets the trace level.
+	 * @return The trace level.
+	 */
+	[[nodiscard]] TraceLevel getTraceLevel() const { return traceLevel_; }
+    /**
+     * @brief Provides mutable access to the trace level.
+     * @return Reference to the trace level.
+     */
+    TraceLevel& getTraceLevel() { return traceLevel_; }
 
     /**
      * @brief Returns the configured engine restart option.
      * @return The current RestartOption.
      */
-    RestartOption getRestartOption() const {
+    [[nodiscard]] RestartOption getRestartOption() const {
         return restart_;
     }
 
@@ -144,10 +228,10 @@ public:
 
 
     /**
-     * Gets the current option values.
+     * @brief Gets the current option values.
      * @return A map of option names to their values.
      */
-    std::unordered_map<std::string, std::string> getOptionValues() const {
+    [[nodiscard]] std::unordered_map<std::string, std::string> getOptionValues() const {
         std::unordered_map<std::string, std::string> result;
         for (const auto& [_, opt] : optionValues_) {
             result[opt.originalName] = opt.value;
@@ -156,13 +240,30 @@ public:
     }
 
     /**
-     * Sets a specific option value 
+     * @brief Sets a specific option value 
      * @param name The option name.
      * @param value The value to assign.
      */
     void setOptionValue(const std::string& name, const std::string& value) {
-        std::string key = to_lowercase(name);
-        optionValues_[key] = OptionValue{ name, value };
+        std::string key = QaplaHelpers::to_lowercase(name);
+        optionValues_[key] = OptionValue{ .originalName = name, .value = value };
+    }
+
+    /**
+     * @brief Sets a specific value, overwriting any existing value.
+     * @param name The option name.
+     * @param value The value to assign.
+	 */
+    void setValue(const std::string& key, const std::string& value);
+
+    /**
+     * @brief Sets multiple values at once from a map of key-value pairs.
+     * @param values A map of names and their values.
+	 */
+    void setValues(const std::unordered_map<std::string, std::string>& values) {
+        for (const auto& [name, value] : values) {
+            setValue(name, value);
+        }
     }
 
     /**
@@ -180,18 +281,24 @@ public:
      * Includes only key fields that distinguish configurations, excluding path or working directory.
      * @return Map of key-value string pairs relevant for ID disambiguation.
      */
-    std::unordered_map<std::string, std::string> toDisambiguationMap() const;
-
+    [[nodiscard]] std::unordered_map<std::string, std::string> toDisambiguationMap() const;
 
     /**
 	 * @brief Filters the current options based on the available options.
 	 * @param availableOptions The set of options that are available for the engine.
 	 * @return A map of option names and their values that are present in the available options.
      */
-    std::unordered_map<std::string, std::string> getOptions(const EngineOptions availableOptions) const;
+    [[nodiscard]] std::unordered_map<std::string, std::string> getOptions(const EngineOptions& availableOptions) const;
+
 
     friend std::istream& operator>>(std::istream& in, EngineConfig& config);
 
+    /**
+     * @brief Saves the engine configuration to a stream (ini file format).
+     * @param out The output stream to write the configuration to.
+     * @param section The section name to use (default "engine").
+     */
+    void save(std::ostream& out, const std::string& section = "engine") const;
     friend std::ostream& operator<<(std::ostream& out, const EngineConfig& config);
 
     /**
@@ -218,15 +325,16 @@ private:
     void finalizeSetOptions();
 
     /**
-     * Checks whether engine name and command file name appear mismatched.
+     * @brief Checks whether engine name and command file name appear mismatched.
      * Emits a warning if normalized forms differ significantly.
 	 * @param fileName The name of the engine executable.
 	 * @param engineName The name of the engine as configured.
      */
     void warnOnNameMismatch(const std::string& fileName, const std::string& engineName) const;
 
-    std::string toString(const Value& value);
+    static std::string toString(const Value& value);
     std::string name_;
+    std::string author_;
     std::string cmd_;
     std::string dir_;
     TimeControl tc_;
@@ -235,6 +343,9 @@ private:
     RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;
 	bool gauntlet_ = false;
+	bool scoreFromWhitePov_ = false;
+    std::unordered_map<std::string, std::string> internalKeys_;
     std::unordered_map<std::string, OptionValue> optionValues_;
 };
 
+} // namespace QaplaTester

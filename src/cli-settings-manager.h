@@ -27,9 +27,9 @@
 #include "app-error.h"
 #include "string-helper.h"
 
-namespace CliSettings {
+namespace QaplaTester::CliSettings {
 
-    enum class ValueType { String, Int, UInt, Float, Bool, PathExists, PathParentExists };
+    enum class ValueType : std::uint8_t { String, Int, UInt, Float, Bool, PathExists, PathParentExists };
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
@@ -47,15 +47,16 @@ namespace CliSettings {
         /**
          * Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
         */
-        std::vector<std::string> keyNames() const {
+        [[nodiscard]] std::vector<std::string> keyNames() const {
             std::vector<std::string> result;
             result.reserve(keys.size());
             constexpr std::string_view suffix = ".[name]";
             for (const auto& [key, _] : keys) {
-                if (key.ends_with(suffix))
+                if (key.ends_with(suffix)) {
                     result.emplace_back(key.substr(0, key.size() - suffix.size()));
-                else
+                } else {
                     result.emplace_back(key);
+                }
             }
             return result;
         }
@@ -72,8 +73,8 @@ namespace CliSettings {
          * @param values Map of key-value pairs parsed for this group instance.
 		 * @param definition Definition of the group, including expected keys and their metadata.
          */
-        GroupInstance(const ValueMap& values, const GroupDefinition definition)
-            : values_(values), definition_(definition) {
+        GroupInstance(ValueMap values, GroupDefinition definition)
+            : values_(std::move(values)), definition_(std::move(definition)) {
         }
 
         /**
@@ -84,10 +85,10 @@ namespace CliSettings {
          * @throws std::runtime_error if the key is undefined or has invalid type.
          */
         template<typename T>
-        T get(const std::string& name) const {
-            std::string key = to_lowercase(name);
+        [[nodiscard]] T get(const std::string& name) const {
+            std::string key = QaplaHelpers::to_lowercase(name);
             auto it = values_.find(key);
-			auto& keyDefs = definition_.keys;
+			const auto& keyDefs = definition_.keys;
             if (it == values_.end()) {
                 auto defIt = keyDefs.find(key);
                 if (defIt == keyDefs.end() || !defIt->second.defaultValue) {
@@ -116,11 +117,11 @@ namespace CliSettings {
             return value;
         }
 
-        const GroupDefinition& getDefinition() const {
+        [[nodiscard]] const GroupDefinition& getDefinition() const {
             return definition_;
         }
 
-		const ValueMap& getValues() const {
+		[[nodiscard]] const ValueMap& getValues() const {
 			return values_;
 		}
 
@@ -133,7 +134,7 @@ namespace CliSettings {
     using GroupInstancesMap = std::unordered_map<std::string, GroupInstances>;
 
     struct SetResult {
-        enum class Status {
+        enum class Status : std::uint8_t {
             Success,
             UnknownName,
             InvalidValue
@@ -198,7 +199,7 @@ namespace CliSettings {
          */
         template<typename T>
         static T get(const std::string& name) {
-            std::string key = to_lowercase(name);
+            std::string key = QaplaHelpers::to_lowercase(name);
             auto it = values_.find(key);
             if (it == values_.end()) {
                 auto defIt = definitions_.find(key);
@@ -217,7 +218,7 @@ namespace CliSettings {
          * @return List of instances for this group
          * @throws std::runtime_error if the group is unknown.
          */
-        static const GroupInstances getGroupInstances(const std::string& groupName);
+        [[nodiscard]] static GroupInstances getGroupInstances(const std::string& groupName);
 
 
         static std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
@@ -249,9 +250,16 @@ namespace CliSettings {
             std::optional<std::string> value;   // optional value part
         };
 
+        static Value parseBool(const ParsedParameter& arg);
+        static Value parseInt(const ParsedParameter& arg);
+        static Value parseUInt(const ParsedParameter& arg);
+        static Value parseFloat(const ParsedParameter& arg);
+        static Value parseString(const ParsedParameter& arg);
+        static Value parsePathExists(const ParsedParameter& arg);
+        static Value parsePathParentExists(const ParsedParameter& arg);
+
         /**
-         * Splits a raw command line argument into syntactic parts:
-         * prefix (if any), name, and optional value.
+         * @brief Splits a raw command line argument into syntactic parts.
          * Does not perform semantic interpretation.
          * @param raw The raw argument string, e.g. "--foo=bar" or "baz".
          * @return ParsedParameter with decomposed components.
@@ -259,10 +267,12 @@ namespace CliSettings {
         static ParsedParameter parseParameter(const std::string& raw);
 
         /**
-         * Parses an INI-like settings stream into CLI-style arguments.
+         * @brief Parses an INI-like settings stream into CLI-style arguments.
          * Section headers (e.g. [engine]) create group switches (--engine),
          * followed by individual settings as positional parameters.
          * Top-level keys (without section) are parsed as --key value.
+         * @param input The input stream to parse.
+         * @return Vector of parsed arguments.
          */
         static std::vector<std::string> parseStreamToArgv(std::istream& input);
 
@@ -291,8 +301,12 @@ namespace CliSettings {
          */
         static const Definition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
 
-        /** Validates that the given default value matches the expected ValueType.
-         *  Throws AppError if the type does not match or is semantically invalid.
+        /** 
+         * @brief Validates that the given default value matches the expected ValueType.
+         * Throws AppError if the type does not match or is semantically invalid.
+         * @param name The name of the setting.
+         * @param value The value to validate.
+         * @param type The expected type.
          */
         static void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
 
@@ -325,4 +339,4 @@ namespace CliSettings {
 
         
     };
-}
+} // namespace QaplaTester::CliSettings

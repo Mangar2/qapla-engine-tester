@@ -31,13 +31,15 @@
 #include <unistd.h>
 #endif
 
+namespace QaplaTester {
+
 struct EngineLine {
-    enum class Error {
+    enum class Error : std::uint8_t {
         NoError,
         EngineTerminated,
         IncompleteLine
     };
-    std::string content{};
+    std::string content;
     bool complete = false;
     uint64_t timestampMs = 0; 
     Error error = Error::NoError;
@@ -109,26 +111,28 @@ public:
      * @brief Checks if the engine process is still running.
      * @return true if the process is alive.
      */
-    bool isRunning() const;
+    [[nodiscard]] bool isRunning() const;
 
     /**
-     * Returns the current memory usage (in bytes) of the engine process.
+     * @brief Returns the current memory usage (in bytes) of the engine process.
+     * @return Memory usage in bytes.
      */
-    std::size_t getMemoryUsage() const;
+    [[nodiscard]] std::size_t getMemoryUsage() const;
 
 	/**
 	 * @brief Returns the path to the engine executable.
 	 * @return Path to the engine executable.
 	 */
-	std::string getExecutablePath() const {
+	[[nodiscard]] std::string getExecutablePath() const {
 		return executablePath_.string();
 	}
 
     #if defined(__linux__) || defined(__APPLE__)
         /**
-         * Returns the process ID of the engine process (Linux/macOS only).
+         * @brief Returns the process ID of the engine process (Linux/macOS only).
+         * @return The process ID.
          */
-        pid_t getProcessId() const {
+        [[nodiscard]] pid_t getProcessId() const {
             return childPid_;
         }
     #endif
@@ -149,7 +153,6 @@ private:
      * @throws std::runtime_error if the process cannot be started.
      */
     void start();
-    void startWin32();
     void startWin32Overlapped();
     ReadResult readFromStdOutOverlapped();
     void writeLineOverlapped(const std::string& line);
@@ -160,7 +163,7 @@ private:
     std::string identifier_;
 
     /**
-     * Appends a line or line fragment to the line queue with timestamp.
+     * @brief Appends a line or line fragment to the line queue with timestamp.
      *
      * If the last entry is incomplete and this is a continuation (lineTerminated = false),
      * the content is appended to the existing entry. Otherwise, a new entry is created.
@@ -181,7 +184,7 @@ private:
     void appendErrorToLineQueue(EngineLine::Error error, const std::string& text);
 
     /**
-     * Reads a block of raw bytes from the engine's stdout pipe and splits them into lines.
+     * @brief Reads a block of raw bytes from the engine's stdout pipe and splits them into lines.
      *
      * Each complete line (ending with '\n') is stored in lineQueue_ with a timestamp.
      * The last partial line, if any, is also stored but marked as incomplete.
@@ -205,3 +208,5 @@ private:
     int stderrRead_ = -1;
 #endif
 };
+
+} // namespace QaplaTester

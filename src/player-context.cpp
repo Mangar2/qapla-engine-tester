@@ -17,78 +17,132 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include <iostream>
-#include <chrono>
+
 #include "player-context.h"
 #include "engine-report.h"
 #include "timer.h"
 #include "engine-worker-factory.h"
 #include "app-error.h"
 
+#include <format>
+#include <iostream>
+#include <chrono>
+
+namespace QaplaTester {
+
+using QaplaHelpers::Timer;
+
 void PlayerContext::checkPV(const EngineEvent& event) {
-    if (!event.searchInfo) return;
+    if (!event.searchInfo) { return; }
     const auto& searchInfo = *event.searchInfo;
 
-    if (searchInfo.pv.empty()) return;
+    if (searchInfo.pv.empty()) { return; }
 
-    auto& state = computeState_ == ComputeState::ComputingMove ? gameState_ : ponderState_;
-    std::vector<QaplaBasics::Move> pvMoves;
-    pvMoves.reserve(searchInfo.pv.size());
-
-    for (const auto& moveStr : searchInfo.pv) {
-        const auto move = state.stringToMove(moveStr, requireLan_);
-        if (move.isEmpty()) {
-            std::string fullPv;
-            for (const auto& m : searchInfo.pv)
-                fullPv += m + " ";
-            if (!fullPv.empty()) fullPv.pop_back();
-            std::string stateStr = toString(computeState_);
-            checklist_->logReport("pv", false,
-                "Encountered illegal move " + moveStr + " while " + stateStr + " in pv " + fullPv);
-            
-            Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in PV: " + moveStr + " while " + stateStr +
-                " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
-            return;
-        }
-        state.doMove(move);
-        pvMoves.push_back(move);
+    std::scoped_lock lock(stateMutex_);
+    // if we are pondering but we do not know the ponder move we lack information to check the ponder PV
+    // Usually happening for winboard engines as they choose themselves what move they ponder on.
+    if (computeState_ != ComputeState::ComputingMove && ponderMove_.empty()) {
+        // Should not be necessary, see how engines behave maybe activate it again.
+        // New Xboard documentation sais the engine should either send the full pv including ponder move
+        // or a Hint: move that we use as ponder move.
+        // return;
     }
 
-    for (size_t i = 0; i < pvMoves.size(); ++i)
+    std::string invalidMove;
+
+    if (isAssumedPondering()) {
+        // If failed, try ponder state. We do not receive a handshake from xboard engines when pondering is stopped.
+        invalidMove = validatePVAgainstState(ponderState_, searchInfo.pv);
+    } else {
+        invalidMove = validatePVAgainstState(gameState_, searchInfo.pv);
+        
+        // If failed, try ponder state. We do not receive a handshake from xboard engines when pondering is stopped.
+        // Thus we might have race conditions. 
+        if (!invalidMove.empty()) {
+            invalidMove = validatePVAgainstState(ponderState_, searchInfo.pv);
+        }
+    }
+
+    if (!invalidMove.empty()) {
+        // Build full PV string for error reporting
+        std::string fullPv;
+        for (const auto& move : searchInfo.pv) {
+            fullPv += move;
+            fullPv += " ";
+        }
+        if (!fullPv.empty()) { 
+            fullPv.pop_back(); 
+        }
+        std::string stateStr = toString(computeState_);
+        checklist_->logReport("pv", false,
+            std::format("Encountered illegal move '{}' in pv while {}: {}", invalidMove, stateStr, fullPv));
+        
+        Logger::engineLogger().log(std::format("{} Illegal move '{}' in PV while {} in raw info line \"{}\"", 
+            engine_->getIdentifier(), invalidMove, stateStr, event.rawLine), TraceLevel::info);
+    }
+}
+
+std::string PlayerContext::validatePVAgainstState(GameState& state, const std::vector<std::string>& pv) const {
+    uint32_t pvCount = 0;
+    for (const auto& moveStr : pv) {
+        const auto move = state.stringToMove(moveStr, requireLan_);
+        if (move.isEmpty()) {
+            // Undo all moves we applied
+            for (uint32_t i = 0; i < pvCount; ++i) {
+                state.undoMove();
+            }
+            return moveStr;  // Return the invalid move
+        }
+        state.doMove(move);
+        pvCount++;
+    }
+
+    // Undo all moves
+    for (uint32_t i = 0; i < pvCount; ++i) {
         state.undoMove();
+    }
+    return "";  // Empty string means all moves valid
 }
 
 
 void PlayerContext::handleInfo(const EngineEvent& event) {
-    if (!event.searchInfo.has_value()) return;
+    if (!event.searchInfo.has_value()) {
+        return;
+    }
     const auto& searchInfo = *event.searchInfo;
+    bool whitePovCorrection = !gameState_.isWhiteToMove() && engine_->getConfig().isScoreFromWhitePov();
+    {
+        std::scoped_lock lock(currentMoveMutex_);
+        currentMove_.updateFromSearchInfo(searchInfo, whitePovCorrection);
+    }
 
-    currentMove_.updateFromSearchInfo(searchInfo);
+    uint64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_;
+    currentMove_.timeMs = moveElapsedMs;
 
     if (searchInfo.currMove) {
         auto& state = computeState_ == ComputeState::ComputingMove ? gameState_ : ponderState_;
         const auto move = state.stringToMove(*searchInfo.currMove, requireLan_);
         checklist_->logReport("currmove", !move.isEmpty(),
-            "Encountered illegal move " + *searchInfo.currMove + " in currMove, raw info line \"" + event.rawLine + "\"");
+            std::format("Encountered illegal move {} in currMove, raw info line \"{}\"", *searchInfo.currMove, event.rawLine));
         if (move.isEmpty()) {
-            Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in currMove: " + *searchInfo.currMove +
-                " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
+            Logger::engineLogger().log(std::format("{} Illegal move in currMove: {} in raw info line \"{}\"", 
+                engine_->getIdentifier(), *searchInfo.currMove, event.rawLine), TraceLevel::info);
         }
 	}
 
     checkPV(event);
 
-    if (searchInfo.depth)            checklist_->report("depth", true);
-    if (searchInfo.selDepth)         checklist_->report("seldepth", true);
-    if (searchInfo.multipv)          checklist_->report("multipv", true);
-    if (searchInfo.scoreCp)          checklist_->report("score cp", true);
-    if (searchInfo.scoreMate)        checklist_->report("score mate", true);
-    if (searchInfo.timeMs)           checklist_->report("time", true);
-    if (searchInfo.nodes)            checklist_->report("nodes", true);
-    if (searchInfo.nps)              checklist_->report("nps", true);
-    if (searchInfo.hashFull)         checklist_->report("hashfull", true);
-    if (searchInfo.cpuload)          checklist_->report("cpuload", true);
-    if (searchInfo.currMoveNumber)   checklist_->report("currmovenumber", true);
+    if (searchInfo.depth)            { checklist_->report("depth", true); }
+    if (searchInfo.selDepth)         { checklist_->report("seldepth", true); }
+    if (searchInfo.multipv)          { checklist_->report("multipv", true); }
+    if (searchInfo.scoreCp)          { checklist_->report("score cp", true); }
+    if (searchInfo.scoreMate)        { checklist_->report("score mate", true); }
+    if (searchInfo.timeMs)           { checklist_->report("time", true); }
+    if (searchInfo.nodes)            { checklist_->report("nodes", true); }
+    if (searchInfo.nps)              { checklist_->report("nps", true); }
+    if (searchInfo.hashFull)         { checklist_->report("hashfull", true); }
+    if (searchInfo.cpuload)          { checklist_->report("cpuload", true); }
+    if (searchInfo.currMoveNumber)   { checklist_->report("currmovenumber", true); }
 
 }
 
@@ -96,66 +150,126 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     if (computeState_ != ComputeState::ComputingMove) {
         Logger::engineLogger().log(engine_->getIdentifier() + "Received best move while not computing a move, ignoring.", 
             TraceLevel::error);
-        return QaplaBasics::Move();
+        return {};
     }
     computeState_ = ComputeState::Idle;
+    std::scoped_lock stateLock(stateMutex_);
     if (!checklist_->logReport("legalmove", event.bestMove.has_value())) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
-		currentMove_ = MoveRecord{};
-        return QaplaBasics::Move();
+        std::scoped_lock lock(currentMoveMutex_);
+        currentMove_ = MoveRecord(gameState_.getHalfmovesPlayed(), engine_->getIdentifier());
+        return {};
     }
+    
     const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
     if (!checklist_->logReport("legalmove", !move.isEmpty(),
-        "Encountered illegal move \"" + *event.bestMove + "\" in bestmove, raw info line \"" + event.rawLine + "\"")) {
+        std::format(R"(Encountered illegal move "{}" in bestmove, raw info line "{}")", *event.bestMove, event.rawLine))) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
-        currentMove_ = MoveRecord{};
-        Logger::engineLogger().log(engine_->getIdentifier() + " Illegal move in bestmove: " + *event.bestMove +
-            " in raw info line \"" + event.rawLine + "\"", TraceLevel::info);
-        return QaplaBasics::Move();
+        std::scoped_lock lock(currentMoveMutex_);
+        currentMove_ = MoveRecord(gameState_.getHalfmovesPlayed(), engine_->getIdentifier());
+        Logger::engineLogger().log(std::format("{} Illegal move in bestmove: {} in raw info line \"{}\"", 
+            engine_->getIdentifier(), *event.bestMove, event.rawLine), TraceLevel::info);
+        return {};
     }
-    checkTime(event);
-    gameState_.doMove(move);
+	
+    if (isAnalyzing_) { return {}; }
 
-    currentMove_.updateFromBestMove(event, move.getLAN(), gameState_.moveToSan(move),
-        computeMoveStartTimestamp_, gameState_.getHalfmoveClock());
+    checkTime(event);
+    // Must be calculated before doMove
+    std::string san = gameState_.moveToSan(move);
+    gameState_.doMove(move);
+    engine_->bestMoveReceived(san, move.getLAN());
+
+    std::scoped_lock curMoveLock(currentMoveMutex_);
+    currentMove_.updateFromBestMove(gameState_.getHalfmovesPlayed(), engine_->getIdentifier(),
+        event, move.getLAN(), san, computeMoveStartTimestamp_, 
+        gameState_.getHalfmoveClock());
     return move;
 }
 
+void PlayerContext::handlePonderMove(const EngineEvent& event) {
+    if (!event.ponderMove) {
+        return;
+    }
+
+    std::scoped_lock lock(stateMutex_);
+    ponderMove_ = *event.ponderMove;
+
+    if (setupPonderState(ponderMove_, event.rawLine)) {
+        computeState_ = ComputeState::PonderingOrIdle;
+        // Update currentMove so GUI can display ponder move before PV (e.g., "e4 e5 Nc3...")
+        {
+            std::scoped_lock lock(currentMoveMutex_);
+            currentMove_.ponderMove = ponderMove_;
+        }
+    } else {        
+        ponderMove_.clear();
+    }
+}
+
+bool PlayerContext::setupPonderState(const std::string& move, const std::string& rawLine) {
+    // Validate that the ponder move is legal in the current position
+    const auto parsedMove = gameState_.stringToMove(move, requireLan_);
+    if (!checklist_->logReport("legal-pondermove", !parsedMove.isEmpty(),
+        std::format(R"(Received illegal ponder move "{}" from engine, raw line "{}")", 
+            move, rawLine))) {
+        return false;
+    }
+
+    // Create speculative ponder state
+    ponderState_.synchronizeIncrementalFrom(gameState_);
+    ponderState_.doMove(parsedMove);
+
+    // Check if the game would be over after the ponder move
+    auto [cause, result] = ponderState_.getGameResult();
+    if (result != GameResult::Unterminated) {
+        // Game would be over, cannot ponder
+        ponderState_.undoMove();
+        return false;
+    }
+
+    return true;
+}
+
 void PlayerContext::checkTime(const EngineEvent& event) {
+
+    if (isAnalyzing_) { return; }
     const uint64_t GRACE_MS = 100;
     const uint64_t GRACE_NODES = 1000;
         
     const bool white = gameState_.isWhiteToMove();
     const uint64_t moveElapsedMs = event.timestampMs - computeMoveStartTimestamp_;
+	currentMove_.timeMs = moveElapsedMs;
 
     const uint64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
-    int numLimits = goLimits_.hasTimeControl + goLimits_.movetimeMs.has_value() +
-        goLimits_.depth.has_value() + goLimits_.nodes.has_value();
+    int numLimits = static_cast<int>(goLimits_.hasTimeControl) 
+        + static_cast<int>(goLimits_.moveTimeMs.has_value()) 
+        + static_cast<int>(goLimits_.depth.has_value()) 
+        + static_cast<int>(goLimits_.nodes.has_value());
 
     if (goLimits_.hasTimeControl) {
-		timeControl_.toPgnTimeControlString();
         if (!checklist_->logReport("no-loss-on-time", moveElapsedMs <= timeLeft,
-            "Timecontrol: " + timeControl_.toPgnTimeControlString() + " Used time: " + 
-            std::to_string(moveElapsedMs) + " ms. Available Time: " + std::to_string(timeLeft) + " ms")) {
+            std::format("Timecontrol: {} Used time: {} ms. Available Time: {} ms", 
+                timeControl_.toPgnTimeControlString(), moveElapsedMs, timeLeft))) {
             gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
         }
     }
 
-    if (goLimits_.movetimeMs.has_value()) {
-        checklist_->logReport("no-move-time-overrun", moveElapsedMs < *goLimits_.movetimeMs + GRACE_MS,
-            "took " + std::to_string(moveElapsedMs) + " ms, limit is " + std::to_string(*goLimits_.movetimeMs) + " ms", 
+    if (goLimits_.moveTimeMs.has_value()) {
+        checklist_->logReport("no-move-time-overrun", moveElapsedMs < *goLimits_.moveTimeMs + GRACE_MS,
+            std::format("took {} ms, limit is {} ms", moveElapsedMs, *goLimits_.moveTimeMs), 
             TraceLevel::warning);
         if (numLimits == 1 && EngineReport::reportUnderruns) {
-            checklist_->logReport("no-move-time-underrun", moveElapsedMs > *goLimits_.movetimeMs * 99 / 100,
-                "The engine should use EXACTLY " + std::to_string(*goLimits_.movetimeMs) +
+            checklist_->logReport("no-move-time-underrun", moveElapsedMs > *goLimits_.moveTimeMs * 99 / 100,
+                "The engine should use EXACTLY " + std::to_string(*goLimits_.moveTimeMs) +
                 " ms but took " + std::to_string(moveElapsedMs), 
                 TraceLevel::info);
         }
     }
 
-    if (!event.searchInfo.has_value()) return;
+    if (!event.searchInfo.has_value()) { return; }
 
     if (checklist_->logReport("depth", event.searchInfo->depth.has_value())) {
         if (goLimits_.depth.has_value()) {
@@ -183,19 +297,22 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 }
 
 bool PlayerContext::checkEngineTimeout() {
-    if (computeState_ != ComputeState::ComputingMove) return false;
-    if (!engine_) return false;
+    if (computeState_ != ComputeState::ComputingMove) { return false; }
+    if (!engine_) { return false; }
+	if (isAnalyzing_) { return false; }
+
 	const uint64_t GRACE_MS = 1000;
     const uint64_t OVERRUN_TIMEOUT = 5000;
 
     uint64_t moveElapsedMs = Timer::getCurrentTimeMs() - computeMoveStartTimestamp_;
+    currentMove_.timeMs = moveElapsedMs;
     moveElapsedMs = moveElapsedMs < GRACE_MS ? 0 : moveElapsedMs - GRACE_MS;
 
     const bool white = gameState_.isWhiteToMove();
     bool restarted = false;
 
     const uint64_t timeLeft = white ? goLimits_.wtimeMs : goLimits_.btimeMs;
-    uint64_t overrun = 0;
+    bool overrun = false;
 
 	if (goLimits_.hasTimeControl) {
         overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;
@@ -210,9 +327,8 @@ bool PlayerContext::checkEngineTimeout() {
             Logger::engineLogger().log(engine_->getIdentifier() + " Engine timeout or disconnect", 
                 TraceLevel::warning);
 		}
-	}
-    else if ((goLimits_.movetimeMs.has_value() && *goLimits_.movetimeMs < moveElapsedMs)) {
-        overrun = moveElapsedMs > *goLimits_.movetimeMs + OVERRUN_TIMEOUT;
+	} else if ((goLimits_.moveTimeMs.has_value() && *goLimits_.moveTimeMs < moveElapsedMs)) {
+        overrun = moveElapsedMs > *goLimits_.moveTimeMs + OVERRUN_TIMEOUT;
         engine_->moveNow();
         restarted = restartIfNotReady();
     }
@@ -233,12 +349,14 @@ void PlayerContext::handleDisconnect(bool isWhitePlayer) {
     restartEngine();
 }
 
-void PlayerContext::restartEngine() {
+void PlayerContext::restartEngine(bool outside) {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
 	}
-    if (!isEventQueueThread) {
-		std::cerr << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed." << std::endl;
+    if (!isEventQueueThread && !outside) {
+		std::cerr 
+            << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed.\n" 
+            << std::flush;
         throw AppError::make("PlayerContext::restart; Cannot restart engine outside of the GameManager thread.");
 	}
     computeState_ = ComputeState::Idle;
@@ -255,6 +373,22 @@ bool PlayerContext::restartIfNotReady() {
     return false;
 }
 
+void PlayerContext::cancelCompute() {
+    if (!engine_) { return; }
+    constexpr auto readyTimeout = std::chrono::seconds{ 1 };
+    if (computeState_ != ComputeState::Idle) {
+        engine_->moveNow(true);
+        checkReady(readyTimeout);
+    }
+    computeState_ = ComputeState::Idle;
+    ponderMove_.clear();
+}
+
+void PlayerContext::doMove(const MoveRecord& moveRecord) {
+    const auto move = gameState_.stringToMove(moveRecord.original, false);
+    doMove(move);
+}
+
 void PlayerContext::doMove(QaplaBasics::Move move) {
 	if (move.isEmpty()) {
 		throw AppError::make("PlayerContext::doMove; Illegal move in for doMove");
@@ -264,19 +398,17 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
 	}
     // This method is only called with a checked move thus beeing empty should never happen
     std::string lanMove = move.getLAN();
-    if (computeState_ == ComputeState::Pondering && !ponderMove_.empty()) {
+    if (isAssumedPondering()) {
         computeState_ = ponderMove_ == lanMove ? ComputeState::PonderHit : ComputeState::PonderMiss;
     }
-    ponderMove_ = "";  
+    ponderMove_.clear();  
 
     if (computeState_ == ComputeState::PonderMiss) {
-        // moveNow with option true will wait until bestmove received and consider the bestmove as
-        // handshake. The bestmove is then not send to the GameManager
-		auto success = engine_->moveNow(true);
-        const auto& id = engine_->getIdentifier();
+		auto success = engine_->handlePonderMiss();
+        const auto& eid = engine_->getIdentifier();
         if (!checklist_->logReport("correct-pondering", success,
-            "stop command to engine " + id + " did not return a bestmove while in pondermode in time")) {
-			Logger::engineLogger().log(id + " Stop on ponder-miss did not return a bestmove in time", TraceLevel::error);
+            std::format("handling of ponder miss to engine (uci = stop) {} did not complete successfully", eid))) {
+			Logger::engineLogger().log(eid + " handlePonderMiss did not complete in time", TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
         }
@@ -284,7 +416,7 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
     gameState_.doMove(move);
 }
 
-void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits) {
+void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits, bool analyze) {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::computeMove; Cannot compute move without an engine.");
 	}
@@ -292,7 +424,16 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
 		throw AppError::make("PlayerContext::computeMove; Cannot compute move while already computing a move.");
 	}
 
-    currentMove_.clear();
+    {
+        std::scoped_lock lock(currentMoveMutex_);
+        if (computeState_ != ComputeState::PonderHit) {
+            currentMove_.clear();
+        }
+        currentMove_.halfmoveNo_ = gameState_.getHalfmovesPlayed() + 1;
+        currentMove_.engineName_ = engine_->getEngineName();
+        currentMove_.ponderMove.clear();
+		isAnalyzing_ = analyze;
+    }
     goLimits_ = goLimits;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
     // the compute move string to the engine. As it is asynchronous, we might get a bestmove event before receiving the
@@ -306,12 +447,20 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
 }
 
 void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& goLimits, 
-    const std::optional<EngineEvent>& event) {
+    const std::optional<EngineEvent>& event) 
+{
+    // Sets computeState_ = PonderingOrIdle in both UCI and XBoard cases, even though we have no ponder move
+    // and the engine may not ponder at all.
+    // XBoard never has a ponder move in the bestmove command, so we always send an empty ponder move
+    // and the engine can only ignore this call.
+    // We set ponderMove_, if we have a pondermove and we will clear it, if we have not.
+    // Only computeState_ == PonderingOrIdle AND a non-empty ponderMove_ indicates that we actually ponder on a move.
+
 	if (!engine_) {
 		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering without an engine.");
 	}
-    if (!engine_->getConfig().isPonderEnabled()) return;
-    if (!event) return;
+    if (!engine_->getConfig().isPonderEnabled()) { return; }
+    if (!event) { return; }
 
 	if (event->type != EngineEvent::Type::BestMove) {
 		throw AppError::make("PlayerContext::allowPonder; Best move event required to ponder.");
@@ -320,31 +469,31 @@ void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& go
 		throw AppError::make("PlayerContext::allowPonder; Cannot allow pondering while already computing a move.");
 	}
 	goLimits_ = goLimits;
-    currentMove_.clear();
+    std::scoped_lock lock(stateMutex_);
     ponderMove_ = event->ponderMove ? *event->ponderMove : "";
+    // Update currentMove so GUI can display ponder move before PV (e.g., "e4 e5 Nc3...")
+    {
+        std::scoped_lock lock(currentMoveMutex_);
+        currentMove_.clear();
+        currentMove_.halfmoveNo_ = gameState_.getHalfmovesPlayed() + 1;
+        currentMove_.ponderMove = ponderMove_;
+		isAnalyzing_ = false;
+    }
 
     if (!ponderMove_.empty()) {
-        const auto move = gameState_.stringToMove(ponderMove_, requireLan_);
-        if (checklist_->logReport("legal-pondermove", !move.isEmpty(),
-            "Encountered illegal ponder move \"" + ponderMove_ + "\" in currMove, raw info line \"" + event->rawLine + "\"")) {
-            ponderState_.synchronizeIncrementalFrom(gameState_);
-            ponderState_.doMove(move);
-			auto [cause, result] = ponderState_.getGameResult();
-			if (result != GameResult::Unterminated) {
-				// If the game is already over, we cannot ponder
-				ponderMove_.clear();
-                ponderState_.undoMove();
-			} 
-            else {
-                computeState_ = ComputeState::Pondering;
-                engine_->allowPonder(gameRecord, goLimits, ponderMove_);
-            }
+        if (setupPonderState(ponderMove_, event->rawLine)) {
+            computeState_ = ComputeState::PonderingOrIdle;
+            engine_->allowPonder(gameRecord, goLimits, ponderMove_);
+        } else {
+            // Setup failed (illegal move or game over), clear ponder move
+            ponderMove_.clear();
         }
     }
     else {
-        computeState_ = ComputeState::Pondering;
+        computeState_ = ComputeState::PonderingOrIdle;
 		engine_->allowPonder(gameRecord, goLimits, ponderMove_);
     }
 
 }
 
+} // namespace QaplaTester

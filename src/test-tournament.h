@@ -20,203 +20,139 @@
 
 #include <optional>
 #include <string>
-#include <map>
 #include <mutex>
 #include <utility>
+
 #include "time-control.h"
 #include "game-record.h"
 #include "game-result.h"
 #include "engine-report.h"
 #include "game-task.h"
 
+namespace QaplaTester {
+
+/**
+ * @brief Manages a test tournament that plays multiple games with different time controls.
+ * 
+ * TestTournament provides a framework for running automated chess tournaments
+ * with various time control configurations. It distributes games across different
+ * time control pairs and tracks results, time management, and game outcomes.
+ * Thread-safe for concurrent game execution.
+ */
 class TestTournament : public GameTaskProvider {
 public:
-    explicit TestTournament(uint32_t totalGames, EngineReport* checklist)
-        : maxGames_(totalGames), current_(0), checklist_(checklist) {
-        timePairs_ = {
-            {{0, 20000, 500}, {0, 10000, 100}},
-            {{0, 10000, 500}, {0,  5000, 100}},
-            {{0,  4000, 500}, {0,  2000, 100}},
-            {{0, 20000, 500}, {0, 10000,   0}},
-            {{0, 10000, 200}, {0,  5000,   0}},
-            {{0,  6000, 200}, {0,  3000,   0}}
-        };
-    }
-
     /**
-     * @brief Provides the next available task.
-     *
-     * @return A GameTask with a unique taskId or std::nullopt if no task is available.
+     * @brief Constructs a new test tournament.
+     * 
+     * Initializes the tournament with predefined time control pairs:
+     * - 20s+500ms vs 10s+100ms
+     * - 10s+500ms vs 5s+100ms
+     * - 4s+500ms vs 2s+100ms
+     * - 20s+500ms vs 10s (no increment)
+     * - 10s+200ms vs 5s (no increment)
+     * - 6s+200ms vs 3s (no increment)
+     * 
+     * Games are evenly distributed across all time control pairs.
+     * 
+     * @param totalGames Total number of games to play in the tournament
+     * @param checklist Pointer to the engine report for logging test results
      */
-    std::optional<GameTask> nextTask() override 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (current_ >= maxGames_) return std::nullopt;
-
-		size_t numPairs = timePairs_.size();
-		size_t divisor = (maxGames_ + numPairs - 1) / numPairs;
-        size_t idx = current_ / divisor;
-        ++current_;
-
-        GameTask task;
-        task.gameRecord.setStartPosition(true, "", true, "", "");
-		task.gameRecord.getWhiteTimeControl().addTimeSegment(timePairs_[idx].first);
-		task.gameRecord.getBlackTimeControl().addTimeSegment(timePairs_[idx].second);
-		task.taskType = GameTask::Type::PlayGame;
-        return task;
-    }
+    explicit TestTournament(uint32_t totalGames, EngineReport* checklist);
 
     /**
-     * @brief Records the result of a finished game identified by taskId.
-     *
-     * @param taskId Identifier of the task this game result belongs to.
-     * @param record Game outcome and metadata.
+     * @brief Provides the next available task for game execution.
+     * 
+     * Thread-safe method that generates a new game task with appropriate time controls.
+     * Tasks are distributed evenly across all configured time control pairs.
+     * 
+     * @return A GameTask with configured time controls and start position,
+     *         or std::nullopt if all games have been assigned
+     */
+    std::optional<GameTask> nextTask() override;
+
+    /**
+     * @brief Records the result of a completed game.
+     * 
+     * Stores the game record, validates time management, and logs tournament status.
+     * Thread-safe method that can be called from multiple game execution threads.
+     * 
+     * @param taskId Identifier of the task (currently unused)
+     * @param record Complete game record including result, moves, and time usage
      */
     void setGameRecord(
-        [[maybe_unused]] const std::string & taskId,
-        const GameRecord & record) override
-    {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            gameRecords_.push_back(record);
-        }
-		checkTimeManagement(record);
-        logStatus();
-    }
-
-    void checkTimeManagement(const GameRecord& record) {
-        const auto [cause, result] = record.getGameResult();
-        bool success = (cause != GameEndCause::Timeout);
-		std::string whiteTimeControl = record.getWhiteTimeControl().toPgnTimeControlString();
-		std::string blackTimeControl = record.getBlackTimeControl().toPgnTimeControlString();
-
-        checklist_->logReport("no-loss-on-time", success, " looses on time with time control " +
-            (result == GameResult::WhiteWins ? blackTimeControl : whiteTimeControl) );
-
-        timeUsageReasonable(record.timeUsed().first,
-            record.getWhiteTimeControl(),
-            record.history().size());
-        timeUsageReasonable(record.timeUsed().second,
-            record.getBlackTimeControl(),
-            record.history().size());
-        
-    }
+        [[maybe_unused]] const std::string& taskId,
+        const GameRecord& record) override;
 
     /**
-     * Calculates the expected range of used time ratio at the end of a game based on move count.
-     * The ratio refers to (usedTime / availableTime), and acceptable bounds are interpolated
-     * from predefined ranges to reflect sensible engine time consumption.
-     *
-     * @param moveCount The total number of moves in the game.
-     * @return A pair of (minUsageRatio, maxUsageRatio), both in the range [0.0, 1.0].
+     * @brief Flag to enable/disable time limit validation in reports.
+     * 
+     * When true, the tournament checks that engines:
+     * - Keep sufficient time reserve (don't use too much time)
+     * - Never drop below 1 second remaining time
      */
-    std::pair<double, double> expectedUsageRatioRange(size_t moveCount) {
-        struct UsageProfile {
-            size_t moveThreshold;
-            double minRatio;
-            double maxRatio;
-        };
-
-        constexpr UsageProfile usageTable[] = {
-            {0,   0.00, 0.20},
-            {40,  0.20, 0.60},
-            {80,  0.40, 0.90},
-            {160, 0.65, 1.00},
-            {320, 0.80, 1.00},
-        };
-
-        for (size_t i = 1; i < std::size(usageTable); ++i) {
-            if (moveCount < usageTable[i].moveThreshold) {
-                const auto& low = usageTable[i - 1];
-                const auto& high = usageTable[i];
-                double factor = static_cast<double>(moveCount - low.moveThreshold) /
-                    static_cast<double>(high.moveThreshold - low.moveThreshold);
-                double minRatio = low.minRatio + factor * (high.minRatio - low.minRatio);
-                double maxRatio = low.maxRatio + factor * (high.maxRatio - low.maxRatio);
-                return { minRatio, maxRatio };
-            }
-        }
-
-        const auto& last = usageTable[std::size(usageTable) - 1];
-        return { last.minRatio, last.maxRatio };
-    }
-
-    void timeUsageReasonable(uint64_t usedTimeMs, const TimeControl& tc, size_t moveCount) {
-        if (moveCount < 30) return;
-
-        auto segments = tc.timeSegments();
-        if (segments.empty()) return;
-
-        const auto& seg = segments.front();
-        uint64_t availableTime = seg.baseTimeMs + moveCount * seg.incrementMs;
-        if (availableTime == 0) return;
-
-        double usageRatio = static_cast<double>(usedTimeMs) / static_cast<double>(availableTime);
-        auto [minRatio, maxRatio] = expectedUsageRatioRange(moveCount);
-		double incMs = static_cast<double>(seg.incrementMs);
-		double baseMs = static_cast<double>(seg.baseTimeMs);
-        minRatio += (1.0 - minRatio) * std::min(1.0, incMs * 20.0 / (baseMs + 1));
-        maxRatio += (1.0 - maxRatio) * std::min(1.0, incMs * 100.0 / (baseMs + 1));
-
-        uint64_t timeLeft = availableTime - usedTimeMs;
-
-        bool inMaxRange = usageRatio <= maxRatio;
-        std::string detail = "time control " + tc.toPgnTimeControlString()
-            + " used " + std::to_string(usedTimeMs) + "ms, ratio: "
-            + std::to_string(usageRatio) + ", expected [" + std::to_string(minRatio)
-            + ", " + std::to_string(maxRatio) + "], move count " + std::to_string(moveCount)
-            + " time left: " + std::to_string(timeLeft) + "ms";
-
-        if (checkTimeLimits) {
-            checklist_->logReport("keeps-reserve-time", inMaxRange, detail);
-            checklist_->logReport("not-below-one-second", timeLeft >= 1000,
-                " time control: " + tc.toPgnTimeControlString() + " time left: " + std::to_string(timeLeft) + "ms");
-        }
-    }
-
-
-    void logStatus() {
-        std::lock_guard<std::mutex> lock(mutex_);
-		auto& lastWhiteTimeControl = gameRecords_.back().getWhiteTimeControl();
-		auto& lastBlackTimeControl = gameRecords_.back().getBlackTimeControl();
-		std::string whiteTimeControl = lastWhiteTimeControl.toPgnTimeControlString();
-		std::string blackTimeControl = lastBlackTimeControl.toPgnTimeControlString();
-
-        int whiteWins = 0, blackWins = 0, draws = 0;
-        std::map<GameEndCause, int> causeCounts;
-
-        for (const auto& game : gameRecords_) {
-            auto [cause, result] = game.getGameResult();
-            switch (result) {
-            case GameResult::WhiteWins: ++whiteWins; break;
-            case GameResult::BlackWins: ++blackWins; break;
-            case GameResult::Draw: ++draws; break;
-            default: break;
-            }
-            if (cause != GameEndCause::Ongoing)
-                ++causeCounts[cause];
-        }
-
-        std::ostringstream oss;
-        oss << "[" << std::setw(3) << gameRecords_.size() << "/" << maxGames_ << "] "
-            << "W:" << std::setw(3) << whiteWins
-            << " D:" << std::setw(3) << draws
-            << " B:" << std::setw(3) << blackWins
-            << " | ";
-		oss << whiteTimeControl << " vs. " << blackTimeControl << " | ";
-        for (const auto& [cause, count] : causeCounts)
-            oss << to_string(cause) << ":" << count << " ";
-
-        Logger::testLogger().log(oss.str());
-    }
-
     bool checkTimeLimits = false;
+
 private:
-    uint32_t maxGames_;
-    uint32_t current_;
-    std::mutex mutex_;
-    std::vector<GameRecord> gameRecords_;
-    std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;
-    std::vector<int> usageCount_;
-    EngineReport* checklist_;
+    /**
+     * @brief Validates time management for a completed game.
+     * 
+     * Checks that neither engine lost on time and validates that time usage
+     * was reasonable for both white and black. Logs results to the checklist.
+     * 
+     * @param record Game record containing result and time usage data
+     */
+    void checkTimeManagement(const GameRecord& record);
+
+    /**
+     * @brief Calculates expected time usage ratio range based on move count.
+     * 
+     * Provides acceptable bounds for the ratio of (used time / available time)
+     * at game end. Bounds are interpolated from predefined thresholds:
+     * - 0-40 moves: 0%-20% to 20%-60%
+     * - 40-80 moves: 20%-60% to 40%-90%
+     * - 80-160 moves: 40%-90% to 65%-100%
+     * - 160-320 moves: 65%-100% to 80%-100%
+     * - 320+ moves: 80%-100%
+     * 
+     * @param moveCount Total number of moves in the game
+     * @return Pair of (minimum ratio, maximum ratio), both in range [0.0, 1.0]
+     */
+    static std::pair<double, double> expectedUsageRatioRange(size_t moveCount);
+
+    /**
+     * @brief Validates that time usage is within reasonable bounds.
+     * 
+     * Checks that the engine's time consumption is appropriate for the game length
+     * and time control. Adjusts expectations for increment-heavy time controls.
+     * Only validates games with 30+ moves. Logs warnings if time usage is excessive
+     * or remaining time is critically low.
+     * 
+     * @param usedTimeMs Total time used in milliseconds
+     * @param tc Time control configuration
+     * @param moveCount Number of moves played
+     */
+    void timeUsageReasonable(uint64_t usedTimeMs, const TimeControl& tc, size_t moveCount);
+
+    /**
+     * @brief Logs current tournament statistics.
+     * 
+     * Thread-safe method that outputs:
+     * - Progress (games played / total games)
+     * - Win/Draw/Loss distribution
+     * - Last used time controls
+     * - Game end cause distribution (checkmate, timeout, etc.)
+     * 
+     * Logged to test logger for monitoring tournament progress.
+     */
+    void logStatus();
+
+    uint32_t maxGames_;                                              ///< Total number of games in the tournament
+    uint32_t current_{};                                             ///< Number of games assigned so far
+    std::mutex mutex_;                                               ///< Protects concurrent access to tournament state
+    std::vector<GameRecord> gameRecords_;                            ///< Complete results of all finished games
+    std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;     ///< Time control pairs for white and black
+    std::vector<int> usageCount_;                                    ///< (Currently unused) Could track time control usage
+    EngineReport* checklist_;                                        ///< Report handler for test validation results
 };
+
+} // namespace QaplaTester

@@ -60,35 +60,35 @@ namespace QaplaBasics {
 		/**
 		 * Adds a piece to the material value
 		 */
-		inline void addPiece(Piece piece) {
+		void addPiece(Piece piece) {
 			_materialValue += pieceValues[piece];
 		}
 
 		/**
 		 * Removes the piece from the material value
 		 */
-		inline void removePiece(Piece piece) {
+		void removePiece(Piece piece) {
 			_materialValue -= pieceValues[piece];
 		}
 
 		/**
 		 * Gets the midgame/endgame evaluation value for the specified piece
 		 */
-		inline EvalValue getPieceValue(Piece piece) const {
+		[[nodiscard]] EvalValue getPieceValue(Piece piece) const {
 			return pieceValues[piece];
 		}
 
 		/**
 		 * Gets the piece value used for move sorting heuristics
 		 */
-		inline value_t getPieceValueForMoveSorting(Piece piece) const {
+		[[nodiscard]] static value_t getPieceValueForMoveSorting(Piece piece) {
 			return pieceValuesForMoveSorting[piece];
 		}
 
 		/**
 		 * Gets the absolute midgame value 
 		 */
-		inline value_t getAbsolutePieceValue(Piece piece) const {
+		[[nodiscard]] value_t getAbsolutePieceValue(Piece piece) const {
 			return absolutePieceValues[piece];
 		}
 
@@ -96,11 +96,11 @@ namespace QaplaBasics {
 		 * Gets the material value of the board - positive values indicates
 		 * white positions is better
 		 */
-		inline EvalValue getMaterialValue() const {
+		[[nodiscard]] EvalValue getMaterialValue() const {
 			return _materialValue;
 		}
 
-		const std::array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
+		[[nodiscard]] const std::array<EvalValue, PIECE_AMOUNT>& getPieceValues() const {
 			return pieceValues;
 		}
 		std::array<EvalValue, PIECE_AMOUNT>& getPieceValues() {

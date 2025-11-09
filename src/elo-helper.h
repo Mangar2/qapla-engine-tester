@@ -21,12 +21,15 @@
 #include <cmath>
 #include <utility>
 #include <algorithm>
+#include <numbers>
+
+namespace QaplaTester {
 
 /**
  * @brief Approximates inverse error function using Winitzki's formula.
  */
 inline double erfInv(double x) {
-    constexpr double pi = 3.1415926535897;
+    constexpr double pi = std::numbers::pi;
     const double a = 8.0 * (pi - 3.0) / (3.0 * pi * (4.0 - pi));
     const double y = std::log(1.0 - x * x);
     const double z = 2.0 / (pi * a) + y / 2.0;
@@ -39,7 +42,7 @@ inline double erfInv(double x) {
  * @brief Approximates inverse cumulative normal distribution (probit).
  */
 inline double phiInv(double p) {
-    return std::sqrt(2.0) * erfInv(2.0 * p - 1.0);
+    return std::numbers::sqrt2 * erfInv(2.0 * p - 1.0);
 }
 
 /**
@@ -47,7 +50,9 @@ inline double phiInv(double p) {
  */
 inline std::pair<int, int> computeEloWithError(int wins, int losses, int draws) {
     const int total = wins + losses + draws;
-    if (total < 0) return { 0, 0 };
+    if (total < 0) {
+        return { 0, 0 };
+    }
 
     const double w = static_cast<double>(wins) / total;
     const double l = static_cast<double>(losses) / total;
@@ -72,3 +77,5 @@ inline std::pair<int, int> computeEloWithError(int wins, int losses, int draws) 
 
     return { static_cast<int>(std::round(elo)), static_cast<int>(std::round(error)) };
 }
+
+} // namespace QaplaTester

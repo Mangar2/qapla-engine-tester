@@ -36,6 +36,8 @@
 #include "engine-option.h"
 #include "string-helper.h"
 
+namespace QaplaTester {
+
 using OptionValues = std::unordered_map<std::string, std::string>;
 
  /**
@@ -44,7 +46,7 @@ using OptionValues = std::unordered_map<std::string, std::string>;
   */
 class EngineAdapter {
 public:
-    EngineAdapter(std::filesystem::path enginePath,
+    EngineAdapter(const std::filesystem::path& enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
     virtual ~EngineAdapter() = default;
@@ -80,6 +82,26 @@ public:
     virtual void newGame(const GameRecord& game, bool engineIsWhite) = 0;
 
     /**
+     * @brief Sets the time control for the engine. 
+     * 
+     * Depending on protocol it might do nothing or send a new game command 
+     * and then the new time control
+     * 
+     * @param game Current game state.
+	 * @param engineIsWhite True if the engine plays as white, false for black.
+     */
+    virtual void setTimeControl(const GameRecord& game, bool engineIsWhite) = 0;
+
+    /**
+     * @brief Notifies the engine that the best move has been received.
+     * @param sanMove The best move in SAN notation.
+     * @param lanMove The best move in LAN notation.
+     */
+    virtual void bestMoveReceived(
+        [[maybe_unused]] const std::string& sanMove,
+        [[maybe_unused]] const std::string& lanMove) {};
+
+    /**
      * @brief Immediately requests the engine to produce a move, e.g. in force mode.
      */
     virtual void moveNow() = 0;
@@ -95,25 +117,39 @@ public:
     virtual void ticker() = 0;
 
     /**
+     * @brief Is called after a moveNow command with wait=true. Runs handshake steps if needed.
+     * @return The event to wait for completing the handshake.
+     */
+    [[nodiscard]] virtual EngineEvent::Type waitAfterMoveNowHandshake() = 0;
+
+    /**
+     * @brief Handles a ponder miss (opponent played a different move than expected).
+     * @return The event type to wait for as handshake (BestMove for UCI, None for XBoard).
+     */
+    [[nodiscard]] virtual EngineEvent::Type handlePonderMiss() = 0;
+
+    /**
      * @brief Informs the engine that pondering is permitted.
      * @param game        Current game state.
      * @param limits      Calculation limits (time, depth, etc.).
      * @param ponderMove  Move to ponder on
+     * @return Timestamp when the command was sent.
      */
-    virtual uint64_t allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove) = 0;
+    [[nodiscard]] virtual uint64_t allowPonder(const GameStruct& game, const GoLimits& limits, std::string ponderMove) = 0;
 
     /**
      * @brief Requests the engine to calculate a move.
 	 * @param game        Current game state.
 	 * @param limits      Calculation limits (time, depth, etc.).
 	 * @param ponderHit   true, if the engine is currently pondering on the right move.
-	 * @returns the timestamp the calculate move commad has been sent to the engine.
+	 * @return the timestamp the calculate move command has been sent to the engine.
      */
-    virtual uint64_t computeMove(const GameRecord& game, const GoLimits& limits, bool ponderHit) = 0;
+    [[nodiscard]] virtual uint64_t computeMove(const GameStruct& game, const GoLimits& limits, bool ponderHit) = 0;
 
 	/**
 	 * @brief Sends a command to the engine's stdin.
 	 * @param command Command to send (without newline).
+	 * @return Timestamp when the command was sent.
 	 */
     uint64_t writeCommand(const std::string& command);
 
@@ -129,7 +165,7 @@ public:
 	 * @brief Checks if the engine is currently running.
 	 * @return true if the engine is initialized and running.
 	 */
-    bool isRunning() {
+    [[nodiscard]] bool isRunning() {
 		return !terminating_ && process_.isRunning();
     }
 
@@ -146,13 +182,13 @@ public:
      *
      * @return true if ProtocolOk is mandatory for this protocol, false if optional.
      */
-    virtual bool isProtocolOkRequired() const = 0;
+    [[nodiscard]] virtual bool isProtocolOkRequired() const = 0;
 
 
     /**
      * Returns the current memory usage (in bytes) of the engine process.
      */
-    std::size_t getEngineMemoryUsage() const {
+    [[nodiscard]] std::size_t getEngineMemoryUsage() const {
         return process_.getMemoryUsage();
     }
 
@@ -179,36 +215,40 @@ public:
     /**
      * @brief Returns the current engine option list.
      */
-    const EngineOptions& getSupportedOptions() const { return supportedOptions_; }
+    [[nodiscard]] const EngineOptions& getSupportedOptions() const { return supportedOptions_; }
 
 	/**
 	 * @brief Returns the engine's executable path.
 	 */
-	std::string getExecutablePath() const {
+	[[nodiscard]] std::string getExecutablePath() const {
 		return process_.getExecutablePath();
 	}
 
 	/**
 	 * @brief Returns the name of the engine.
 	 */
-	std::string getEngineName() const {
+	[[nodiscard]] std::string getEngineName() const {
 		return engineName_;
 	}
 
 	/**
 	 * @brief Returns the author of the engine.
 	 */
-	std::string getEngineAuthor() const {
+	[[nodiscard]] std::string getEngineAuthor() const {
 		return engineAuthor_;
 	}
 
 	/**
 	 * @brief Returns the welcome message of the engine.
 	 */
-	std::string getWelcomeMessage() const {
+	[[nodiscard]] std::string getWelcomeMessage() const {
 		return welcomeMessage_;
 	}
 
+	/**
+	 * @brief Sets whether to suppress info lines.
+	 * @param suppress True to suppress, false otherwise.
+	 */
 	void setSuppressInfoLines(bool suppress) {
 		suppressInfoLines_ = suppress;
 	}
@@ -217,21 +257,33 @@ protected:
     
     /**
      * @brief Emits a log message using the configured logger, if any.
+     * @param message The message to log.
+     * @param level The trace level.
      */
     void logFromEngine(std::string_view message, TraceLevel level) const {
         if (logger_) {
             logger_(message, true, level);
         }
     }
+	/**
+	 * @brief Emits a log message for commands sent to the engine.
+	 * @param message The message to log.
+	 * @param level The trace level.
+	 */
 	void logToEngine(std::string_view message, TraceLevel level) const {
 		if (logger_) {
 			logger_(message, false, level);
 		}
 	}
-	const std::optional<EngineOption> getSupportedOption(const std::string& name) const {
-        auto key = to_lowercase(name);
-		for (auto& option : supportedOptions_) {
-			if (to_lowercase(option.name) == key) {
+	/**
+	 * @brief Gets the supported option by name.
+	 * @param name The name of the option.
+	 * @return The option if found, nullopt otherwise.
+	 */
+	[[nodiscard]] std::optional<EngineOption> getSupportedOption(const std::string& name) const {
+        auto key = QaplaHelpers::to_lowercase(name);
+		for (const auto& option : supportedOptions_) {
+			if (QaplaHelpers::to_lowercase(option.name) == key) {
 				return option;
 			}
 		}
@@ -253,3 +305,5 @@ protected:
     bool suppressInfoLines_ = false;
 
 };
+
+} // namespace QaplaTester

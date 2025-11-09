@@ -31,13 +31,15 @@
 #include "app-error.h"
 #include "tournament-result.h"
 
+namespace QaplaTester {
+
 class EngineReport {
 public:
 
     /**
      * @brief Classification of a check topic based on its relevance.
      */
-    enum class CheckSection { Important, Missbehaviour, Notes, Report };
+    enum class CheckSection : std::uint8_t { Important, Missbehaviour, Notes, Report };
 
     /**
      * @brief Metadata describing a single logical check topic.
@@ -47,6 +49,25 @@ public:
         std::string id;
         std::string text;
         CheckSection section;
+    };
+
+    /**
+     * @brief A single line in the report output.
+     */
+    struct ReportLine {
+        bool passed;                  // true if passed, false if failed
+        std::string text;             // The topic text
+        uint32_t failCount;           // Number of failures (0 if passed)
+    };
+
+    /**
+     * @brief Structured report data organized by section.
+     */
+    struct ReportData {
+        std::vector<ReportLine> important;
+        std::vector<ReportLine> missbehaviour;
+        std::vector<ReportLine> notes;
+        std::vector<ReportLine> report;
     };
 
     /**
@@ -63,7 +84,7 @@ public:
      * @param engineName The name of the engine to retrieve the checklist for.
      * @return Pointer to the corresponding Checklist instance.
      */
-    static inline EngineReport* getChecklist(const std::string& engineName) {
+    [[nodiscard]] static EngineReport* getChecklist(const std::string& engineName) {
         auto& ptr = checklists_[engineName];
         if (!ptr) {
             ptr = std::make_unique<EngineReport>();
@@ -78,10 +99,10 @@ public:
      * @param passed True if the check passed, false if it failed.
      */
     void report(const std::string& topicId, bool passed) {
-        std::lock_guard<std::mutex> lock(statsMutex_);
+        std::scoped_lock lock(statsMutex_);
         auto& stat = entries_[topicId];
         ++stat.total;
-        if (!passed) ++stat.failures;
+        if (!passed) { ++stat.failures; }
     }
 
     /**
@@ -103,23 +124,38 @@ public:
     AppReturnCode log(TraceLevel traceLevel, const std::optional<EngineResult>& result);
 
     /**
+     * @brief Creates structured report data for all check results.
+     *        Thread-safe: protected by statsMutex_.
+     * @return ReportData containing all report lines organized by section.
+     */
+    ReportData createReportData();
+
+    /**
      * @brief Logs the results of all engine checklists.
      *        Each engine is logged separately in registration order.
      * @param traceLevel The minimum log level to output.
 	 * @param result The TournamentResult containing all engine results.
      * @return The most severe AppReturnCode encountered across all engines.
      */
-    static AppReturnCode logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result = std::nullopt);
+    [[nodiscard]] static AppReturnCode logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result = std::nullopt);
 
+	/**
+	 * @brief Sets the author of the engine.
+	 * @param author The author name.
+	 */
 	void setAuthor(const std::string& author) {
-        std::lock_guard<std::mutex> lock(statsMutex_);
+        std::scoped_lock lock(statsMutex_);
 		engineAuthor_ = author;
 	}
 
 	static inline bool reportUnderruns = false;
 
+    /**
+     * @brief Sets the tournament result for the engine.
+     * @param result The engine result.
+     */
     void setTournamentResult(const EngineResult& result) {
-        std::lock_guard<std::mutex> lock(statsMutex_);
+        std::scoped_lock lock(statsMutex_);
         engineResult_ = result;
     }
 private:
@@ -140,4 +176,7 @@ private:
     std::unordered_map<std::string, CheckEntry> entries_;
 
     EngineResult engineResult_;
+    static void logSections(const std::vector<ReportLine>& lines, size_t maxTopicLength, TraceLevel traceLevel, const std::map<CheckSection, AppReturnCode>& sectionCodes, CheckSection section, AppReturnCode& result);
 };
+
+} // namespace QaplaTester

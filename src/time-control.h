@@ -18,17 +18,22 @@
  */
 #pragma once
 
+#include "string-helper.h"
+#include "ini-file.h"
+
 #include <optional>
 #include <vector>
 #include <cstdint>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 #include <iomanip>
 
+namespace QaplaTester {
 
- /**
-  * @brief limits for calculating a single move.
-  */
+/**
+ * @brief Limits for calculating a single move.
+ */
 struct GoLimits {
     uint64_t wtimeMs = 0;
     uint64_t btimeMs = 0;
@@ -40,20 +45,36 @@ struct GoLimits {
     std::optional<uint32_t> depth;
     std::optional<uint64_t> nodes;
     std::optional<uint32_t> mateIn;
-    std::optional<uint64_t> movetimeMs;
+    std::optional<uint64_t> moveTimeMs;
+    // List of moves to limit the search to (if supported by engine)
     std::optional<std::vector<std::string>> limitMoves;
     bool infinite = false;
 };
 
- /**
-  * @brief Defines a stage in a time control setup.
-  */
+/**
+ * @brief Defines a stage in a time control setup.
+ */
 struct TimeSegment {
     bool operator==(const TimeSegment& other) const = default;
     int movesToPlay = 0;            ///< Number of moves in this time segment (0 = sudden death)
     uint64_t baseTimeMs = 0;         ///< Time for this segment in milliseconds
     uint64_t incrementMs = 0;        ///< Increment per move in milliseconds
+    /**
+     * @brief Creates a TimeSegment from a string representation.
+     * @param str The string to parse (e.g., "40/300+2").
+     * @return The parsed TimeSegment.
+     */
+    static TimeSegment fromString(std::string str);
 };
+
+/**
+ * @brief Converts a TimeSegment to its string representation.
+ * @param segment The TimeSegment to convert.
+ * @param basePrecision Precision for base time.
+ * @param incrementPrecision Precision for increment.
+ * @return The string representation.
+ */
+std::string to_string(TimeSegment segment, int basePrecision = 1, int incrementPrecision = 2);
 
 /**
  * @brief User-facing representation of a test time control.
@@ -62,84 +83,100 @@ class TimeControl {
 public:
     bool operator==(const TimeControl& other) const = default;
 
-    bool isValid() const {
+    /**
+     * @brief Checks if the time control is valid.
+     * @return True if valid, false otherwise.
+     */
+    [[nodiscard]] bool isValid() const {
 		return !timeSegments_.empty() || infinite_.value_or(false) ||
 			movetimeMs_.has_value() || depth_.has_value() || nodes_.has_value() || mateIn_.has_value();
     }
 
+    /**
+     * @brief Sets the move time in milliseconds.
+     * @param ms The move time.
+     */
     void setMoveTime(uint64_t ms) { movetimeMs_ = ms; }
+    /**
+     * @brief Sets the search depth.
+     * @param d The depth.
+     */
     void setDepth(uint32_t d) { depth_ = d; }
+    /**
+     * @brief Sets the node limit.
+     * @param n The number of nodes.
+     */
     void setNodes(uint32_t n) { nodes_ = n; }
+    /**
+     * @brief Sets the infinite search flag.
+     * @param v The flag value.
+     */
     void setInfinite(bool v = true) { infinite_ = v; }
+	/**
+     * @brief Sets the mate in moves.
+     * @param m The number of moves to mate.
+     */
 	void setMateIn(uint32_t m) { mateIn_ = m; }
 
+    /**
+     * @brief Adds a time segment to the time control.
+     * @param segment The time segment to add.
+     */
     void addTimeSegment(const TimeSegment& segment) {
         timeSegments_.push_back(segment);
     }
 
-    std::optional<uint64_t> moveTimeMs() const { return movetimeMs_; }
-    std::optional<uint32_t> depth() const { return depth_; }
-    std::optional<uint32_t> nodes() const { return nodes_; }
-	std::optional<uint32_t> mateIn() const { return mateIn_; }
-    bool infinite() const { return infinite_.value_or(false); }
-	std::vector<TimeSegment> timeSegments() const { return timeSegments_; }
+    /**
+     * @brief Gets the move time in milliseconds.
+     * @return The move time.
+     */
+    [[nodiscard]] std::optional<uint64_t> moveTimeMs() const { return movetimeMs_; }
+    /**
+     * @brief Gets the search depth.
+     * @return The depth.
+     */
+    [[nodiscard]] std::optional<uint32_t> depth() const { return depth_; }
+    /**
+     * @brief Gets the node limit.
+     * @return The number of nodes.
+     */
+    [[nodiscard]] std::optional<uint32_t> nodes() const { return nodes_; }
+	/**
+     * @brief Gets the mate in moves.
+     * @return The number of moves to mate.
+     */
+	[[nodiscard]] std::optional<uint32_t> mateIn() const { return mateIn_; }
+    /**
+     * @brief Checks if infinite search is enabled.
+     * @return True if infinite, false otherwise.
+     */
+    [[nodiscard]] bool infinite() const { return infinite_.value_or(false); }
+	/**
+     * @brief Gets the time segments.
+     * @return The vector of time segments.
+     */
+	[[nodiscard]] std::vector<TimeSegment> timeSegments() const { return timeSegments_; }
 
-    std::string toPgnTimeControlString() const {
-        std::ostringstream oss;
-        for (size_t i = 0; i < timeSegments_.size(); ++i) {
-            const auto& segment = timeSegments_[i];
-            if (i > 0) {
-                oss << ":";
-            }
-            if (segment.movesToPlay > 0) {
-                oss << segment.movesToPlay << "/";
-            }
-            oss << std::fixed << std::setprecision(1) 
-                << static_cast<double>(segment.baseTimeMs) / 1000.0;
-            if (segment.incrementMs > 0) {
-                oss << "+" << std::fixed << std::setprecision(2) 
-                    << static_cast<double>(segment.incrementMs) / 1000.0;
-            }
-        }
-        return oss.str();
-    }
+    /**
+     * @brief Converts the time control to PGN time control string.
+     * @param basePrecision Precision for base time.
+     * @param incrementPrecision Precision for increment.
+     * @return The PGN string.
+     */
+    [[nodiscard]] std::string toPgnTimeControlString(int basePrecision = 1, int incrementPrecision = 2) const;
 
-    static TimeControl parse(const std::string tc) {
-        TimeControl timeControl;
-        if (tc.empty()) {
-            return timeControl;
-        }
-        if (tc == "inf") {
-            timeControl.setInfinite(true);
-            return timeControl;
-        }
-        timeControl.fromPgnTimeControlString(tc);
-		return timeControl;
-    }
+    /**
+     * @brief Parses a time control from a string.
+     * @param tc The string to parse.
+     * @return The parsed TimeControl.
+     */
+    static TimeControl parse(const std::string& tc);
 
-    void fromPgnTimeControlString(const std::string& pgnString) {
-        timeSegments_.clear();
-        std::istringstream iss(pgnString);
-        std::string segmentStr;
-        while (std::getline(iss, segmentStr, ':')) {
-            TimeSegment segment;
-            size_t slashPos = segmentStr.find('/');
-            if (slashPos != std::string::npos) {
-                segment.movesToPlay = std::stoi(segmentStr.substr(0, slashPos));
-                segmentStr = segmentStr.substr(slashPos + 1);
-            }
-            size_t plusPos = segmentStr.find('+');
-            if (plusPos != std::string::npos) {
-                segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr.substr(0, plusPos)) * 1000);
-                segment.incrementMs = static_cast<uint64_t>(std::stod(segmentStr.substr(plusPos + 1)) * 1000);
-            }
-            else {
-                segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr) * 1000);
-            }
-            timeSegments_.push_back(segment);
-        }
-    }
-
+    /**
+     * @brief Parses a PGN time control string and sets up the time control.
+     * @param pgnString The PGN string to parse.
+     */
+    void fromPgnTimeControlString(const std::string& pgnString);
 
     /**
      * @brief Parses a cutechess-cli-style time control string and sets up the time control.
@@ -154,41 +191,20 @@ public:
      *
      * @param cliString The time control string to parse.
      */
-    void fromCliTimeControlString(const std::string& cliString) {
-        timeSegments_.clear();
-		if (cliString.empty()) {
-			return;
-		}
+    void fromCliTimeControlString(const std::string& cliString);
 
-        if (cliString == "inf") {
-            setInfinite(true);
-            return;
-        }
+    /**
+     * @brief Converts the time control to an INI section.
+     * @param name The name of the section.
+     * @return The INI section.
+     */
+    [[nodiscard]] QaplaHelpers::IniFile::Section toSection(const std::string& name) const;
 
-        TimeSegment segment;
-
-        size_t slashPos = cliString.find('/');
-        size_t plusPos = cliString.find('+');
-
-        if (slashPos != std::string::npos) {
-            segment.movesToPlay = std::stoi(cliString.substr(0, slashPos));
-        }
-
-        std::string timePart = (slashPos != std::string::npos) ? cliString.substr(slashPos + 1) : cliString;
-
-        if (plusPos != std::string::npos) {
-            segment.baseTimeMs = static_cast<uint64_t>(
-                std::stof(timePart.substr(0, plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0))) * 1000);
-            segment.incrementMs = static_cast<uint64_t>(
-                std::stof(timePart.substr(plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0) + 1)) * 1000);
-        }
-        else {
-            segment.baseTimeMs = static_cast<uint64_t>(std::stof(timePart) * 1000);
-        }
-
-        timeSegments_.push_back(segment);
-        setInfinite(false);
-    }
+    /**
+     * @brief Loads the time control from an INI section.
+     * @param section The INI section.
+     */
+    void fromSection(const QaplaHelpers::IniFile::Section& section);
 
 
 private:
@@ -200,9 +216,12 @@ private:
     std::vector<TimeSegment> timeSegments_;
 };
 
-inline std::string to_string(const TimeControl& tc) {
-	return tc.toPgnTimeControlString();
-}
+/**
+ * @brief Converts a TimeControl to its string representation.
+ * @param tc The TimeControl to convert.
+ * @return The string representation.
+ */
+std::string to_string(const TimeControl& tc);
 
 /**
  * @brief Creates GoLimits from two time control definitions.
@@ -219,78 +238,13 @@ inline std::string to_string(const TimeControl& tc) {
  * @param whiteToMove Whether white is to move next.
  * @return GoLimits containing time data for both sides.
  */
-inline GoLimits createGoLimits(
+GoLimits createGoLimits(
     const TimeControl& white,
     const TimeControl& black,
     uint32_t halfMoves,
     uint64_t whiteTimeUsedMs,
     uint64_t blackTimeUsedMs,
     bool whiteToMove
-) {
-    if (!white.isValid() || !black.isValid()) {
-        throw std::invalid_argument("Time control is not valid");
-    }
+);
 
-    GoLimits limits;
-    limits.movetimeMs = white.moveTimeMs();
-    limits.depth = white.depth();
-    limits.nodes = white.nodes();
-    limits.mateIn = white.mateIn();
-    limits.infinite = white.infinite();
-
-    if (limits.movetimeMs || limits.depth || limits.nodes || limits.infinite) {
-        limits.hasTimeControl = false;
-        return limits;
-    }
-
-	limits.hasTimeControl = true;
-
-    uint32_t wMovesPlayed = (halfMoves + 1) / 2;
-    uint32_t bMovesPlayed = halfMoves / 2;
-
-    auto compute = [](const TimeControl& tc, uint32_t movesPlayed,
-        uint64_t timeUsedMs, uint64_t& timeLeftMs, uint64_t& incrementMs, uint32_t& movesToGo) {
-        int32_t rem = static_cast<int32_t>(movesPlayed);
-        size_t i = 0;
-        timeLeftMs = 0;
-        incrementMs = 0;
-        movesToGo = 0;
-
-        const auto& segments = tc.timeSegments();
-
-        while (true) {
-            const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
-            int32_t movesInSegment = seg.movesToPlay;
-
-            if (movesInSegment == 0) {
-                // Sudden death (no move count limit)
-                timeLeftMs = seg.baseTimeMs + static_cast<uint64_t>(movesPlayed) * seg.incrementMs;
-                incrementMs = seg.incrementMs;
-                movesToGo = 0;
-                break;
-            }
-
-            if (rem < movesInSegment) {
-                timeLeftMs = seg.baseTimeMs + static_cast<uint64_t>(rem) * seg.incrementMs;
-                incrementMs = seg.incrementMs;
-                movesToGo = static_cast<uint32_t>(movesInSegment - rem);
-                break;
-            }
-
-            // Fully consumed segment
-            rem -= movesInSegment;
-            ++i;
-        }
-
-        timeLeftMs = std::max<uint64_t>(0, timeLeftMs - timeUsedMs);
-        };
-
-    compute(white, wMovesPlayed, whiteTimeUsedMs, limits.wtimeMs, limits.wincMs, limits.movesToGo);
-    compute(black, bMovesPlayed, blackTimeUsedMs, limits.btimeMs, limits.bincMs, limits.movesToGo);
-
-    // Set correct movesToGo based on side to move
-    limits.movesToGo = whiteToMove ? limits.movesToGo : limits.movesToGo;
-
-    return limits;
-}
-
+} // namespace QaplaTester

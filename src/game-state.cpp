@@ -21,12 +21,14 @@
 #include <vector>
 #include <cstdint>
 #include <tuple>
-#include "game-start-position.h"  // enth�lt GameType + FEN
-#include "movegenerator.h"
-#include "movescanner.h"
-#include "fenscanner.h"
+#include "game-start-position.h"  
+#include "../qapla-engine/movegenerator.h"
+#include "../qapla-engine/movescanner.h"
+#include "../qapla-engine/fenscanner.h"
 #include "game-state.h"
 #include "logger.h"
+
+namespace QaplaTester {
 
 using namespace QaplaBasics;
 using MoveStr = std::string;
@@ -36,13 +38,14 @@ GameState::GameState() {
 	setFen(true);
 };
 
-void GameState::setFen(bool startPos, const std::string fen) {
+bool GameState::setFen(bool startPos, const std::string& fen) {
+	bool isValid = true;
 	QaplaInterface::FenScanner scanner;
 	if (startPos) {
-		scanner.setBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", position_);
+		isValid = scanner.setBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", position_);
 	}
 	else {
-		scanner.setBoard(fen, position_);
+		isValid = scanner.setBoard(fen, position_);
 	}
 	moveList_.clear();
 	boardState_.clear();
@@ -51,6 +54,11 @@ void GameState::setFen(bool startPos, const std::string fen) {
 	gameEndCause_ = GameEndCause::Ongoing;
 	gameResult_ = GameResult::Unterminated;
 	moveListOutdated = true; 
+	if (!isValid) {
+		Logger::testLogger().log("GameState::setFen: Invalid FEN string: " + fen, TraceLevel::error);
+		position_.clear();
+	}
+	return isValid;
 }
 
 std::tuple<GameEndCause, GameResult> GameState::computeGameResult() {
@@ -60,12 +68,8 @@ std::tuple<GameEndCause, GameResult> GameState::computeGameResult() {
 	}
 	if (legalMoves_.totalMoveAmount == 0) {
 		if (position_.isInCheck()) {
-			if (position_.isWhiteToMove()) {
-				return { GameEndCause::Checkmate, GameResult::BlackWins };
-			}
-			else {
-				return { GameEndCause::Checkmate, GameResult::WhiteWins };
-			}
+			return { GameEndCause::Checkmate, position_.isWhiteToMove() ? 
+				GameResult::BlackWins : GameResult::WhiteWins };
 		}
 		return { GameEndCause::Stalemate, GameResult::Draw };
 	}
@@ -97,7 +101,9 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 bool GameState::isThreefoldRepetition() const {
 	const uint32_t reversiblePlies = position_.getHalfmovesWithoutPawnMoveOrCapture();
 	uint32_t positionsToCheck = std::min(reversiblePlies, static_cast<uint32_t>(hashList_.size()));
-	if (positionsToCheck < 4) return false;
+	if (positionsToCheck < 4) {
+		return false;
+	}
 
 	const auto currentHash = hashList_.back(); // == position_.getZobristHash();
 	int repetitions = 1;
@@ -105,7 +111,9 @@ bool GameState::isThreefoldRepetition() const {
 	for (uint32_t i = 3; i <= positionsToCheck; i += 2) {
 		if (hashList_[hashList_.size() - i] == currentHash) {
 			++repetitions;
-			if (repetitions >= 3) return true;
+			if (repetitions >= 3) {
+				return true;
+			}
 		}
 	}
 
@@ -115,7 +123,9 @@ bool GameState::isThreefoldRepetition() const {
 
 void GameState::doMove(const QaplaBasics::Move& move) {
 	moveListOutdated = true; 
-	if (move.isEmpty()) return;
+	if (move.isEmpty()) {
+		return;
+	}
 	boardState_.push_back(position_.getBoardState());
 	position_.doMove(move);
 	moveList_.push_back(move);
@@ -124,7 +134,9 @@ void GameState::doMove(const QaplaBasics::Move& move) {
 
 void GameState::undoMove() {
 	moveListOutdated = true;
-	if (moveList_.empty()) return;
+	if (moveList_.empty()) {
+		return;
+	}
 	position_.undoMove(moveList_.back(), boardState_.back());
 	position_.computeAttackMasksForBothColors();
 	moveList_.pop_back();
@@ -152,18 +164,20 @@ void GameState::synchronizeIncrementalFrom(const GameState& referenceState) {
 
 std::string GameState::moveToSan(const QaplaBasics::Move& move) const
 {
-	if (move.isEmpty()) return std::string();
+	if (move.isEmpty()) { 
+		return {};
+	}
 	return position_.moveToSan(move);
 }
 
-QaplaBasics::Move GameState::stringToMove(std::string moveStr, bool requireLan) 
+QaplaBasics::Move GameState::stringToMove(const std::string& moveStr, bool requireLan) 
 {
 	QaplaInterface::MoveScanner scanner(moveStr);
 	if (!scanner.isLegal()) {
-		return QaplaBasics::Move();
+		return {};
 	}
 	if (requireLan && !scanner.isLan()) {
-		return QaplaBasics::Move();
+		return {};
 	}
 	int32_t departureFile = scanner.departureFile;
 	int32_t departureRank = scanner.departureRank;
@@ -186,7 +200,7 @@ QaplaBasics::Move GameState::stringToMove(std::string moveStr, bool requireLan)
 		if ((movingPiece == NO_PIECE || move.getMovingPiece() == movingPiece) &&
 			(departureFile == -1 || getFile(move.getDeparture()) == File(departureFile)) &&
 			(departureRank == -1 || getRank(move.getDeparture()) == Rank(departureRank)) &&
-			(getFile(move.getDestination()) == File(destinationFile)) &&
+			(destinationFile == -1 || getFile(move.getDestination()) == File(destinationFile)) &&
 			(destinationRank == -1 || getRank(move.getDestination()) == Rank(destinationRank)) &&
 			(move.getPromotion() == promotePiece))
 		{
@@ -202,38 +216,121 @@ QaplaBasics::Move GameState::stringToMove(std::string moveStr, bool requireLan)
 	return foundMove;
 }
 
-GameRecord GameState::setFromGameRecord(const GameRecord& game, std::optional<uint32_t> plies) {
+std::tuple<QaplaBasics::Move, bool, bool> GameState::resolveMove(
+	std::optional<Piece> movingPiece,
+	std::optional<Square> fromSquare,
+	std::optional<Square> toSquare,
+	std::optional<Piece> promotionPiece)
+{
+	QaplaBasics::MoveList moveList;
+	QaplaBasics::Move foundMove;
+	int matchCount = 0;
+	// Promotion is true, if all matching moves are promotions
+	bool promotion = true;
+
+	position_.genMovesOfMovingColor(moveList);
+
+	for (uint32_t i = 0; i < moveList.getTotalMoveAmount(); ++i) {
+		const Move move = moveList[i];
+
+		if (movingPiece && move.getMovingPiece() != *movingPiece) {
+			continue;
+		}
+		if (fromSquare && getFile(move.getDeparture()) != File(getFile(*fromSquare))) {
+			continue;
+		}
+		if (fromSquare && getRank(move.getDeparture()) != Rank(getRank(*fromSquare))) {
+			continue;
+		}
+		if (toSquare && getFile(move.getDestination()) != File(getFile(*toSquare))) {
+			continue;
+		}
+		if (toSquare && getRank(move.getDestination()) != Rank(getRank(*toSquare))) {
+			continue;
+		}
+		if (move.getPromotion() == NO_PIECE) {
+			promotion = false;
+		}
+		if (promotionPiece && move.getPromotion() != *promotionPiece) {
+			continue;
+		}
+		if (++matchCount == 1) {
+			foundMove = move;
+		}
+	}
+	return { matchCount == 1 ? foundMove : QaplaBasics::Move(), matchCount > 0, promotion && matchCount > 0 };
+}
+
+GameRecord GameState::setFromGameRecordAndCopy(const GameRecord& game, std::optional<uint32_t> plies, 
+	bool verbose) {
 	GameRecord copy;
-	setFen(game.getStartPos(), game.getStartFen());
-	copy.setStartPosition(game.getStartPos(), getFen(),
-		isWhiteToMove(), game.getWhiteEngineName(), game.getBlackEngineName());
+	if (!setFen(game.getStartPos(), game.getStartFen())) {
+		return copy;
+	}
+	copy.setStartPosition(game.getStartPos(), getFen(), isWhiteToMove(), position_.getStartHalfmoves(),
+		game.getWhiteEngineName(), game.getBlackEngineName());
 	const auto& moves = game.history();
-	uint32_t maxPly = static_cast<uint32_t>(moves.size());
+	auto maxPly = static_cast<uint32_t>(moves.size());
+	if (plies) {
+		maxPly = std::min(maxPly, *plies);
+	}
+	copy.reserveMoves(maxPly);
+	for (uint32_t i = 0; i < maxPly; ++i) {
+		MoveRecord move = moves[i];
+		auto& moveStr = move.original.empty() ? move.san_ : move.original;
+		auto parsed = stringToMove(moveStr, false);
+		if (parsed.isEmpty()) {
+			if (verbose) {
+				Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
+					TraceLevel::error);
+			}
+			return copy;
+		}
+		move.lan_ = parsed.getLAN();
+		move.san_ = moveToSan(parsed);
+		copy.addMove(move);
+		doMove(parsed);
+	}
+	uint32_t nextMoveIndex = game.nextMoveIndex();
+	copy.setNextMoveIndex(nextMoveIndex);
+	auto [gameCause, gameResult] = game.getGameResult();
+	copy.setGameEnd(gameCause, gameResult);
+	auto [myCause, myResult] = getGameResult();
+
+	if (myResult != GameResult::Unterminated && gameResult == GameResult::Unterminated) {
+		copy.setGameEnd(myCause, myResult);
+	}
+	// Only set the game result if we are at the end of the game record
+	if ((!plies || nextMoveIndex == *plies) && myResult == GameResult::Unterminated) {
+		setGameResult(gameCause, gameResult);
+	}
+	return copy;
+}
+
+void GameState::setFromGameRecord(const GameRecord& game, std::optional<uint32_t> plies) {
+	setFen(game.getStartPos(), game.getStartFen());
+	const auto& moves = game.history();
+	auto maxPly = static_cast<uint32_t>(moves.size());
 	if (plies) {
 		maxPly = std::min(maxPly, *plies);
 	}
 	for (uint32_t i = 0; i < maxPly; ++i) {
-		MoveRecord move = moves[i];
-		auto& moveStr = move.original;
+		std::string moveStr = moves[i].lan_.empty() ? moves[i].san_ : moves[i].lan_;
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
 			Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
 				TraceLevel::error);
-			return copy;
+			return;
 		}
-		move.lan = parsed.getLAN();
-		move.san = moveToSan(parsed);
-		copy.addMove(move);
 		doMove(parsed);
 	}
 	auto [gameCause, gameResult] = game.getGameResult();
-	auto [cause, result] = getGameResult();
-	if (result == GameResult::Unterminated) {
-		setGameResult(gameCause, gameResult);
-	}
-	auto [sumCause, sumResult] = getGameResult();
+	auto [myCause, myResult] = getGameResult();
 
-	copy.setGameEnd(sumCause, sumResult);
-	return copy;
+	// Only set the game result if we are at the end of the game record
+	if (game.isGameOver() && myResult == GameResult::Unterminated) {
+		setGameResult(gameCause, gameResult);
+	} 
 }
 	
+} // namespace QaplaTester

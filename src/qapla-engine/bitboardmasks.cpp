@@ -64,7 +64,6 @@ void BitBoardMasks::initAttackRay() {
 	const int32_t MOVE_DIRECTION[8][2] =
 		{ { 1,0 }, { -1,0 }, { 0,1 }, { 0,-1 }, { 1,1 }, { 1,-1 }, { -1,1 }, { -1,-1 } };
 
-	square = QaplaBasics::A1;
 
 	for (square = QaplaBasics::A1; square <= QaplaBasics::H8; ++square)
 	{

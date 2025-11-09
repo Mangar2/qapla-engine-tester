@@ -26,10 +26,11 @@
 #include <functional>
 #include <optional>
 #include <future>
-#include <thread>
 #include "game-record.h"
 #include "engine-adapter.h"
 #include "engine-config.h"
+
+namespace QaplaTester {
 
 class EngineAdapter;
 
@@ -95,14 +96,38 @@ public:
 	 * @param limits The time limits for the next move.
 	 * @param ponderMove The move to ponder, if any.
 	 */
-	void allowPonder(const GameRecord& game, const GoLimits& limits, std::string ponderMove);
+	void allowPonder(const GameRecord& game, const GoLimits& limits, const std::string& ponderMove);
 
 	/**
 	 * @brief Sends a command to the engine to prepare for a new game.
+	 * 
+	 * @param gameRecord The game record containing the starting position and move history.
+	 * @param engineIsWhite True if the engine plays as white, false for black.
 	 */
 	void newGame(const GameRecord& gameRecord, bool engineIsWhite) {
 		post([=](EngineAdapter& adapter) {
 			adapter.newGame(gameRecord, engineIsWhite);
+			});
+	}
+
+	/**
+	 * @brief Sets the time control for the engine.
+	 * @param timeControl The time control to set.
+	 */
+	void setTimeControl(const GameRecord& gameRecord, bool engineIsWhite) {
+		post([=](EngineAdapter& adapter) {
+			adapter.setTimeControl(gameRecord, engineIsWhite);
+			});
+	}
+
+	/**
+	 * @brief Notifies the worker that the best move has been received from the engine.
+	 * @param sanMove The best move in SAN notation.
+	 * @param lanMove The best move in LAN notation.
+	 */
+	void bestMoveReceived(const std::string& sanMove, const std::string& lanMove) {
+		post([=](EngineAdapter& adapter) {
+			adapter.bestMoveReceived(sanMove, lanMove);
 			});
 	}
 
@@ -114,6 +139,13 @@ public:
 	 * @return true if the best move was received, false if the timeout was reached or the engine is not ready.
 	 */
 	bool moveNow(bool wait = false, std::chrono::milliseconds timeout = BestMoveTimeout);
+
+	/**
+	 * @brief Handles a ponder miss (opponent played different move than expected).
+	 * @param timeout The maximum time to wait for the engine response.
+	 * @return true if the engine responded correctly, false if timeout or error.
+	 */
+	bool handlePonderMiss(std::chrono::milliseconds timeout = BestMoveTimeout);
 
 	/**
 	 * @brief Sets the event sink for engine events.
@@ -218,7 +250,7 @@ public:
 		return engineConfig_;
 	}
 
-	enum class EventFilter {
+	enum class EventFilter: uint8_t {
 		None = 0,
 		EmptyEvent = 1,
 		InfoEvent = 2
@@ -232,16 +264,24 @@ public:
 		cliTraceLevel_ = traceLevel;
 	}
 
-private:
 
-	enum class WorkerState {
+	enum class WorkerState: std::uint8_t {
 		notStarted,
 		starting,
 		running,
 		failure,
-		stopped,
-		terminated
+		stopped
 	};
+
+	WorkerState workerState() {
+		return workerState_;
+	}
+
+	bool isStopped() const {
+		return workerState_ == WorkerState::stopped;
+	}
+
+private:
 
 	/*
 	 * @brief processs the startup of the engine asynchronously.
@@ -306,3 +346,5 @@ private:
 	TraceLevel cliTraceLevel_ = TraceLevel::info;
 
 };
+
+} // namespace QaplaTester

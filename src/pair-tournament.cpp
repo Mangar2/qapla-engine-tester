@@ -17,23 +17,28 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include <random>
-#include <iomanip>
+#include "game-result.h"
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
 #include "pgn-io.h"
+#include "string-helper.h"
+
+#include <random>
+#include <iomanip>
+
+namespace QaplaTester {
 
 void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig& engineB,
 	const PairTournamentConfig& config, std::shared_ptr<StartPositions> startPositions) {
 
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (started_) {
+    std::scoped_lock lock(mutex_);
+    if (initialized_) {
         throw std::logic_error("PairTournament already initialized");
     }
     if (!results_.empty()) {
         throw std::logic_error("PairTournament already has result data; call load() only after initialize()");
     }
-    started_ = true;
+    initialized_ = true;
 
     engineA_ = engineA;
     engineB_ = engineB;
@@ -69,9 +74,9 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
 
 }
 
-void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
+void PairTournament::schedule(const std::shared_ptr<PairTournament>& self, GameManagerPool& pool) {
 
-    if (!started_) {
+    if (!initialized_) {
         throw std::logic_error("PairTournament must be initialized before scheduling");
     }
 
@@ -89,8 +94,8 @@ void PairTournament::schedule(const std::shared_ptr<PairTournament>& self) {
         return; // Nichts zu tun
     }
 
-    GameManagerPool::getInstance().addTaskProvider(self, engineA_, engineB_);
-    GameManagerPool::getInstance().assignTaskToManagers();
+    pool.addTaskProvider(self, engineA_, engineB_);
+    pool.startManagers();
 }
 
 uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
@@ -98,30 +103,28 @@ uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
         std::uniform_int_distribution<size_t> dist(0, startPositions_->size() - 1);
         return static_cast<uint32_t>(dist(rng_));
     }
-    else {
-        uint32_t size = startPositions_->size();
-        return (gameInEncounter / config_.repeat + config_.openings.start) % size;
-    }
+    uint32_t size = startPositions_->size();
+    return (gameInEncounter / config_.repeat + config_.openings.start) % size;
 } 
 
 void PairTournament::updateOpening(uint32_t openingIndex) {
     GameState gameState;
     openingIndex_ = openingIndex;
     if (startPositions_->fens.empty()) {
-        curRecord_ = gameState.setFromGameRecord(startPositions_->games[openingIndex], config_.openings.plies);
+        curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
     }
     else {
         auto& fen = startPositions_->fens[openingIndex];
         gameState.setFen(false, fen);
-        curRecord_.setStartPosition(false, gameState.getFen(),
-            gameState.isWhiteToMove(), engineA_.getName(), engineB_.getName());
+        curRecord_.setStartPosition(false, gameState.getFen(), gameState.isWhiteToMove(), gameState.getStartHalfmoves(),
+            engineA_.getName(), engineB_.getName());
     }
 }
 
 std::optional<GameTask> PairTournament::nextTask() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
 
-    if (!started_ || !startPositions_ || startPositions_->empty()) {
+    if (!initialized_ || !startPositions_ || startPositions_->empty()) {
         return std::nullopt;
     }
 
@@ -136,8 +139,9 @@ std::optional<GameTask> PairTournament::nextTask() {
         }
         // Ensures consistent opening assignment for replayed games,  
         // avoiding mismatches due to skipped entries in rotating schemes.
-        if (config_.openings.policy == "default" && i % config_.repeat == 0) { 
-            updateOpening(newOpeningIndex(i));
+        if (config_.openings.policy == "default" && i % config_.repeat == 0) {
+            auto openingIndex = newOpeningIndex(i); 
+            updateOpening(openingIndex);
         }
         if (results_[i] != GameResult::Unterminated) {
             continue;
@@ -145,13 +149,20 @@ std::optional<GameTask> PairTournament::nextTask() {
         GameTask task;
         task.taskType = GameTask::Type::PlayGame;
 		task.gameRecord = curRecord_;
-		
-		task.gameRecord.setRound(static_cast<uint32_t>(i + 1));
+
+		task.gameRecord.setTournamentInfo(
+            static_cast<uint32_t>(config_.round + 1),
+            static_cast<uint32_t>(i + 1),
+            openingIndex_
+        );
 		task.taskId = std::to_string(i);
         task.switchSide = config_.swapColors && (i % 2 == 1);
         auto& white = task.switchSide ? engineB_ : engineA_;
         auto& black = task.switchSide ? engineA_ : engineB_;
         task.gameRecord.setTimeControl(white.getTimeControl(), black.getTimeControl());
+        if (!positionName_.empty()) {
+            task.gameRecord.setPositionName(positionName_ + " " + std::to_string(i + 1));
+        }
 
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
@@ -162,7 +173,7 @@ std::optional<GameTask> PairTournament::nextTask() {
             << " game " << std::setw(3) << i + 1
             << " opening " << std::setw(6) << openingIndex_
             << " engines " << white.getName() << " vs " << black.getName()
-            << std::endl;
+            << "\n" << std::flush;
 
         return task;
     }
@@ -171,23 +182,23 @@ std::optional<GameTask> PairTournament::nextTask() {
 }
 
 void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, const GameRecord& record) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
 
     auto [cause, result] = record.getGameResult();
-    uint32_t round = record.getRound();
+    uint32_t gameInRound = record.getGameInRound();
     
 
-    if (round == 0 || round > results_.size()) {
-		Logger::testLogger().log("Invalid round number in GameRecord: Round " + std::to_string(round) 
+    if (gameInRound == 0 || gameInRound > results_.size()) {
+		Logger::testLogger().log("Invalid round number in GameRecord: Round " + std::to_string(gameInRound) 
             + " but having " + std::to_string(results_.size()) + " games started ", TraceLevel::error);
         return;
     }
 
     // Result is stored as "white-view", thus not engine-view. To count how often the engines won,
     // we need to check the color of the engine in this round.
-    results_[round - 1] = result;
+    results_[gameInRound - 1] = result;
     GameRecord pgnRecord = record;
-    pgnRecord.setRound(round + config_.gameNumberOffset);
+    pgnRecord.setTotalGameNo(gameInRound + config_.gameNumberOffset);
     PgnIO::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
@@ -195,12 +206,14 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         std::ostringstream oss;
         oss << std::left
             << "  match round " << std::setw(3) << (config_.round + 1)
-            << " game " << std::setw(3) << round
+            << " game " << std::setw(3) << gameInRound
             << " result " << std::setw(7) << to_string(result)
             << " cause " << std::setw(21) << to_string(cause)
             << " engines " << record.getWhiteEngineName() << " vs " << record.getBlackEngineName();
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
+
+    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
 
     if (onGameFinished_){
         onGameFinished_(this);
@@ -231,24 +244,26 @@ std::string PairTournament::getResultSequenceEngineView() const {
 }
 
 std::string PairTournament::toString() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
     std::ostringstream oss;
 	oss << engineA_.getName() << " vs " << engineB_.getName() << " : " << getResultSequenceEngineView();
     return oss.str();
 }
 
 void PairTournament::fromString(const std::string& line) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::scoped_lock lock(mutex_);
 
     // The index of the next game to play is derived from the results_ vector, not from nextIndex_.
     // nextIndex_ is only used to avoid rechecking already completed games in nextTask().
     // Initializing it to 0 allows nextTask() to scan results_ for unfinished games and schedule them accordingly.
     nextIndex_ = 0; 
+    std::string resultString = line;
 
     auto pos = line.find(": ");
-    if (pos == std::string::npos) return;
+    if (pos != std::string::npos) {
+        resultString = line.substr(pos + 2);
+    }
 
-    std::string resultString = line.substr(pos + 2);
 	duelResult_.clear();
     results_.clear();
     results_.reserve(resultString.size());
@@ -279,73 +294,45 @@ void PairTournament::fromString(const std::string& line) {
 
 }
 
-void PairTournament::trySaveIfNotEmpty(std::ostream& out) const {
+std::optional<QaplaHelpers::IniFile::Section> PairTournament::getSectionIfNotEmpty(const std::string& id) const {
+    if (results_.empty()) {
+        return std::nullopt;
+    }
+
+    QaplaHelpers::IniFile::Section section;
+    section.name = "round";
+    section.addEntry("id", id);
+    section.addEntry("round", std::to_string(config_.round + 1));
+    section.addEntry("engineA", getEngineA().getName());
+    section.addEntry("engineB", getEngineB().getName());
 
     const auto& stats = duelResult_.causeStats;
-    if (results_.empty()) return;
+    section.addEntry("games", getResultSequenceEngineView());
 
-    out << "[round " << (config_.round + 1) << " engines " 
-        << getEngineA().getName() << " vs " << getEngineB().getName() << "]\n";
-    out << "games: " << getResultSequenceEngineView() << "\n";
-
-    auto writeStats = [&](const char* label, auto accessor) {
-        out << label << ": ";
-        std::string sep;
+    auto addStats = [&](const std::string& label, auto accessor) {
         for (size_t i = 0; i < stats.size(); ++i) {
             int value = accessor(stats[i]);
             if (value > 0) {
-                out << sep << to_string(static_cast<GameEndCause>(i)) << ":" << value;
-                sep = ",";
+                section.addEntry(label, to_string(static_cast<GameEndCause>(i)) + ":" + std::to_string(value));
             }
         }
-        out << "\n";
         };
 
-    writeStats("wincauses", [](const CauseStats& s) { return s.win; });
-    writeStats("drawcauses", [](const CauseStats& s) { return s.draw; });
-    writeStats("losscauses", [](const CauseStats& s) { return s.loss; });
-}
-
-std::tuple<uint32_t, std::string, std::string> PairTournament::parseRoundHeader(const std::string& line) {
-    const std::string trimmed = trim(line);
-    if (!trimmed.starts_with("[") || !trimmed.ends_with("]")) {
-        throw std::runtime_error("Invalid round header: missing [ or ]\nLine: " + line);
-    }
-
-    const std::string inner = trimmed.substr(1, trimmed.size() - 2); // strip brackets
-
-    const std::string prefix = "round ";
-    const auto prefixPos = inner.find(prefix);
-    if (prefixPos != 0) {
-        throw std::runtime_error("Invalid round header: must start with 'round'\nLine: " + line);
-    }
-
-    const auto enginesPos = inner.find(" engines ", prefix.size());
-    if (enginesPos == std::string::npos) {
-        throw std::runtime_error("Invalid round header: missing 'engines'\nLine: " + line);
-    }
-
-    const std::string roundStr = trim(inner.substr(prefix.size(), enginesPos - prefix.size()));
-    int round = std::stoi(roundStr);
-    if (round < 0) {
-        throw std::runtime_error("Invalid round number: " + roundStr + "\nLine: " + line);
-	}
-
-    const auto vsPos = inner.find(" vs ", enginesPos + 9);
-    if (vsPos == std::string::npos) {
-        throw std::runtime_error("Invalid round header: missing 'vs'\nLine: " + line);
-    }
-
-    const std::string engineA = trim(inner.substr(enginesPos + 9, vsPos - (enginesPos + 9)));
-    const std::string engineB = trim(inner.substr(vsPos + 4));
-
-    return { static_cast<uint32_t>(round), engineA, engineB };
+    addStats("wincauses", [](const CauseStats& s) { return s.win; });
+    addStats("drawcauses", [](const CauseStats& s) { return s.draw; });
+    addStats("losscauses", [](const CauseStats& s) { return s.loss; });
+    
+    return section;
 }
 
 bool PairTournament::matches(uint32_t round, const std::string& engineA, const std::string& engineB) const {
     return config_.round == round &&
         getEngineA().getName() == engineA &&
         getEngineB().getName() == engineB;
+}
+
+bool PairTournament::matches(const PairTournament& other) const {
+    return matches(other.config_.round, other.getEngineA().getName(), other.getEngineB().getName());
 }
 
 /**
@@ -361,45 +348,40 @@ static void parseEndCauses(std::string_view text, EngineDuelResult& result, int 
 
     while (std::getline(ss, token, ',')) {
         const auto sep = token.find(':');
-        if (sep == std::string::npos) continue;
+        if (sep == std::string::npos) {
+            continue;
+        }
 
-        const std::string causeStr = trim(token.substr(0, sep));
+        const std::string causeStr = QaplaHelpers::trim(token.substr(0, sep));
         const int count = std::stoi(token.substr(sep + 1));
 
         const auto causeOpt = tryParseGameEndCause(causeStr);
-        if (!causeOpt) continue;
+        if (!causeOpt) {
+            continue;
+        }
 
         result.causeStats[static_cast<size_t>(*causeOpt)].*field += count;
     }
 }
 
-std::string PairTournament::load(std::istream& in) {
+void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) {
     std::string line;
-    while (std::getline(in, line)) {
-        const std::string trimmed = trim(line);
-		if (trimmed.empty()) continue; 
-        if (trimmed.starts_with("[")) {
-            const std::string afterBracket = trim(trimmed.substr(1));
-            if (afterBracket.starts_with("round")) {
-                // We need this line to parse the next entry
-                return line; 
-            }
+    for (const auto& entry : section.entries) {
+        auto [key, value] = entry;
+        if (key == "games") {
+            fromString(value);
         }
-
-        if (line.starts_with("games: ")) {
-            fromString(line);
+        else if (key.starts_with("wincauses")) {
+            parseEndCauses(value, duelResult_, &CauseStats::win);
         }
-        else if (line.starts_with("wincauses: ")) {
-            parseEndCauses(line.substr(11), duelResult_, &CauseStats::win);
+        else if (key.starts_with("drawcauses")) {
+            parseEndCauses(value, duelResult_, &CauseStats::draw);
         }
-        else if (line.starts_with("drawcauses: ")) {
-            parseEndCauses(line.substr(12), duelResult_, &CauseStats::draw);
-        }
-        else if (line.starts_with("losscauses: ")) {
-            parseEndCauses(line.substr(12), duelResult_, &CauseStats::loss);
+        else if (key.starts_with("losscauses")) {
+            parseEndCauses(value, duelResult_, &CauseStats::loss);
         }
     }
-    return "";
+    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
 }
 
 std::string PairTournament::getTournamentInfo() const {
@@ -412,3 +394,5 @@ std::string PairTournament::getTournamentInfo() const {
         << "";
     return oss.str();
 }
+
+} // namespace QaplaTester

@@ -28,9 +28,11 @@
 #include <algorithm>
 #include "engine-report.h"
 
+namespace QaplaTester {
+
 void EngineReport::addTopic(const CheckTopic& topic) {
-    std::lock_guard<std::mutex> lock(statsMutex_);
-    auto it = std::find_if(registeredTopics_.begin(), registeredTopics_.end(),
+    std::scoped_lock lock(statsMutex_);
+    auto it = std::ranges::find_if(registeredTopics_,
         [&](const CheckTopic& t) { return t.id == topic.id; });
 
     if (it != registeredTopics_.end()) {
@@ -75,18 +77,60 @@ bool EngineReport::logReport(const std::string& topicId, bool passed, std::strin
     return passed;
 }
 
+EngineReport::ReportData EngineReport::createReportData() {
+    std::scoped_lock lock(statsMutex_);
+    
+    ReportData data;
+    
+    std::map<CheckSection, std::vector<std::pair<const CheckTopic*, CheckEntry>>> grouped;
+
+    for (const auto& topic : registeredTopics_) {
+        auto it = entries_.find(topic.id);
+        if (it == entries_.end()) {
+        continue;
+    }
+        grouped[topic.section].emplace_back(&topic, it->second);
+    }
+
+    // Helper lambda to process a section
+    auto processSection = [](const std::vector<std::pair<const CheckTopic*, CheckEntry>>& items) -> std::vector<ReportLine> {
+        std::vector<ReportLine> lines;
+        
+        // Sort items: failures first
+        auto sortedItems = items;
+        std::ranges::sort(sortedItems, [](const auto& a, const auto& b) {
+            const bool aFail = a.second.total > 0 && a.second.failures > 0;
+            const bool bFail = b.second.total > 0 && b.second.failures > 0;
+            return aFail > bFail;
+        });
+
+        for (const auto& [topic, stat] : sortedItems) {
+            const bool passed = stat.total > 0 && stat.failures == 0;
+            ReportLine line;
+            line.passed = passed;
+            line.text = topic->text;
+            line.failCount = passed ? 0 : stat.failures;
+            lines.push_back(line);
+        }
+        
+        return lines;
+    };
+
+    // Process each section
+    data.important = processSection(grouped[CheckSection::Important]);
+    data.missbehaviour = processSection(grouped[CheckSection::Missbehaviour]);
+    data.notes = processSection(grouped[CheckSection::Notes]);
+    data.report = processSection(grouped[CheckSection::Report]);
+
+    return data;
+}
+
 AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<EngineResult>& engineResult) {
     AppReturnCode result = AppReturnCode::NoError;
     Logger::testLogger().log("\n== Summary ==\n", traceLevel);
     Logger::testLogger().log(engineName_ + (engineAuthor_.empty() ? "" : " by " + engineAuthor_) + "\n", traceLevel);
 
-    std::map<CheckSection, std::vector<std::pair<const CheckTopic*, CheckEntry>>> grouped;
-
-    for (const auto& topic : registeredTopics_) {
-        auto it = entries_.find(topic.id);
-        if (it == entries_.end()) continue;
-        grouped[topic.section].emplace_back(&topic, it->second);
-    }
+    ReportData data = createReportData();
 
     const std::map<CheckSection, std::string> sectionTitles = {
         { CheckSection::Important, "Important" },
@@ -99,128 +143,185 @@ AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<Engin
         { CheckSection::Important, AppReturnCode::EngineError },
         { CheckSection::Missbehaviour, AppReturnCode::EngineMissbehaviour },
         { CheckSection::Notes, AppReturnCode::EngineNote },
-		{ CheckSection::Report, AppReturnCode::NoError  }
+        { CheckSection::Report, AppReturnCode::NoError  }
     };
 
-    for (const auto& [section, entries] : sectionTitles) {
-
-		if (section == CheckSection::Report) {
-			if (engineResult) {
-                Logger::testLogger().log("[" + entries + "]", traceLevel);
+    // Helper lambda to log a section
+    auto logSection = [&](CheckSection section, const std::vector<ReportLine>& lines, const std::string& title) {
+        if (section == CheckSection::Report) {
+            if (engineResult) {
+                Logger::testLogger().log("[" + title + "]", traceLevel);
                 std::ostringstream oss;
                 engineResult->printResults(oss);
                 Logger::testLogger().log(oss.str(), traceLevel);
-			}
-			continue;
-		}
+            }
+            return;
+        }
 
-        Logger::testLogger().log("[" + entries + "]", traceLevel);
+        Logger::testLogger().log("[" + title + "]", traceLevel);
 
-        auto& items = grouped[section];
-        std::sort(items.begin(), items.end(), [](const auto& a, const auto& b) {
-            const bool aFail = a.second.total > 0 && a.second.failures > 0;
-            const bool bFail = b.second.total > 0 && b.second.failures > 0;
-            return aFail > bFail;
-            });
+        if (lines.empty()) {
+            Logger::testLogger().log("", traceLevel);
+            return;
+        }
 
+        // Calculate max topic length for formatting
         size_t maxTopicLength = 0;
-        for (const auto& [topic, _] : items) {
-            maxTopicLength = std::max(maxTopicLength, topic->text.size());
+        for (const auto& line : lines) {
+            maxTopicLength = std::max(maxTopicLength, line.text.size());
         }
 
-        bool lastWasFail = false;
-        for (const auto& [topic, stat] : items) {
-            const bool passed = stat.total > 0 && stat.failures == 0;
-            if (result == AppReturnCode::NoError && !passed) {
-                result = sectionCodes.at(section);
-            }
-            if (passed && lastWasFail) {
-                Logger::testLogger().log("", traceLevel);
-            }
-            std::ostringstream line;
-            line << (passed ? "PASS " : "FAIL ");
-            line << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << topic->text;
-            if (!passed) {
-                line << "(" << stat.failures << " failed)";
-            }
-            lastWasFail = !passed;
-            Logger::testLogger().log(line.str(), traceLevel);
-        }
+        logSections(lines, maxTopicLength, traceLevel, sectionCodes, section, result);
 
         Logger::testLogger().log("", traceLevel);
-    }
+    };
+
+    // Log all sections in order
+    logSection(CheckSection::Important, data.important, sectionTitles.at(CheckSection::Important));
+    logSection(CheckSection::Missbehaviour, data.missbehaviour, sectionTitles.at(CheckSection::Missbehaviour));
+    logSection(CheckSection::Notes, data.notes, sectionTitles.at(CheckSection::Notes));
+    logSection(CheckSection::Report, data.report, sectionTitles.at(CheckSection::Report));
 
     return result;
+}
+
+void EngineReport::logSections(const std::vector<ReportLine>& lines, size_t maxTopicLength, 
+    TraceLevel traceLevel, const std::map<CheckSection, AppReturnCode>& sectionCodes, 
+    CheckSection section, AppReturnCode& result) {
+    bool lastWasFail = false;
+    for (const auto& line : lines) {
+        if (result == AppReturnCode::NoError && !line.passed) {
+            result = sectionCodes.at(section);
+        }
+        if (line.passed && lastWasFail) {
+            Logger::testLogger().log("", traceLevel);
+        }
+        std::ostringstream oss;
+        oss << (line.passed ? "PASS " : "FAIL ");
+        oss << std::left << std::setw(static_cast<int>(maxTopicLength) + 2) << line.text;
+        if (!line.passed) {
+            oss << "(" << line.failCount << " failed)";
+        }
+        lastWasFail = !line.passed;
+        Logger::testLogger().log(oss.str(), traceLevel);
+    }
 }
 
 
 const bool uciSearchInfoTopicsRegistered = [] {
     using enum EngineReport::CheckSection;
 
-    EngineReport::addTopic({ "Stability", "no-disconnect", "Engine does not disconnect during game", Important });
-    EngineReport::addTopic({ "Stability", "starts-and-stops-cleanly", "Engine starts and stops quickly and without issues", Important });
-    EngineReport::addTopic({ "Stability", "reacts-on-stop", "Engine handles 'stop' command reliably", Important });
-    EngineReport::addTopic({ "Stability", "infinite-move-does-not-exit", "Infinite compute move does not terminate on its own", Missbehaviour });
+    EngineReport::addTopic({ .group="Stability", .id="no-disconnect", 
+        .text="Engine does not disconnect during game", .section=Important });
+    EngineReport::addTopic({ .group="Stability", .id="starts-and-stops-cleanly", 
+        .text="Engine starts and stops quickly and without issues", .section=Important });
+    EngineReport::addTopic({ .group="Stability", .id="reacts-on-stop", 
+        .text="Engine handles 'stop' command reliably", .section=Important });
+    EngineReport::addTopic({ .group="Stability", .id="infinite-move-does-not-exit", 
+        .text="Infinite compute move does not terminate on its own", .section=Missbehaviour });
 
-    EngineReport::addTopic({ "BestMove", "bestmove", "Bestmove is followed by valid optional 'ponder' token", Missbehaviour });
-    EngineReport::addTopic({ "BestMove", "legalmove", "Bestmove returned is a legal move", Important });
-    EngineReport::addTopic({ "BestMove", "correct-after-immediate-stop", "Correct bestmove after immediate stop", Missbehaviour });
+    EngineReport::addTopic({ .group="BestMove", .id="bestmove", 
+        .text="Bestmove is followed by valid optional 'ponder' token", .section=Missbehaviour });
+    EngineReport::addTopic({ .group="BestMove", .id="legalmove", 
+        .text="Bestmove returned is a legal move", .section=Important });
+    EngineReport::addTopic({ .group="BestMove", .id="correct-after-immediate-stop", 
+        .text="Correct bestmove after immediate stop", .section=Missbehaviour });
 
-    EngineReport::addTopic({ "Pondering", "legal-pondermove", "Ponder move returned is a legal move", Important });
-    EngineReport::addTopic({ "Pondering", "correct-pondering", "Correct pondering", Important });
+    EngineReport::addTopic({ .group="Pondering", .id="legal-pondermove", 
+        .text="Ponder move returned is a legal move", .section=Important });
+    EngineReport::addTopic({ .group="Pondering", .id="correct-pondering", 
+        .text="Correct pondering", .section=Important });
 
-    EngineReport::addTopic({ "Time", "no-loss-on-time", "Engine avoids time losses", Important });
-    EngineReport::addTopic({ "Time", "keeps-reserve-time", "Engine preserves reserve time appropriately", Notes });
-    EngineReport::addTopic({ "Time", "not-below-one-second", "Engine avoids dropping below 1 second on the clock", Notes });
+    EngineReport::addTopic({ .group="Time", .id="no-loss-on-time", 
+        .text="Engine avoids time losses", .section=Important });
+    EngineReport::addTopic({ .group="Time", .id="keeps-reserve-time", 
+        .text="Engine preserves reserve time appropriately", .section=Notes });
+    EngineReport::addTopic({ .group="Time", .id="not-below-one-second", 
+        .text="Engine avoids dropping below 1 second on the clock", .section=Notes });
 
-    EngineReport::addTopic({ "MoveTime", "supports-movetime", "Supports movetime", Notes });
-    EngineReport::addTopic({ "MoveTime", "no-movetime-overrun", "No movetime overrun", Missbehaviour });
-    EngineReport::addTopic({ "MoveTime", "no-movetime-underrun", "No movetime underrun", Notes });
+    EngineReport::addTopic({ .group="MoveTime", .id="supports-movetime", 
+        .text="Supports movetime", .section=Notes });
+    EngineReport::addTopic({ .group="MoveTime", .id="no-movetime-overrun", 
+        .text="No movetime overrun", .section=Missbehaviour });
+    EngineReport::addTopic({ .group="MoveTime", .id="no-movetime-underrun", 
+        .text="No movetime underrun", .section=Notes });
 
-    EngineReport::addTopic({ "DepthLimit", "supports-depth-limit", "Supports depth limit", Notes });
-    EngineReport::addTopic({ "DepthLimit", "no-depth-overrun", "No depth overrun", Notes });
-    EngineReport::addTopic({ "DepthLimit", "no-depth-underrun", "No depth underrun", Notes });
+    EngineReport::addTopic({ .group="DepthLimit", .id="supports-depth-limit", 
+        .text="Supports depth limit", .section=Notes });
+    EngineReport::addTopic({ .group="DepthLimit", .id="no-depth-overrun", 
+        .text="No depth overrun", .section=Notes });
+    EngineReport::addTopic({ .group="DepthLimit", .id="no-depth-underrun", 
+        .text="No depth underrun", .section=Notes });
 
-    EngineReport::addTopic({ "NodesLimit", "supports-node-limit", "Supports node limit", Notes });
-    EngineReport::addTopic({ "NodesLimit", "no-nodes-overrun", "No nodes overrun", Notes });
-    EngineReport::addTopic({ "NodesLimit", "no-nodes-underrun", "No nodes underrun", Notes });
+    EngineReport::addTopic({ .group="NodesLimit", .id="supports-node-limit",
+        .text="Supports node limit", .section=Notes });
+    EngineReport::addTopic({ .group="NodesLimit", .id="no-nodes-overrun", 
+        .text="No nodes overrun", .section=Notes });
+    EngineReport::addTopic({ .group="NodesLimit", .id="no-nodes-underrun", 
+        .text="No nodes underrun", .section=Notes });
 
-    EngineReport::addTopic({ "Tests", "shrinks-with-hash", "Engine memory decreases when hash size is reduced", Notes });
-    EngineReport::addTopic({ "Tests", "options-safe", "Engine options handling is safe and robust", Important });
+    EngineReport::addTopic({ .group="Tests", .id="shrinks-with-hash", 
+        .text="Engine memory decreases when hash size is reduced", .section=Notes });
+    EngineReport::addTopic({ .group="Tests", .id="options-safe", 
+        .text="Engine options handling is safe and robust", .section=Important });
 
-    EngineReport::addTopic({ "Score", "score cp", "Search info reports correct score cp", Missbehaviour });
-    EngineReport::addTopic({ "Score", "score mate", "Search info reports correct score mate", Missbehaviour });
+    EngineReport::addTopic({ .group="Score", .id="score cp", 
+        .text="Search info reports correct score cp", .section=Missbehaviour });
+    EngineReport::addTopic({ .group="Score", .id="score mate", 
+        .text="Search info reports correct score mate", .section=Missbehaviour });
 
-    EngineReport::addTopic({ "Depth", "depth", "Search info reports correct depth", Missbehaviour });
-    EngineReport::addTopic({ "Depth", "seldepth", "Search info reports correct selective depth", Notes });
+    EngineReport::addTopic({ .group="Depth", .id="depth", 
+        .text="Search info reports correct depth", .section=Missbehaviour });
+    EngineReport::addTopic({ .group="Depth", .id="seldepth", 
+        .text="Search info reports correct selective depth", .section=Notes });
 
-    EngineReport::addTopic({ "SearchInfo", "multipv", "Search info reports correct multipv", Notes });
-    EngineReport::addTopic({ "SearchInfo", "time", "Search info reports correct time", Notes });
-    EngineReport::addTopic({ "SearchInfo", "nodes", "Search info reports correct nodes", Notes });
-    EngineReport::addTopic({ "SearchInfo", "nps", "Search info reports correct nps", Notes });
-    EngineReport::addTopic({ "SearchInfo", "hashfull", "Search info reports correct hashfull", Notes });
-    EngineReport::addTopic({ "SearchInfo", "tbhits", "Search info reports correct tbhits", Notes });
-    EngineReport::addTopic({ "SearchInfo", "sbhits", "Search info reports correct sbhits", Notes });
-    EngineReport::addTopic({ "SearchInfo", "cpuload", "Search info reports correct cpuload", Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="multipv", 
+        .text="Search info reports correct multipv", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="time", 
+        .text="Search info reports correct time", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="nodes", 
+        .text="Search info reports correct nodes", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="nps", 
+        .text="Search info reports correct nps", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="hashfull", 
+        .text="Search info reports correct hashfull", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="tbhits", 
+        .text="Search info reports correct tbhits", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="sbhits", 
+        .text="Search info reports correct sbhits", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="cpuload", 
+        .text="Search info reports correct cpuload", .section=Notes });
 
-    EngineReport::addTopic({ "Currmove", "currmovenumber", "Search info reports correct current move number", Notes });
-    EngineReport::addTopic({ "Currmove", "currmove", "Search info reports correct current move", Notes });
+    EngineReport::addTopic({ .group="Currmove", .id="currmovenumber", 
+        .text="Search info reports correct current move number", .section=Notes });
+    EngineReport::addTopic({ .group="Currmove", .id="currmove", 
+        .text="Search info reports correct current move", .section=Notes });
 
-    EngineReport::addTopic({ "SearchInfo", "pv", "Search info provides valid principal variation (PV)", Notes });
-    EngineReport::addTopic({ "SearchInfo", "duplicate-info-field", "Search info field is reported more than once", Notes });
-    EngineReport::addTopic({ "SearchInfo", "unexpected-move-token", "Unexpected move token in info line", Notes });
-    EngineReport::addTopic({ "SearchInfo", "wrong-token-in-info-line", "Unrecognized or misplaced token in info line", Notes });
-    EngineReport::addTopic({ "SearchInfo", "parsing-exception", "Parsing of search info threw an exception", Notes });
-	EngineReport::addTopic({ "SearchInfo", "lower-case-option", "Engine accepts lower case option names", Notes });
-    
+    EngineReport::addTopic({ .group="SearchInfo", .id="pv", 
+        .text="Search info provides valid principal variation (PV)", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="duplicate-info-field", 
+        .text="Search info field is reported more than once", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="unexpected-move-token", 
+        .text="Unexpected move token in info line", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="wrong-token-in-info-line", 
+        .text="Unrecognized or misplaced token in info line", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="parsing-exception", 
+        .text="Parsing of search info threw an exception", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="lower-case-option", 
+        .text="Engine accepts lower case option names", .section=Notes });
+
     // Winboard
-    EngineReport::addTopic({ "SearchInfo", "missing-thinking-output", "Engine provides all thinking output", Notes });
-    EngineReport::addTopic({ "SearchInfo", "no-engine-error-report", "Engine did not report errors", Notes });
-    EngineReport::addTopic({ "Startup", "feature-report", "Engine send features correctly", Notes });
-    
-    EngineReport::addTopic({ "EPD", "epd-expected-moves", "Simple EPD tests: expected moves found", Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="missing-thinking-output", 
+        .text="Engine provides all thinking output", .section=Notes });
+    EngineReport::addTopic({ .group="SearchInfo", .id="no-engine-error-report", 
+        .text="Engine did not report errors", .section=Notes });
+    EngineReport::addTopic({ .group="Startup", .id="feature-report", 
+        .text="Engine send features correctly", .section=Notes });
+
+    EngineReport::addTopic({ .group="EPD", .id="epd-expected-moves", 
+        .text="Simple EPD tests: expected moves found", .section=Notes });
 
     return true;
 }();
 
-
+} // namespace QaplaTester

@@ -17,9 +17,11 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include "app-error.h"
+#include "string-helper.h"
 #include "cli-settings-manager.h"
 
-#include <string.h>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -29,11 +31,104 @@
 #include <unordered_map>
 #include <cassert>
 
-#include "app-error.h"
-#include "string-helper.h"
 
-namespace CliSettings
+namespace QaplaTester::CliSettings
 {
+
+    Value Manager::parseBool(const ParsedParameter& arg)
+    {
+        auto lowerValue = arg.value ? QaplaHelpers::to_lowercase(*arg.value) : std::string();
+        if (!arg.value) {
+            return true;
+        }
+        if (lowerValue == "true" || lowerValue == "1")
+        {
+            return true;
+        }
+        if (lowerValue == "false" || lowerValue == "0")
+        {
+            return false;
+        }
+        throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected true, false, 1 or 0");
+    }
+
+    Value Manager::parseInt(const ParsedParameter& arg)
+    {
+        if (!arg.value)
+        {
+            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        auto result = QaplaHelpers::to_int(*arg.value);
+        if (!result)
+        {
+            throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected integer");
+        }
+        return *result;
+    }
+
+    Value Manager::parseUInt(const ParsedParameter& arg)
+    {
+        if (!arg.value)
+        {
+            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        auto result = QaplaHelpers::to_uint32(*arg.value);
+        if (!result)
+        {
+            throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected positive integer");
+        }
+        return *result;
+    }
+
+    Value Manager::parseFloat(const ParsedParameter& arg)
+    {
+        if (!arg.value)
+        {
+            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        auto result = QaplaHelpers::to_double(*arg.value);
+        if (!result)
+        {
+            throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected double");
+        }
+        return *result;
+    }
+
+    Value Manager::parseString(const ParsedParameter& arg)
+    {
+        return arg.value ? QaplaHelpers::to_lowercase(*arg.value) : std::string();
+    }
+
+    Value Manager::parsePathExists(const ParsedParameter& arg)
+    {
+        if (!arg.value)
+        {
+            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        if (!std::filesystem::exists(*arg.value))
+        {
+            throw AppError::makeInvalidParameters("The path in \"" + arg.original + "\" does not exist");
+        }
+        return *arg.value;
+    }
+
+    Value Manager::parsePathParentExists(const ParsedParameter& arg)
+    {
+        if (!arg.value)
+        {
+            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        std::filesystem::path path(*arg.value);
+        std::filesystem::path parent = path.parent_path();
+        if (parent.empty()) {
+            parent = std::filesystem::current_path();
+        }
+        if (!std::filesystem::exists(parent))
+        {
+            throw AppError::makeInvalidParameters("The parent directory of \"" + arg.original + "\" does not exist");
+        }
+        return *arg.value;
+    }
 
     std::vector<std::string> Manager::mergeWithSettingsFile(const std::vector<std::string> &originalArgs)
     {
@@ -41,15 +136,16 @@ namespace CliSettings
         for (size_t i = 1; i < originalArgs.size(); ++i)
         {
             const std::string &arg = originalArgs[i];
-            if (arg.rfind("--settingsfile=", 0) == 0)
+            if (arg.starts_with("--settingsfile="))
             {
                 filePath = arg.substr(15);
                 break;
             }
         }
 
-        if (filePath.empty())
+        if (filePath.empty()) {
             return originalArgs;
+        }
 
         std::ifstream file(filePath);
         if (!file.is_open())
@@ -67,38 +163,41 @@ namespace CliSettings
     std::vector<std::string> Manager::parseStreamToArgv(std::istream &input)
     {
         std::vector<std::string> args;
-        std::string line, section;
+        std::string line;
+        std::string section;
         int lineNumber = 0;
 
         while (std::getline(input, line))
         {
             ++lineNumber;
-            line = trim(line);
-            if (line.empty() || line[0] == '#')
+            line = QaplaHelpers::trim(line);
+            if (line.empty() || line[0] == '#') {
                 continue;
+            }
 
-            if (auto maybeSection = parseSection(line))
+            if (auto maybeSection = QaplaHelpers::parseSection(line))
             {
                 section = *maybeSection;
                 args.push_back("--" + section);
                 continue;
             }
 
-            auto kv = parseKeyValue(line);
+            auto kv = QaplaHelpers::parseKeyValue(line);
             if (!kv)
             {
-                throw AppError::makeInvalidParameters("Invalid setting in line " + std::to_string(lineNumber) +
-                                                      ": '" + line + "'. Expected 'key=value' format.");
+                throw AppError::makeInvalidParameters(std::format("Invalid setting in line {}: '{}'. Expected 'key=value' format.", lineNumber, line));
             }
 
             const auto &[key, value] = *kv;
             if (!section.empty())
             {
-                args.push_back(key + "=" + value);
+                std::string arg = std::format("{}={}", key, value);
+                args.push_back(arg);
             }
             else
             {
-                args.push_back("--" + key + "=" + value);
+                std::string arg = std::format("--{}={}", key, value);
+                args.push_back(arg);
             }
         }
 
@@ -109,26 +208,30 @@ namespace CliSettings
     {
         auto typeMismatch = [&](const std::string &expected)
         {
-            throw AppError::makeInvalidParameters("Default value for setting \"" + name + "\" must be of type " + expected + ".");
+            throw AppError::makeInvalidParameters(std::format("Default value for setting \"{}\" must be of type {}.", name, expected));
         };
 
         switch (type)
         {
         case ValueType::Int:
-            if (!std::holds_alternative<int>(value))
+            if (!std::holds_alternative<int>(value)) {
                 typeMismatch("int");
+            }
             break;
         case ValueType::UInt:
-            if (!std::holds_alternative<unsigned int>(value))
+            if (!std::holds_alternative<unsigned int>(value)) {
                 typeMismatch("unsigned int");
+            }
             break;
         case ValueType::Float:
-            if (!std::holds_alternative<double>(value))
+            if (!std::holds_alternative<double>(value)) {
                 typeMismatch("double");
+            }
             break;
         case ValueType::Bool:
-            if (!std::holds_alternative<bool>(value))
+            if (!std::holds_alternative<bool>(value)) {
                 typeMismatch("bool");
+            }
             break;
         case ValueType::PathExists:
             if (!std::holds_alternative<std::string>(value) ||
@@ -145,8 +248,9 @@ namespace CliSettings
             }
             break;
         default:
-            if (!std::holds_alternative<std::string>(value))
+            if (!std::holds_alternative<std::string>(value)) {
                 typeMismatch("string");
+            }
             break;
         }
     }
@@ -168,8 +272,8 @@ namespace CliSettings
             validateDefaultValue(name, *defaultValue, type);
         }
 
-        std::string key = to_lowercase(name);
-        definitions_[key] = {description, isRequired, defaultValue, type};
+        std::string key = QaplaHelpers::to_lowercase(name);
+        definitions_[key] = {.description = description, .isRequired = isRequired, .defaultValue = defaultValue, .type = type};
     }
 
     void Manager::registerGroup(const std::string &groupName,
@@ -179,13 +283,14 @@ namespace CliSettings
     {
 
 
-        std::string key = to_lowercase(groupName);
-        groupDefs_[key] = GroupDefinition{groupDescription, unique, keys};
+        std::string key = QaplaHelpers::to_lowercase(groupName);
+        groupDefs_[key] = {.description = groupDescription, .unique = unique, .keys = keys};
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {
-            if (!def.defaultValue)
+            if (!def.defaultValue) {
                 continue;
+            }
 			auto type = def.type;
 			auto& defaultValue = def.defaultValue;
             if (type == ValueType::UInt && std::holds_alternative<int>(*defaultValue)
@@ -197,26 +302,26 @@ namespace CliSettings
         }
     }
 
-    const GroupInstances Manager::getGroupInstances(const std::string &groupName)
+    GroupInstances Manager::getGroupInstances(const std::string &groupName)
     {
-        std::string key = to_lowercase(groupName);
+        std::string key = QaplaHelpers::to_lowercase(groupName);
         auto it = groupInstances_.find(key);
         if (it == groupInstances_.end() || it->second.empty())
         {
-            return std::vector<GroupInstance>();
+            return {};
         }
         return it->second;
     }
 
     std::optional<GroupInstance> Manager::getGroupInstance(const std::string &groupName)
     {
-        std::string key = to_lowercase(groupName);
+        std::string key = QaplaHelpers::to_lowercase(groupName);
         auto it = groupInstances_.find(key);
         if (it == groupInstances_.end() || it->second.empty())
         {
             return std::nullopt;
         }
-        if (it->second.size() == 0)
+        if (it->second.empty())
         {
             return std::nullopt;
         }
@@ -230,7 +335,7 @@ namespace CliSettings
 
         std::string working = raw;
 
-        result.hasPrefix = working.rfind("--", 0) == 0;
+        result.hasPrefix = working.starts_with("--");
         if (result.hasPrefix)
         {
             working = working.substr(2);
@@ -239,12 +344,12 @@ namespace CliSettings
         auto eqPos = working.find('=');
         if (eqPos == std::string::npos)
         {
-            result.name = to_lowercase(working);
+            result.name = QaplaHelpers::to_lowercase(working);
             result.value = std::nullopt;
         }
         else
         {
-            result.name = to_lowercase(working.substr(0, eqPos));
+            result.name = QaplaHelpers::to_lowercase(working.substr(0, eqPos));
             result.value = working.substr(eqPos + 1);
         }
 
@@ -267,10 +372,10 @@ namespace CliSettings
 
             if (!arg.hasPrefix)
             {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" must start with \"--\"");
+                throw AppError::makeInvalidParameters(R"(")" + arg.original + R"(" must start with "--")");
             }
 
-            if (groupDefs_.find(arg.name) != groupDefs_.end())
+            if (groupDefs_.contains(arg.name))
             {
                 index = parseGroupedParameter(index, args);
             }
@@ -287,12 +392,14 @@ namespace CliSettings
     {
         auto arg = parseParameter(args[index]);
 
-        if (!arg.hasPrefix)
+        if (!arg.hasPrefix) {
             throw AppError::makeInvalidParameters("\"" + arg.original + "\" must be in the form --name=value");
+        }
 
         auto it = definitions_.find(arg.name);
-        if (it == definitions_.end())
+        if (it == definitions_.end()) {
             throw AppError::makeInvalidParameters("\"" + arg.name + "\" is not a valid global parameter");
+        }
 
         values_[arg.name] = parseValue(arg, it->second);
         return index + 1;
@@ -303,7 +410,7 @@ namespace CliSettings
         auto it = definitions_.find(name);
         if (it == definitions_.end())
         {
-            return {SetResult::Status::UnknownName, "Unknown setting: \"" + name + "\""};
+            return {.status = SetResult::Status::UnknownName, .errorMessage = "Unknown setting: \"" + name + "\""};
         }
 
         try
@@ -312,25 +419,27 @@ namespace CliSettings
         }
         catch (const AppError &ex)
         {
-            return {SetResult::Status::InvalidValue, ex.what()};
+            return {.status = SetResult::Status::InvalidValue, .errorMessage = ex.what()};
         }
 
-        return {SetResult::Status::Success, {}};
+        return {.status = SetResult::Status::Success, .errorMessage = {}};
     }
 
     const Definition *Manager::resolveGroupedKey(const GroupDefinition &group, const std::string &name)
     {
         auto it = group.keys.find(name);
-        if (it != group.keys.end())
+        if (it != group.keys.end()) {
             return &it->second;
+        }
         std::string postFix = "[name]";
         for (const auto &[key, def] : group.keys)
         {
             if (key.ends_with("." + postFix))
             {
                 std::string prefix = key.substr(0, key.size() - postFix.length());
-                if (name.rfind(prefix, 0) == 0)
+                if (name.starts_with(prefix)) {
                     return &def;
+                }
             }
         }
 
@@ -343,8 +452,9 @@ namespace CliSettings
         index++;
 
         auto defIt = groupDefs_.find(groupArg.name);
-        if (defIt == groupDefs_.end())
+        if (defIt == groupDefs_.end()) {
             throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" is not a valid parameter");
+        }
 
         const auto &groupDefinition = defIt->second;
         ValueMap group;
@@ -359,11 +469,12 @@ namespace CliSettings
             auto arg = parseParameter(args[index]);
 
             // this is not a parameter of the group, so we stop parsing
-            if (arg.hasPrefix)
+            if (arg.hasPrefix) {
                 break;
+            }
 
             const Definition *def = resolveGroupedKey(groupDefinition, arg.name);
-            if (!def) {
+            if (def == nullptr) {
                 AppError::throwOnInvalidOption(groupDefinition.keyNames(), arg.name,
                     "Unknown parameter in section \"" + groupArg.name + "\"");
             }
@@ -374,15 +485,19 @@ namespace CliSettings
 
         for (const auto &[key, def] : groupDefinition.keys)
         {
-            if (key.ends_with(".[name]"))
+            if (key.ends_with(".[name]")) {
                 continue;
-            if (group.contains(key))
+            }
+            if (group.contains(key)) {
                 continue;
-            if (def.isRequired)
+            }
+            if (def.isRequired) {
                 throw AppError::makeInvalidParameters(
                     "Missing required parameter \"" + key + "\" in section \"" + groupArg.name + "\"");
-            if (def.defaultValue)
+            }
+            if (def.defaultValue) {
                 group[key] = *def.defaultValue;
+            }
         }
 
         groupInstances_[groupArg.name].emplace_back(group, groupDefinition);
@@ -393,8 +508,9 @@ namespace CliSettings
     {
         for (const auto &[key, def] : definitions_)
         {
-            if (values_.contains(key))
+            if (values_.contains(key)) {
                 continue;
+            }
 
             if (def.isRequired && !def.defaultValue)
             {
@@ -452,8 +568,9 @@ namespace CliSettings
             std::cout << std::left << std::setw(nameWidth) << line.str();
 
             std::cout << def.description;
-            if (def.isRequired)
+            if (def.isRequired) {
                 std::cout << " [required]";
+            }
             else if (def.defaultValue)
             {
                 bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue) && std::get<std::string>(*def.defaultValue).empty();
@@ -488,8 +605,9 @@ namespace CliSettings
                 std::cout << std::left << std::setw(nameWidth) << line.str();
 
                 std::cout << meta.description;
-                if (meta.isRequired)
+                if (meta.isRequired) {
                     std::cout << " [required]";
+                }
                 else if (meta.defaultValue)
                 {
                     bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue) && std::get<std::string>(*meta.defaultValue).empty();
@@ -508,88 +626,21 @@ namespace CliSettings
 
     Value Manager::parseValue(const ParsedParameter &arg, const Definition &def)
     {
-        auto lowerValue = arg.value ? to_lowercase(*arg.value) : std::string();
-        if (def.type == ValueType::Bool)
-        {
-            if (!arg.value)
-                return true;
-            if (lowerValue == "true" || lowerValue == "1")
-            {
-                return true;
-            }
-            else if (lowerValue == "false" || lowerValue == "0")
-            {
-                return false;
-            }
-            else
-            {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected true, false, 1 or 0");
-            }
+        switch (def.type) {
+            case ValueType::Bool:
+                return parseBool(arg);
+            case ValueType::Int:
+                return parseInt(arg);
+            case ValueType::UInt:
+                return parseUInt(arg);
+            case ValueType::Float:
+                return parseFloat(arg);
+            case ValueType::PathExists:
+                return parsePathExists(arg);
+            case ValueType::PathParentExists:
+                return parsePathParentExists(arg);
+            default:
+                return parseString(arg);
         }
-        if (!arg.value)
-        {
-            throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
-        }
-        if (def.type == ValueType::Int)
-        {
-            try
-            {
-                return stoi(*arg.value);
-            }
-            catch (...)
-            {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected integer");
-            }
-        }
-        if (def.type == ValueType::UInt)
-        {
-            try
-            {
-                int value = stoi(*arg.value);
-                if (value < 0)
-                {
-					throw "expected positive integer";
-				}
-                return static_cast<uint32_t>(value);
-            }
-            catch (...)
-            {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected positive integer");
-            }
-        }
-        if (def.type == ValueType::Float)
-        {
-            try
-            {
-                return std::stof(*arg.value);
-            }
-            catch (...)
-            {
-                throw AppError::makeInvalidParameters("\"" + arg.original + "\" is invalid: expected double");
-            }
-        }
-        if (def.type == ValueType::PathExists)
-        {
-            if (!std::filesystem::exists(*arg.value))
-            {
-                throw AppError::makeInvalidParameters("The path in \"" + arg.original + "\" does not exist");
-            }
-            return *arg.value;
-        }
-        if (def.type == ValueType::PathParentExists)
-        {
-            std::filesystem::path path(*arg.value);
-            std::filesystem::path parent = path.parent_path();
-            if (parent.empty()) {
-                parent = std::filesystem::current_path();
-            }
-            if (!std::filesystem::exists(parent))
-            {
-                throw AppError::makeInvalidParameters("The parent directory of \"" + arg.original + "\" does not exist");
-            }
-            return *arg.value;
-        }
-
-        return lowerValue; // Default case is string;
     }
-}
+} // namespace QaplaTester::CliSettings

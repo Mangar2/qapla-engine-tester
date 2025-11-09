@@ -19,12 +19,21 @@
 
 #pragma once
 
-#include <tuple>
+
 #include "engine-config.h"
 #include "game-task.h"
 #include "openings.h"
 #include "pair-tournament.h"
 #include "input-handler.h"
+#include "ini-file.h"
+
+#include <tuple>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <functional>
+
+namespace QaplaTester {
 
 /**
  * @brief Configuration parameters for a SPRT test run.
@@ -38,7 +47,45 @@ struct SprtConfig {
     Openings openings;
 };
 
- 
+/**
+ * @brief Result of a SPRT computation containing all values for display.
+ */
+struct SprtResult {
+    std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
+    std::string info;              // Human-readable decision info
+    double llr;                    // Log-Likelihood Ratio
+    double lowerBound;             // Lower decision boundary
+    double upperBound;             // Upper decision boundary
+    double drawElo;                // Computed drawElo value
+    int winsA;                     // Wins for engine A
+    int draws;                     // Number of draws
+    int winsB;                      // Wins for engine B
+    std::string engineA;           // Name of engine A
+    std::string engineB;           // Name of engine B
+    int eloLower;                  // Lower elo bound from config
+    int eloUpper;                  // Upper elo bound from config
+};
+
+/**
+ * @brief Result row from a single Monte Carlo simulation run.
+ */
+struct MonteCarloResultRow {
+    int eloDifference;          // Simulated elo difference
+    double noDecisionPercent;   // Percentage of runs with no decision
+    double h0AcceptedPercent;   // Percentage of runs where H0 was accepted
+    double h1AcceptedPercent;   // Percentage of runs where H1 was accepted
+    double avgGames;            // Average number of games per simulation
+};
+
+/**
+ * @brief Complete result of a Monte Carlo test run.
+ */
+struct MonteCarloResult {
+    std::vector<MonteCarloResultRow> rows;
+    SprtConfig config;          // Configuration used for the test
+};
+
+
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
   * Provides GameTasks for engine workers and collects their results.
@@ -46,6 +93,7 @@ struct SprtConfig {
 class SprtManager : public GameTaskProvider {
 public:
     SprtManager() = default;
+    ~SprtManager() override;
 
     /**
      * @brief Initializes and starts the SPRT testing procedure between two engines.
@@ -62,14 +110,9 @@ public:
      *
      * @param self Shared pointer to this Tournament instance.
      * @param concurrency Number of parallel workers to use.
+     * @param pool Reference to the GameManagerPool to use for scheduling.
      */
-    void schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency);
-
-    /**
-     * @brief Waits for all engines to finish.
-     * @return true if all tasks completed successfully, false if the analysis was stopped prematurely.
-     */
-    bool wait();
+    void schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency, GameManagerPool& pool);
 
     /**
      * @brief Provides the next available task.
@@ -86,9 +129,38 @@ public:
      */
     void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
-    void runMonteCarloTest(const SprtConfig& config);
+    /**
+     * @brief Runs a Monte Carlo simulation to estimate the SPRT decision boundaries in a background thread.
+     * @param config The configuration parameters for the SPRT test.
+     * @return true if test was started, false if a test is already running.
+     */
+    bool runMonteCarloTest(const SprtConfig &config);
 
-	/**
+    /**
+     * @brief Checks if a Monte Carlo test is currently running.
+     * @return true if running, false otherwise.
+     */
+    bool isMonteCarloTestRunning() const {
+        return monteCarloTestRunning_.load();
+    }
+
+    /**
+     * @brief Stops any running Monte Carlo test.
+     */
+    void stopMonteCarloTest();
+
+    /**
+     * @brief Clears the Monte Carlo test results.
+     */
+    void clearMonteCarloResult();
+
+    /**
+     * @brief Executes a callback with thread-safe access to Monte Carlo results.
+     * @param callback Function to call with const reference to results.
+     */
+    void withMonteCarloResult(const std::function<void(const MonteCarloResult&)>& callback);
+
+    /**
 	 * @brief Returns the current decision of the SPRT test.
 	 * @return std::optional<bool> containing true if H1 accepted, false if H0 accepted, or std::nullopt if inconclusive.
 	 */
@@ -103,20 +175,66 @@ public:
     void save(const std::string& filename) const;
 
     /**
+     * @brief Returns the SPRT tournament state as a section if it is not empty.
+     * @return Optional section containing the tournament state, or std::nullopt if empty.
+     */
+    std::optional<QaplaHelpers::IniFile::Section> getSection() const;
+
+    /**
+     * @brief Loads tournament results from a configuration section.
+     * @param section The section containing tournament results to load.
+     */
+    void loadFromSection(const QaplaHelpers::IniFile::Section& section);
+
+    /**
      * @brief Loads the state from a stream - do nothing, if the file cannot be loaded.
 	 * @param filename The file to load the state from.
      */
-    void load(const std::string& filename);
+    void load(const QaplaHelpers::IniFile::Section& section);
 
+    /**
+     * @brief Returns the result of the tournament as a TournamentResult object.
+     * 
+     * @return TournamentResult containing the one duel result as vector.
+     */
     TournamentResult getResult() const {
         TournamentResult t;
-		t.add(tournament_.getResult());
+		t.add(tournament_->getResult());
         return t;
     }
 
+    /**
+     * @brief Returns the result of the engine duel.
+     * 
+     * @return EngineDuelResult containing wins, draws, and losses.
+     */
+    EngineDuelResult getDuelResult() const {
+        return tournament_->getResult();
+    }
+
+    /**
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
+     *
+     * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
+     * Returns SprtResult containing decision, llr, bounds and all relevant values.
+     */
+    SprtResult computeSprt() const;
+
+
+
 private:
-    PairTournament tournament_;
+    std::unique_ptr<PairTournament> tournament_ = std::make_unique<PairTournament>();
     std::shared_ptr<StartPositions> startPositions_;
+    EngineConfig engine0_;
+    EngineConfig engine1_;
+    PairTournamentConfig tournamentConfig_;
+
+    /**
+     * @brief Computes a human-readable SPRT info string.
+     * @param result The SPRT result to print.
+     * @return A formatted string containing the SPRT decision or bounds.
+     */
+    static std::string computeSprtInfo(const SprtResult& result);
 
     /**
      * @brief Evaluates the current SPRT test state and logs result if decision boundary is reached.
@@ -126,16 +244,22 @@ private:
      /**
       * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
       *
-      * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
-      * Returns std::optional<bool>: true if H1 accepted, false if H0 accepted, nullopt if inconclusive.
+      * Internal version with explicit parameters.
       */
-    std::pair<std::optional<bool>, std::string> computeSprt() const {
-		auto duel = tournament_.getResult();
-		return computeSprt(duel.winsEngineA, duel.draws, duel.winsEngineB, duel.getEngineA(), duel.getEngineB());
-    }
-    std::pair<std::optional<bool>, std::string> computeSprt(
-        int winsA, int draws, int winsB, std::string engineA, std::string engineB) const;
-	bool rememberStop_ = false;
+    SprtResult computeSprt(
+        int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;
+
+    void runMonteCarloSingleTest(int simulationsPerElo, int elo, double drawRate, 
+        int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames);
+
+    /**
+     * @brief Internal method that performs the actual Monte Carlo test computation.
+     * @param config The SPRT configuration to test.
+     * @return MonteCarloResult containing all simulation results.
+     */
+    void runMonteCarloTestInternal(const SprtConfig& config);
+
+    bool rememberStop_ = false;
 
     SprtConfig config_;
 	std::optional<bool> decision_ = std::nullopt;
@@ -143,4 +267,12 @@ private:
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
 
+    // Monte Carlo test thread management
+    std::thread monteCarloThread_;
+    std::mutex monteCarloResultMutex_;
+    std::atomic<bool> monteCarloTestRunning_{false};
+    std::atomic<bool> monteCarloShouldStop_{false};
+    MonteCarloResult monteCarloResult_;
+
 };
+} // namespace QaplaTester

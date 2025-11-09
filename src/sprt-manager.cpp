@@ -27,18 +27,28 @@
 #include "pgn-io.h"
 #include "engine-config-manager.h"
 
-bool SprtManager::wait() {
-    GameManagerPool::getInstance().waitForTask();
-    return true;
-};
+namespace QaplaTester {
+
+SprtManager::~SprtManager() {
+    // Stop any running Monte Carlo test
+    stopMonteCarloTest();
+    
+    // Wait for the thread to finish if it's running
+    if (monteCarloThread_.joinable()) {
+        monteCarloThread_.join();
+    }
+}
 
 void SprtManager::createTournament(
     const EngineConfig& engine0, const EngineConfig& engine1, const SprtConfig& config) {
 
 	config_ = config;
-    PgnIO::tournament().initialize("Sprt");
+    engine0_ = engine0;
+    engine1_ = engine1;
 
-    if (!startPositions_) startPositions_ = std::make_shared<StartPositions>();
+    if (!startPositions_) {
+        startPositions_ = std::make_shared<StartPositions>();
+    }
 
     if (config.openings.file.empty()) {
         Logger::testLogger().log("No openings file provided.", TraceLevel::error);
@@ -62,67 +72,82 @@ void SprtManager::createTournament(
             "Unsupported openings format: " + config.openings.format);
     }
 
-    PairTournamentConfig ptc;
-    ptc.games = config.maxGames;
-    ptc.repeat = 2;
-    ptc.round = 0;
-    ptc.swapColors = true;
-    ptc.openings = config.openings;
+    tournamentConfig_.games = config.maxGames;
+    tournamentConfig_.repeat = 2;
+    tournamentConfig_.round = 0;
+    tournamentConfig_.swapColors = true;
+    tournamentConfig_.openings = config.openings;
 
-    tournament_.initialize(engine0, engine1, ptc, startPositions_);
-	tournament_.setVerbose(false);
+    // Re-initialize tournament, preserving previous results if engines match
+    auto savedTournament = std::move(tournament_);
+    tournament_ = std::make_unique<PairTournament>();
+    tournament_->initialize(engine0_, engine1_, tournamentConfig_, startPositions_);
+    if (tournament_->matches(*savedTournament)) {
+        tournament_->copyResultsFrom(*savedTournament);
+    }
+    tournament_->setVerbose(false);
+    tournament_->setPositionName("SPRT");
 }
 
-void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency) {
+void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency, GameManagerPool& pool) {
+    
+	// Initialize PGN output - at this point all tournament data is loaded
+	bool isResumingTournament = tournament_ && tournament_->hasResults();
+	PgnIO::tournament().initialize("Sprt", isResumingTournament);
+	
     sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
         InputHandler::ImmediateCommand::Info,
-        [this](InputHandler::ImmediateCommand, InputHandler::CommandValue) {
+        [this](InputHandler::ImmediateCommand, const InputHandler::CommandValue&) {
             auto result = getResult();
             result.printOutcome(std::cout);
         });
-	auto duel = tournament_.getResult();
+	auto duel = tournament_->getResult();
     std::cout << "sprt engines " << duel.getEngineA() << " vs " << duel.getEngineB()
         << " elo [" << config_.eloLower << ", " << config_.eloUpper << "]"
         << " alpha " << config_.alpha << " beta " << config_.beta
         << " maxgames " << config_.maxGames
-        << " concurrency " << concurrency << std::endl;
+        << " concurrency " << concurrency << "\n" << std::flush;
 
-    GameManagerPool::getInstance().setConcurrency(concurrency, true);
-    GameManagerPool::getInstance().addTaskProvider(self, tournament_.getEngineA(), tournament_.getEngineB());
-    GameManagerPool::getInstance().assignTaskToManagers();
+    pool.setConcurrency(concurrency, true);
+    pool.addTaskProvider(self, tournament_->getEngineA(), tournament_->getEngineB());
+    pool.startManagers();
 }
 
 std::optional<GameTask> SprtManager::nextTask() {
-    auto result = computeSprt().first;
-    rememberStop_ = rememberStop_ || result.has_value();
-    if (rememberStop_) return std::nullopt;
+    auto sprtResult = computeSprt();
+    rememberStop_ = rememberStop_ || sprtResult.decision.has_value();
+    if (rememberStop_) {
+        return std::nullopt;
+    }
 
-    return tournament_.nextTask();
+    return tournament_->nextTask();
 }
 
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
-	bool engine1IsWhite = tournament_.getEngineA().getName() == record.getWhiteEngineName();
-    tournament_.setGameRecord(taskId, record);
+	bool engine1IsWhite = tournament_->getEngineA().getName() == record.getWhiteEngineName();
+    tournament_->setGameRecord(taskId, record);
 
     auto [cause, result] = record.getGameResult();
-    auto duel = tournament_.getResult();
+    auto duel = tournament_->getResult();
 
-    auto [decision, info] = computeSprt();
+    auto sprtResult = computeSprt();
 
     std::ostringstream oss;
     oss << std::left
         << "  match game " << std::setw(4) << record.getRound()
         << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
         << " cause " << std::setw(21) << to_string(cause)
-        << " sprt " << info
+        << " sprt " << sprtResult.info
         << " engines " << duel.toString();
 
     if (!decision_) {
         Logger::testLogger().log(oss.str(), TraceLevel::result);
     }
-    if (decision) {
-		if (!decision_) GameManagerPool::getInstance().stopAll();
-        decision_ = decision;
+    if (sprtResult.decision.has_value()) {
+		if (!decision_) {
+            GameManagerPool::getInstance().stopAll();
+        }
+        decision_ = sprtResult.decision;
     }
 }
 
@@ -132,46 +157,33 @@ void SprtManager::save(const std::string& filename) const {
         throw std::runtime_error("Failed to open SPRT result file for saving: " + filename);
     }
 
-    out << tournament_.getEngineA() << "\n";
-    out << tournament_.getEngineB() << "\n";
-
-    tournament_.trySaveIfNotEmpty(out);
+    out << tournament_->getEngineA() << "\n";
+    out << tournament_->getEngineB() << "\n";
+    auto section = tournament_->getSectionIfNotEmpty("sprt-tournament");
+    if (section) {
+        QaplaHelpers::IniFile::saveSection(out, *section);
+    }   
 }
 
-void SprtManager::load(const std::string& filename) {
-    std::ifstream in(filename);
-    if (!in) {
-		return; // If the file doesn't exist, we simply return without loading anything.
-    }
+std::optional<QaplaHelpers::IniFile::Section> SprtManager::getSection() const {
+    return tournament_->getSectionIfNotEmpty("sprt-tournament");
+}
 
-    std::stringstream configStream;
-    std::string line;
-
-    while (std::getline(in, line)) {
-        if (line.starts_with("[round ")) break;
-        configStream << line << "\n";
-    }
-
-    EngineConfigManager configLoader;
-    configLoader.loadFromStream(configStream);
-    const std::unordered_set<std::string> validEngines =
-        configLoader.findMatchingNames({tournament_.getEngineA(), tournament_.getEngineB()});
-
-    while (!line.empty()) {
-        // Every loader ensures that we have a round header as next line
-        auto [round, engineA, engineB] = PairTournament::parseRoundHeader(line);
-        if (validEngines.contains(engineA) && validEngines.contains(engineB)) {
-            if (tournament_.matches(round - 1, engineA, engineB)) {
-                line = tournament_.load(in);
-                continue;
-            }
-        }
-        PairTournament tmp;
-        line = tmp.load(in);
+void SprtManager::loadFromSection(const QaplaHelpers::IniFile::Section& section) {
+    try {
+        tournament_->fromSection(section);
+    } catch (const std::exception& ex) {
+        // Ignore invalid section
     }
 }
 
-
+void SprtManager::load(const QaplaHelpers::IniFile::Section& section) {
+    try {
+        tournament_->fromSection(section);
+    } catch (const std::exception& ex) {
+        // Ignore invalid section
+    }
+}
 
 /**
  * @brief Computes the decision boundaries for the SPRT test.
@@ -248,8 +260,13 @@ static double computeLLR(double wins, double draws, double losses,
 }
 
 
-std::pair<std::optional<bool>, std::string> SprtManager::computeSprt(
-    int winsA, int draws, int winsB, std::string engineA, std::string engineB) const {
+SprtResult SprtManager::computeSprt() const {
+    auto duel = tournament_->getResult();
+    return computeSprt(duel.winsEngineA, duel.draws, duel.winsEngineB, duel.getEngineA(), duel.getEngineB());
+}
+
+SprtResult SprtManager::computeSprt(
+    int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const {
 	const double drawElo = computeDrawElo(winsA, draws, winsB);
 
     const double x = std::pow(10.0, -drawElo / 400.0); 
@@ -262,89 +279,207 @@ std::pair<std::optional<bool>, std::string> SprtManager::computeSprt(
     const double llr = computeLLR(winsA, draws, winsB, p0, p1);
     const auto [lBound, uBound] = sprtBounds(config_.alpha, config_.beta);
 
-    if (llr >= uBound) return {
-        true,
-        "H1 accepted, " + engineA + " is at least " + std::to_string(config_.eloLower)
-        + " elo stronger than " + engineB
-    };
-	if (llr <= lBound) return {
-		false,
-		"H0 accepted, " + engineA + " is not stronger than " + engineB
-        + " by at least " + std::to_string(config_.eloUpper) + " elo."
-	};
-    std::ostringstream oss;
-    oss << "[ " << std::fixed << std::setprecision(2) << lBound << " < " 
-        << std::setw(5) << llr << " < " << uBound << " ]";
-    return { 
-        std::nullopt, oss.str()
-    };
+    SprtResult result;
+    result.llr = llr;
+    result.lowerBound = lBound;
+    result.upperBound = uBound;
+    result.drawElo = drawElo;
+    result.winsA = winsA;
+    result.draws = draws;
+    result.winsB = winsB;
+    result.engineA = engineA;
+    result.engineB = engineB;
+    result.eloLower = config_.eloLower;
+    result.eloUpper = config_.eloUpper;
+
+    if (llr >= uBound) { 
+        result.decision = true;
+    } else if (llr <= lBound) {
+        result.decision = false;
+	} else {
+        result.decision = std::nullopt;
+    }
+
+    result.info = computeSprtInfo(result);
+    
+    return result;
 }
 
-void SprtManager::runMonteCarloTest(const SprtConfig& config) {
+std::string SprtManager::computeSprtInfo(const SprtResult& result) {
+    if (result.decision.has_value()) {
+        if (*result.decision) {
+            return "H1 accepted, " + result.engineA + " is at least " + std::to_string(result.eloLower)
+                + " elo stronger than " + result.engineB;
+        }
+        return "H0 accepted, " + result.engineA + " is not stronger than " + result.engineB
+            + " by at least " + std::to_string(result.eloUpper) + " elo.";
+    }
+    
+    std::ostringstream oss;
+    oss << "[ " << std::fixed << std::setprecision(2) << result.lowerBound << " < " 
+        << std::setw(5) << result.llr << " < " << result.upperBound << " ]";
+    return oss.str();
+}
+
+void SprtManager::runMonteCarloSingleTest(int simulationsPerElo, int elo, double drawRate, int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames)
+{
+    for (int sim = 0; sim < simulationsPerElo; ++sim)
+    {
+        // Check stop flag in outer loop
+        if (monteCarloShouldStop_.load()) {
+            break;
+        }
+
+        // Reset intern
+        int winsP1 = 0;
+        int winsP2 = 0;
+        int draws = 0;
+        /*
+        if (sim % 1000 == 0) {
+            std::cout << "Simulation " << sim << " for Elo " << elo << std::endl;
+            double avgGames = (sim > 0) ? static_cast<double>(totalGames) / sim : 0.0;
+            std::cout << elo << ", " << correctDecisions << ", " << avgGames << "\n";
+        }
+        */
+        const double trueScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
+        const double winProb = (1.0 - drawRate) * trueScore;
+
+        std::optional<bool> decision;
+        uint64_t g = 0;
+
+        for (; g < config_.maxGames; ++g)
+        {
+            double r = static_cast<double>(rand()) / RAND_MAX;
+            if (r < winProb)
+            {
+                ++winsP1;
+            }
+            else if (r < winProb + drawRate)
+            {
+                ++draws;
+            }
+            else
+            {
+                ++winsP2;
+            }
+            auto sprtResult = computeSprt(winsP1, draws, winsP2, "P1", "P2");
+            if (sprtResult.decision.has_value())
+            {
+                decision = sprtResult.decision;
+                break;
+            }
+        }
+
+        if (!decision)
+        {
+            ++noDecisions;
+        }
+        else
+        {
+            numH0 += *decision ? 0 : 1;
+            numH1 += *decision ? 1 : 0;
+        }
+        totalGames += (g + 1);
+    }
+}
+
+
+bool SprtManager::runMonteCarloTest(const SprtConfig& config) {
+    // Try to acquire the test lock
+    if (monteCarloTestRunning_.exchange(true)) {
+        return false;  // Test already running
+    }
+
+    // Join previous thread if it exists
+    if (monteCarloThread_.joinable()) {
+        monteCarloThread_.join();
+    }
+
+    // Clear results before starting new test
+    clearMonteCarloResult();
+
+    // Reset stop flag
+    monteCarloShouldStop_.store(false);
+
+    // Start the test in a background thread
+    monteCarloThread_ = std::thread([this, config]() {
+        runMonteCarloTestInternal(config);
+        // Mark as finished
+        monteCarloTestRunning_.store(false);
+    });
+
+    return true;  // Test started successfully
+}
+
+void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 	config_ = config;
     constexpr int simulationsPerElo = 1000;
     constexpr double drawRate = 0.4;
     constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25 };
 
+    {
+        std::scoped_lock lock(monteCarloResultMutex_);
+        monteCarloResult_ = {};
+        monteCarloResult_.config = config;
+    }
+
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     std::cout << "Running SPRT Monte carlo simulation: "
         << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
         << " | alpha: " << config.alpha << ", beta: " << config.beta
-        << " | maxGames: " << config.maxGames << std::endl;
+        << " | maxGames: " << config.maxGames << "\n" << std::flush;
 
     for (int elo : eloDiffs) {
+        // Check if we should stop
+        if (monteCarloShouldStop_.load()) {
+            std::cout << "Monte Carlo test stopped early.\n" << std::flush;
+            break;
+        }
+
         int64_t numH1 = 0;
         int64_t numH0 = 0;
 		int64_t noDecisions = 0;
         int64_t totalGames = 0;
-                
-        for (int sim = 0; sim < simulationsPerElo; ++sim) {
-            // Reset intern
-            int winsP1 = 0;
-            int winsP2 = 0;
-            int draws = 0;
-            /*
-			if (sim % 1000 == 0) {
-                std::cout << "Simulation " << sim << " for Elo " << elo << std::endl;
-                double avgGames = (sim > 0) ? static_cast<double>(totalGames) / sim : 0.0;
-                std::cout << elo << ", " << correctDecisions << ", " << avgGames << "\n";
-			}
-            */
-            const double trueScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
-            const double winProb = (1.0 - drawRate) * trueScore;
 
-            std::optional<bool> decision;
-            uint64_t g = 0;
-
-            for (; g < config_.maxGames; ++g) {
-                double r = static_cast<double>(rand()) / RAND_MAX;
-                if (r < winProb) ++winsP1;
-                else if (r < winProb + drawRate) ++draws;
-                else ++winsP2;
-				auto [result, info] = computeSprt(winsP1, draws, winsP2, "P1", "P2");
-                if (result.has_value()) {
-                    decision = result;
-                    break;
-                }
-            }
-
-			if (!decision) {
-				++noDecisions;
-			}
-            else {
-				numH0 += *decision ? 0 : 1;
-				numH1 += *decision ? 1 : 0;
-            }
-            totalGames += (g + 1);
-        }
+        runMonteCarloSingleTest(simulationsPerElo, elo, drawRate, noDecisions, numH0, numH1, totalGames);
 
         double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
+        double noDecisionPercent = (static_cast<double>(noDecisions) * 100.0) / simulationsPerElo;
+        double h0AcceptedPercent = (static_cast<double>(numH0) * 100.0) / simulationsPerElo;
+        double h1AcceptedPercent = (static_cast<double>(numH1) * 100.0) / simulationsPerElo;
+
+        {
+            std::scoped_lock lock(monteCarloResultMutex_);
+            monteCarloResult_.rows.push_back({
+                .eloDifference = elo,
+                .noDecisionPercent = noDecisionPercent,
+                .h0AcceptedPercent = h0AcceptedPercent,
+                .h1AcceptedPercent = h1AcceptedPercent,
+                .avgGames = avgGames
+            });
+        }
+
         std::cout << std::fixed << std::setprecision(1)
             << "Simulated elo difference: " << std::setw(6) << elo
-            << "  No Decisions: " << std::setw(6) << (static_cast<double>(noDecisions) * 100.0) / simulationsPerElo << "%"
-            << "  H0 Accepted: " << std::setw(6) << (static_cast<double>(numH0) * 100.0) / simulationsPerElo << "%"
-            << "  H1 Accepted: " << std::setw(6) << (static_cast<double>(numH1) * 100.0) / simulationsPerElo << "%"
+            << "  No Decisions: " << std::setw(6) << noDecisionPercent << "%"
+            << "  H0 Accepted: " << std::setw(6) << h0AcceptedPercent << "%"
+            << "  H1 Accepted: " << std::setw(6) << h1AcceptedPercent << "%"
             << "  Average Games: " << std::setw(6) << avgGames << "\n";
     }
 }
 
+void SprtManager::stopMonteCarloTest() {
+    monteCarloShouldStop_.store(true);
+}
+
+void SprtManager::clearMonteCarloResult() {
+    std::scoped_lock lock(monteCarloResultMutex_);
+    monteCarloResult_.rows.clear();
+}
+
+void SprtManager::withMonteCarloResult(const std::function<void(const MonteCarloResult&)>& callback) {
+    std::scoped_lock lock(monteCarloResultMutex_);
+    callback(monteCarloResult_);
+}
+
+} // namespace QaplaTester

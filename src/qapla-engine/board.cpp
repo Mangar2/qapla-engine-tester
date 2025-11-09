@@ -20,6 +20,7 @@
 #include <iomanip>
 #include "bits.h"
 #include "board.h"
+#include "bitboardmasks.h"
 #include "pst.h"
 
 using namespace QaplaBasics;
@@ -34,6 +35,7 @@ void Board::clear() {
 	_pieceSignature.clear();
 	_materialBalance.clear();
 	_pstBonus = 0;
+	// Important to keep legal positions for the king squares even on a clear board
 	kingSquares[WHITE] = E1;
 	kingSquares[BLACK] = E8;
 	_kingStartSquare = { E1, E8 };
@@ -72,37 +74,37 @@ void Board::setToSymetricBoard(const Board& board) {
 	setWhiteToMove(!board.isWhiteToMove());
 }
 
-void Board::removePiece(Square squareOfPiece) {
-	Piece pieceToRemove = _board[squareOfPiece];
-	removePieceBB(squareOfPiece, pieceToRemove);
-	_boardState.updateHash(squareOfPiece, pieceToRemove);
-	_board[squareOfPiece] = NO_PIECE;
+void Board::removePiece(Square square) {
+	Piece pieceToRemove = _board[square];
+	removePieceBB(square, pieceToRemove);
+	_boardState.updateHash(square, pieceToRemove);
+	_board[square] = NO_PIECE;
 	_pieceSignature.removePiece(pieceToRemove, bitBoardsPiece[pieceToRemove]);
 	_materialBalance.removePiece(pieceToRemove);
-	_pstBonus -= PST::getValue(squareOfPiece, pieceToRemove);
+	_pstBonus -= PST::getValue(square, pieceToRemove);
 }
 
-void Board::addPiece(Square squareOfPiece, Piece pieceToAdd) {
+void Board::addPiece(Square square, Piece pieceToAdd) {
 	_pieceSignature.addPiece(pieceToAdd);
-	addPieceBB(squareOfPiece, pieceToAdd);
-	_boardState.updateHash(squareOfPiece, pieceToAdd);
-	_board[squareOfPiece] = pieceToAdd;
+	addPieceBB(square, pieceToAdd);
+	_boardState.updateHash(square, pieceToAdd);
+	_board[square] = pieceToAdd;
 	_materialBalance.addPiece(pieceToAdd);
-	_pstBonus += PST::getValue(squareOfPiece, pieceToAdd);
+	_pstBonus += PST::getValue(square, pieceToAdd);
 }
 
-void Board::movePiece(Square departure, Square destination) {
-	Piece pieceToMove = _board[departure];
+void Board::movePiece(Square fromSquare, Square toSquare) {
+	Piece pieceToMove = _board[fromSquare];
 	if (isKing(pieceToMove)) {
-		kingSquares[getPieceColor(pieceToMove)] = destination;
+		kingSquares[getPieceColor(pieceToMove)] = toSquare;
 	}
-	_pstBonus += PST::getValue(destination, pieceToMove) -
-		PST::getValue(departure, pieceToMove);
-	movePieceBB(departure, destination, pieceToMove);
-	_boardState.updateHash(departure, pieceToMove);
-	_board[departure] = NO_PIECE;
-	_boardState.updateHash(destination, pieceToMove);
-	_board[destination] = pieceToMove;
+	_pstBonus += PST::getValue(toSquare, pieceToMove) -
+		PST::getValue(fromSquare, pieceToMove);
+	movePieceBB(fromSquare, toSquare, pieceToMove);
+	_boardState.updateHash(fromSquare, pieceToMove);
+	_board[fromSquare] = NO_PIECE;
+	_boardState.updateHash(toSquare, pieceToMove);
+	_board[toSquare] = pieceToMove;
 }
 
 void Board::doMoveSpecialities(Move move) {
@@ -279,8 +281,8 @@ void Board::undoMove(Move move, BoardState recentBoardState) {
 	assert(_board[departure] != NO_PIECE);
 }
 
-std::string Board::getFen(int fullMoveNumber) const {
-	std::string result = "";
+std::string Board::getFen(uint32_t halfmovesPlayed) const {
+	std::string result;
 	File file;
 	Rank rank;
 	int amoutOfEmptyFields;
@@ -291,9 +293,9 @@ std::string Board::getFen(int fullMoveNumber) const {
 		{
 			Square square = computeSquare(file, rank);
 			Piece piece = operator[](square);
-			if (piece == Piece::NO_PIECE) amoutOfEmptyFields++;
-			else
-			{
+			if (piece == Piece::NO_PIECE) {
+				amoutOfEmptyFields++;
+			} else {
 				if (amoutOfEmptyFields > 0) {
 					result += std::to_string(amoutOfEmptyFields);
 				}
@@ -322,12 +324,13 @@ std::string Board::getFen(int fullMoveNumber) const {
 	result += " ";
 	auto uncorrectedEp = getBoardState().getEP();
 	// adjust for the fact that we store the square of the pawn to be captured
-	auto correctedEp = Rank(uncorrectedEp) == Rank::R4 ? uncorrectedEp + SOUTH : uncorrectedEp + NORTH;
+	auto correctedEp = getRank(uncorrectedEp) == Rank::R4 ? uncorrectedEp + SOUTH : uncorrectedEp + NORTH;
 	result += getBoardState().hasEP() ? squareToString(correctedEp) : "-";
 
 	result += " ";
-	result += std::to_string(getHalfmovesWithoutPawnMoveOrCapture());
-
+	result += std::to_string(getTotalHalfmovesWithoutPawnMoveOrCapture());
+	halfmovesPlayed = std::max<uint32_t>(_startHalfmoves, halfmovesPlayed);
+	int fullMoveNumber = (halfmovesPlayed) / 2 + 1;
 	result += " ";
 	result += std::to_string(fullMoveNumber);
 
@@ -336,7 +339,9 @@ std::string Board::getFen(int fullMoveNumber) const {
 
 void Board::printPst(Piece piece) const {
 	auto pieceBB = getPieceBB(piece);
-	if (!pieceBB) return;
+	if (pieceBB == 0) {
+		return;
+	}
 
 	std::cout << " " << colorToString(getPieceColor(piece)) 
 		<< " " << pieceToChar(piece) << " PST: " 
@@ -344,20 +349,20 @@ void Board::printPst(Piece piece) const {
 
 	EvalValue total;
 
-	for (auto bb = pieceBB; bb; bb &= bb - 1)
+	for (auto bb = pieceBB; bb != 0; bb &= bb - 1)
 	{
 		const auto square = lsb(bb);
 		total += PST::getValue(square, piece);
 	}
 	std::cout << total << " (";
 
-	for (auto bb = pieceBB; bb; bb &= bb - 1)
+	for (auto bb = pieceBB; bb != 0; bb &= bb - 1)
 	{
 		const auto square = lsb(bb);
 		const auto value = PST::getValue(square, piece);
 		std::cout << squareToString(square) << value << " ";
 	}
-	std::cout << ")" << std::endl;
+	std::cout << ")\n" << std::flush;
 }
 
 
@@ -369,7 +374,7 @@ void Board::printPst() const {
 
 
 void Board::printFen() const {
-	std::cout << getFen() << std::endl;
+	std::cout << getFen() << "\n" << std::flush;
 }
 
 void Board::print() const {
@@ -378,9 +383,9 @@ void Board::print() const {
 			Piece piece = operator[](computeSquare(file, rank));
 			std::cout << " " << pieceToChar(piece) << " ";
 		}
-		std::cout << std::endl;
+		std::cout << "\n";
 	}
-	std::cout << "hash: " << computeBoardHash() << std::endl;
+	std::cout << "hash: " << computeBoardHash() << "\n";
 	printFen();
 	//printf("White King: %ld, Black King: %ld\n", kingPos[WHITE], kingPos[BLACK]);
 }
@@ -396,6 +401,183 @@ bool Board::assertMove(Move move) const {
 	return true;
 }
 
+bool Board::isValidPosition() const {
+	
+	if (!validatePieceCounts()) {
+		return false;
+	}
+	if (!validatePawnRows()) {
+		return false;
+	}
+	if (!validateEPSquare()) {
+		return false;
+	}
+	if (!validateCastlingRights()) {
+		return false;
+	}
+	return true;
+}
 
+bool Board::validatePawnRows() const {
+	// Check pawns not on 1st or 8th rank
+	const bitBoard_t whitePawnBB = bitBoardsPiece[WHITE_PAWN];
+	const bitBoard_t blackPawnBB = bitBoardsPiece[BLACK_PAWN];
+	const bitBoard_t pawnMask = QaplaMoveGenerator::BitBoardMasks::RANK_1_BITMASK | QaplaMoveGenerator::BitBoardMasks::RANK_8_BITMASK;
+	if ((whitePawnBB & pawnMask) != 0) {
+		return false;
+	}
+	if ((blackPawnBB & pawnMask) != 0) {
+		return false;
+	}
+	return true;
+}
 
+bool Board::validatePieceCounts() const {
+	// Check exactly one white and one black king
+	if (popCount(bitBoardsPiece[WHITE_KING]) != 1 || popCount(bitBoardsPiece[BLACK_KING]) != 1) {
+		return false;
+	}
+	uint32_t whitePawns = popCount(bitBoardsPiece[WHITE_PAWN]);
+	uint32_t blackPawns = popCount(bitBoardsPiece[BLACK_PAWN]);
 
+	// Check pawn limits
+	if (whitePawns > 8 || blackPawns > 8) {
+		return false;
+	}
+	// Check piece limits
+	for (Piece piece = WHITE_KNIGHT; piece <= BLACK_BISHOP; ++piece) {
+		uint32_t count = popCount(bitBoardsPiece[piece]);
+		count += getPieceColor(piece) == WHITE ? whitePawns : blackPawns;
+		if (count > 10) { 
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Board::validateEPSquare() const {
+	const Square ep = getEP();
+	if (ep == 0) {
+		return true;
+	}
+	const Rank epRank = getRank(ep);
+	// Internal representation: EP square is the square of the pawn moved two squares (different from FEN)
+	auto requiredRank = _whiteToMove ? Rank::R5 : Rank::R4;
+	// if White to move, last move was by Black.
+	auto requiredPawn = _whiteToMove ? BLACK_PAWN : WHITE_PAWN;
+	return (epRank == requiredRank && _board[ep] == requiredPawn);
+}
+
+bool Board::validateCastlingRights() const {
+	// Check castling rights
+	if (isKingSideCastleAllowed<WHITE>()) {
+		if (_board[_kingRookStartSquare[WHITE]] != WHITE_ROOK || kingSquares[WHITE] != _kingStartSquare[WHITE]) {
+			return false;
+		}
+	}
+	if (isQueenSideCastleAllowed<WHITE>()) {
+		if (_board[_queenRookStartSquare[WHITE]] != WHITE_ROOK || kingSquares[WHITE] != _kingStartSquare[WHITE]) {
+			return false;
+		}
+	}
+	if (isKingSideCastleAllowed<BLACK>()) {
+		if (_board[_kingRookStartSquare[BLACK]] != BLACK_ROOK || kingSquares[BLACK] != _kingStartSquare[BLACK]) {
+			return false;
+		}
+	}
+	if (isQueenSideCastleAllowed<BLACK>()) {
+		if (_board[_queenRookStartSquare[BLACK]] != BLACK_ROOK || kingSquares[BLACK] != _kingStartSquare[BLACK]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+void Board::setupAddPiece(Square square, Piece piece) {
+	if (square == NO_SQUARE || piece == NO_PIECE) {
+		return;
+	}
+	addPiece(square, piece);
+	auto pieceType = getPieceType(piece);
+	auto pieceColor = getPieceColor(piece);
+	// auto enabling castling rights if king or rook is placed on its starting square
+	if (pieceType == KING) {
+		if (kingSquares[pieceColor] != square && _board[kingSquares[pieceColor]] == piece) {
+			setupRemovePiece(kingSquares[pieceColor]);
+		}
+		kingSquares[pieceColor] = square;
+		if (square == _kingStartSquare[pieceColor]) {
+			if (_board[_kingRookStartSquare[pieceColor]] == piece) {
+				setCastlingRight(pieceColor, true, true);
+			} 
+			if (_board[_queenRookStartSquare[pieceColor]] == piece) {
+				setCastlingRight(pieceColor, false, true);
+			}
+		} 
+	}
+	if (pieceType == ROOK) {
+		if (square == _kingRookStartSquare[pieceColor]) {
+			if (kingSquares[pieceColor] == _kingStartSquare[pieceColor]) {
+				setCastlingRight(pieceColor, true, true);
+			}
+		} 
+		if (square == _queenRookStartSquare[pieceColor]) {
+			if (kingSquares[pieceColor] == _kingStartSquare[pieceColor]) {
+				setCastlingRight(pieceColor, false, true);
+			}
+		} 
+	}
+}
+
+void Board::setupRemovePiece(Square square) {
+	if (square == NO_SQUARE) {
+		return;
+	}
+	auto piece = _board[square];
+	if (piece == NO_PIECE) {
+		return;
+	}
+	auto pieceType = getPieceType(piece);
+	auto pieceColor = getPieceColor(piece);
+	bool isPawn = pieceType == PAWN;
+	removePiece(square);
+	if (kingSquares[pieceColor] == square) {
+		kingSquares[pieceColor] = NO_SQUARE;
+	}
+	_boardState.disableCastlingRightsByMask(_clearCastleFlagMask[square]);
+	if (isPawn && square == _boardState.getEP()) {
+		_boardState.clearEP();
+	}
+}
+
+Square Board::getSetupEpSquare() const {
+	auto internalEpSquare = _boardState.getEP();
+	if (internalEpSquare == 0) {
+		return NO_SQUARE;
+	}
+	auto epRank = getRank(internalEpSquare);
+	if (epRank == Rank::R4) {
+		return Square(internalEpSquare + SOUTH);
+	}
+	if (epRank == Rank::R5) {
+		return Square(internalEpSquare + NORTH);
+	}
+	return NO_SQUARE;
+}
+
+void Board::setSetupEpSquare(Square epSquare) {
+	if (epSquare == NO_SQUARE) {
+		_boardState.setEP(Square(0));
+		return;
+	}
+	auto epRank = getRank(epSquare);
+	if (epRank == Rank::R3) {
+		_boardState.setEP(Square(epSquare + NORTH));
+		return;
+	}
+	if (epRank == Rank::R6) {
+		_boardState.setEP(Square(epSquare + SOUTH));
+		return;
+	}
+	_boardState.setEP(Square(0));
+}

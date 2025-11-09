@@ -35,7 +35,7 @@ namespace QaplaMoveGenerator {
 		/** 
 		 * Generates the attack mask for rooks
 		 */ 
-		inline static QaplaBasics::bitBoard_t genRookAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
+		static QaplaBasics::bitBoard_t genRookAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
 		{
 			QaplaBasics::bitBoard_t index = allPieces & _rookTable[pos].mask;
 			index *= _rookTable[pos].magic;
@@ -46,7 +46,7 @@ namespace QaplaMoveGenerator {
 		/**
 		 * Generates the attack mask for bishops
 		 */
-		inline static QaplaBasics::bitBoard_t genBishopAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
+		static QaplaBasics::bitBoard_t genBishopAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
 		{
 			QaplaBasics::bitBoard_t index = allPieces & _bishopTable[pos].mask;
 			index *= _bishopTable[pos].magic;
@@ -57,7 +57,7 @@ namespace QaplaMoveGenerator {
 		/**
 		 * Generates the attack mask for queens
 		 */
-		inline static QaplaBasics::bitBoard_t genQueenAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
+		static QaplaBasics::bitBoard_t genQueenAttackMask(QaplaBasics::Square pos, QaplaBasics::bitBoard_t allPieces)
 		{
 			return genRookAttackMask(pos, allPieces) | genBishopAttackMask(pos, allPieces);
 		}
@@ -84,12 +84,12 @@ namespace QaplaMoveGenerator {
 		 * rook from moving behind the piece. Thus the row and the column of the
 		 * position without the position itself and the outer positions
 		 */
-		static QaplaBasics::bitBoard_t _rookMask(QaplaBasics::Square pos);
+		static QaplaBasics::bitBoard_t _rookMask(QaplaBasics::Square square);
 
 		/**
 		 * Generates a mask with relevant bits for bishop attack mask
 		 */
-		static QaplaBasics::bitBoard_t _bishopMask(QaplaBasics::Square pos);
+		static QaplaBasics::bitBoard_t _bishopMask(QaplaBasics::Square square);
 
 		/**
 		 * Size of magic number index for rooks
@@ -118,14 +118,14 @@ namespace QaplaMoveGenerator {
 		 * the board contains a 1 on every empty field on rooks rank and file
 		 * except last fields.
 		 */
-		static QaplaBasics::bitBoard_t rookAttack(QaplaBasics::Square pos, QaplaBasics::bitBoard_t board);
+		static QaplaBasics::bitBoard_t rookAttack(QaplaBasics::Square square, QaplaBasics::bitBoard_t board);
 
 		/**
 		 * Calculate the attack map of a bishop with board board, starting from pos
 		 * the board contains a 1 on every empty field on bishop diagonals 
 		 * except last fields.
 		 */
-		static QaplaBasics::bitBoard_t bishopAttack(QaplaBasics::Square pos, QaplaBasics::bitBoard_t board);
+		static QaplaBasics::bitBoard_t bishopAttack(QaplaBasics::Square square, QaplaBasics::bitBoard_t board);
 
 		/**
 		 * Computes and stores all legal attack bitboards for a given square and piece type
@@ -145,7 +145,7 @@ namespace QaplaMoveGenerator {
 		 *                  magic multiplier, and occupancy mask for the square.
 		 * @param aIsRook    True if generating for rook, false for bishop.
 		 */
-		static void fillAttackMap(QaplaBasics::Square pos, const tMagicEntry& aEntry, bool aIsRook);
+		static void fillAttackMap(QaplaBasics::Square square, const tMagicEntry& aEntry, bool aIsRook);
 
 		/**
 		 * Total size of the precomputed attack map used for sliding pieces (rooks and bishops).

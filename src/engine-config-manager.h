@@ -16,11 +16,6 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2021 Volker Böhm
  * @Overview
- * Implements a list holding moves of a chess position
- * Moves are stored in one list - but different for "silent moves" and "non silent moves". Silent moves are moves 
- * not capturing and not promoting - non silent moves are captures and promotes.
- * Silent moves are pushed to the end and non silent moves are inserted to the front. As a result non silent moves
- * are always ordered first
  */
 
 #pragma once
@@ -35,6 +30,8 @@
 #include <iostream>
 #include "engine-config.h"
 #include "cli-settings-manager.h"
+
+namespace QaplaTester {
 
 class EngineConfigManager {
 public:
@@ -66,31 +63,78 @@ public:
      * @param filePath Path to the INI file.
      */
     void saveToFile(const std::string& filePath) const;
+    
+    /**
+	 * @brief Saves all configurations to an output stream.
+	 * @param out The output stream to write the configurations to.
+     */
+    void saveToStream(std::ostream& out) const;
 
     /**
      * Returns all engine configurations.
      * @return A vector of EngineConfig.
      */
-    std::vector<EngineConfig> getAllConfigs() const;
+    [[nodiscard]] std::vector<EngineConfig> getAllConfigs() const {
+        return configs;
+    }
 
     /**
      * Retrieves a configuration by engine name.
      * @param name The name of the engine.
      * @return A pointer to the EngineConfig or nullptr if not found.
      */
-    const EngineConfig* getConfig(const std::string& name) const;
+    [[nodiscard]] const EngineConfig* getConfig(const std::string& name) const;
+
+    /**
+     * Retrieves a mutable configuration by engine name.
+     * @param name The name of the engine.
+     * @return A pointer to the EngineConfig or nullptr if not found.
+     */
     EngineConfig* getConfigMutable(const std::string& name);
+
+    /**
+     * Retrieves a mutable configuration by command and protocol.
+     * @param cmd The command.
+     * @param proto The protocol.
+     * @return A pointer to the EngineConfig or nullptr if not found.
+     */
+    EngineConfig* getConfigMutableByCmdAndProtocol(const std::string& cmd, EngineProtocol proto);
+
+    /**
+     * Sets the configuration at the specified index.
+     * @param index The index of the configuration to set.
+     * @param config The new EngineConfig to set.
+     */
+    void setConfig(uint32_t index, const EngineConfig& config) {
+        if (index < configs.size()) {
+            configs[index] = config;
+        }
+    }
 
     /**
      * Adds a new configuration or replaces the existing one with the same name.
      * @param config The EngineConfig to add or update.
      */
-    void addOrReplaceConfig(const EngineConfig& config);
+    void addOrReplaceConfig(const EngineConfig& config, bool replaceOnDifferentProtocol = false);
+
+    /**
+     * Adds a new configuration without checking for duplicates.
+     * @param config The EngineConfig to add.
+	 */
+    void addConfig(const EngineConfig& config) {
+        configs.push_back(config);
+	}
 
 	/**
+	 * @brief Removes a configuration by value.
+     */
+    void removeConfig(const EngineConfig& remove) {
+        auto [first, last] = std::ranges::remove(configs, remove);
+        configs.erase(first, last);
+    }	/**
 	 * @brief Returns a list of error messages encountered during parsing.
 	 */
-	const std::vector<std::string>& getErrors() const {
+	[[nodiscard]] const std::vector<std::string>& getErrors() const {
 		return errors;
 	}
 
@@ -100,9 +144,9 @@ public:
 	 * @param instances A collection of GroupInstances, each containing a map of configuration values.
      * @throws std::runtime_error if any EngineConfig is invalid.
      */
-    void addOrReplaceConfigurations(const CliSettings::GroupInstances& instances) {
+    void addOrReplaceConfig(const CliSettings::GroupInstances& instances) {
         for (const auto& instance : instances) {
-			CliSettings::ValueMap map = instance.getValues();
+			const auto& map = instance.getValues();
             EngineConfig config = EngineConfig::createFromValueMap(map);
             addOrReplaceConfig(config);
         }
@@ -110,9 +154,9 @@ public:
 
 	/**
 	 * @brief Add or replaces a single EngineConfig instance from a GroupInstance.
-	 * @param valueMap The values for the configuraiton.
+	 * @param valueMap The values for the configuration.
 	 */
-    void addOrReplaceConfiguration(const CliSettings::ValueMap& valueMap) {
+    void addOrReplaceConfig(const CliSettings::ValueMap& valueMap) {
 		EngineConfig config = EngineConfig::createFromValueMap(valueMap);
 		addOrReplaceConfig(config);
 	}
@@ -123,10 +167,20 @@ public:
      * @param reference Reference list of known engine configs.
      * @return Set of engine names that exist identically in both sets.
      */
-    std::unordered_set<std::string> findMatchingNames(const std::vector<EngineConfig>& reference) const;
+    [[nodiscard]] std::unordered_set<std::string> findMatchingNames(const std::vector<EngineConfig>& reference) const;
 
+    /**
+     * @brief Assigns unique display names to engines with identical base names.
+     *        Modifies the names of engines in-place to disambiguate between similar engines.
+     *        Uses toDisambiguationMap() to determine differentiating attributes.
+     *
+     * @param engines Vector of EngineConfig references to modify
+     */
+    static void assignUniqueDisplayNames(std::vector<EngineConfig> &engines);
 
 private:
     std::vector<EngineConfig> configs;
 	std::vector<std::string> errors; // Stores error messages during parsing
 };
+
+} // namespace QaplaTester

@@ -27,6 +27,8 @@
 #include <optional>
 #include <variant>
 
+namespace QaplaTester {
+
  /**
   * @brief Handles asynchronous user input for runtime commands.
   *
@@ -45,7 +47,7 @@ public:
         }
     }
 
-    enum class ImmediateCommand {
+    enum class ImmediateCommand: std::uint8_t {
         Abort,
         Concurrency,
         Info,
@@ -96,9 +98,9 @@ private:
 
     InputHandler() = default;
 
-    void handleSetCommand(const std::vector<std::string>& args);
+    static void handleSetCommand(const std::vector<std::string>& args);
     void handleLine(const std::string& line);
-    void showHelp();
+    static void showHelp();
 
 
     std::atomic<bool> started{ false };
@@ -117,3 +119,5 @@ private:
     std::vector<CallbackEntry> callbacks_;
     std::mutex callbacksMutex_;
 };
+
+} // namespace QaplaTester
