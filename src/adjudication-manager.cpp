@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
- #include "adjucation-manager.h"
+ #include "adjudication-manager.h"
  #include "string-helper.h"
 
 std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const GameRecord& game) const {
