@@ -23,6 +23,7 @@
 #include "timer.h"
 
 #include <stdexcept>
+#include <format>
 
 namespace QaplaTester {
 
@@ -327,6 +328,9 @@ void EngineWorker::readLoop() {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread
 				disconnected_ = true;
                 workerState_ = WorkerState::failure;
+                std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
+                Logger::testLogger().log(msg, TraceLevel::error);
+                Logger::engineLogger().log(msg, TraceLevel::error);
 			}
         }
 		catch (const std::exception& e) {

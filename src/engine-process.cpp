@@ -36,7 +36,7 @@
 #include <Psapi.h>
 #include <io.h>
 #else
-#include <signal.h>
+#include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -192,14 +192,19 @@ void EngineProcess::start()
     startWin32Overlapped();
 #else
     constexpr bool useStdErr = false;
-    int inPipe[2], outPipe[2], errPipe[2], execStatusPipe[2];
-    if (pipe(inPipe) || pipe(outPipe) || pipe(execStatusPipe))
+    // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+    int inPipe[2];
+    int outPipe[2];
+    int errPipe[2];
+    int execStatusPipe[2];
+    // NOLINTEND(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+    if (pipe(inPipe) != 0 || pipe(outPipe) != 0 || pipe(execStatusPipe) != 0)
     {
         throw std::runtime_error("Failed to create pipes");
     }
     fcntl(execStatusPipe[1], F_SETFD, FD_CLOEXEC);
 
-    if (useStdErr && pipe(errPipe))
+    if (useStdErr && pipe(errPipe) != 0)
     {
         throw std::runtime_error("Failed to create stderr pipe");
     }
@@ -308,16 +313,19 @@ void EngineProcess::closeAllHandles()
     }
     childProcess_ = nullptr;
 #else
-    if (stdinWrite_ >= 0)
+    if (stdinWrite_ >= 0) {
         close(stdinWrite_);
+    }
     stdinWrite_ = -1;
 
-    if (stdoutRead_ >= 0)
+    if (stdoutRead_ >= 0) {
         close(stdoutRead_);
+    }
     stdoutRead_ = -1;
 
-    if (stderrRead_ >= 0)
+    if (stderrRead_ >= 0) {
         close(stderrRead_);
+    }
     stderrRead_ = -1;
 
 #endif
@@ -510,16 +518,16 @@ void EngineProcess::readFromPipeBlocking()
         switch (lastError)
         {
         case ERROR_BROKEN_PIPE:
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Broken pipe - engine terminated or closed");
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " ReadFile: Broken pipe - engine terminated or closed");
             break;
         case ERROR_NO_DATA:
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: No data - end of file");
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " ReadFile: No data - end of file");
             break;
         case ERROR_INVALID_HANDLE:
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Invalid handle");
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " ReadFile: Invalid handle");
             break;
         default:
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "ReadFile: Unknown error code " + std::to_string(lastError));
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " ReadFile: Unknown error code " + std::to_string(lastError));
             break;
         }
         return;
@@ -533,23 +541,23 @@ void EngineProcess::readFromPipeBlocking()
     {
         return;
     }
-    char temp[1024];
+    char temp[1024]; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 
     ssize_t linuxBytesRead = read(stdoutRead_, temp, sizeof(temp));
     if (linuxBytesRead == 0)
     {
-        appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: EOF - engine closed pipe");
+        appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " read: EOF - engine closed pipe");
         return;
     }
     if (linuxBytesRead < 0)
     {
         if (errno == EBADF)
         {
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, "read: Invalid file descriptor");
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " read: Invalid file descriptor");
         }
         else
         {
-            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, std::string("read: error ") + strerror(errno));
+            appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " read: error " + strerror(errno));
         }
         return;
     }
@@ -634,8 +642,9 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
     }
     throw std::runtime_error("WaitForSingleObject failed");
 #else
-    if (childPid_ <= 0)
+    if (childPid_ <= 0) { 
         return true;
+    } 
 
     int status = 0;
     auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -647,7 +656,7 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         {
             return true; // Prozess ist beendet
         }
-        else if (result == 0)
+        if (result == 0)
         {
             if (std::chrono::steady_clock::now() >= deadline)
             {
@@ -661,8 +670,9 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
             {
                 return true; // No child process, considered as exited
             }
-            if (errno == EINTR)
+            if (errno == EINTR) {
                 continue;
+            } 
             throw std::runtime_error("waitpid() failed " + std::string(std::strerror(errno)));
         }
     }

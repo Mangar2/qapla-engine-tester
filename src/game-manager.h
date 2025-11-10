@@ -207,6 +207,32 @@ private:
     void processEvent(const EngineEvent& event);
 
     /**
+     * @brief Handles an engine disconnect event by restarting the disconnected engine.
+     * 
+     * This method is called when an engine disconnects unexpectedly. It ensures that
+     * the engine is properly restarted and its event sink is reconfigured.
+     * 
+     * @param player The player context of the disconnected engine.
+     * @param isWhitePlayer True if the disconnected engine is playing white, false otherwise.
+     */
+    void handleEngineDisconnect(PlayerContext* player, bool isWhitePlayer);
+
+    /**
+     * @brief Clears the event queue while still processing disconnect events.
+     * 
+     * When a game ends or is stopped, pending events are normally discarded. However,
+     * disconnect events must still be processed to ensure engines are properly restarted
+     * for the next game. This is especially important when both engines disconnect
+     * simultaneously - without this handling, only the first disconnect would be processed
+     * and the second engine would remain in a broken state.
+     * 
+     * IMPORTANT: The caller must hold queueMutex_ lock before calling this method.
+     * The mutex is not acquired within this method because it needs to be held across
+     * the entire clear operation in stop().
+     */
+    void clearQueueButHandleDisconnects();
+
+    /**
      * @brief Handles the best move event from the engine.
      *
      * This function processes the best move event, updates the game state, and informs the task provider.

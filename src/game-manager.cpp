@@ -161,6 +161,29 @@ void GameManager::markRunning() {
 	}
 }
 
+void GameManager::handleEngineDisconnect(PlayerContext* player, bool isWhitePlayer) {
+    player->handleDisconnect(isWhitePlayer);
+    player->getEngine()->setEventSink([this](EngineEvent&& curEvent) {
+        enqueueEvent(std::move(curEvent));
+    });
+}
+
+void GameManager::clearQueueButHandleDisconnects() {
+    // Process disconnect events even when clearing the queue
+    // This is critical when both engines disconnect - we need to restart both
+    while (!eventQueue_.empty()) {
+        auto& event = eventQueue_.front();
+        if (event.type == EngineEvent::Type::EngineDisconnected) {
+            PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
+            if (player != nullptr) {
+                bool isWhitePlayer = player == gameContext_.getWhite();
+                handleEngineDisconnect(player, isWhitePlayer);
+            }
+        }
+        eventQueue_.pop();
+    }
+}
+
 void GameManager::processEvent(const EngineEvent& event) {
     try {
 		PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
@@ -180,10 +203,7 @@ void GameManager::processEvent(const EngineEvent& event) {
         }
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {
-            player->handleDisconnect(isWhitePlayer);
-            player->getEngine()->setEventSink([this](EngineEvent&& curEvent) {
-                enqueueEvent(std::move(curEvent));
-                });
+            handleEngineDisconnect(player, isWhitePlayer);
             if (taskType_ != GameTask::Type::PlayGame) {
                 finalizeTaskAndContinue();
                 return;
@@ -373,9 +393,7 @@ void GameManager::stop() {
     gameContext_.cancelCompute();
     {
         std::scoped_lock lock(queueMutex_);
-        while (!eventQueue_.empty()) {
-            eventQueue_.pop();
-        }
+        clearQueueButHandleDisconnects();
     }
     tearDown();
 }
@@ -500,8 +518,9 @@ void GameManager::finalizeTaskAndContinue() {
     }
 	gameContext_.cancelCompute();
 
-    while (!eventQueue_.empty()) {
-        eventQueue_.pop();
+    {
+        std::scoped_lock lock(queueMutex_);
+        clearQueueButHandleDisconnects();
     }
 
     if (!provider) {
