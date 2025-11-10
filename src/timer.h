@@ -28,7 +28,7 @@ class Timer {
 public:
     
     static uint64_t getCurrentTimeMs() {
-        return static_cast<uint64_t>(duration_cast<std::chrono::milliseconds>(
+        return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now().time_since_epoch()).count());
     }
     

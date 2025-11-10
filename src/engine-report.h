@@ -160,7 +160,7 @@ public:
     }
 private:
 
-    static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 2;
+    static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 4;
     static constexpr uint32_t MAX_FILE_LOGS_PER_ERROR = 10;
     static inline std::mutex statsMutex_;
 
