@@ -27,6 +27,7 @@
 #include <string>
 #include <cassert>
 #include <ranges>
+#include <format>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -357,6 +358,7 @@ void EngineProcess::writeLineOverlapped(const std::string& withNewline)
 
 uint64_t EngineProcess::writeLine(const std::string &line)
 {
+    
     uint64_t now = Timer::getCurrentTimeMs();
     std::string withNewline = line + '\n';
 #ifdef _WIN32
@@ -546,7 +548,21 @@ void EngineProcess::readFromPipeBlocking()
     ssize_t linuxBytesRead = read(stdoutRead_, temp, sizeof(temp));
     if (linuxBytesRead == 0)
     {
-        appendErrorToLineQueue(EngineLine::Error::EngineTerminated, identifier_ + " read: EOF - engine closed pipe");
+        // Check if process is really dead or just closed stdout
+        int status = 0;
+        pid_t waitResult = waitpid(childPid_, &status, WNOHANG);
+        
+        std::string errorMsg = std::format(
+            "{} EOF detected: PID={} waitpid={} WIFEXITED={} WEXITSTATUS={} WIFSIGNALED={} WTERMSIG={}",
+            identifier_,
+            childPid_,
+            waitResult,
+            WIFEXITED(status),
+            WIFEXITED(status) ? WEXITSTATUS(status) : -1,
+            WIFSIGNALED(status),
+            WIFSIGNALED(status) ? WTERMSIG(status) : -1
+        );
+        appendErrorToLineQueue(EngineLine::Error::EngineTerminated, errorMsg);
         return;
     }
     if (linuxBytesRead < 0)
@@ -736,7 +752,6 @@ void EngineProcess::terminate()
         closeAllHandles();
         return; // Already terminated (positive case)
     }
-
     if (kill(childPid_, 0) == -1 && errno == ESRCH)
     {
         closeAllHandles();
