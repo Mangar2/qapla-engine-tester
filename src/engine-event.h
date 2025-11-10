@@ -137,6 +137,7 @@ struct EngineEvent {
         Unknown,
         NoData,
         KeepAlive,
+        StartTask
     };
     static EngineEvent create(Type type, const std::string& eid, uint64_t timestamp, const std::string& rawLine = "") {
         EngineEvent event;
@@ -187,6 +188,11 @@ struct EngineEvent {
         const std::string& ponderMove) {
         EngineEvent event = create(Type::PonderMove, eid, timestamp, rawLine);
         event.ponderMove = ponderMove;
+        return event;
+    }
+    static EngineEvent createStartTask() {
+        EngineEvent event;
+        event.type = Type::StartTask;
         return event;
     }
 

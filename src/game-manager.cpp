@@ -87,6 +87,14 @@ bool GameManager::processNextEvent() {
         event = std::move(eventQueue_.front());
         eventQueue_.pop();
     }
+    if (event.type == EngineEvent::Type::StartTask) {
+        auto task = assignNewProviderAndTask();
+        if (task) {
+            markRunning();
+            executeTask(std::move(task));
+            return true;
+        }
+    }
     processEvent(event);
     return true;
 }
@@ -493,7 +501,7 @@ std::optional<GameTask> GameManager::nextAssignment() {
             }
         }
 
-        // tryGetReplacementTask already provides new engine instances so restarting is not needed.
+        // assignNewProviderAndTask already provides new engine instances so restarting is not needed.
         return assignNewProviderAndTask();
     }
     catch (const std::exception& e) {
@@ -552,7 +560,10 @@ void GameManager::finalizeTaskAndContinue() {
 bool GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     std::optional<GameTask> task;
     if (taskProvider == nullptr) {
-        task = assignNewProviderAndTask();
+        taskType_ = GameTask::Type::FetchNextTask;
+        // This ensures that all engines are created from the same thread, important for linux
+        // using prctl(PR_SET_PDEATHSIG, SIGKILL) -> ensures that all child processes are killed when the parent dies
+        enqueueEvent(EngineEvent::createStartTask());
     }
     else {
         taskProvider_ = std::move(taskProvider);
