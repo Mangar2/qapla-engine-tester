@@ -314,12 +314,22 @@ void EngineProcess::closeAllHandles()
     }
     childProcess_ = nullptr;
 #else
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " closeAllHandles: ENTER (stdinWrite_=" << stdinWrite_ 
+                  << ", stdoutRead_=" << stdoutRead_ << ")" << std::endl;
+    }
+    
     if (stdinWrite_ >= 0) {
         close(stdinWrite_);
     }
     stdinWrite_ = -1;
 
     if (stdoutRead_ >= 0) {
+        if (debugTrace_) {
+            std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                      << " closeAllHandles: Closing stdoutRead_ FD " << stdoutRead_ << std::endl;
+        }
         close(stdoutRead_);
     }
     stdoutRead_ = -1;
@@ -329,6 +339,10 @@ void EngineProcess::closeAllHandles()
     }
     stderrRead_ = -1;
 
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " closeAllHandles: EXIT" << std::endl;
+    }
 #endif
 }
 
@@ -545,7 +559,16 @@ void EngineProcess::readFromPipeBlocking()
     }
     char temp[1024]; // NOLINT(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 
+    inSystemRead_ = true;
+    readStartTimeMs_ = Timer::getCurrentTimeMs();
     ssize_t linuxBytesRead = read(stdoutRead_, temp, sizeof(temp));
+    inSystemRead_ = false;
+    readStartTimeMs_ = 0;
+
+    if (stdoutRead_ < 0)
+    { 
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ << " read: file closed" << std::endl;
+    } 
     if (linuxBytesRead == 0)
     {
         // Check if process is really dead or just closed stdout
@@ -608,6 +631,13 @@ EngineLine EngineProcess::readLineBlocking()
     bool read = false;
     while (true)
     {
+        if (debugTrace_) {
+            std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                      << " readLineBlocking: queue size=" << lineQueue_.size() 
+                      << " read=" << read 
+                      << " stdoutRead_=" << stdoutRead_ 
+                      << " terminating_=" << terminating_ << std::endl;
+        }
 
         if (!lineQueue_.empty() && lineQueue_.front().complete)
         {
@@ -617,23 +647,43 @@ EngineLine EngineProcess::readLineBlocking()
                 line.content,
                 [](unsigned char ch) { return std::isspace(ch); }) != line.content.end())
             {
+                if (debugTrace_) {
+                    std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                              << " readLineBlocking: returning line='" << line.content << "'" << std::endl;
+                }
                 return line;
             }
             continue;
         }
 #ifdef _WIN32
         if (stdoutRead_ == nullptr || read) {
+            if (debugTrace_) {
+                std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                          << " readLineBlocking: returning empty (no data)" << std::endl;
+            }
             return EngineLine{.content = "", .complete = false, .timestampMs = Timer::getCurrentTimeMs()};
         }
 #else
         if (stdoutRead_ < 0 || read) {
+            if (debugTrace_) {
+                std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                          << " readLineBlocking: returning empty (no data)" << std::endl;
+            }
             return EngineLine{.content = "", .complete = false, .timestampMs = Timer::getCurrentTimeMs()};
         }
 #endif
         reading_ = true;
         if (!terminating_)
         {
+            if (debugTrace_) {
+                std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                          << " readLineBlocking: calling readFromPipeBlocking" << std::endl;
+            }
             readFromPipeBlocking();
+            if (debugTrace_) {
+                std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                          << " readLineBlocking: returned from readFromPipeBlocking" << std::endl;
+            }
         }
         reading_ = false;
 
@@ -659,8 +709,17 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
     throw std::runtime_error("WaitForSingleObject failed");
 #else
     if (childPid_ <= 0) { 
+        if (debugTrace_) {
+            std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                      << " waitForExit: childPid_ <= 0, already terminated" << std::endl;
+        }
         return true;
     } 
+
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " waitForExit: Waiting for PID " << childPid_ << std::endl;
+    }
 
     int status = 0;
     auto deadline = std::chrono::steady_clock::now() + timeout;
@@ -670,6 +729,10 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         pid_t result = waitpid(childPid_, &status, WNOHANG);
         if (result > 0)
         {
+            if (debugTrace_) {
+                std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                          << " waitForExit: PID " << childPid_ << " exited" << std::endl;
+            }
             childPid_ = -1; // Mark process as terminated
             return true; 
         }
@@ -677,6 +740,10 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         {
             if (std::chrono::steady_clock::now() >= deadline)
             {
+                if (debugTrace_) {
+                    std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                              << " waitForExit: TIMEOUT waiting for PID " << childPid_ << std::endl;
+                }
                 return false; 
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -685,6 +752,10 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         {
             if (errno == ECHILD)
             {
+                if (debugTrace_) {
+                    std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                              << " waitForExit: PID " << childPid_ << " - no child (ECHILD)" << std::endl;
+                }
                 childPid_ = -1; // Mark process as terminated
                 return true;    // No child process, considered as exited
             }
@@ -750,30 +821,87 @@ void EngineProcess::terminate()
         throw std::runtime_error("Engine did not end by itself");
     }
 #else
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: ENTER (PID=" << childPid_ << ")" << std::endl;
+    }
+    
     if (childPid_ <= 0)
     {
+        if (debugTrace_) {
+            std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                      << " terminate: childPid_ <= 0, already terminated" << std::endl;
+        }
         closeAllHandles();
         return; // Already terminated (positive case)
     }
+    
     if (kill(childPid_, 0) == -1 && errno == ESRCH)
     {
+        if (debugTrace_) {
+            std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                      << " terminate: Process no longer exists (ESRCH)" << std::endl;
+        }
         closeAllHandles();
         return; // Process no longer exists (positive case)
     }
 
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: Sending SIGKILL to PID " << childPid_ << std::endl;
+    }
+    
     if (kill(childPid_, SIGKILL) == -1)
     {
         throw std::runtime_error("kill(SIGKILL) failed");
     }
 
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: SIGKILL sent, calling waitForExit" << std::endl;
+    }
+
     bool exited = waitForExit(std::chrono::seconds(5)); // Wait for process to exit
 
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: waitForExit returned " << exited 
+                  << ", calling closeAllHandles" << std::endl;
+    }
+
     closeAllHandles();
+    
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: closeAllHandles completed" << std::endl;
+    }
+    
     if (!exited)
     {
         throw std::runtime_error("Engine did not end by itself after kill(0)");
     }
+    
+    if (debugTrace_) {
+        std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ 
+                  << " terminate: EXIT" << std::endl;
+    }
 #endif
+}
+
+void EngineProcess::setDebugTrace(bool enable) 
+{
+    debugTrace_ = enable;
+    if (enable) {
+        uint64_t now = Timer::getCurrentTimeMs();
+        std::cout << "[" << now << "] " << identifier_ 
+                  << " DEBUG ENABLED: PID=" << childPid_ 
+                  << " inSystemRead_=" << inSystemRead_
+                  << " readStartTimeMs_=" << readStartTimeMs_
+                  << " (elapsed=" << (readStartTimeMs_ > 0 ? now - readStartTimeMs_ : 0) << "ms)"
+                  << " reading_=" << reading_
+                  << " terminating_=" << terminating_
+                  << " stdoutRead_=" << stdoutRead_ << std::endl;
+    }
 }
 
 bool EngineProcess::isRunning() const
