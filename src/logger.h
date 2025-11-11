@@ -48,6 +48,25 @@ enum class TraceLevel : std::uint8_t {
 };
 
 /**
+ * @brief Strategy for creating log files for engine communication.
+ */
+enum class LogFileStrategy : std::uint8_t {
+    global = 0,     // Single log file for all engines
+    perEngine = 1,  // One log file per engine
+    perGame = 2     // One log file per game (all engines of a game share the file)
+};
+
+/**
+ * @brief Configuration settings for the logger.
+ */
+struct LoggerConfig {
+    std::string logPath = "./log";               ///< Directory path for log files
+    std::string reportLogBaseName = "report";    ///< Base name for reporting log files
+    std::string engineLogBaseName = "engine";    ///< Base name for engine log files
+    LogFileStrategy engineLogStrategy = LogFileStrategy::global; ///< Strategy for engine log files
+};
+
+/**
  * @brief Converts TraceLevel enum to its string representation.
  * @param level The trace level to convert.
  * @return String representation of the trace level.
@@ -115,12 +134,12 @@ public:
     void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command);
 
     /**
-     * @brief Sets the output log file with timestamp.
+     * @brief Sets the base name for the log file.
      * 
-     * Creates a new log file with a timestamped filename in the configured log directory.
-     * If a file is already open, it will be closed first.
+     * The actual log file will be created lazily on the first write operation.
+     * If the basename changes, a new file will be created on the next write.
      * 
-     * @param basename Base name for the log file (timestamp will be appended).
+     * @param basename Base name for the log file (timestamp will be appended when file is created).
      */
     void setLogFile(const std::string& basename);
 
@@ -164,20 +183,28 @@ public:
     static Logger& testLogger();
 
     /**
-     * @brief Sets the directory path for log files.
-     * @param path The directory where log files will be created.
-     */
-    static void setLogPath(const std::string& path) {
-        logPath_ = path;
-    }
-
-    /**
      * @brief Returns the current console trace level threshold.
      * @return The trace level threshold for console output.
      */
     [[nodiscard]] TraceLevel getCliThreshold() const {
         return cliThreshold_;
     }
+
+    /**
+     * @brief Sets the logger configuration and applies it to all logger instances.
+     * @param config The configuration to apply.
+     */
+    static void setConfig(const LoggerConfig& config);
+
+    /**
+     * @brief Returns the current logger configuration.
+     * @return Reference to the logger configuration.
+     */
+    static LoggerConfig& getConfig() {
+        return config_;
+    }
+
+
 
 private:
     /**
@@ -190,12 +217,22 @@ private:
      */
     static std::string generateTimestampedFilename(const std::string& baseName);
 
+    /**
+     * @brief Opens the log file if needed (lazy initialization).
+     * 
+     * Opens a new file if:
+     * - No file is currently open, OR
+     * - The basename has changed since last open
+     */
+    void ensureFileOpen();
+
     std::mutex mutex_;                          ///< Mutex for thread-safe logging
     std::ofstream fileStream_;                  ///< Output file stream for log file
     TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
     std::string filename_;                      ///< Current log filename
-    static inline std::string logPath_;    ///< Directory path for log files
+    std::string basename_;                      ///< Base name for log file (without timestamp)
+    static inline LoggerConfig config_;         ///< Logger configuration
 };
 
 } // namespace QaplaTester

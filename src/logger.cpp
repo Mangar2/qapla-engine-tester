@@ -54,8 +54,11 @@ void Logger::log(std::string_view prefix, std::string_view message, bool isOutpu
     TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level) {
 
     std::scoped_lock lock(mutex_);
-    if (level <= fileThreshold && fileStream_.is_open()) {
-        fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
+    if (level <= fileThreshold) {
+        ensureFileOpen();
+        if (fileStream_.is_open()) {
+            fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
+        }
     }
     
     if (level > cliThreshold) {
@@ -76,8 +79,11 @@ void Logger::log(std::string_view prefix, std::string_view message, bool isOutpu
 void Logger::log(std::string_view message, TraceLevel level) {
 
     std::scoped_lock lock(mutex_);
-    if (level <= fileThreshold_ && fileStream_.is_open()) {
-        fileStream_ << message << "\n" << std::flush;
+    if (level <= fileThreshold_) {
+        ensureFileOpen();
+        if (fileStream_.is_open()) {
+            fileStream_ << message << "\n" << std::flush;
+        }
     }
 
     if (level > cliThreshold_) {
@@ -102,19 +108,50 @@ void Logger::logAligned(std::string_view topic, std::string_view message, TraceL
 }
 
 /**
- * @brief Sets the output log file with timestamp.
+ * @brief Sets the base name for the log file.
  * 
- * Creates a new log file with a timestamped filename in the configured log directory.
- * If a file is already open, it will be closed first.
+ * The actual log file will be created lazily on the first write operation.
+ * If the basename changes, a new file will be created on the next write.
  * 
- * @param basename Base name for the log file (timestamp will be appended).
+ * @param basename Base name for the log file (timestamp will be appended when file is created).
  */
 void Logger::setLogFile(const std::string& basename) {
     std::scoped_lock lock(mutex_);
+    basename_ = basename;
+    // Note: File is NOT opened here. It will be opened lazily in ensureFileOpen().
+}
+
+/**
+ * @brief Opens the log file if needed (lazy initialization).
+ * 
+ * Opens a new file if:
+ * - No file is currently open, OR
+ * - The basename has changed since last open
+ * 
+ * IMPORTANT: Must be called with mutex_ already locked!
+ */
+void Logger::ensureFileOpen() {
+    // Check if we need to open/reopen the file
+    if (basename_.empty()) {
+        return; // No basename set, don't create file
+    }
+    
+    // If file is already open and basename hasn't changed, nothing to do
+    if (fileStream_.is_open() && filename_.find(basename_) != std::string::npos) {
+        return;
+    }
+    
+    // Close existing file if open
+    if (fileStream_.is_open()) {
+        fileStream_.close();
+    }
+    
+    // Create new timestamped filename
     namespace fs = std::filesystem;
-    fs::path path = logPath_.empty() ? "" : fs::path(logPath_);
-    filename_ = (path / generateTimestampedFilename(basename)).string();
-    fileStream_.close();
+    fs::path path = config_.logPath.empty() ? "" : fs::path(config_.logPath);
+    filename_ = (path / generateTimestampedFilename(basename_)).string();
+    
+    // Open the file
     fileStream_.open(filename_, std::ios::app);
 }
 
@@ -164,6 +201,25 @@ Logger& Logger::engineLogger() {
 Logger& Logger::testLogger() {
     static Logger instance;
     return instance;
+}
+
+/**
+ * @brief Sets the logger configuration and applies it to all logger instances.
+ * @param config The configuration to apply.
+ */
+void Logger::setConfig(const LoggerConfig& config) {
+    config_ = config;
+    
+    // Always initialize test/report logger
+    testLogger().setLogFile(config_.reportLogBaseName);
+    testLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+    
+    // Initialize engine logger only for global strategy
+    // For PER_ENGINE and PER_GAME strategies, log files are created dynamically
+    if (config_.engineLogStrategy == LogFileStrategy::global) {
+        engineLogger().setLogFile(config_.engineLogBaseName);
+        engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+    }
 }
 
 } // namespace QaplaTester

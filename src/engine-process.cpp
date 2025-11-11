@@ -894,7 +894,9 @@ void EngineProcess::setDebugTrace(bool enable)
     if (enable) {
         uint64_t now = Timer::getCurrentTimeMs();
         std::cout << "[" << now << "] " << identifier_ 
+#ifndef _WIN32        
                   << " DEBUG ENABLED: PID=" << childPid_ 
+#endif
                   << " inSystemRead_=" << inSystemRead_
                   << " readStartTimeMs_=" << readStartTimeMs_
                   << " (elapsed=" << (readStartTimeMs_ > 0 ? now - readStartTimeMs_ : 0) << "ms)"
