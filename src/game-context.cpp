@@ -51,11 +51,8 @@ void GameContext::playerRestartEngine(PlayerContext* player, bool differentThrea
 
 void GameContext::tearDown()
 {
-    std::cout << "teardown lock engineMutex_" << std::endl;
     std::scoped_lock lock(engineMutex_);
-    std::cout << "teardown have lock engineMutex_" << std::endl;
     players_.clear();
-    std::cout << "teardown cleared players_" << std::endl;
 }
 
 void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines)

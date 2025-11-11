@@ -137,9 +137,17 @@ public:
         }
     #endif
 
+    /**
+     * @brief Enables debug tracing for this engine process.
+     */
+    void setDebugTrace(bool enable);
+
 private:
 	std::atomic<bool> reading_ = false;
     std::atomic<bool> terminating_ = false;
+    std::atomic<bool> debugTrace_ = false;
+    std::atomic<bool> inSystemRead_ = false;
+    std::atomic<uint64_t> readStartTimeMs_ = 0;
 
     struct ReadResult {
         std::array<char, 1024> buffer;
