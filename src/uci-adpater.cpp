@@ -50,7 +50,7 @@ void UciAdapter::terminateEngine() {
 	}
 
     try {
-        process_.setDebugTrace(true);
+        // process_.setDebugTrace(true);
         writeCommand("quit");
 		// Once Terminating is set, writing to the engine is not allowed anymore
         terminating_ = true;
