@@ -89,9 +89,8 @@ public:
      * callback must return a valid GameTask or std::nullopt to signal completion.
      *
      * @param taskProvider Function that returns the next Task or std::nullopt if done.
-	 * @return true if tasks were computed, false if no tasks were available.
      */
-    bool start(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
+    void start(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
 
     /**
      * @brief Set the Trace level for the engine's CLI output.    
@@ -306,8 +305,9 @@ private:
      * @brief Tears down the GameManager after all tasks are complete.
      *
      * This method releases resources and marks the GameManager as finished.
+     * @param who A string identifying who is calling tearDown (for logging purposes). 
      */
-    void tearDown();
+    void tearDown(const char* who);
 
     /**
 	 * Computes the next task from the task provider

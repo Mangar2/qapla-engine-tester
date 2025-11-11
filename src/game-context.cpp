@@ -51,8 +51,11 @@ void GameContext::playerRestartEngine(PlayerContext* player, bool differentThrea
 
 void GameContext::tearDown()
 {
+    std::cout << "teardown lock engineMutex_" << std::endl;
     std::scoped_lock lock(engineMutex_);
+    std::cout << "teardown have lock engineMutex_" << std::endl;
     players_.clear();
+    std::cout << "teardown cleared players_" << std::endl;
 }
 
 void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines)
@@ -75,8 +78,8 @@ void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines
             isWhite = switchedSide_;
             players_.emplace_back(std::move(player));
         }
+        updateEngineNames();
     }
-    updateEngineNames();
     newGame();
 }
 
@@ -161,6 +164,7 @@ void GameContext::setTimeControls(const std::vector<TimeControl> &timeControls, 
 void GameContext::newGame()
 {
     ensureStarted();
+    std::scoped_lock lock(engineMutex_);
     for (size_t i = 0; i < players_.size(); ++i)
     {
         bool isWhite = (i == 0 && !switchedSide_) || (i == 1 && switchedSide_);

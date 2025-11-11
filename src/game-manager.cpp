@@ -75,7 +75,7 @@ void GameManager::enqueueEvent(EngineEvent&& event) {
 
 bool GameManager::processNextEvent() {
 	if (taskType_ == GameTask::Type::None) {
-        tearDown();
+        tearDown("processNextEvent");
 		return false; // No task to process
 	}
     EngineEvent event;
@@ -90,7 +90,6 @@ bool GameManager::processNextEvent() {
     if (event.type == EngineEvent::Type::StartTask) {
         auto task = assignNewProviderAndTask();
         if (task) {
-            markRunning();
             executeTask(std::move(task));
             return true;
         }
@@ -122,6 +121,10 @@ void GameManager::processQueue() {
             }
             nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
 
+            std::scoped_lock lock(taskProviderMutex_);
+            if (!taskProvider_) {
+                continue;
+            }
             if (taskType_ != GameTask::Type::ComputeMove && taskType_ != GameTask::Type::PlayGame) {
                 if (debug_) {
                     std::cout << "Stop check, cause task-type" << std::to_string(static_cast<int>(taskType_.load())) << "\n";
@@ -137,7 +140,10 @@ void GameManager::processQueue() {
     }
 }
 
-void GameManager::tearDown() {
+void GameManager::tearDown([[maybe_unused]] const char* who) {
+    if (!isRunning()) {
+        return;
+    }
     {
         std::scoped_lock lock(taskProviderMutex_);
         if (taskProvider_) {
@@ -403,12 +409,12 @@ void GameManager::stop() {
         std::scoped_lock lock(queueMutex_);
         clearQueueButHandleDisconnects();
     }
-    tearDown();
+    tearDown("stop");
 }
 
 void GameManager::executeTask(std::optional<GameTask> task) {
     if (!task) {
-        tearDown();
+        tearDown("executeTask");
         return;
     }
     gameContext_.setSideSwitched(task->switchSide);
@@ -532,7 +538,7 @@ void GameManager::finalizeTaskAndContinue() {
     }
 
     if (!provider) {
-        tearDown();
+        tearDown("finalizeTaskAndContinue");
         return;
     }
     // Note: we had a check, if any move has been played and removed it as it could cause problems
@@ -550,32 +556,30 @@ void GameManager::finalizeTaskAndContinue() {
 
     auto task = nextAssignment();
     if (!task) {
-        tearDown();
+        tearDown("nextAssignment");
         return;
     }
 
 	executeTask(std::move(task));
 }
 
-bool GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
+void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     std::optional<GameTask> task;
     if (taskProvider == nullptr) {
         taskType_ = GameTask::Type::FetchNextTask;
         // This ensures that all engines are created from the same thread, important for linux
         // using prctl(PR_SET_PDEATHSIG, SIGKILL) -> ensures that all child processes are killed when the parent dies
+        markRunning();
         enqueueEvent(EngineEvent::createStartTask());
+        return;
     }
-    else {
-        taskProvider_ = std::move(taskProvider);
-        taskType_ = GameTask::Type::FetchNextTask;
-        task = nextAssignment();
-    }
+    taskProvider_ = std::move(taskProvider);
+    taskType_ = GameTask::Type::FetchNextTask;
+    task = nextAssignment();
     if (task) {
         markRunning();
         executeTask(std::move(task));
-		return true;
-    }
-    return false;
+    } 
 }
 
 void GameManager::resume() {
@@ -593,7 +597,7 @@ void GameManager::resume() {
         executeTask(std::move(task));
     }
     else {
-        tearDown();
+        tearDown("resume");
     }
 }
 

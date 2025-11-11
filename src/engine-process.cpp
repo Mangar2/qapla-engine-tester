@@ -539,7 +539,7 @@ void EngineProcess::readFromPipeBlocking()
     const char* temp = result.buffer.data();
     // std::cout << "[" << now << "] " << incoming << std::endl;
 #else
-    if (stdoutRead_ == 0)
+    if (stdoutRead_ < 0)
     {
         return;
     }
@@ -670,13 +670,14 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         pid_t result = waitpid(childPid_, &status, WNOHANG);
         if (result > 0)
         {
-            return true; // Prozess ist beendet
+            childPid_ = -1; // Mark process as terminated
+            return true; 
         }
         if (result == 0)
         {
             if (std::chrono::steady_clock::now() >= deadline)
             {
-                return false; // Timeout abgelaufen
+                return false; 
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -684,12 +685,14 @@ bool EngineProcess::waitForExit(std::chrono::milliseconds timeout)
         {
             if (errno == ECHILD)
             {
-                return true; // No child process, considered as exited
+                childPid_ = -1; // Mark process as terminated
+                return true;    // No child process, considered as exited
             }
             if (errno == EINTR) {
                 continue;
             } 
-            throw std::runtime_error("waitpid() failed " + std::string(std::strerror(errno)));
+
+            throw std::runtime_error("waitpid() failed with errno: " + std::string(std::strerror(errno)));
         }
     }
 #endif
@@ -764,10 +767,11 @@ void EngineProcess::terminate()
     }
 
     bool exited = waitForExit(std::chrono::seconds(5)); // Wait for process to exit
+
     closeAllHandles();
     if (!exited)
     {
-        throw std::runtime_error("Engine did not end by itself");
+        throw std::runtime_error("Engine did not end by itself after kill(0)");
     }
 #endif
 }
