@@ -77,7 +77,7 @@ public:
      * @brief Returns true if the user has requested to quit.
      * @return True if "quit" was entered.
      */
-    bool quitRequested() const {
+   [[nodiscard]] bool quitRequested() const {
         return quitFlag.load()|| stopFlag.load();
     }
 

@@ -25,16 +25,86 @@
 
 namespace QaplaTester {
 
+// RAII helper class to manage engine start slots
+class EngineStartGuard {
+public:
+    EngineStartGuard() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        // Wait until a slot is available
+        condition_.wait(lock, [] {
+            return currentActiveStarts_ < maxParallelStarts_;
+        });
+        // Acquired a slot
+        currentActiveStarts_++;
+    }
+
+    ~EngineStartGuard() {
+        std::scoped_lock lock(mutex_);
+        currentActiveStarts_--;
+
+        // Notify one waiting thread that a slot is now available
+        condition_.notify_one();
+    }
+
+    // Delete copy and move to ensure RAII semantics
+    EngineStartGuard(const EngineStartGuard&) = delete;
+    EngineStartGuard& operator=(const EngineStartGuard&) = delete;
+    EngineStartGuard(EngineStartGuard&&) = delete;
+    EngineStartGuard& operator=(EngineStartGuard&&) = delete;
+
+    // Static configuration methods
+    static void setMaxParallelStarts(int maxParallel) {
+        std::scoped_lock lock(mutex_);
+        maxParallelStarts_ = maxParallel;
+        // Wake up all waiting threads in case limit was increased
+        condition_.notify_all();
+    }
+
+    static int getMaxParallelStarts() {
+        std::scoped_lock lock(mutex_);
+        return maxParallelStarts_;
+    }
+
+    static int getCurrentActiveStarts() {
+        std::scoped_lock lock(mutex_);
+        return currentActiveStarts_;
+    }
+
+private:
+    static inline int maxParallelStarts_ = 6;
+    static inline int currentActiveStarts_ = 0;
+    static inline std::mutex mutex_;
+    static inline std::condition_variable condition_;
+};
+
 void EngineWorkerFactory::assignUniqueDisplayNames() {
     auto& engines = getActiveEnginesMutable();
     EngineConfigManager::assignUniqueDisplayNames(engines);
 }
 
+void EngineWorkerFactory::setMaxParallelStarts(int maxParallel) {
+    EngineStartGuard::setMaxParallelStarts(maxParallel);
+}
+
+int EngineWorkerFactory::getMaxParallelStarts() {
+    return EngineStartGuard::getMaxParallelStarts();
+}
+
+int EngineWorkerFactory::getCurrentActiveStarts() {
+    return EngineStartGuard::getCurrentActiveStarts();
+}
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConfig& config) {
+    // Acquire a start slot - this will block if too many engines are starting
+    EngineStartGuard guard;
+    
     auto executablePath = config.getCmd();
     auto workingDirectory = config.getDir();
-    auto identifierStr = "#" + std::to_string(identifier_);
+    
+    // Atomic fetch_add ensures each engine gets a unique identifier
+    auto id = identifier_.fetch_add(1, std::memory_order_relaxed);
+    auto identifierStr = "#" + std::to_string(id);
+    
     std::unique_ptr<EngineAdapter> adapter;
     if (config.getProtocol() == EngineProtocol::Uci) {
 		adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
@@ -47,8 +117,8 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConf
     }
     adapter->setSuppressInfoLines(suppressInfoLines_);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, config);
-    identifier_++;
     return worker;
+    // guard destructor automatically releases the slot
 }
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::restart(const EngineWorker& worker) {

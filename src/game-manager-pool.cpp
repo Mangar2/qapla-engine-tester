@@ -387,45 +387,53 @@ uint32_t GameManagerPool::countActiveManagers() const {
 }
 
 std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
-    std::scoped_lock lock(taskMutex_);
 
-    for (auto& assignment : taskAssignments_) {
-        if (!assignment.engine1) {
-            continue;
+    std::optional<EngineConfig> engine1;
+    std::optional<EngineConfig> engine2;
+    GameManager::ExtendedTask result;
+
+    {
+        std::scoped_lock lock(taskMutex_);
+        for (auto& assignment : taskAssignments_) {
+            if (!assignment.engine1) {
+                continue;
+            }
+            if (!assignment.provider) {
+                continue;
+            }
+
+            auto taskOpt = assignment.provider->nextTask();
+            if (!taskOpt.has_value()) {
+                continue;
+            }
+
+            result.task = std::move(taskOpt.value());
+            result.provider = assignment.provider;
+
+            if (!assignment.engine1) {
+                throw AppError::make("GameManagerPool::tryAssignNewTask; No engine configuration provided for task assignment");
+            }
+            engine1 = assignment.engine1;
+            engine2 = assignment.engine2;
+            break;
         }
-        if (!assignment.provider) {
-            continue;
+    }
+
+    if (engine1 && engine2) {
+        auto whiteEngines = EngineWorkerFactory::createEngines(*engine1, 1);
+        auto blackEngines = EngineWorkerFactory::createEngines(*engine2, 1);
+
+        if (whiteEngines.empty() || blackEngines.empty()) {
+            throw std::runtime_error("Failed to create engines for task assignment ");
         }
 
-        auto taskOpt = assignment.provider->nextTask();
-        if (!taskOpt.has_value()) {
-            continue;
-        }
-
-        GameManager::ExtendedTask result;
-        result.task = std::move(taskOpt.value());
-        result.provider = assignment.provider;
-
-        if (!assignment.engine1) {
-            throw AppError::make("GameManagerPool::tryAssignNewTask; No engine configuration provided for task assignment");
-        }
-
-        if (assignment.engine1 && assignment.engine2) {
-            auto whiteEngines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);
-            auto blackEngines = EngineWorkerFactory::createEngines(*assignment.engine2, 1);
-
-            if (whiteEngines.empty() || blackEngines.empty()) {
-                throw std::runtime_error("Failed to create engines for task assignment ");
-			}
-
-            result.white = std::move(whiteEngines.front());
-            result.black = std::move(blackEngines.front());
-        }
-        else if (assignment.engine1) {
-            auto engines = EngineWorkerFactory::createEngines(*assignment.engine1, 1);
-            result.white = std::move(engines.front());
-        }
-
+        result.white = std::move(whiteEngines.front());
+        result.black = std::move(blackEngines.front());
+        return result;
+    } 
+    if (engine1) {
+        auto engines = EngineWorkerFactory::createEngines(*engine1, 1);
+        result.white = std::move(engines.front());
         return result;
     }
 
