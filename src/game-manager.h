@@ -46,8 +46,8 @@ public:
     struct ExtendedTask {
         GameTask task;
         std::shared_ptr<GameTaskProvider> provider;
-        std::unique_ptr<EngineWorker> white;
-        std::unique_ptr<EngineWorker> black;
+        std::optional<EngineConfig> whiteConfig;
+        std::optional<EngineConfig> blackConfig;
     };
 
 	explicit GameManager(GameManagerPool* pool);

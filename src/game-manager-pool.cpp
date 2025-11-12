@@ -19,7 +19,6 @@
 
 #include "game-manager.h"
 #include "game-manager-pool.h"
-#include "engine-worker-factory.h"
 #include "app-error.h"
 #include "string-helper.h"
 
@@ -388,8 +387,6 @@ uint32_t GameManagerPool::countActiveManagers() const {
 
 std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
 
-    std::optional<EngineConfig> engine1;
-    std::optional<EngineConfig> engine2;
     GameManager::ExtendedTask result;
 
     {
@@ -413,28 +410,10 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
             if (!assignment.engine1) {
                 throw AppError::make("GameManagerPool::tryAssignNewTask; No engine configuration provided for task assignment");
             }
-            engine1 = assignment.engine1;
-            engine2 = assignment.engine2;
-            break;
+            result.whiteConfig = assignment.engine1;
+            result.blackConfig = assignment.engine2;
+            return result;
         }
-    }
-
-    if (engine1 && engine2) {
-        auto whiteEngines = EngineWorkerFactory::createEngines(*engine1, 1);
-        auto blackEngines = EngineWorkerFactory::createEngines(*engine2, 1);
-
-        if (whiteEngines.empty() || blackEngines.empty()) {
-            throw std::runtime_error("Failed to create engines for task assignment ");
-        }
-
-        result.white = std::move(whiteEngines.front());
-        result.black = std::move(blackEngines.front());
-        return result;
-    } 
-    if (engine1) {
-        auto engines = EngineWorkerFactory::createEngines(*engine1, 1);
-        result.white = std::move(engines.front());
-        return result;
     }
 
     return std::nullopt;

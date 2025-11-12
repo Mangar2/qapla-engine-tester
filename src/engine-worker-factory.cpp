@@ -23,6 +23,10 @@
 #include "engine-report.h"
 #include "engine-config-manager.h"
 
+constexpr int DEFAULT_MAX_PARALLEL_STARTS = 2;    ///> Default max parallel engine starts
+constexpr int ENGINE_START_RETRY = 3;             ///> Number of retries for engine start
+constexpr int ENGINE_START_RETRY_DELAY_MS = 2000; ///> Delay between retries in milliseconds
+
 namespace QaplaTester {
 
 // RAII helper class to manage engine start slots
@@ -71,7 +75,7 @@ public:
     }
 
 private:
-    static inline int maxParallelStarts_ = 6;
+    static inline int maxParallelStarts_ = DEFAULT_MAX_PARALLEL_STARTS;
     static inline int currentActiveStarts_ = 0;
     static inline std::mutex mutex_;
     static inline std::condition_variable condition_;
@@ -170,8 +174,10 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
     EngineList engines;
     std::vector<std::future<void>> futures;
     engines.reserve(count);
-    constexpr int RETRY = 3;
-    for (int retry = 0; retry < RETRY; retry++) {
+    for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
+        if (retry > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+        }
         futures.clear();
         for (std::size_t i = 0; i < count; ++i) {
             // We initialize all engines in the first loop
@@ -202,8 +208,10 @@ EngineList EngineWorkerFactory::createEngines(const std::vector<EngineConfig>& c
     EngineList engines;
     std::vector<std::future<void>> futures;
     engines.reserve(configs.size());
-    constexpr int RETRY = 3;
-    for (int retry = 0; retry < RETRY; retry++) {
+    for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
+        if (retry > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+        }
         futures.clear();
         uint32_t index = 0;
         for (const auto& config: configs) {

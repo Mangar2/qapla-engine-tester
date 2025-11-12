@@ -38,6 +38,7 @@
 #include "game-manager-pool.h"
 #include "input-handler.h"
 #include "adjudication-manager.h"
+#include "engine-worker-factory.h"
 
 namespace QaplaTester {
 
@@ -459,13 +460,25 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
         taskType_ = GameTask::Type::FetchNextTask;
     }
 
-    if (extendedTask->black) {
+    // Create engines from configurations
+    if (extendedTask->whiteConfig && extendedTask->blackConfig) {
+        auto whiteEngines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
+        auto blackEngines = EngineWorkerFactory::createEngines(*extendedTask->blackConfig, 1);
+
+        if (whiteEngines.empty() || blackEngines.empty()) {
+            throw std::runtime_error("Failed to create engines for task assignment");
+        }
+
         initEngines(
-            std::move(extendedTask->white),
-            std::move(extendedTask->black));
+            std::move(whiteEngines.front()),
+            std::move(blackEngines.front()));
     }
-    else {
-        initUniqueEngine(std::move(extendedTask->white));
+    else if (extendedTask->whiteConfig) {
+        auto engines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
+        if (engines.empty()) {
+            throw std::runtime_error("Failed to create engine for task assignment");
+        }
+        initUniqueEngine(std::move(engines.front()));
     }
 
     return extendedTask->task;
