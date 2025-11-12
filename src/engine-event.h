@@ -137,7 +137,8 @@ struct EngineEvent {
         Unknown,
         NoData,
         KeepAlive,
-        StartTask
+        StartTask,
+        StopRunning
     };
     static EngineEvent create(Type type, const std::string& eid, uint64_t timestamp, const std::string& rawLine = "") {
         EngineEvent event;
@@ -193,6 +194,11 @@ struct EngineEvent {
     static EngineEvent createStartTask() {
         EngineEvent event;
         event.type = Type::StartTask;
+        return event;
+    }
+    static EngineEvent createStopTask() {
+        EngineEvent event;
+        event.type = Type::StopRunning;
         return event;
     }
 

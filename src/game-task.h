@@ -27,7 +27,6 @@ namespace QaplaTester {
 struct GameTask {
     enum class Type: std::uint8_t {
         None,
-        FetchNextTask,
         ComputeMove,
         PlayGame
     };

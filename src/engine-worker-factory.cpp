@@ -175,10 +175,8 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
     std::vector<std::future<void>> futures;
     engines.reserve(count);
     for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
-        if (retry > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
-        }
         futures.clear();
+        bool waitOnFailure = true;
         for (std::size_t i = 0; i < count; ++i) {
             // We initialize all engines in the first loop
             if (engines.size() <= i) {
@@ -186,6 +184,10 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
                 futures.push_back(engines.back()->getStartupFuture());
             }
             else if (engines[i]->failure()) {
+                if (waitOnFailure) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+                    waitOnFailure = false;
+                }
                 // The retry loops recreate engines having exceptions in the startup process
                 engines[i] = createEngine(config);
                 futures.push_back(engines[i]->getStartupFuture());
@@ -209,11 +211,9 @@ EngineList EngineWorkerFactory::createEngines(const std::vector<EngineConfig>& c
     std::vector<std::future<void>> futures;
     engines.reserve(configs.size());
     for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
-        if (retry > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
-        }
         futures.clear();
         uint32_t index = 0;
+        bool waitOnFailure = true;
         for (const auto& config: configs) {
             // We initialize all engines in the first loop
             if (engines.size() <= index) {
@@ -227,6 +227,10 @@ EngineList EngineWorkerFactory::createEngines(const std::vector<EngineConfig>& c
                 }
             }
             else if (engines[index]->failure()) {
+                if (waitOnFailure) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+                    waitOnFailure = false;
+                }
                 // The retry loops recreate engines having exceptions in the startup process
                 engines[index] = createEngine(config);
                 futures.push_back(engines[index]->getStartupFuture());
