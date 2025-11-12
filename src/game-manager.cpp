@@ -34,11 +34,13 @@
 
 #include "game-manager.h"
 #include "engine-report.h"
-#include <iostream>
 #include "game-manager-pool.h"
 #include "input-handler.h"
 #include "adjudication-manager.h"
 #include "engine-worker-factory.h"
+
+#include <iostream>
+#include <atomic>
 
 namespace QaplaTester {
 
@@ -60,10 +62,13 @@ GameManager::~GameManager() {
 }
 
 void GameManager::enqueueEvent(EngineEvent&& event) {
-	if (taskType_ == GameTask::Type::None) {
+	if (managerState_ == ManagerState::None) {
 		// No task to process, ignore the event
 		return;
 	}
+    // Type::None is an empty event (uninitialized) or dedicately set to noop. Shouldnt happen but we ignore it here.
+    // Type::NoData is an event from the engine, produced by a read with no relevant data (infos, ...).
+    // we could ignore it at engine level but we decided that it is the responsibility of the GameManager to ignore such events.
     if (event.type == EngineEvent::Type::None || event.type == EngineEvent::Type::NoData) {
         return;
     }
@@ -75,10 +80,6 @@ void GameManager::enqueueEvent(EngineEvent&& event) {
 }
 
 bool GameManager::processNextEvent() {
-	if (taskType_ == GameTask::Type::None) {
-        tearDown("processNextEvent");
-		return false; // No task to process
-	}
     EngineEvent event;
     {
         std::scoped_lock lock(queueMutex_);
@@ -88,12 +89,19 @@ bool GameManager::processNextEvent() {
         event = std::move(eventQueue_.front());
         eventQueue_.pop();
     }
+    // Handles start/stop events not provided by engines
+    if (event.type == EngineEvent::Type::StopRunning) {
+        tearDown("processNextEvent/StopRunning");
+        return true;
+    }
     if (event.type == EngineEvent::Type::StartTask) {
         auto task = assignNewProviderAndTask();
         if (task) {
             executeTask(std::move(task));
             return true;
         }
+        tearDown("processNextEvent/StartTask no task");
+        return true;
     }
     processEvent(event);
     return true;
@@ -102,6 +110,8 @@ bool GameManager::processNextEvent() {
 void GameManager::processQueue() {
     constexpr std::chrono::seconds timeoutInterval(1);
     auto nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
+    // thread local flag used for debugging purposes, checks if we have any other thread
+    // restarting the engine than this here. As it is thread local it is also GameManager local.
     isEventQueueThread = true;
 
     while (!stopThread_) {
@@ -122,19 +132,14 @@ void GameManager::processQueue() {
             }
             nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
 
-            std::scoped_lock lock(taskProviderMutex_);
-            if (!taskProvider_) {
+            // Only check for timeouts during engine game/move
+            if (managerState_ != ManagerState::ComputeMove && managerState_ != ManagerState::PlayGame) {
                 continue;
             }
-            if (taskType_ != GameTask::Type::ComputeMove && taskType_ != GameTask::Type::PlayGame) {
-                if (debug_) {
-                    std::cout << "Stop check, cause task-type" << std::to_string(static_cast<int>(taskType_.load())) << "\n";
-                }
-                continue;
-            }
-			bool restarted = gameContext_.checkForTimeoutsAndRestart();
 
-            if (checkForGameEnd() || (restarted && taskType_ != GameTask::Type::PlayGame)) {
+			bool engineRestarted = gameContext_.checkForTimeoutsAndRestart();
+
+            if (checkForGameEnd() || (engineRestarted && managerState_ != ManagerState::PlayGame)) {
                 finalizeTaskAndContinue();
             }
         }
@@ -142,21 +147,18 @@ void GameManager::processQueue() {
 }
 
 void GameManager::tearDown([[maybe_unused]] const char* who) {
+    // who is used for tracing that is currently not active
     if (!isRunning()) {
         return;
     }
-    {
-        std::scoped_lock lock(taskProviderMutex_);
-        if (taskProvider_) {
-            taskProvider_ = nullptr;
-        } 
-    }
+    taskProvider_ = nullptr;
+    // Terminates and deletes all engines
 	gameContext_.tearDown();
-	markFinished();
+    managerState_ = ManagerState::NotRunning;
+	signalFinished();
 }
 
-void GameManager::markFinished() {
-	taskProvider_ = nullptr; 
+void GameManager::signalFinished() {
     if (finishedPromiseValid_) {
         try {
             finishedPromise_.set_value();
@@ -168,7 +170,7 @@ void GameManager::markFinished() {
     }
 }
 
-void GameManager::markRunning() {
+void GameManager::initializeFinishedFuture() {
 	if (!finishedPromiseValid_) {
 		finishedPromise_ = std::promise<void>();
 		finishedFuture_ = finishedPromise_.get_future();
@@ -217,9 +219,10 @@ void GameManager::processEvent(const EngineEvent& event) {
             checklist->logReport(error.name, false, error.detail, error.level);
         }
 
+
         if (event.type == EngineEvent::Type::EngineDisconnected) {
             handleEngineDisconnect(player, isWhitePlayer);
-            if (taskType_ != GameTask::Type::PlayGame) {
+            if (managerState_ != ManagerState::PlayGame) {
                 finalizeTaskAndContinue();
                 return;
             }
@@ -238,7 +241,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         if (event.type == EngineEvent::Type::BestMove) {
             handleBestMove(event);
-            if (taskType_ == GameTask::Type::ComputeMove) {
+            if (managerState_ == ManagerState::ComputeMove) {
                 finalizeTaskAndContinue();
                 return;
             }
@@ -255,7 +258,7 @@ void GameManager::processEvent(const EngineEvent& event) {
             return;
         }
 
-        if (taskType_ == GameTask::Type::PlayGame) {
+        if (managerState_ == ManagerState::PlayGame) {
             if (checkForGameEnd()) {
                 finalizeTaskAndContinue();
                 return;
@@ -397,13 +400,15 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
 }
 
 void GameManager::stop() {
+    enqueueEvent(EngineEvent::createStopTask());
+    /*
    {
         // Ensure no new tasks are assigned
         std::scoped_lock lock(taskProviderMutex_);
         if (taskProvider_) {
             taskProvider_ = nullptr;
         }
-        taskType_ = GameTask::Type::None;
+        managerState_ = ManagerState::None;
     }
     gameContext_.cancelCompute();
     {
@@ -411,6 +416,7 @@ void GameManager::stop() {
         clearQueueButHandleDisconnects();
     }
     tearDown("stop");
+    */
 }
 
 void GameManager::executeTask(std::optional<GameTask> task) {
@@ -418,27 +424,21 @@ void GameManager::executeTask(std::optional<GameTask> task) {
         tearDown("executeTask");
         return;
     }
+    // The tasks contains information how to play the next game including side switch
     gameContext_.setSideSwitched(task->switchSide);
     auto& gameRecord = task->gameRecord;
 
-    // Also sets the engines names, Switched side must be set before
+    // Also sets the engines names, Switched side must be set before to have the correct names.
     setFromGameRecord(gameRecord);
-    // We dont inform engines about time control as it is part of newGame too.
+
+    // We need to inform engines about time controls, if they are changed directly from the gui,
+    // but not as part of a new game as then newGame() will inform the engines about time controls.
     bool informEngines = false;
     gameContext_.setTimeControls(
         { gameRecord.getWhiteTimeControl(), gameRecord.getBlackTimeControl() }, informEngines);
-    {
-        // We protect taskType_ against race conditions between calls of stop() restarting the game based on a new task
-        // that had been fetched before stop().
-        // TaskType_ == None guarantees that no further events are processed thus we protect continuations of games.
-        std::scoped_lock lock(taskProviderMutex_);
-        if (taskProvider_) {
-            taskType_ = task->taskType;
-            taskId_ = task->taskId;
-        } else {
-            taskType_ = GameTask::Type::None;
-        }
-    }
+
+    managerState_ = static_cast<ManagerState>(task->taskType);
+    taskId_ = task->taskId;
 
     // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
     gameContext_.newGame();
@@ -454,12 +454,8 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
         return std::nullopt;
     }
 
-    {
-        std::scoped_lock lock(taskProviderMutex_);
-        taskProvider_ = extendedTask->provider;
-        taskType_ = GameTask::Type::FetchNextTask;
-    }
-
+    taskProvider_ = extendedTask->provider;
+    managerState_ = ManagerState::FetchNextTask;
     // Create engines from configurations
     if (extendedTask->whiteConfig && extendedTask->blackConfig) {
         auto whiteEngines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
@@ -505,19 +501,14 @@ std::optional<GameTask> GameManager::nextAssignment() {
     // require internal synchronization. However, the pool must synchronize the decision-making
     // process across GameManagers to avoid clearing more instances than intended.
     try {
-        if (pool_ == nullptr || pool_->maybeDeactivateManager(taskProvider_)) {
+        if (pool_ == nullptr || !taskProvider_ || pool_->maybeDeactivateManager(taskProvider_)) {
             return std::nullopt;
         }
-        {
-            std::scoped_lock lock(taskProviderMutex_);
-            if (!taskProvider_) {
-                return std::nullopt;
-            }
-            std::optional<GameTask> task = taskProvider_->nextTask();
-            if (task) {
-                gameContext_.restartIfConfigured();
-                return task;
-            }
+
+        std::optional<GameTask> task = taskProvider_->nextTask();
+        if (task) {
+            gameContext_.restartIfConfigured();
+            return task;
         }
 
         // assignNewProviderAndTask already provides new engine instances so restarting is not needed.
@@ -533,32 +524,26 @@ std::optional<GameTask> GameManager::nextAssignment() {
 }
 
 void GameManager::finalizeTaskAndContinue() {
-    if (taskType_ == GameTask::Type::None) {
+    if (!isRunning()) {
         // Already processed to end
         return;
     }
-    taskType_ = GameTask::Type::None;
-    std::shared_ptr<GameTaskProvider> provider = nullptr;
-    {
-        std::scoped_lock lock(taskProviderMutex_);
-        provider = taskProvider_;
-    }
+    
+    managerState_ = ManagerState::FetchNextTask;
+    
+    // Cancel any ongoing compute operations
 	gameContext_.cancelCompute();
 
+    // The current game is finished - we ignore all remaining engine events except disconnects
     {
         std::scoped_lock lock(queueMutex_);
         clearQueueButHandleDisconnects();
     }
-
-    if (!provider) {
-        tearDown("finalizeTaskAndContinue");
-        return;
-    }
-    // Note: we had a check, if any move has been played and removed it as it could cause problems
-    // With a direct loss e.g. due to disconnect. But I don´t know why we ever checked for any move
+    // Inform the task provider about the finished game
 	const auto& gameRecord = gameContext_.gameRecord();
-    provider->setGameRecord(taskId_, gameRecord);
+    taskProvider_->setGameRecord(taskId_, gameRecord);
 	QaplaTester::AdjudicationManager::poolInstance().onGameFinished(gameRecord);
+    // Check if we are requested to pause
     {
         std::scoped_lock lock(pauseMutex_);
         if (pauseRequested_) {
@@ -568,34 +553,27 @@ void GameManager::finalizeTaskAndContinue() {
     }
 
     auto task = nextAssignment();
-    if (!task) {
-        tearDown("nextAssignment");
-        return;
-    }
-
 	executeTask(std::move(task));
 }
 
 void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
-    std::optional<GameTask> task;
-    if (taskProvider == nullptr) {
-        taskType_ = GameTask::Type::FetchNextTask;
-        // This ensures that all engines are created from the same thread, important for linux
-        // using prctl(PR_SET_PDEATHSIG, SIGKILL) -> ensures that all child processes are killed when the parent dies
-        markRunning();
-        enqueueEvent(EngineEvent::createStartTask());
-        return;
+    // We start by playing an event to the queue to decouple any access to engines from 
+    // the calling thread.
+    // This also ensures, that any engine thread is child of the game-manager thread (important for linux).
+    ManagerState expected = ManagerState::NotRunning;
+    if (!managerState_.compare_exchange_strong(expected, ManagerState::FetchNextTask)) {
+        return; // Already running
     }
+    initializeFinishedFuture();
+    // We do not need a lock for taskProvider_ because compare_exchange ensures 
+    // only one thread proceeds past this point and managerState (NotRunning) transition 
+    // prevents any concurrent access.
     taskProvider_ = std::move(taskProvider);
-    taskType_ = GameTask::Type::FetchNextTask;
-    task = nextAssignment();
-    if (task) {
-        markRunning();
-        executeTask(std::move(task));
-    } 
+    enqueueEvent(EngineEvent::createStartTask());
 }
 
 void GameManager::resume() {
+    // Resume from paused state. The status is still "running" and we have a taskprovider_
     {
         std::scoped_lock lock(pauseMutex_);
         pauseRequested_ = false;
@@ -604,14 +582,8 @@ void GameManager::resume() {
         }
         paused_ = false;
     }
-    taskType_ = GameTask::Type::FetchNextTask;
-    auto task = nextAssignment();
-    if (task) {
-        executeTask(std::move(task));
-    }
-    else {
-        tearDown("resume");
-    }
+    managerState_ = ManagerState::FetchNextTask;
+    enqueueEvent(EngineEvent::createStartTask());
 }
 
 } // namespace QaplaTester

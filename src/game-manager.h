@@ -32,6 +32,7 @@
 #include <memory>
 #include <future>
 #include <mutex>
+#include <utility>
 
 namespace QaplaTester {
 
@@ -48,6 +49,14 @@ public:
         std::shared_ptr<GameTaskProvider> provider;
         std::optional<EngineConfig> whiteConfig;
         std::optional<EngineConfig> blackConfig;
+    };
+
+    enum class ManagerState: std::uint8_t {
+        None = static_cast<std::uint8_t>(GameTask::Type::None),
+        ComputeMove = static_cast<std::uint8_t>(GameTask::Type::ComputeMove),
+        PlayGame = static_cast<std::uint8_t>(GameTask::Type::PlayGame),
+        FetchNextTask,
+        NotRunning
     };
 
 	explicit GameManager(GameManagerPool* pool);
@@ -155,7 +164,7 @@ public:
      * @brief Returns true, if the game manager is running. 
      */
     [[nodiscard]] bool isRunning() const {
-        return finishedPromiseValid_;
+        return managerState_ != ManagerState::NotRunning;
     }
 
     /**
@@ -185,9 +194,24 @@ private:
      * This method is thread-safe and does not block.
      */
     void enqueueEvent(EngineEvent&& event);
+
     /**
-     * Continuously processes events from the queue and performs periodic tasks.
-     * Intended to run in a dedicated thread.
+     * @brief Main event processing loop running in dedicated thread.
+     * 
+     * Processes events from the queue and performs periodic timeout checks.
+     * 
+     * Event Processing:
+     * - Waits for events with 1-second timeout intervals
+     * - Processes all queued events when available
+     * - unique_lock required for condition_variable (allows unlock during wait)
+     * 
+     * Timeout Handling:
+     * - Every second, checks for engine timeouts during ComputeMove/PlayGame states
+     * - Restarts unresponsive engines if configured
+     * - Finalizes task if game ends or if restart occurred during ComputeMove
+     * 
+     * Thread Safety:
+     * - Runs in dedicated event thread 
      */
     void processQueue();
 
@@ -294,12 +318,12 @@ private:
     /**
      * @brief Signals that a computation has completed. 
      */
-    void markFinished();
+    void signalFinished();
 
     /**
      * @brief Initializes the signal and sets the signal to valid
      */
-    void markRunning();
+    void initializeFinishedFuture();
 
     /**
      * @brief Tears down the GameManager after all tasks are complete.
@@ -352,9 +376,8 @@ private:
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
 
-    std::mutex taskProviderMutex_;
     std::shared_ptr<GameTaskProvider> taskProvider_;
-	std::atomic<GameTask::Type> taskType_ = GameTask::Type::None;
+	std::atomic<ManagerState> managerState_ = ManagerState::NotRunning;
     std::string taskId_;
 
     std::thread eventThread_;
