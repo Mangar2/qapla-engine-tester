@@ -125,7 +125,7 @@ public:
             auto [cause, result] = adjudicateDraw(game);
             auto index = findDrawAdjudicationIndex(game);
             if ((result == GameResult::Unterminated) == index.has_value()) {
-                QaplaTester::Logger::testLogger().log(
+                QaplaTester::Logger::reportLogger().log(
                     std::format("Draw adjudication test failed: Expected result: {}, but index was: {}",
                                 gameResultToPgnResult(result),
                                 index ? std::to_string(*index) : "none"));
@@ -135,7 +135,7 @@ public:
             auto [cause, result] = adjudicateResign(game);
             auto [resResult, resIndex] = findResignAdjudicationIndex(game);
             if (result != resResult) {
-                QaplaTester::Logger::testLogger().log(
+                QaplaTester::Logger::reportLogger().log(
                     std::format("Resign adjudication test failed: Expected result: {}, but result was: {}",
                                 gameResultToPgnResult(result),
                                 gameResultToPgnResult(resResult)));

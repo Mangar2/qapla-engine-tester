@@ -191,7 +191,7 @@ void TestTournament::logStatus() {
         oss << to_string(cause) << ":" << count << " ";
     }
 
-    Logger::testLogger().log(oss.str());
+    Logger::reportLogger().log(oss.str());
 }
 
 } // namespace QaplaTester

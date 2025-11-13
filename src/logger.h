@@ -27,6 +27,9 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <unordered_map>
+#include <memory>
+#include <optional>
 
 namespace QaplaTester {
 
@@ -64,6 +67,17 @@ struct LoggerConfig {
     std::string reportLogBaseName = "report";    ///< Base name for reporting log files
     std::string engineLogBaseName = "engine";    ///< Base name for engine log files
     LogFileStrategy engineLogStrategy = LogFileStrategy::global; ///< Strategy for engine log files
+};
+
+/**
+ * @brief Parameters for requesting an engine logger instance.
+ * 
+ * Uses std::optional to distinguish between "empty string" and "not provided".
+ * Only the parameters relevant for the current LogFileStrategy are used.
+ */
+struct EngineLoggerId {
+    std::optional<std::string> engineId{};  ///< Engine identifier (used for perEngine strategy)
+    std::optional<std::string> gameId{};    ///< Game identifier (used for perGame strategy)
 };
 
 /**
@@ -180,7 +194,7 @@ public:
      * 
      * @return Reference to the singleton test logger.
      */
-    static Logger& testLogger();
+    static Logger& reportLogger();
 
     /**
      * @brief Returns the current console trace level threshold.
@@ -204,6 +218,37 @@ public:
         return config_;
     }
 
+    /**
+     * @brief Returns the appropriate engine logger based on current strategy and ID.
+     * 
+     * This is the main public interface for obtaining engine loggers. The behavior
+     * depends on the configured LogFileStrategy:
+     * - global: Returns single global logger (engineId parameters ignored)
+     * - perEngine: Uses loggerId.engineId to identify the logger
+     * - perGame: Uses loggerId.gameId to identify the logger
+     * 
+     * @param loggerId Parameters identifying which logger to return (strategy-dependent).
+     * @return Reference to the appropriate engine logger.
+     */
+    static Logger& engineLogger(const EngineLoggerId& loggerId);
+
+    /**
+     * @brief Closes the log file and removes this logger from the internal map.
+     * 
+     * Only applicable for dynamically created loggers (perEngine, perGame).
+     * For the global logger, only the file is closed but the logger instance remains.
+     * Frees the file handle immediately.
+     */
+    void close();
+
+    /**
+     * @brief Clears all dynamically created logger instances.
+     * 
+     * Useful for cleanup or when switching strategies.
+     * The global singleton loggers are not affected.
+     */
+    static void clearEngineLoggers();
+
 
 
 private:
@@ -216,6 +261,26 @@ private:
      * @return Complete filename with timestamp and .log extension.
      */
     static std::string generateTimestampedFilename(const std::string& baseName);
+
+    /**
+     * @brief Implementation for global strategy.
+     * @return Reference to the global engine logger.
+     */
+    static Logger& engineLoggerGlobal();
+
+    /**
+     * @brief Implementation for perEngine strategy.
+     * @param id The logger identity.
+     * @return Reference to the logger for this engine.
+     */
+    static Logger& engineLoggerPerEngine(const EngineLoggerId& id);
+
+    /**
+     * @brief Implementation for perGame strategy.
+     * @param id The logger identity.
+     * @return Reference to the logger for this game.
+     */
+    static Logger& engineLoggerPerGame(const EngineLoggerId& id);
 
     /**
      * @brief Opens the log file if needed (lazy initialization).
@@ -232,7 +297,10 @@ private:
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
     std::string filename_;                      ///< Current log filename
     std::string basename_;                      ///< Base name for log file (without timestamp)
+    EngineLoggerId id_;                         ///< Identity of this logger (for self-removal from map)
     static inline LoggerConfig config_;         ///< Logger configuration
+    static inline std::mutex mapMutex_;         ///< Mutex for thread-safe map access
+    static inline std::unordered_map<std::string, std::unique_ptr<Logger>> engineLoggers_;  ///< Map of engine/game loggers
 };
 
 } // namespace QaplaTester

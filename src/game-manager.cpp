@@ -271,10 +271,10 @@ void GameManager::processEvent(const EngineEvent& event) {
 
     }
 	catch (const std::exception& e) {
-		Logger::testLogger().log("Exception in GameManager::handleState " + std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log("Exception in GameManager::handleState " + std::string(e.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::testLogger().log("Unknown exception in GameManager::handleState", TraceLevel::error);
+		Logger::reportLogger().log("Unknown exception in GameManager::handleState", TraceLevel::error);
 	}
 }
 
@@ -360,8 +360,8 @@ bool GameManager::checkForGameEnd(bool verbose) {
     }
     gameContext_.setGameEnd(cause, result);
     if (verbose) {
-    	Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
-	    Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
+    	Logger::reportLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
+	    Logger::reportLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
     }
 
     return true;
@@ -499,10 +499,10 @@ std::optional<GameTask> GameManager::nextAssignment() {
         return assignNewProviderAndTask();
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception in GameManager::nextAssignment " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log("Exception in GameManager::nextAssignment " + std::string(e.what()), TraceLevel::error);
     }
     catch (...) {
-        Logger::testLogger().log("Unknown exception in GameManager::nextAssignment", TraceLevel::error);
+        Logger::reportLogger().log("Unknown exception in GameManager::nextAssignment", TraceLevel::error);
     }
     return std::nullopt;
 }

@@ -51,7 +51,7 @@ void SprtManager::createTournament(
     }
 
     if (config.openings.file.empty()) {
-        Logger::testLogger().log("No openings file provided.", TraceLevel::error);
+        Logger::reportLogger().log("No openings file provided.", TraceLevel::error);
         return;
     }
 
@@ -141,7 +141,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         << " engines " << duel.toString();
 
     if (!decision_) {
-        Logger::testLogger().log(oss.str(), TraceLevel::result);
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
     if (sprtResult.decision.has_value()) {
 		if (!decision_) {

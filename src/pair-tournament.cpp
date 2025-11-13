@@ -129,7 +129,7 @@ std::optional<GameTask> PairTournament::nextTask() {
     }
 
     if (nextIndex_ == 0){
-        Logger::testLogger().log(getTournamentInfo(), TraceLevel::result);
+        Logger::reportLogger().log(getTournamentInfo(), TraceLevel::result);
     } 
 
     // Ensures robustness against unfinished games by scanning results_ instead of relying solely on nextIndex_.
@@ -189,7 +189,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     
 
     if (gameInRound == 0 || gameInRound > results_.size()) {
-		Logger::testLogger().log("Invalid round number in GameRecord: Round " + std::to_string(gameInRound) 
+		Logger::reportLogger().log("Invalid round number in GameRecord: Round " + std::to_string(gameInRound) 
             + " but having " + std::to_string(results_.size()) + " games started ", TraceLevel::error);
         return;
     }
@@ -210,7 +210,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
             << " result " << std::setw(7) << to_string(result)
             << " cause " << std::setw(21) << to_string(cause)
             << " engines " << record.getWhiteEngineName() << " vs " << record.getBlackEngineName();
-        Logger::testLogger().log(oss.str(), TraceLevel::result);
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
 
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);

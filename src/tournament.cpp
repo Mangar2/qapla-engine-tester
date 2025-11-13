@@ -41,7 +41,7 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
 
     if (config.openings.file.empty()) {
-        Logger::testLogger().log("No openings file provided.", TraceLevel::error);
+        Logger::reportLogger().log("No openings file provided.", TraceLevel::error);
         return;
     }
 
@@ -106,7 +106,7 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
     const TournamentConfig& config) {
 
     if (engines.size() < 2) {
-        Logger::testLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
+        Logger::reportLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
         return;
     }
 
@@ -186,7 +186,7 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
                 save(config_.tournamentFilename);
             }
         } catch (const std::exception& ex) {
-            Logger::testLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
+            Logger::reportLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
         }
     }
 }

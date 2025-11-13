@@ -70,8 +70,8 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 
 static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
     uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
-    Logger::testLogger().setLogFile("epd-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    Logger::reportLogger().setLogFile("epd-report");
+    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
 	for (auto& epd : epdList) {
         std::string file;
@@ -87,7 +87,7 @@ static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode cod
             std::string name = engine.getName();
             std::string earlyStop = "Early stop - Seen plies: " + 
                 std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
-			Logger::testLogger().log("Using engine: " + name 
+			Logger::reportLogger().log("Using engine: " + name 
                 + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
                 + earlyStop);
             epdManager->initialize(file, maxTime, minTime, seenPlies);
@@ -117,12 +117,12 @@ static AppReturnCode handleGlobalOptions(AppReturnCode code) {
 }
 
 static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
-    Logger::testLogger().setLogFile("engine-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::warning);
+    Logger::reportLogger().setLogFile("engine-report");
+    Logger::reportLogger().setTraceLevel(TraceLevel::warning);
     if (!Logger::engineLogger().getFilename().empty()) {
-        Logger::testLogger().logAligned("Engine communication log: ", Logger::engineLogger().getFilename());
+        Logger::reportLogger().logAligned("Engine communication log: ", Logger::engineLogger().getFilename());
     }
-    Logger::testLogger().logAligned("Summary test report log: ", Logger::testLogger().getFilename());
+    Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
 
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -132,17 +132,17 @@ static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCo
             controller.runAllTests(engine, test.get<uint32_t>("numgames"));
         }
         catch (const AppError& ex) {
-            Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 
+            Logger::reportLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 
                 TraceLevel::error);
             code = ex.getReturnCode();
         }
 		catch (const std::exception& e) {
-			Logger::testLogger().log("Application error during engine test for " + name + ": " + std::string(e.what()), 
+			Logger::reportLogger().log("Application error during engine test for " + name + ": " + std::string(e.what()), 
                 TraceLevel::error);
             code = AppReturnCode::GeneralError;
 		}
 		catch (...) {
-			Logger::testLogger().log("Unknown exception during engine test for " + name, TraceLevel::error);
+			Logger::reportLogger().log("Unknown exception during engine test for " + name, TraceLevel::error);
             code = AppReturnCode::GeneralError;
 		}
         code = logChecklist(code);
@@ -154,7 +154,7 @@ static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCo
 static std::optional<Openings> readOpenings() {
     auto opening = CliSettings::Manager::getGroupInstance("openings");
     if (!opening) {
-        Logger::testLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
+        Logger::reportLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
 		return std::nullopt;
     }
 
@@ -217,7 +217,7 @@ static auto runSprt(AppReturnCode code) {
     if (!sprt) return code;
     auto isMontecarlo = sprt->get<bool>("montecarlo");
     if (!opening && !isMontecarlo) {
-		Logger::testLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
+		Logger::reportLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     else {
@@ -225,13 +225,13 @@ static auto runSprt(AppReturnCode code) {
     }
 	const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2 && !isMontecarlo) {
-        Logger::testLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
+        Logger::reportLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
             TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     checkTimeControl();
-    Logger::testLogger().setLogFile("sprt-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    Logger::reportLogger().setLogFile("sprt-report");
+    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     try {
         SprtConfig config{
             .eloUpper = sprt->get<int>("eloUpper"),
@@ -257,7 +257,7 @@ static auto runSprt(AppReturnCode code) {
                 manager->save(filename);
             }
 			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
-			Logger::testLogger().log("sprt all games completed", TraceLevel::result);
+			Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto decision = manager->getDecision();
@@ -267,11 +267,11 @@ static auto runSprt(AppReturnCode code) {
         }
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during sprt run: " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log("Exception during sprt run: " + std::string(e.what()), TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     catch (...) {
-        Logger::testLogger().log("Unknown exception during sprt run: ", TraceLevel::error);
+        Logger::reportLogger().log("Unknown exception during sprt run: ", TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     return code;
@@ -284,7 +284,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2) {
-        Logger::testLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
+        Logger::reportLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     checkTimeControl();
@@ -294,8 +294,8 @@ static AppReturnCode runTournament(AppReturnCode code) {
         return AppReturnCode::InvalidParameters;
     }
 
-    Logger::testLogger().setLogFile("tournament-report");
-    Logger::testLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    Logger::reportLogger().setLogFile("tournament-report");
+    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 
     try {
         auto tournamentFilename = tournamentGroup->get<std::string>("resultfile");
@@ -325,19 +325,19 @@ static AppReturnCode runTournament(AppReturnCode code) {
 		if (!tournamentFilename.empty()) {
 			// tournament.save(tournamentFilename);
 		}
-        Logger::testLogger().log("tournament all games completed", TraceLevel::result);
+        Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
         AdjudicationManager::instance().printTestResult(std::cout);
         std::string resultString = tournament.getResultString();
-        Logger::testLogger().log(resultString, TraceLevel::result);
+        Logger::reportLogger().log(resultString, TraceLevel::result);
 
  		code = updateCode(code, EngineReport::logAll(TraceLevel::info, tournament.getResult()));
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     catch (...) {
-        Logger::testLogger().log("Unknown exception during tournament run.", TraceLevel::error);
+        Logger::reportLogger().log("Unknown exception during tournament run.", TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
 
@@ -483,8 +483,8 @@ int main(int argc, char** argv) {
 
     AppReturnCode returnCode = AppReturnCode::NoError;
     try {
-        Logger::testLogger().setTraceLevel(TraceLevel::command);
-        Logger::testLogger().log("Qapla Engine Tester - Prerelease 0.4.0 (c) by Volker Boehm\n");
+        Logger::reportLogger().setTraceLevel(TraceLevel::command);
+        Logger::reportLogger().log("Qapla Engine Tester - Prerelease 0.4.0 (c) by Volker Boehm\n");
 
         CliSettings::Manager::registerSetting("interactive", "Enables interactive mode", false, false,  CliSettings::ValueType::Bool);
         CliSettings::Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
@@ -614,15 +614,15 @@ int main(int argc, char** argv) {
 			
     }
     catch (const AppError& ex) {
-		Logger::testLogger().log("Application error: " + std::string(ex.what()), TraceLevel::error);
+		Logger::reportLogger().log("Application error: " + std::string(ex.what()), TraceLevel::error);
         returnCode = ex.getReturnCode();
     }
 	catch (const std::exception& e) {
-		Logger::testLogger().log(std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log(std::string(e.what()), TraceLevel::error);
         returnCode = AppReturnCode::GeneralError;
 	}
 	catch (...) {
-		Logger::testLogger().log("Unknown exception, program terminated.", TraceLevel::error);
+		Logger::reportLogger().log("Unknown exception, program terminated.", TraceLevel::error);
 		returnCode = AppReturnCode::GeneralError;
 	}
 	timer.printElapsed("Total runtime: ");
