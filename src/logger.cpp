@@ -18,6 +18,7 @@
  */
 
 #include "logger.h"
+#include <format>
 
 namespace QaplaTester {
 
@@ -38,31 +39,35 @@ std::string to_string(QaplaTester::TraceLevel level) {
     }
 }
 
-void Logger::log(std::string_view prefix, std::string_view message, bool isOutput, 
+void Logger::log(const std::string& engineId, std::string_view message, bool isOutput, 
     TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level) {
 
-    std::scoped_lock lock(mutex_);
+    std::scoped_lock lock(loggingMutex_);
+
+    auto toLog = std::format("{} {} {}", engineId, isOutput ? "->" : "<-", message);
+    
+    // Add to ring buffer if this logger has an engineId
+    if (!engineId.empty()) {
+        std::scoped_lock bufferLock(engineLogBufferMutex_);
+        engineLogBuffers_[engineId].push(toLog);
+    }
+    
     if (level <= fileThreshold) {
         ensureFileOpen();
         if (fileStream_.is_open()) {
-            fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
+            fileStream_ << toLog << "\n" << std::flush;
         }
     }
     
-    if (level > cliThreshold) {
-        return;
+    if (level <= cliThreshold) {
+        std::cout << toLog << "\n" << std::flush;
     }
-    if (message.empty()) {
-        std::cout << prefix << (isOutput ? " -> " : " <- ") << "\n" << std::flush;
-        return;
-    }
-    std::cout << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
+
 }
 
-
 void Logger::log(std::string_view message, TraceLevel level) {
-
-    std::scoped_lock lock(mutex_);
+    // Never used for per-engine loggers, thus no update to engineLogBuffers_
+    std::scoped_lock lock(loggingMutex_);
     if (level <= fileThreshold_) {
         ensureFileOpen();
         if (fileStream_.is_open()) {
@@ -83,7 +88,7 @@ void Logger::logAligned(std::string_view topic, std::string_view message, TraceL
 }
 
 void Logger::setLogFile(const std::string& basename) {
-    std::scoped_lock lock(mutex_);
+    std::scoped_lock lock(loggingMutex_);
     basename_ = basename;
     // Note: File is NOT opened here. It will be opened lazily in ensureFileOpen().
 }
@@ -249,9 +254,9 @@ Logger& Logger::engineLoggerPerGame(const EngineLoggerId& id) {
     return loggerRef;
 }
 
-void Logger::close() {
+void Logger::close(const EngineLoggerId& loggerId) {
     // Close file
-    std::scoped_lock fileLock(mutex_);
+    std::scoped_lock fileLock(loggingMutex_);
     if (fileStream_.is_open()) {
         fileStream_.close();
     }
@@ -284,13 +289,31 @@ void Logger::close() {
     }
     
     // Remove from map (this may destroy this logger instance!)
-    std::scoped_lock mapLock(mapMutex_);
-    engineLoggers_.erase(loggerKey);
+    {
+        std::scoped_lock mapLock(mapMutex_);
+        engineLoggers_.erase(loggerKey);
+    }
+    // The ring buffer is always per engine while the logger may be per program run or game. 
+    // Thus we passed the id of the engine to be able to remove the ring buffer for non-engine related loggers
+    std::scoped_lock bufferLock(engineLogBufferMutex_);
+    if (loggerId.engineId) {
+        engineLogBuffers_.erase(*loggerId.engineId);
+    }   
 }
 
 void Logger::clearEngineLoggers() {
+    // This is called only if the logging strategy changes. So no impact on engineLogBuffers_.
     std::scoped_lock lock(mapMutex_);
     engineLoggers_.clear();
+}
+
+void Logger::accessEngineLogBuffer(const std::string& engineId, 
+                                   const std::function<void(const RingBuffer&)>& callback) {
+    std::scoped_lock lock(engineLogBufferMutex_);
+    auto it = engineLogBuffers_.find(engineId);
+    if (it != engineLogBuffers_.end()) {
+        callback(it->second);
+    }
 }
 
 } // namespace QaplaTester

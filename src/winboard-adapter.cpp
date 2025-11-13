@@ -330,6 +330,15 @@ void WinboardAdapter::setTestOption(
 	throw AppError::make("WinboardAdapter does not support setTestOption");
 }
 
+std::string mapOptionName(const std::string& name) {
+    if (name == "Hash") {
+        return "memory";
+    } else if (name == "Threads") {
+        return "smp";
+    }
+    return name;
+}
+
 std::string WinboardAdapter::computeStandardOptions(const EngineOption& supportedOption, const std::string& value) {
     // We use uci compatible option names for memory and smp
     std::string command;
@@ -349,7 +358,7 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
         try {
 			auto opt = getSupportedOption(name);
             if (!opt) {
-                Logger::reportLogger().log(std::format("Unsupported option: {}", name), TraceLevel::info);
+                Logger::reportLogger().log(std::format("{} does not support option: {}", engineName_, mapOptionName(name)), TraceLevel::info);
                 continue;
             }
 			const auto& supportedOption = *opt;
@@ -642,17 +651,22 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, uint64_t 
             continue;
         }
 
-        auto it = featureMap_.find(key);
-        if (it != featureMap_.end() && key != "done") {
+        featureMap_[key] = value;
+
+        // We need an extra map to track duplicate features because featureMap_ is already initialized with all available features
+        auto it = providedFeatures_.find(key);
+        if (it != providedFeatures_.end() && key != "done") {
             event.errors.push_back({ .name = "feature-report", .detail = "Feature '" + key + "' specified more than once" });
         }
-        featureMap_[key] = value;
+        providedFeatures_.insert(key);
+
     }
     finalizeFeatures();
     return event;
 }
 
 void WinboardAdapter::finalizeFeatures() {
+    static const std::unordered_set<std::string> providedFeatures = {};
     static const std::unordered_map<std::string, bool> booleanFeatureDefaults = {
         { "ping", false },
         { "setboard", false },
