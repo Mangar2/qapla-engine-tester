@@ -338,7 +338,7 @@ private:
     std::string cmd_;
     std::string dir_;
     TimeControl tc_;
-	TraceLevel traceLevel_ = TraceLevel::command;
+	TraceLevel traceLevel_ = TraceLevel::none;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;

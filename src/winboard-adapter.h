@@ -25,6 +25,7 @@
 #include <condition_variable>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <iostream>
 #include <map>
 
@@ -360,6 +361,7 @@ private:
     static inline int numUnknownCommandError_ = 0;
     bool inFeatureSection_ = false;
     std::map<std::string, std::string> featureMap_;
+    std::unordered_set<std::string> providedFeatures_;
 	uint64_t pingCounter_ = 0;
     bool forceMode_ = false;
     bool isAnalyzeMode_ = false;

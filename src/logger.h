@@ -17,6 +17,9 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 #pragma once
+
+#include "change-tracker.h"
+
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -30,8 +33,53 @@
 #include <unordered_map>
 #include <memory>
 #include <optional>
+#include <array>
+#include <functional>
 
 namespace QaplaTester {
+
+/// Maximum number of log lines to keep in memory per engine
+constexpr size_t MAX_ENGINE_LOG_LINES = 1000;
+
+/**
+ * @brief Ring buffer for storing log lines with fixed capacity.
+ * 
+ * Efficiently stores the last N log lines without heap allocations after initialization.
+ */
+class RingBuffer {
+public:
+    void push(const std::string& item) {
+        buffer_[(head_ + count_) % MAX_ENGINE_LOG_LINES] = item;
+        if (count_ < MAX_ENGINE_LOG_LINES) {
+            ++count_;
+        } else {
+            head_ = (head_ + 1) % MAX_ENGINE_LOG_LINES;
+        }
+        changeTracker_.trackUpdate();
+    }
+    
+    const std::string& operator[](size_t index) const {
+        return buffer_[(head_ + index) % MAX_ENGINE_LOG_LINES];
+    }
+    
+    size_t size() const { return count_; }
+    
+    void clear() {
+        head_ = 0;
+        count_ = 0;
+        changeTracker_.trackModification();
+    }
+
+    const ChangeTracker& getChangeTracker() const {
+        return changeTracker_;
+    }
+    
+private:
+    std::array<std::string, MAX_ENGINE_LOG_LINES> buffer_;
+    ChangeTracker changeTracker_;
+    size_t head_ = 0;
+    size_t count_ = 0;
+};
 
 /**
  * @brief Trace levels for logging control.
@@ -116,20 +164,21 @@ public:
      * Messages are written to both file and console based on their respective trace level thresholds.
      * The direction is indicated by -> (output) or <- (input).
      * 
-     * @param prefix Logical source identifier (e.g., engine name).
+     * @param engineId Logical source identifier.
      * @param message The message content to log.
      * @param isOutput true for outgoing messages (->), false for incoming (<-).
      * @param cliThreshold Trace level threshold for console output.
      * @param fileThreshold Trace level threshold for file logging.
      * @param level The trace level of this message (default: info).
      */
-    void log(std::string_view prefix, std::string_view message, bool isOutput, 
+    void log(const std::string& engineId, std::string_view message, bool isOutput, 
         TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level = TraceLevel::info);
 
     /**
      * @brief Logs a simple message without prefix.
      * 
      * Uses the logger's configured trace level thresholds for filtering.
+     * This is used for general log messages not associated with engine I/O and thus never per engine.
      * 
      * @param message The message content to log.
      * @param level The trace level of this message (default: command).
@@ -238,8 +287,9 @@ public:
      * Only applicable for dynamically created loggers (perEngine, perGame).
      * For the global logger, only the file is closed but the logger instance remains.
      * Frees the file handle immediately.
+     * @param loggerId The identity of the logger to close.
      */
-    void close();
+    void close(const EngineLoggerId& loggerId);
 
     /**
      * @brief Clears all dynamically created logger instances.
@@ -249,6 +299,19 @@ public:
      */
     static void clearEngineLoggers();
 
+    /**
+     * @brief Provides thread-safe read access to the engine log buffer.
+     * 
+     * The callback is invoked while holding the mutex, ensuring consistent data access.
+     * This is a zero-copy operation - the callback receives a const reference.
+     * 
+     * @param engineId The engine identifier.
+     * @param callback Function to call with the log buffer (if it exists).
+     *                 The callback is only called if a buffer exists for this engine.
+     */
+    static void accessEngineLogBuffer(
+        const std::string& engineId,
+        const std::function<void(const RingBuffer&)>& callback);
 
 
 private:
@@ -291,7 +354,7 @@ private:
      */
     void ensureFileOpen();
 
-    std::mutex mutex_;                          ///< Mutex for thread-safe logging
+    std::mutex loggingMutex_;                   ///< Mutex for thread-safe logging
     std::ofstream fileStream_;                  ///< Output file stream for log file
     TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
@@ -300,7 +363,11 @@ private:
     EngineLoggerId id_;                         ///< Identity of this logger (for self-removal from map)
     static inline LoggerConfig config_;         ///< Logger configuration
     static inline std::mutex mapMutex_;         ///< Mutex for thread-safe map access
-    static inline std::unordered_map<std::string, std::unique_ptr<Logger>> engineLoggers_;  ///< Map of engine/game loggers
+    static inline std::mutex engineLogBufferMutex_;  ///< Mutex for engine log buffer map
+    
+    ///< Map to loggers for each engine used, if the logging strategy is per engine
+    static inline std::unordered_map<std::string, std::unique_ptr<Logger>> engineLoggers_;  
+    static inline std::unordered_map<std::string, RingBuffer> engineLogBuffers_;            ///< Map to ring buffer for each engine
 };
 
 } // namespace QaplaTester
