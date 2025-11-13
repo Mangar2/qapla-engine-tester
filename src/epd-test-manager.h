@@ -87,7 +87,7 @@ public:
 		task.gameRecord.setStartPosition(
 			false, test.fen, test.whiteToPlay, 0, "", "");
         task.gameRecord.setTimeControl(t, t);
-        Logger::testLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
+        Logger::reportLogger().log("Fen: " + test.fen + " topic: " + test.topic + " expected: " + test.expectedMove, TraceLevel::info);
         ++currentIndex_;
 
         return task;

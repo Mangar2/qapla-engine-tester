@@ -40,8 +40,8 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     engineConfig_ = engineConfig;
 
     adapter_->setProtocolLogger([this, id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
-        Logger::engineLogger().log(id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
-        
+        Logger::engineLogger({.engineId = id}).log(
+            id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
         });
     
 	asyncStartup(engineConfig.getOptionValues());
@@ -144,11 +144,11 @@ void EngineWorker::writeLoop() {
         catch (const std::exception& e) {
             // Usually the engine disconnected this is reported as error elswhere
             // Thus we log it with TraceLevel:info only
-            Logger::testLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
+            Logger::reportLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
                 + std::string(e.what()), TraceLevel::info);
         }
         catch (...) {
-            Logger::testLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 
+            Logger::reportLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 
                 TraceLevel::error);
         }
     }
@@ -331,16 +331,16 @@ void EngineWorker::readLoop() {
 				disconnected_ = true;
                 workerState_ = WorkerState::failure;
                 std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
-                Logger::testLogger().log(msg, TraceLevel::error);
+                Logger::reportLogger().log(msg, TraceLevel::error);
                 Logger::engineLogger().log(msg, TraceLevel::error);
 			}
         }
 		catch (const std::exception& e) {
-			Logger::testLogger().log("Exception in readLoop, id " + getIdentifier() + " "
+			Logger::reportLogger().log("Exception in readLoop, id " + getIdentifier() + " "
 				+ std::string(e.what()), TraceLevel::error);
 		}
 		catch (...) {
-			Logger::testLogger().log("Unknown exception in readLoop, id " + getIdentifier(),
+			Logger::reportLogger().log("Unknown exception in readLoop, id " + getIdentifier(),
 				TraceLevel::error);
 		}
     }

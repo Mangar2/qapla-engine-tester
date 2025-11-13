@@ -37,7 +37,7 @@ void EngineReport::addTopic(const CheckTopic& topic) {
 
     if (it != registeredTopics_.end()) {
         if (it->group != topic.group || it->text != topic.text || it->section != topic.section) {
-            Logger::testLogger().log("Topic redefinition conflict for ID: " + topic.id, TraceLevel::error);
+            Logger::reportLogger().log("Topic redefinition conflict for ID: " + topic.id, TraceLevel::error);
             throw std::runtime_error("Conflicting topic definition: " + topic.id);
         }
         return;
@@ -68,10 +68,10 @@ bool EngineReport::logReport(const std::string& topicId, bool passed, std::strin
         if (entry.failures > MAX_CLI_LOGS_PER_ERROR && traceLevel < TraceLevel::error) {
             return false;
         }
-        Logger::testLogger().log("\n[Report for topic \"" + topicId + "\"] " + std::string(detail),
+        Logger::reportLogger().log("\n[Report for topic \"" + topicId + "\"] " + std::string(detail),
             entry.failures > MAX_CLI_LOGS_PER_ERROR ? TraceLevel::info : traceLevel);
         if (entry.failures == MAX_CLI_LOGS_PER_ERROR) {
-            Logger::testLogger().log("Too many similar reports. Further reports of this type will be suppressed.", traceLevel);
+            Logger::reportLogger().log("Too many similar reports. Further reports of this type will be suppressed.", traceLevel);
         }
     }
     return passed;
@@ -127,8 +127,8 @@ EngineReport::ReportData EngineReport::createReportData() {
 
 AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<EngineResult>& engineResult) {
     AppReturnCode result = AppReturnCode::NoError;
-    Logger::testLogger().log("\n== Summary ==\n", traceLevel);
-    Logger::testLogger().log(engineName_ + (engineAuthor_.empty() ? "" : " by " + engineAuthor_) + "\n", traceLevel);
+    Logger::reportLogger().log("\n== Summary ==\n", traceLevel);
+    Logger::reportLogger().log(engineName_ + (engineAuthor_.empty() ? "" : " by " + engineAuthor_) + "\n", traceLevel);
 
     ReportData data = createReportData();
 
@@ -150,18 +150,18 @@ AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<Engin
     auto logSection = [&](CheckSection section, const std::vector<ReportLine>& lines, const std::string& title) {
         if (section == CheckSection::Report) {
             if (engineResult) {
-                Logger::testLogger().log("[" + title + "]", traceLevel);
+                Logger::reportLogger().log("[" + title + "]", traceLevel);
                 std::ostringstream oss;
                 engineResult->printResults(oss);
-                Logger::testLogger().log(oss.str(), traceLevel);
+                Logger::reportLogger().log(oss.str(), traceLevel);
             }
             return;
         }
 
-        Logger::testLogger().log("[" + title + "]", traceLevel);
+        Logger::reportLogger().log("[" + title + "]", traceLevel);
 
         if (lines.empty()) {
-            Logger::testLogger().log("", traceLevel);
+            Logger::reportLogger().log("", traceLevel);
             return;
         }
 
@@ -173,7 +173,7 @@ AppReturnCode EngineReport::log(TraceLevel traceLevel, const std::optional<Engin
 
         logSections(lines, maxTopicLength, traceLevel, sectionCodes, section, result);
 
-        Logger::testLogger().log("", traceLevel);
+        Logger::reportLogger().log("", traceLevel);
     };
 
     // Log all sections in order
@@ -194,7 +194,7 @@ void EngineReport::logSections(const std::vector<ReportLine>& lines, size_t maxT
             result = sectionCodes.at(section);
         }
         if (line.passed && lastWasFail) {
-            Logger::testLogger().log("", traceLevel);
+            Logger::reportLogger().log("", traceLevel);
         }
         std::ostringstream oss;
         oss << (line.passed ? "PASS " : "FAIL ");
@@ -203,7 +203,7 @@ void EngineReport::logSections(const std::vector<ReportLine>& lines, size_t maxT
             oss << "(" << line.failCount << " failed)";
         }
         lastWasFail = !line.passed;
-        Logger::testLogger().log(oss.str(), traceLevel);
+        Logger::reportLogger().log(oss.str(), traceLevel);
     }
 }
 

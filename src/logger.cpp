@@ -38,18 +38,6 @@ std::string to_string(QaplaTester::TraceLevel level) {
     }
 }
 
-/**
- * @brief Logs a message with prefix and direction indicator.
- * 
- * Messages are written to both file and console based on their respective trace level thresholds.
- * 
- * @param prefix Logical source identifier (e.g., engine name).
- * @param message The message content to log.
- * @param isOutput true for outgoing messages (->), false for incoming (<-).
- * @param cliThreshold Trace level threshold for console output.
- * @param fileThreshold Trace level threshold for file logging.
- * @param level The trace level of this message (default: info).
- */
 void Logger::log(std::string_view prefix, std::string_view message, bool isOutput, 
     TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level) {
 
@@ -71,11 +59,7 @@ void Logger::log(std::string_view prefix, std::string_view message, bool isOutpu
     std::cout << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
 }
 
-/**
- * @brief Logs a simple message without prefix.
- * @param message The message content to log.
- * @param level The trace level of this message (default: command).
- */
+
 void Logger::log(std::string_view message, TraceLevel level) {
 
     std::scoped_lock lock(mutex_);
@@ -92,44 +76,18 @@ void Logger::log(std::string_view message, TraceLevel level) {
     std::cout << message << "\n" << std::flush;
 }
 
-/**
- * @brief Logs a message with aligned topic and content.
- * 
- * The topic is left-aligned with a fixed width for consistent formatting.
- * 
- * @param topic The topic or label to display (will be aligned).
- * @param message The message content to display after the topic.
- * @param level The trace level of this message (default: command).
- */
 void Logger::logAligned(std::string_view topic, std::string_view message, TraceLevel level) {
     std::ostringstream oss;
     oss << std::left << std::setw(30) << topic << message;
     log(oss.str(), level);
 }
 
-/**
- * @brief Sets the base name for the log file.
- * 
- * The actual log file will be created lazily on the first write operation.
- * If the basename changes, a new file will be created on the next write.
- * 
- * @param basename Base name for the log file (timestamp will be appended when file is created).
- */
 void Logger::setLogFile(const std::string& basename) {
     std::scoped_lock lock(mutex_);
     basename_ = basename;
     // Note: File is NOT opened here. It will be opened lazily in ensureFileOpen().
 }
 
-/**
- * @brief Opens the log file if needed (lazy initialization).
- * 
- * Opens a new file if:
- * - No file is currently open, OR
- * - The basename has changed since last open
- * 
- * IMPORTANT: Must be called with mutex_ already locked!
- */
 void Logger::ensureFileOpen() {
     // Check if we need to open/reopen the file
     if (basename_.empty()) {
@@ -155,14 +113,6 @@ void Logger::ensureFileOpen() {
     fileStream_.open(filename_, std::ios::app);
 }
 
-/**
- * @brief Generates a timestamped filename.
- * 
- * Creates a filename in the format: basename-YYYY-MM-DD_HH-MM-SS.mmm.log
- * 
- * @param baseName The base name for the file.
- * @return Complete filename with timestamp and .log extension.
- */
 std::string Logger::generateTimestampedFilename(const std::string& baseName) {
     using namespace std::chrono;
 
@@ -185,41 +135,162 @@ std::string Logger::generateTimestampedFilename(const std::string& baseName) {
     return oss.str();
 }
 
-/**
- * @brief Returns the global engine logger instance.
- * @return Reference to the singleton engine logger.
- */
 Logger& Logger::engineLogger() {
     static Logger instance;
     return instance;
 }
 
-/**
- * @brief Returns the global test logger instance.
- * @return Reference to the singleton test logger.
- */
-Logger& Logger::testLogger() {
+Logger& Logger::reportLogger() {
     static Logger instance;
     return instance;
 }
 
-/**
- * @brief Sets the logger configuration and applies it to all logger instances.
- * @param config The configuration to apply.
- */
 void Logger::setConfig(const LoggerConfig& config) {
     config_ = config;
     
     // Always initialize test/report logger
-    testLogger().setLogFile(config_.reportLogBaseName);
-    testLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+    reportLogger().setLogFile(config_.reportLogBaseName);
+    reportLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     
     // Initialize engine logger only for global strategy
     // For PER_ENGINE and PER_GAME strategies, log files are created dynamically
     if (config_.engineLogStrategy == LogFileStrategy::global) {
-        engineLogger().setLogFile(config_.engineLogBaseName);
-        engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+        engineLoggerGlobal().setLogFile(config_.engineLogBaseName);
+        engineLoggerGlobal().setTraceLevel(TraceLevel::error, TraceLevel::info);
     }
+}
+
+Logger& Logger::engineLogger(const EngineLoggerId& loggerId) {
+    const auto& config = getConfig();
+    
+    switch (config.engineLogStrategy) {
+        case LogFileStrategy::global:
+            return engineLoggerGlobal();
+            
+        case LogFileStrategy::perEngine:
+            if (!loggerId.engineId.has_value()) {
+                throw std::invalid_argument("engineId is required for perEngine strategy");
+            }
+            return engineLoggerPerEngine(loggerId);
+            
+        case LogFileStrategy::perGame:
+            if (!loggerId.gameId.has_value()) {
+                throw std::invalid_argument("gameId is required for perGame strategy");
+            }
+            return engineLoggerPerGame(loggerId);
+            
+        default:
+            throw std::logic_error("Unknown LogFileStrategy");
+    }
+}
+
+Logger& Logger::engineLoggerGlobal() {
+    static Logger instance;
+    static bool initialized = false;
+    
+    if (!initialized) {
+        instance.setLogFile(getConfig().engineLogBaseName);
+        instance.setTraceLevel(TraceLevel::error, TraceLevel::info);
+        initialized = true;
+    }
+    
+    return instance;
+}
+
+Logger& Logger::engineLoggerPerEngine(const EngineLoggerId& id) {
+    const auto& config = getConfig();
+    std::string loggerKey = id.engineId.value();
+    std::string logBaseName = config.engineLogBaseName + "-" + loggerKey;
+    
+    // Thread-safe access to logger map
+    std::scoped_lock lock(mapMutex_);
+    
+    // Check if logger already exists
+    auto it = engineLoggers_.find(loggerKey);
+    if (it != engineLoggers_.end()) {
+        return *it->second;
+    }
+    
+    // Create new logger instance
+    auto logger = std::make_unique<Logger>();
+    logger->id_ = id;  // Store identity
+    logger->setLogFile(logBaseName);
+    logger->setTraceLevel(TraceLevel::error, TraceLevel::info);
+    
+    auto& loggerRef = *logger;
+    engineLoggers_[loggerKey] = std::move(logger);
+    
+    return loggerRef;
+}
+
+Logger& Logger::engineLoggerPerGame(const EngineLoggerId& id) {
+    const auto& config = getConfig();
+    std::string loggerKey = id.gameId.value();
+    std::string logBaseName = config.engineLogBaseName + "-" + loggerKey;
+    
+    // Thread-safe access to logger map
+    std::scoped_lock lock(mapMutex_);
+    
+    // Check if logger already exists
+    auto it = engineLoggers_.find(loggerKey);
+    if (it != engineLoggers_.end()) {
+        return *it->second;
+    }
+    
+    // Create new logger instance
+    auto logger = std::make_unique<Logger>();
+    logger->id_ = id;  // Store identity
+    logger->setLogFile(logBaseName);
+    logger->setTraceLevel(TraceLevel::error, TraceLevel::info);
+    
+    auto& loggerRef = *logger;
+    engineLoggers_[loggerKey] = std::move(logger);
+    
+    return loggerRef;
+}
+
+void Logger::close() {
+    // Close file
+    std::scoped_lock fileLock(mutex_);
+    if (fileStream_.is_open()) {
+        fileStream_.close();
+    }
+    
+    // Determine logger key from stored identity
+    const auto& config = getConfig();
+    std::string loggerKey;
+    
+    switch (config.engineLogStrategy) {
+        case LogFileStrategy::global:
+            // Global logger doesn't remove itself from map
+            return;
+            
+        case LogFileStrategy::perEngine:
+            if (!id_.engineId.has_value()) {
+                return;
+            }
+            loggerKey = id_.engineId.value();
+            break;
+            
+        case LogFileStrategy::perGame:
+            if (!id_.gameId.has_value()) {
+                return;
+            }
+            loggerKey = id_.gameId.value();
+            break;
+            
+        default:
+            return;
+    }
+    
+    // Remove from map (this may destroy this logger instance!)
+    std::scoped_lock mapLock(mapMutex_);
+    engineLoggers_.erase(loggerKey);
+}
+
+void Logger::clearEngineLoggers() {
+    std::scoped_lock lock(mapMutex_);
+    engineLoggers_.clear();
 }
 
 } // namespace QaplaTester

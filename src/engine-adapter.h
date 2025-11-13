@@ -49,7 +49,7 @@ public:
     EngineAdapter(const std::filesystem::path& enginePath,
         const std::optional<std::filesystem::path>& workingDirectory,
         const std::string& identifier);
-    virtual ~EngineAdapter() = default;
+    virtual ~EngineAdapter();
 
     /**
      * @brief Starts the engine protokoll.

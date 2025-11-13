@@ -393,8 +393,8 @@ bool ComputeTask::checkGameOver(bool verbose) {
         std::cout << "\n";
     }
     if (verbose && result != GameResult::Unterminated) {
-        Logger::testLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
-        Logger::testLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
+        Logger::reportLogger().log("[Result: " + gameResultToPgnResult(result) + "]", TraceLevel::info);
+        Logger::reportLogger().log("[Termination: " + gameEndCauseToPgnTermination(cause) + "]", TraceLevel::info);
     }
 
     return gameContext_.gameRecord().isGameOver();

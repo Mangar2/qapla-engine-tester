@@ -29,6 +29,10 @@ EngineAdapter::EngineAdapter(const std::filesystem::path& enginePath,
       identifier_(identifier) {
 }
 
+EngineAdapter::~EngineAdapter() {
+    Logger::engineLogger({.engineId = identifier_}).close();
+}
+
 uint64_t EngineAdapter::writeCommand(const std::string& command) {
     if (terminating_) {
 		// The engine is probably not running anymore, so we cannot write commands.

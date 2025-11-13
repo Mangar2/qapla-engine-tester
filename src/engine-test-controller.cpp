@@ -50,17 +50,17 @@ void EngineTestController::startEngine() {
 		success = computeTask_->getEngine()->requestReady();
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Configuration error during engine test for " + 
+        Logger::reportLogger().log("Configuration error during engine test for " + 
             engineConfig_.getName() + ": " + std::string(e.what()), 
             TraceLevel::error);
     }
     catch (...) {
-        Logger::testLogger().log("Unknown exception during engine test for " + engineConfig_.getName(), 
+        Logger::reportLogger().log("Unknown exception during engine test for " + engineConfig_.getName(), 
         TraceLevel::error);
     }
     checklist_->logReport("starts-and-stops-cleanly", success, "  engine did not respond to isReady after startup in time");
     if (!success) {
-		Logger::testLogger().log("Engine did not start successfully", TraceLevel::error);
+		Logger::reportLogger().log("Engine did not start successfully", TraceLevel::error);
 		throw(std::runtime_error("Engine did not start successfully"));
     }
 }
@@ -81,7 +81,7 @@ EngineList EngineTestController::startEngines(uint32_t count) {
 
     checklist_->logReport("starts-and-stops-cleanly", allReady, "  one or more engines did not respond to isReady in time");
     if (!allReady) {
-        Logger::testLogger().log("Engines did not start successfully", TraceLevel::error);
+        Logger::reportLogger().log("Engines did not start successfully", TraceLevel::error);
     }
 
     return list;
@@ -123,10 +123,10 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
         runMultipleGamesTest();
     }
 	catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during engine tests, all remaining tests cancelled: " + std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log("Exception during engine tests, all remaining tests cancelled: " + std::string(e.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::testLogger().log("Unknown exception during engine tests, all remaining tests cancelled.", TraceLevel::error);
+		Logger::reportLogger().log("Unknown exception during engine tests, all remaining tests cancelled.", TraceLevel::error);
 	}
 
 }
@@ -143,7 +143,7 @@ void EngineTestController::runTest(
     constexpr std::chrono::seconds timeout{ 2 };
     try {
         if (!computeTask_) {
-			Logger::testLogger().log("ComputeTask not initialized", TraceLevel::error);
+			Logger::reportLogger().log("ComputeTask not initialized", TraceLevel::error);
             return;
         }
         if (computeTask_->getEngine() == nullptr) {
@@ -160,10 +160,10 @@ void EngineTestController::runTest(
         }
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during test '" + testName + "': " + e.what(), TraceLevel::error);
+        Logger::reportLogger().log("Exception during test '" + testName + "': " + e.what(), TraceLevel::error);
     }
     catch (...) {
-        Logger::testLogger().log("Unknown exception during test '" + testName + "'", TraceLevel::error);
+        Logger::reportLogger().log("Unknown exception during test '" + testName + "'", TraceLevel::error);
     }
 }
 
@@ -176,14 +176,14 @@ void EngineTestController::runStartStopTest() {
     for (const auto& entry : result) {
         if (!entry.success) {
             startStopSucceeded = false;
-            Logger::testLogger().log("Engine could not be started or stopped: " + entry.result, 
+            Logger::reportLogger().log("Engine could not be started or stopped: " + entry.result, 
                 TraceLevel::error);
             break;
         }
     }
     
     if (!startStopSucceeded) {
-        Logger::testLogger().log("Engine could not be started or stopped. Skipping remaining tests.", 
+        Logger::reportLogger().log("Engine could not be started or stopped. Skipping remaining tests.", 
             TraceLevel::error);
         return;
     }
@@ -209,7 +209,7 @@ void EngineTestController::runGoLimitsTests() {
     auto results = QaplaTester::runGoLimitsTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Go limits test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Go limits test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -219,7 +219,7 @@ void EngineTestController::runHashTableMemoryTest() {
     auto results = QaplaTester::runHashTableMemoryTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Hash table memory test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Hash table memory test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -229,7 +229,7 @@ void EngineTestController::runLowerCaseOptionTest() {
     auto results = QaplaTester::runLowerCaseOptionTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Lowercase option test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Lowercase option test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -239,7 +239,7 @@ void EngineTestController::runEngineOptionTests() {
     auto results = QaplaTester::runEngineOptionTests(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Engine option test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Engine option test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -249,7 +249,7 @@ void EngineTestController::runAnalyzeTest() {
     auto results = QaplaTester::runAnalyzeTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Analyze test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Analyze test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -259,7 +259,7 @@ void EngineTestController::runImmediateStopTest() {
     auto results = QaplaTester::runImmediateStopTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Immediate stop test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Immediate stop test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -269,7 +269,7 @@ void EngineTestController::runInfiniteAnalyzeTest() {
     auto results = QaplaTester::runInfiniteAnalyzeTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Infinite analyze test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Infinite analyze test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -279,7 +279,7 @@ void EngineTestController::runUciPonderTest() {
     auto results = QaplaTester::runUciPonderTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("UCI ponder test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("UCI ponder test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -290,7 +290,7 @@ void EngineTestController::runEpdTests() {
     auto results = QaplaTester::runEpdTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("EPD test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("EPD test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -300,7 +300,7 @@ void EngineTestController::runEpFromFenTest() {
     auto results = QaplaTester::runEpFromFenTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("EP from FEN test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("EP from FEN test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -310,7 +310,7 @@ void EngineTestController::runComputeGameTest() {
     auto results = QaplaTester::runComputeGameTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Compute game test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Compute game test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -320,7 +320,7 @@ void EngineTestController::runPonderGameTest() {
     auto results = QaplaTester::runPonderGameTest(engineConfig_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Ponder game test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Ponder game test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -330,7 +330,7 @@ void EngineTestController::runMultipleGamesTest() {
     auto results = QaplaTester::runMultipleGamesTest(engineConfig_, numGames_);
     for (const auto& entry : results) {
         if (!entry.success) {
-            Logger::testLogger().log("Multiple games test failed: " + entry.result, TraceLevel::error);
+            Logger::reportLogger().log("Multiple games test failed: " + entry.result, TraceLevel::error);
         }
     }
 }
@@ -340,10 +340,10 @@ void EngineTestController::runPlaceholderTest() {
         // No-op test for demonstration
     }
     catch (const std::exception& e) {
-		Logger::testLogger().log("Exception during placeholder test: " + std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log("Exception during placeholder test: " + std::string(e.what()), TraceLevel::error);
     }
     catch (...) {
-		Logger::testLogger().log("Unknown exception during placeholder test.", TraceLevel::error);
+		Logger::reportLogger().log("Unknown exception during placeholder test.", TraceLevel::error);
     }
 }
 

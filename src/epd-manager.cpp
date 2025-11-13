@@ -52,7 +52,7 @@ std::string EpdManager::generateHeaderLine() const {
 
 void EpdManager::logHeaderLine() const {
     auto header = generateHeaderLine();
-    Logger::testLogger().log(header, TraceLevel::result);
+    Logger::reportLogger().log(header, TraceLevel::result);
 }
 
 static void formatInlineResult(std::ostream& os, const EpdTestCase& test) {
@@ -86,7 +86,7 @@ std::string EpdManager::generateResultLine(const EpdTestCase& current, const Tes
 void EpdManager::logResultLine(const EpdTestCase& current) const {
 	auto results = getResultsCopy();
     auto line = generateResultLine(current, results);
-	Logger::testLogger().log(line, TraceLevel::result);
+	Logger::reportLogger().log(line, TraceLevel::result);
 }
 
 void EpdManager::saveResults(std::ostream& os) const {
@@ -333,7 +333,7 @@ void EpdManager::schedule(const EngineConfig& engineConfig, GameManagerPool& poo
         for (size_t i = first; i < last && i < testsRead_.size(); ++i) {
             const auto& current = testsRead_[i];
             auto line = generateResultLine(current, results);
-            Logger::testLogger().log(line, TraceLevel::result);
+            Logger::reportLogger().log(line, TraceLevel::result);
         }
     });
     logHeaderLine();

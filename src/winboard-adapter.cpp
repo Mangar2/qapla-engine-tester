@@ -66,10 +66,10 @@ void WinboardAdapter::terminateEngine() {
         process_.terminate();
     }
     catch (const std::exception& ex) {
-		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): " + std::string(ex.what()), TraceLevel::error);
+		Logger::reportLogger().log("Failed to terminate engine (" + identifier_ + "): " + std::string(ex.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): ", TraceLevel::error);
+		Logger::reportLogger().log("Failed to terminate engine (" + identifier_ + "): ", TraceLevel::error);
     }
 
 }
@@ -349,33 +349,33 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
         try {
 			auto opt = getSupportedOption(name);
             if (!opt) {
-                Logger::testLogger().log(std::format("Unsupported option: {}", name), TraceLevel::info);
+                Logger::reportLogger().log(std::format("Unsupported option: {}", name), TraceLevel::info);
                 continue;
             }
 			const auto& supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
-                    Logger::testLogger().log(std::format("Option value for {} is too long", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Option value for {} is too long", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Spin) {
                 int intValue = std::stoi(value);
                 if (intValue < supportedOption.min || intValue > supportedOption.max) {
-                    Logger::testLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Check) {
                 if (value != "true" && value != "false") {
-                    Logger::testLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Combo) {
                 if (std::ranges::find(supportedOption.vars, value) == supportedOption.vars.end()) {
-                    Logger::testLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
                     continue;
                 }
             }
@@ -383,7 +383,7 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
             writeCommand(command);
         }
         catch (...) {
-            Logger::testLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
+            Logger::reportLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
         }
 
 	}
