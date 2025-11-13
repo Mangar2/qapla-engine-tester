@@ -401,22 +401,6 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
 
 void GameManager::stop() {
     enqueueEvent(EngineEvent::createStopTask());
-    /*
-   {
-        // Ensure no new tasks are assigned
-        std::scoped_lock lock(taskProviderMutex_);
-        if (taskProvider_) {
-            taskProvider_ = nullptr;
-        }
-        managerState_ = ManagerState::None;
-    }
-    gameContext_.cancelCompute();
-    {
-        std::scoped_lock lock(queueMutex_);
-        clearQueueButHandleDisconnects();
-    }
-    tearDown("stop");
-    */
 }
 
 void GameManager::executeTask(std::optional<GameTask> task) {
