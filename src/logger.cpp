@@ -49,7 +49,7 @@ void Logger::log(const std::string& engineId, std::string_view message, bool isO
     // Add to ring buffer if this logger has an engineId
     if (!engineId.empty()) {
         std::scoped_lock bufferLock(engineLogBufferMutex_);
-        engineLogBuffers_[engineId].push(toLog);
+        engineLogBuffers_[engineId].push({toLog, std::chrono::system_clock::now()});
     }
     
     if (level <= fileThreshold) {

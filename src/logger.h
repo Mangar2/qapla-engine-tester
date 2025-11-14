@@ -41,15 +41,23 @@ namespace QaplaTester {
 /// Maximum number of log lines to keep in memory per engine
 constexpr size_t MAX_ENGINE_LOG_LINES = 1000;
 
+
 /**
  * @brief Ring buffer for storing log lines with fixed capacity.
  * 
  * Efficiently stores the last N log lines without heap allocations after initialization.
  */
+
 class RingBuffer {
 public:
-    void push(const std::string& item) {
-        buffer_[(head_ + count_) % MAX_ENGINE_LOG_LINES] = item;
+    struct Entry {
+        std::string data;
+        std::chrono::system_clock::time_point timestamp;
+        size_t inputCount = 0;
+    };
+    void push(Entry item) {
+        item.inputCount = totalInputCount_++;
+        buffer_[(head_ + count_) % MAX_ENGINE_LOG_LINES] = std::move(item);
         if (count_ < MAX_ENGINE_LOG_LINES) {
             ++count_;
         } else {
@@ -58,7 +66,7 @@ public:
         changeTracker_.trackUpdate();
     }
     
-    const std::string& operator[](size_t index) const {
+    const auto& operator[](size_t index) const {
         return buffer_[(head_ + index) % MAX_ENGINE_LOG_LINES];
     }
     
@@ -75,10 +83,11 @@ public:
     }
     
 private:
-    std::array<std::string, MAX_ENGINE_LOG_LINES> buffer_;
+    std::array<Entry, MAX_ENGINE_LOG_LINES> buffer_;
     ChangeTracker changeTracker_;
     size_t head_ = 0;
     size_t count_ = 0;
+    size_t totalInputCount_ = 0;
 };
 
 /**
