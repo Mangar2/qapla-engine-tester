@@ -191,9 +191,9 @@ void WinboardAdapter::stop() {
         isAnalyzeMode_ = false;
     } else {
         writeCommand("?");
-        writeCommand("easy");
     }
     setForceMode();
+    writeCommand("easy");
 }
 
 EngineEvent::Type WinboardAdapter::waitAfterMoveNowHandshake() {
@@ -241,6 +241,7 @@ uint64_t WinboardAdapter::go(bool isInfinite) {
         isAnalyzeMode_ = true;
         return writeCommand("analyze");
     }
+    writeCommand(ponderMode_ ? "hard" : "easy");
     return writeCommand("go");
 }
 
@@ -323,7 +324,6 @@ void WinboardAdapter::sendPosition(const GameStruct& game) {
     writeCommand("new");
     // The new command leaves force mode and sets white to move
     forceMode_ = false;
-    writeCommand(ponderMode_ ? "hard" : "easy");
     setForceMode();
 
     if (!game.fen.empty()) {
