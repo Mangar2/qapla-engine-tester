@@ -138,6 +138,11 @@ public:
     void moveNow() override;
 
     /**
+     * @brief Stops the engine's current calculation.
+     */
+    void stop() override;
+
+    /**
      * @brief Enables or disables pondering for the engine.
      * @param enabled True to enable pondering, false to disable.
      */

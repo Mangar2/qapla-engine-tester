@@ -88,6 +88,10 @@ void UciAdapter::moveNow() {
     writeCommand("stop");
 }
 
+void UciAdapter::stop() {
+    writeCommand("stop");
+}
+
 void UciAdapter::setPonder(bool enabled) {
 	EngineAdapter::setPonder(enabled);
 

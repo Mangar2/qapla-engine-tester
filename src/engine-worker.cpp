@@ -204,6 +204,28 @@ bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
     return waitForHandshake(timeout);
 }
 
+bool EngineWorker::stopCompute(bool wait, std::chrono::milliseconds timeout) {
+    post([this, wait](EngineAdapter& adapter) {
+        waitForHandshake_ = EngineEvent::Type::None;
+        if (wait) {
+            waitForHandshake_ = adapter.waitAfterMoveNowHandshake();
+            if (waitForHandshake_ == EngineEvent::Type::None) {
+                // Notify for handshake right away
+                {
+                    std::scoped_lock lock(handshakeMutex_);
+                    handshakeReceived_ = true;
+                }
+                handshakeCv_.notify_all();
+            }
+        }
+        adapter.stop();
+        });
+    if (!wait) {
+        return true;
+    }
+    return waitForHandshake(timeout);
+}
+
 bool EngineWorker::handlePonderMiss(std::chrono::milliseconds timeout) {
     post([this](EngineAdapter& adapter) {
         waitForHandshake_ = adapter.handlePonderMiss();
