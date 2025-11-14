@@ -75,7 +75,7 @@ public:
 		if (!engine_) {
             return;
         }
-		engine_->stop();
+		engine_->stopCompute();
         computeState_ = ComputeState::Idle;
 	}
 

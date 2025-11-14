@@ -181,6 +181,21 @@ void WinboardAdapter::moveNow() {
     setForceMode();
 }
 
+void WinboardAdapter::stop() {
+    if (forceMode_) {
+        // If we are in force mode, the engine is not doing anything and cannot move now.
+        return;
+    }
+    if (isAnalyzeMode_) {
+        writeCommand("exit");
+        isAnalyzeMode_ = false;
+    } else {
+        writeCommand("?");
+        writeCommand("easy");
+    }
+    setForceMode();
+}
+
 EngineEvent::Type WinboardAdapter::waitAfterMoveNowHandshake() {
     return isAnalyzeMode_ ? EngineEvent::Type::None : EngineEvent::Type::BestMove;
 }

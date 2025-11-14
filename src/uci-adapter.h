@@ -98,6 +98,7 @@ public:
         // Nothing to do for UCI, time control is sent with 'go' command
     }
     void moveNow() override;
+    void stop() override;
     void setPonder(bool enabled) override;
     void ticker() override;
 

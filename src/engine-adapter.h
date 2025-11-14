@@ -107,6 +107,11 @@ public:
     virtual void moveNow() = 0;
 
     /**
+     * @brief Stops the engine's current calculation.
+     */
+    virtual void stop() = 0;
+
+    /**
      * @brief Enables or disables ponder mode.
      */
     virtual void setPonder(bool enabled) { ponderMode_ = enabled; }

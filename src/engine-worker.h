@@ -141,6 +141,15 @@ public:
 	bool moveNow(bool wait = false, std::chrono::milliseconds timeout = BestMoveTimeout);
 
 	/**
+	 * @brief Sends a command to the engine to stop the current move calculation and send the best move.
+	 * @param wait If true, waits for the best move to be received before returning. 
+	 * Note: the best move is not sent to the GameManager in this case.
+	 * @param timeout The maximum time to wait for the best move response.
+	 * @return true if the best move was received, false if the timeout was reached or the engine is not ready.
+	 */
+	bool stopCompute(bool wait = false, std::chrono::milliseconds timeout = BestMoveTimeout);
+
+	/**
 	 * @brief Handles a ponder miss (opponent played different move than expected).
 	 * @param timeout The maximum time to wait for the engine response.
 	 * @return true if the engine responded correctly, false if timeout or error.
