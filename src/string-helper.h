@@ -27,6 +27,8 @@
 #include <charconv>
 #include <optional>
 #include <vector>
+#include <format>
+#include <chrono>
 
 namespace QaplaHelpers {
 
@@ -197,6 +199,27 @@ namespace QaplaHelpers {
             return std::nullopt;
         }
         return std::make_pair(key, value);
+    }
+
+    /**
+     * @brief Formats a time_point into a time string (HH:MM:SS.mmm).
+     * @param timestamp The time_point to format.
+     * @return Formatted time string.
+     */
+    inline std::string formatTimeOfDay(const std::chrono::system_clock::time_point& timestamp) {
+        auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            timestamp.time_since_epoch()) % 1000;
+        
+        std::tm tm{};
+    #ifdef _WIN32
+        localtime_s(&tm, &time_t);
+    #else
+        localtime_r(&time_t, &tm);
+    #endif
+        
+        return std::format("{:02d}:{:02d}:{:02d}.{:03d}", 
+            tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms.count()));
     }
 
     /**
