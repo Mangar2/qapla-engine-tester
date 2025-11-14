@@ -309,7 +309,7 @@ public:
      * @param callback Function to call with the log buffer (if it exists).
      *                 The callback is only called if a buffer exists for this engine.
      */
-    static void accessEngineLogBuffer(
+    static void withEngineLogBuffer(
         const std::string& engineId,
         const std::function<void(const RingBuffer&)>& callback);
 
