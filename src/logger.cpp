@@ -256,9 +256,11 @@ Logger& Logger::engineLoggerPerGame(const EngineLoggerId& id) {
 
 void Logger::close(const EngineLoggerId& loggerId) {
     // Close file
-    std::scoped_lock fileLock(loggingMutex_);
-    if (fileStream_.is_open()) {
-        fileStream_.close();
+    {
+        std::scoped_lock fileLock(loggingMutex_);
+        if (fileStream_.is_open()) {
+            fileStream_.close();
+        }
     }
     
     // Determine logger key from stored identity
@@ -307,7 +309,7 @@ void Logger::clearEngineLoggers() {
     engineLoggers_.clear();
 }
 
-void Logger::accessEngineLogBuffer(const std::string& engineId, 
+void Logger::withEngineLogBuffer(const std::string& engineId, 
                                    const std::function<void(const RingBuffer&)>& callback) {
     std::scoped_lock lock(engineLogBufferMutex_);
     auto it = engineLogBuffers_.find(engineId);
