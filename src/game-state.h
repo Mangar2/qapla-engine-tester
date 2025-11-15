@@ -148,6 +148,12 @@ public:
 	std::tuple<GameEndCause, GameResult> getGameResult();
 
 	/**
+	 * @brief Gets all legal moves in the current position.
+	 * @return A vector of all legal moves.
+	 */
+	std::vector<QaplaBasics::Move> getLegalMoves();
+
+	/**
 	 * @brief Get the Halfmove Clock -> the total number of half moves without pawn move or capture
 	 * ("total includes the start value from fen to implement the 50-moves-draw rule")
 	 * 
