@@ -92,7 +92,7 @@ public:
      *                     If nullptr, no callback is called.
      * @return Vector of parsed GameRecord instances.
      */
-    std::vector<GameRecord> loadGames(const std::string& fileName, bool loadComments = true,
+    std::vector<GameRecord> loadGames(const std::string& fileName, bool loadComments = false,
         const std::function<bool(const GameRecord&, float)>& gameCallback = nullptr);
 
     /**

@@ -801,11 +801,11 @@ void PgnIO::processFileLines(std::ifstream& inFile,
                 finalizeParsedTags(currentGame);
                 games.push_back(std::move(currentGame));
                 float progress = fileSize > 0 ? static_cast<float>(currentPos) / fileSize : 0.0F;
+                inMoveSection = false;
+                currentGame = {};
                 if (gameCallback && !gameCallback(games.back(), progress)) {
                     return; // Stop loading if callback returns false
                 }
-                currentGame = GameRecord();
-                inMoveSection = false;
                 gamePositions_.push_back(currentPos);
             } 
             auto [key, value] = parseTag(tokens);
