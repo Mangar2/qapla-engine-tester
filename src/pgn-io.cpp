@@ -250,7 +250,7 @@ void PgnIO::saveGameToStream(std::ostream& out, const GameRecord& game) {
     out << " " << to_string(std::get<1>(game.getGameResult())) << "\n\n";
 }
 
-std::optional<GameRecord> PgnIO::loadGameAtIndex(size_t index) {
+std::optional<std::string> PgnIO::getRawGameText(size_t index) {
     if (index >= gamePositions_.size() || currentFileName_.empty()) {
         return std::nullopt;
     }
@@ -284,8 +284,17 @@ std::optional<GameRecord> PgnIO::loadGameAtIndex(size_t index) {
         return std::nullopt;
     }
 
+    return gameString;
+}
+
+std::optional<GameRecord> PgnIO::loadGameAtIndex(size_t index) {
+    auto gameString = getRawGameText(index);
+    if (!gameString) {
+        return std::nullopt;
+    }
+
     // Parse the game
-    GameRecord record = parseGame(gameString);
+    GameRecord record = parseGame(*gameString);
 
     // Clean the record
     GameState gameState;

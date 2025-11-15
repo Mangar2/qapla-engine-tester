@@ -109,6 +109,19 @@ public:
     std::optional<GameRecord> loadGameAtIndex(size_t index);
 
     /**
+     * @brief Gets the raw PGN text of a specific game by index.
+     * @param index Index of the game to retrieve.
+     * @return Optional string containing the raw PGN text if successful.
+     */
+    std::optional<std::string> getRawGameText(size_t index);
+
+    /**
+     * @brief Gets the filename of the currently loaded PGN file.
+     * @return Reference to the current filename string.
+     */
+    [[nodiscard]] const std::string& getCurrentFileName() const { return currentFileName_; }
+
+    /**
      * @brief Parses a single game from a PGN string.
      * @param pgnString The PGN formatted string containing a single game.
      * @return Parsed GameRecord instance.
