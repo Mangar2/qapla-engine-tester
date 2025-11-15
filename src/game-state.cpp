@@ -98,6 +98,22 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 	return { gameEndCause_, gameResult_ };
 }
 
+std::vector<QaplaBasics::Move> GameState::getLegalMoves() {
+	if (moveListOutdated) {
+		position_.genMovesOfMovingColor(legalMoves_);
+		moveListOutdated = false;
+	}
+	
+	std::vector<QaplaBasics::Move> moves;
+	moves.reserve(legalMoves_.totalMoveAmount);
+	
+	for (uint32_t i = 0; i < legalMoves_.totalMoveAmount; ++i) {
+		moves.push_back(legalMoves_[i]);
+	}
+	
+	return moves;
+}
+
 bool GameState::isThreefoldRepetition() const {
 	const uint32_t reversiblePlies = position_.getHalfmovesWithoutPawnMoveOrCapture();
 	uint32_t positionsToCheck = std::min(reversiblePlies, static_cast<uint32_t>(hashList_.size()));
