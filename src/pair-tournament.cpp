@@ -160,6 +160,8 @@ std::optional<GameTask> PairTournament::nextTask() {
         auto& white = task.switchSide ? engineB_ : engineA_;
         auto& black = task.switchSide ? engineA_ : engineB_;
         task.gameRecord.setTimeControl(white.getTimeControl(), black.getTimeControl());
+        task.gameRecord.setWhiteEngineName(white.getName());
+        task.gameRecord.setBlackEngineName(black.getName());
         if (!positionName_.empty()) {
             task.gameRecord.setPositionName(positionName_ + " " + std::to_string(i + 1));
         }

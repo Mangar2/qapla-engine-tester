@@ -339,6 +339,19 @@ private:
 	void finalizeTaskAndContinue();
 
     /**
+     * @brief Adjudicates a game when one or both engines failed to start.
+     *
+     * @param extendedTask The extended task containing game record and engine configurations.
+     * @param whiteEngines Vector of white engines (empty if failed).
+     * @param blackEngines Optional vector of black engines (empty if failed, nullopt for single-engine case).
+     * @return true if the game was adjudicated and needs to return nullopt, false otherwise.
+     */
+    bool adjudicateFailedEngineStart(
+        const ExtendedTask& extendedTask,
+        const std::vector<std::unique_ptr<EngineWorker>>& whiteEngines,
+        const std::vector<std::unique_ptr<EngineWorker>>& blackEngines);
+
+    /**
      * @brief Attempts to obtain a replacement task and reassign the GameManager.
      *
      * If a new task is available via the GameManagerPool, this method updates the
