@@ -34,7 +34,7 @@ struct GameTask {
     /** Unique identifier for tracking the task across engine interactions */
     std::string taskId;
     bool switchSide = false;
-    Type taskType;
+    Type taskType = Type::None;
     GameRecord gameRecord;
 };
 
