@@ -33,14 +33,14 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     const EngineConfig& engineConfig)
     : identifier_(std::move(identifier)), adapter_(std::move(adapter))
 {
-    cliTraceLevel_ = Logger::engineLogger().getCliThreshold();
+    cliTraceLevel_ = EngineLogger::engineLogger().getCliThreshold();
     if (!adapter_) {
         throw std::invalid_argument("Internal Error: EngineWorker requires a valid EngineAdapter");
     }
     engineConfig_ = engineConfig;
 
     adapter_->setProtocolLogger([this, id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
-        Logger::engineLogger({.engineId = id}).log(
+        EngineLogger::engineLogger({.engineId = id}).log(
             id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
         });
     
@@ -119,7 +119,7 @@ void EngineWorker::stop(bool wait) {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::writeLoop() {
-    if (workerState_ == WorkerState::stopped) {
+    if (workerState_ == WorkerState::stopped || workerState_ == WorkerState::failure) {
         return;
     }
     while (true) {
@@ -324,7 +324,7 @@ void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& lim
 
 void EngineWorker::readLoop() {
 	// Must end on disconnected_ to prevent endless looping
-    while (workerState_ != WorkerState::stopped && !disconnected_) {
+    while (workerState_ != WorkerState::stopped && workerState_ != WorkerState::failure && !disconnected_) {
         // Blocking call
         try {
             EngineEvent event = adapter_->readEvent();
@@ -354,7 +354,7 @@ void EngineWorker::readLoop() {
                 workerState_ = WorkerState::failure;
                 std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
                 Logger::reportLogger().log(msg, TraceLevel::error);
-                Logger::engineLogger().log(msg, TraceLevel::error);
+                EngineLogger::engineLogger({.engineId = identifier_}).log(msg, TraceLevel::error);
 			}
         }
 		catch (const std::exception& e) {

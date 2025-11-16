@@ -176,7 +176,7 @@ void GameManagerPool::viewEngineTrace(int gameManagerIndex) const {
             manager->setCliTraceLevel(TraceLevel::info);
         }
         else {
-            manager->setCliTraceLevel(Logger::engineLogger().getCliThreshold());
+            manager->setCliTraceLevel(EngineLogger::engineLogger().getCliThreshold());
         }
         gameManagerIndex--;
     }

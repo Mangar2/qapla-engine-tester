@@ -445,20 +445,27 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
         auto whiteEngines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
         auto blackEngines = EngineWorkerFactory::createEngines(*extendedTask->blackConfig, 1);
 
-        if (whiteEngines.empty() || blackEngines.empty()) {
-            throw std::runtime_error("Failed to create engines for task assignment");
+
+        if (whiteEngines.empty()) {
+            Logger::reportLogger().log(std::format("Failed to create engine {} ", extendedTask->whiteConfig->getName()), 
+                TraceLevel::error);
+        }
+        if (blackEngines.empty()) {
+            Logger::reportLogger().log(std::format("Failed to create engine {} ", extendedTask->blackConfig->getName()), 
+                TraceLevel::error);
         }
 
         initEngines(
-            std::move(whiteEngines.front()),
-            std::move(blackEngines.front()));
+            whiteEngines.empty() ? std::unique_ptr<QaplaTester::EngineWorker>(nullptr) : std::move(whiteEngines.front()),
+            blackEngines.empty() ? std::unique_ptr<QaplaTester::EngineWorker>(nullptr) : std::move(blackEngines.front()));
     }
     else if (extendedTask->whiteConfig) {
         auto engines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
         if (engines.empty()) {
-            throw std::runtime_error("Failed to create engine for task assignment");
+            Logger::reportLogger().log(std::format("Failed to create engine {} ", extendedTask->whiteConfig->getName()), 
+                TraceLevel::error);
         }
-        initUniqueEngine(std::move(engines.front()));
+        initUniqueEngine(engines.empty() ? std::unique_ptr<QaplaTester::EngineWorker>(nullptr) : std::move(engines.front()));
     }
 
     return extendedTask->task;

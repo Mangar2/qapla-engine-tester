@@ -30,7 +30,7 @@ EngineAdapter::EngineAdapter(const std::filesystem::path& enginePath,
 }
 
 EngineAdapter::~EngineAdapter() {
-    Logger::engineLogger({.engineId = identifier_}).close({.engineId = identifier_});
+    EngineLogger::engineLogger({.engineId = identifier_}).engineTerminated({.engineId = identifier_});
 }
 
 uint64_t EngineAdapter::writeCommand(const std::string& command) {

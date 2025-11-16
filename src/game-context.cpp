@@ -63,6 +63,9 @@ void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines
         bool isWhite = !switchedSide_;
         for (auto &engine : engines)
         {
+            if (engine == nullptr) {
+                continue;
+            }
             if (eventCallback_)
             {
                 engine->setEventSink(eventCallback_);
