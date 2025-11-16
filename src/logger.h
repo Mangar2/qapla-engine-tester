@@ -18,23 +18,20 @@
  */
 #pragma once
 
+#include "base-logger.h"
 #include "change-tracker.h"
 
 #include <mutex>
 #include <string>
 #include <string_view>
 #include <iostream>
-#include <fstream>
-#include <filesystem>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
 #include <sstream>
 #include <unordered_map>
 #include <memory>
 #include <optional>
 #include <array>
 #include <functional>
+#include <chrono>
 
 namespace QaplaTester {
 
@@ -91,33 +88,16 @@ private:
 };
 
 /**
- * @brief Trace levels for logging control.
- * IMPORTANT: Order and numeric values matter for comparison logic!
- * Lower enum values = higher priority (more restrictive filtering).
- * Comparison logic: if (messageLevel <= threshold) -> message is logged
- * 
- * Example: If threshold is 'command', only 'none', 'error' and 'command' messages are logged.
- */
-enum class TraceLevel : std::uint8_t {
-    none = 0,    // Log nothing (most restrictive)
-    error = 1,   // Log only errors
-    command = 2, // Log errors + commands
-    result = 3,  // Log errors + commands + results
-    warning = 4, // Log errors + commands + results + warnings
-    info = 5     // Log everything (least restrictive)
-};
-
-/**
  * @brief Strategy for creating log files for engine communication.
  */
 enum class LogFileStrategy : std::uint8_t {
     global = 0,     // Single log file for all engines
-    perEngine = 1,  // One log file per engine
-    perGame = 2     // One log file per game (all engines of a game share the file)
+    perEngine = 1  // One log file per engine
 };
 
 /**
- * @brief Configuration settings for the logger.
+ * @brief Combined configuration settings for both logger types.
+ * This exists for backward compatibility with setConfig().
  */
 struct LoggerConfig {
     std::string logPath = "./log";               ///< Directory path for log files
@@ -138,20 +118,12 @@ struct EngineLoggerId {
 };
 
 /**
- * @brief Converts TraceLevel enum to its string representation.
- * @param level The trace level to convert.
- * @return String representation of the trace level.
- */
-std::string to_string(QaplaTester::TraceLevel level);
-
-
-/**
- * @brief Thread-safe logger with optional file output and trace filtering.
+ * @brief Thread-safe report logger with file output and trace filtering.
  * 
- * Provides singleton instances for engine and test logging with configurable
- * trace levels for both console and file output.
+ * Simple logger for test/report output. Always global (singleton).
+ * This will be renamed to ReportLogger via IDE refactoring.
  */
-class Logger {
+class Logger : public BaseLogger {
 public:
     /**
      * @brief Constructs a logger with default error-level threshold.
@@ -159,13 +131,50 @@ public:
     Logger() = default;
 
     /**
-     * @brief Destructor - closes the log file if open.
+     * @brief Logs a message with aligned topic and content.
+     * 
+     * The topic is left-aligned with a fixed width for consistent formatting.
+     * 
+     * @param topic The topic or label to display (will be aligned).
+     * @param message The message content to display after the topic.
+     * @param level The trace level of this message (default: command).
      */
-    ~Logger() {
-        if (fileStream_.is_open()) {
-            fileStream_.close();
-        }
+    void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command);
+
+    /**
+     * @brief Returns the global report logger instance.
+     * 
+     * Provides a singleton logger instance specifically for test execution.
+     * 
+     * @return Reference to the singleton report logger.
+     */
+    static Logger& reportLogger();
+
+    /**
+     * @brief Returns the base name for log files.
+     * @return The static logBaseName_ for report logs.
+     */
+    std::string getBaseName() const override {
+        return logBaseName_;
     }
+
+    static inline std::string logBaseName_ = "report";                    ///< Base name for reporting log files
+    
+};
+
+/**
+ * @brief Thread-safe engine logger with optional file output and trace filtering.
+ * 
+ * Complex logger for engine communication with multiple strategies (global, per-engine, per-game).
+ */
+class EngineLogger : public BaseLogger {
+public:
+    /**
+     * @brief Constructs an engine logger with default error-level threshold.
+     */
+    EngineLogger() = default;
+
+    using BaseLogger::log;
 
     /**
      * @brief Logs a message with prefix and direction indicator.
@@ -184,97 +193,13 @@ public:
         TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level = TraceLevel::info);
 
     /**
-     * @brief Logs a simple message without prefix.
-     * 
-     * Uses the logger's configured trace level thresholds for filtering.
-     * This is used for general log messages not associated with engine I/O and thus never per engine.
-     * 
-     * @param message The message content to log.
-     * @param level The trace level of this message (default: command).
-     */
-    void log(std::string_view message, TraceLevel level = TraceLevel::command);
-
-    /**
-     * @brief Logs a message with aligned topic and content.
-     * 
-     * The topic is left-aligned with a fixed width for consistent formatting.
-     * 
-     * @param topic The topic or label to display (will be aligned).
-     * @param message The message content to display after the topic.
-     * @param level The trace level of this message (default: command).
-     */
-    void logAligned(std::string_view topic, std::string_view message, TraceLevel level = TraceLevel::command);
-
-    /**
-     * @brief Sets the base name for the log file.
-     * 
-     * The actual log file will be created lazily on the first write operation.
-     * If the basename changes, a new file will be created on the next write.
-     * 
-     * @param basename Base name for the log file (timestamp will be appended when file is created).
-     */
-    void setLogFile(const std::string& basename);
-
-    /**
-     * @brief Returns the current log filename.
-     * @return The full path and name of the log file.
-     */
-    [[nodiscard]] std::string getFilename() const {
-        return filename_;
-    }
-
-    /**
-     * @brief Sets the trace level thresholds for console and file logging.
-     * 
-     * Only messages with a level less than or equal to the threshold will be logged.
-     * 
-     * @param cli The minimum trace level for console output.
-     * @param file The minimum trace level for file logging (default: info).
-     */
-    void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info) {
-        cliThreshold_ = cli;
-        fileThreshold_ = file;
-    }
-
-    /**
      * @brief Returns the global engine logger instance.
      * 
      * Provides a singleton logger instance specifically for engine communication.
      * 
      * @return Reference to the singleton engine logger.
      */
-    static Logger& engineLogger();
-
-    /**
-     * @brief Returns the global test logger instance.
-     * 
-     * Provides a singleton logger instance specifically for test execution.
-     * 
-     * @return Reference to the singleton test logger.
-     */
-    static Logger& reportLogger();
-
-    /**
-     * @brief Returns the current console trace level threshold.
-     * @return The trace level threshold for console output.
-     */
-    [[nodiscard]] TraceLevel getCliThreshold() const {
-        return cliThreshold_;
-    }
-
-    /**
-     * @brief Sets the logger configuration and applies it to all logger instances.
-     * @param config The configuration to apply.
-     */
-    static void setConfig(const LoggerConfig& config);
-
-    /**
-     * @brief Returns the current logger configuration.
-     * @return Reference to the logger configuration.
-     */
-    static LoggerConfig& getConfig() {
-        return config_;
-    }
+    static EngineLogger& engineLogger();
 
     /**
      * @brief Returns the appropriate engine logger based on current strategy and ID.
@@ -288,17 +213,18 @@ public:
      * @param loggerId Parameters identifying which logger to return (strategy-dependent).
      * @return Reference to the appropriate engine logger.
      */
-    static Logger& engineLogger(const EngineLoggerId& loggerId);
+    static EngineLogger& engineLogger(const EngineLoggerId& loggerId);
 
     /**
-     * @brief Closes the log file and removes this logger from the internal map.
+     * @brief Notification that an engine has terminated.
      * 
+     * Closes the log file and removes this logger from the internal map.
      * Only applicable for dynamically created loggers (perEngine, perGame).
      * For the global logger, only the file is closed but the logger instance remains.
      * Frees the file handle immediately.
-     * @param loggerId The identity of the logger to close.
+     * @param loggerId The identity of the terminated engine.
      */
-    void close(const EngineLoggerId& loggerId);
+    void engineTerminated(const EngineLoggerId& loggerId);
 
     /**
      * @brief Clears all dynamically created logger instances.
@@ -322,62 +248,83 @@ public:
         const std::string& engineId,
         const std::function<void(const RingBuffer&)>& callback);
 
+    /**
+     * @brief Returns the base name for log files.
+     * @return The static logBaseName_ for engine logs.
+     */
+    std::string getBaseName() const override {
+        // For perEngine strategy, append the engineId to the base name
+        if (id_.engineId.has_value()) {
+            return logBaseName_ + "-" + *id_.engineId;
+        }
+        // For perGame strategy, append the gameId to the base name
+        if (id_.gameId.has_value()) {
+            return logBaseName_ + "-" + *id_.gameId;
+        }
+        // For global strategy (or if id_ is not set), return base name as-is
+        return logBaseName_;
+    }
+
+    static inline LogFileStrategy logStrategy_ = LogFileStrategy::global; ///< Strategy for engine log files
+    static inline std::string logBaseName_ = "engine";                    ///< Base name for eingine log files
 
 private:
-    /**
-     * @brief Generates a timestamped filename.
-     * 
-     * Creates a filename in the format: basename-YYYY-MM-DD_HH-MM-SS.mmm.log
-     * 
-     * @param baseName The base name for the file.
-     * @return Complete filename with timestamp and .log extension.
-     */
-    static std::string generateTimestampedFilename(const std::string& baseName);
-
     /**
      * @brief Implementation for global strategy.
      * @return Reference to the global engine logger.
      */
-    static Logger& engineLoggerGlobal();
+    static EngineLogger& engineLoggerGlobal();
 
     /**
      * @brief Implementation for perEngine strategy.
      * @param id The logger identity.
      * @return Reference to the logger for this engine.
      */
-    static Logger& engineLoggerPerEngine(const EngineLoggerId& id);
+    static EngineLogger& engineLoggerPerEngine(const EngineLoggerId& id);
 
     /**
      * @brief Implementation for perGame strategy.
      * @param id The logger identity.
      * @return Reference to the logger for this game.
      */
-    static Logger& engineLoggerPerGame(const EngineLoggerId& id);
+    static EngineLogger& engineLoggerPerGame(const EngineLoggerId& id);
 
-    /**
-     * @brief Opens the log file if needed (lazy initialization).
-     * 
-     * Opens a new file if:
-     * - No file is currently open, OR
-     * - The basename has changed since last open
-     */
-    void ensureFileOpen();
-
-    std::mutex loggingMutex_;                   ///< Mutex for thread-safe logging
-    std::ofstream fileStream_;                  ///< Output file stream for log file
-    TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
-    TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
-    std::string filename_;                      ///< Current log filename
-    std::string basename_;                      ///< Base name for log file (without timestamp)
     EngineLoggerId id_;                         ///< Identity of this logger (for self-removal from map)
-    static inline LoggerConfig config_;         ///< Logger configuration
+
     static inline std::mutex mapMutex_;         ///< Mutex for thread-safe map access
     static inline std::mutex engineLogBufferMutex_;  ///< Mutex for engine log buffer map
     
     ///< Map to loggers for each engine used, if the logging strategy is per engine
-    static inline std::unordered_map<std::string, std::unique_ptr<Logger>> engineLoggers_;  
+    static inline std::unordered_map<std::string, std::unique_ptr<EngineLogger>> engineLoggers_;  
     static inline std::unordered_map<std::string, RingBuffer> engineLogBuffers_;            ///< Map to ring buffer for each engine
 };
+
+/**
+ * @brief Backward compatibility function for setting both logger configurations.
+ * 
+ * @param config The combined configuration to apply to both loggers.
+ */
+inline void setLoggerConfig(const LoggerConfig& config) {
+    Logger::logBaseName_ = config.reportLogBaseName;
+    BaseLogger::logPath_ = config.logPath;
+    
+    EngineLogger::logBaseName_ = config.engineLogBaseName;
+    EngineLogger::logStrategy_ = config.engineLogStrategy;
+}
+
+/**
+ * @brief Backward compatibility function for getting combined logger configuration.
+ * 
+ * @return The combined configuration from both loggers.
+ */
+inline LoggerConfig getLoggerConfig() {
+    return {
+        .logPath = BaseLogger::logPath_,
+        .reportLogBaseName = Logger::logBaseName_,
+        .engineLogBaseName = EngineLogger::logBaseName_,
+        .engineLogStrategy = EngineLogger::logStrategy_
+    };
+}
 
 } // namespace QaplaTester
 
