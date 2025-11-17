@@ -770,6 +770,8 @@ GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readabilit
     }
 
     finalizeParsedTags(game);
+    // Marks the game as unchanged after loading. This enables us to detect, if a game was modified later.
+    game.clearChangeTracker();
     return game;
 }
 
