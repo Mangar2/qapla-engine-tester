@@ -176,15 +176,17 @@ void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     else if (key == "cmd") { setCmd(value); }
     else if (key == "dir") { setDir(value); }
     else if (key == "tc") { setTimeControl(value); }
+    else if (key == "gauntlet") {
+        if (value == "true" || value == "1" || value.empty()) { setGauntlet(true); }
+        else if (value == "false" || value == "0") { setGauntlet(false); }
+    }
     else if (key == "ponder") {
         if (value == "true" || value == "1" || value.empty()) { setPonder(true); }
         else if (value == "false" || value == "0") { setPonder(false); }
-        else { throw std::runtime_error("Invalid ponder value: " + value); }
     }
     else if (key == "whitepov") {
         if (value == "true" || value == "1" || value.empty()) { setScoreFromWhitePov(true); }
         else if (value == "false" || value == "0") { setScoreFromWhitePov(false); }
-        else { throw std::runtime_error("Invalid whitepov value: " + value); }
     }
     else if (key == "trace") { setTraceLevel(value); }
     else if (key == "restart") { restart_ = parseRestartOption(value); }

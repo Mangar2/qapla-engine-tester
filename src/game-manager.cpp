@@ -391,15 +391,15 @@ bool GameManager::adjudicateFailedEngineStart(
         adjudicatedRecord.setGameEnd(GameEndCause::Forfeit, 
             switchedSide ? GameResult::WhiteWins : GameResult::BlackWins);
         Logger::reportLogger().log(
-            std::format("White engine {} failed to start for task {}, adjudicating as black win", 
-                extendedTask.whiteConfig->getName(), taskId_), 
+            std::format("White engine {} failed to start for task {}, adjudicating as {} win", 
+                extendedTask.whiteConfig->getName(), taskId_, switchedSide ? "white" : "black"), 
             TraceLevel::error);
     } else {
         adjudicatedRecord.setGameEnd(GameEndCause::Forfeit, 
             switchedSide ? GameResult::BlackWins : GameResult::WhiteWins);
         Logger::reportLogger().log(
-            std::format("Black engine {} failed to start for task {}, adjudicating as white win", 
-                extendedTask.blackConfig->getName(), taskId_), 
+            std::format("Black engine {} failed to start for task {}, adjudicating as {} win", 
+                extendedTask.blackConfig->getName(), taskId_, switchedSide ? "black" : "white"  ), 
             TraceLevel::error);
     }
     
@@ -486,8 +486,15 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
         }
 
         if (extendedTask->whiteConfig && extendedTask->blackConfig) {
-            auto whiteEngines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
-            auto blackEngines = EngineWorkerFactory::createEngines(*extendedTask->blackConfig, 1);
+            QaplaTester::EngineList whiteEngines;
+            QaplaTester::EngineList blackEngines;
+            try {
+                whiteEngines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
+                blackEngines = EngineWorkerFactory::createEngines(*extendedTask->blackConfig, 1);
+            }
+            catch (const std::exception& e) {
+                Logger::reportLogger().log("Could not create engines: " + std::string(e.what()), TraceLevel::error);
+            }
 
             if (adjudicateFailedEngineStart(*extendedTask, whiteEngines, blackEngines))
             {
@@ -497,8 +504,14 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
             initEngines(std::move(whiteEngines.front()), std::move(blackEngines.front()));
         }
         else if (extendedTask->whiteConfig) {
-            auto engines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
-            
+            QaplaTester::EngineList engines;
+            try {
+                engines = EngineWorkerFactory::createEngines(*extendedTask->whiteConfig, 1);
+            }
+            catch (const std::exception& e) {
+                Logger::reportLogger().log("Could not create engine: " + std::string(e.what()), TraceLevel::error);
+            }
+
             if (adjudicateFailedEngineStart(*extendedTask, engines, {}))
             {
                 continue;
