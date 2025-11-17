@@ -140,7 +140,7 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
     }
     if (auto it = tags.find("SetUp"); it != tags.end()) {
         if (it->second == "0") {
-            game.setStartPosition(true, "startpos", game.isWhiteToMove(), 0, game.getWhiteEngineName(), game.getBlackEngineName());
+            // Nothing to do, this is the default
         }
     }
     if (auto it = tags.find("Round"); it != tags.end()) {
