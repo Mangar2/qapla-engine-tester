@@ -546,6 +546,11 @@ public:
 	 */
 	[[nodiscard]] const ChangeTracker& getChangeTracker() const { return changeTracker_; }
 
+	/**
+	 * @brief Clear the Change Tracker modification and update counts to zero
+	 */
+	void clearChangeTracker() { changeTracker_.clear(); }
+
 private:
 	std::map<std::string, std::string> tags_;
 	bool startPos_ = true;
@@ -568,4 +573,4 @@ private:
 	ChangeTracker changeTracker_;
 };
 
-} // namespace QaplaTester
+} // namespace QaplaTester 

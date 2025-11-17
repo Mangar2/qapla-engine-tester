@@ -93,7 +93,7 @@ bool GameRecord::updateMove(const MoveRecord &move)
 
 void GameRecord::setGameEnd(GameEndCause cause, GameResult result)
 {
-    changeTracker_.trackModification();
+    changeTracker_.trackUpdate();
     gameEndCause_ = cause;
     gameResult_ = result;
 
