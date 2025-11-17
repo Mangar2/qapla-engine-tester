@@ -166,7 +166,7 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
     }
     if (auto it = tags.find("TimeControl"); it != tags.end()) {
         TimeControl tc;
-        tc.fromPgnTimeControlString(it->second); // erwartet eine parseTimeControl Funktion
+        tc.fromPgnTimeControlString(it->second); 
         game.setTimeControl(tc, tc);
     }
     if (auto itW = tags.find("TimeControlWhite"), itB = tags.find("TimeControlBlack");
