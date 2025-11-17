@@ -86,17 +86,29 @@ namespace QaplaHelpers {
     }
 
     /**
-     * @brief Converts a string view to an optional integer.
+     * @brief Converts a string view to an optional signed integer of any size.
+     * @tparam T The signed integer type (int8_t, int16_t, int32_t, int64_t, int).
      * @param s The string view to convert.
-     * @return Optional integer if conversion succeeds, nullopt otherwise.
+     * @return Optional T if conversion succeeds, nullopt otherwise.
      */
-    auto to_int = [](std::string_view s) -> std::optional<int> {
-        int value;
+    template<typename T>
+    inline std::optional<T> to_signed_int(std::string_view s) {
+        static_assert(std::is_integral_v<T> && std::is_signed_v<T>, "T must be a signed integral type");
+        T value;
         auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value);
         if (ec == std::errc() && ptr == s.data() + s.size()) {
             return value;
         }
         return std::nullopt;
+    }
+
+    /**
+     * @brief Converts a string view to an optional integer.
+     * @param s The string view to convert.
+     * @return Optional integer if conversion succeeds, nullopt otherwise.
+     */
+    auto to_int = [](std::string_view s) -> std::optional<int> {
+        return to_signed_int<int>(s);
     };
 
     /**
@@ -119,22 +131,34 @@ namespace QaplaHelpers {
     }
 
     /**
-     * @brief Converts a string view to an optional uint32_t.
+     * @brief Converts a string view to an optional unsigned integer of any size.
+     * @tparam T The unsigned integer type (uint8_t, uint16_t, uint32_t, uint64_t, unsigned int).
      * @param s The string view to convert.
-     * @return Optional uint32_t if conversion succeeds, nullopt otherwise.
+     * @return Optional T if conversion succeeds, nullopt otherwise.
      */
-    auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
+    template<typename T>
+    inline std::optional<T> to_unsigned_int(std::string_view s) {
+        static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "T must be an unsigned integral type");
         auto trimmed = trim(std::string(s));
         if (trimmed.empty() || trimmed[0] == '-') {
             return std::nullopt;
         }
 
-        unsigned int value;
+        T value;
         auto [ptr, ec] = std::from_chars(trimmed.data(), trimmed.data() + trimmed.size(), value);
         if (ec == std::errc() && ptr == trimmed.data() + trimmed.size()) {
             return value;
         }
         return std::nullopt;
+    }
+
+    /**
+     * @brief Converts a string view to an optional uint32_t.
+     * @param s The string view to convert.
+     * @return Optional uint32_t if conversion succeeds, nullopt otherwise.
+     */
+    auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
+        return to_unsigned_int<uint32_t>(s);
     };
 
     /**

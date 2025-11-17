@@ -39,7 +39,7 @@ void PgnIO::initialize(const std::string& event, bool isResumingTournament) {
     // - AND we're starting a fresh tournament (not resuming)
     if (!options_.append && !isResumingTournament) {
         std::scoped_lock lock(fileMutex_);
-        std::ofstream out(options_.file, std::ios::trunc);
+        std::ofstream out(options_.file, std::ios::trunc | std::ios::binary);
     }
 }
 
@@ -320,16 +320,11 @@ void PgnIO::saveGame(const GameRecord& game) {
     }
 
     std::scoped_lock lock(fileMutex_);
-    std::ofstream out(options_.file, std::ios::app);
-    if (!out) {
-        throw std::runtime_error("Failed to open PGN file: " + options_.file);
-    }
-
-    saveGameToStream(out, game);
+    saveGame(options_.file, game);
 }
 
 void PgnIO::saveGame(const std::string& fileName, const GameRecord& game) {
-    std::ofstream out(fileName, std::ios::app);
+    std::ofstream out(fileName, std::ios::app | std::ios::binary);
     if (!out) {
         throw std::runtime_error("Failed to open PGN file: " + fileName);
     }
@@ -705,7 +700,7 @@ std::vector<GameRecord> PgnIO::loadGames(const std::string& fileName, bool loadC
     const std::function<bool(const GameRecord&, float)>& gameCallback) 
 {
     std::vector<GameRecord> games;
-    std::ifstream inFile(fileName);
+    std::ifstream inFile(fileName, std::ios::binary);
     if (!inFile) {
         return games;
     }
