@@ -43,7 +43,7 @@ std::vector<std::string> PgnTokenizer::tokenize(const std::string& pgn) {
         else if (currentChar == ';') {
             tokens.emplace_back(extractLineComment(pgn, pos));
         }
-        else if (isWordChar(currentChar)) {
+        else if (isWordStart(currentChar)) {
             tokens.emplace_back(extractWord(pgn, pos));
         }
         else {
