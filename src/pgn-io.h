@@ -248,11 +248,11 @@ private:
     /**
      * @brief Sets game result from parsed result token and move comments.
      * @param moves List of parsed moves.
-     * @param result Optional result from PGN result token (1-0, 0-1, etc.).
+     * @param parsedResult Optional result from PGN result token (1-0, 0-1, etc.).
      * @param game GameRecord to update with final result and end cause.
      */
     static void setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
-                                           std::optional<GameResult> result, 
+                                           std::optional<GameResult> parsedResult, 
                                            GameRecord& game);
 
     /**

@@ -126,6 +126,49 @@ void PgnIO::saveTags(std::ostream& out, const GameRecord& game) {
     out << "\n";
 }
 
+static void updateGameEndFromTags(GameRecord& game, const std::map<std::string, std::string>& tags) {
+auto [cause, result] = game.getGameResult();
+    if (auto it = tags.find("Result"); it != tags.end()) {
+        // We prefer game end information (1-0) over the Result tag, if both are conflicting.
+        if (result  == GameResult::Unterminated) {
+            if (it->second == "1-0") {
+                result = GameResult::WhiteWins;
+            }
+            else if (it->second == "0-1") {
+                result = GameResult::BlackWins;
+            }
+            else if (it->second == "1/2-1/2") {
+                result = GameResult::Draw;
+            }
+            game.setGameEnd(GameEndCause::Unknown, result);
+        }
+    }
+    if (cause == GameEndCause::Unknown && result != GameResult::Unterminated) {
+        if (auto it = tags.find("Termination"); it != tags.end()) {
+            const std::string& termStr = it->second;
+            GameEndCause cause = GameEndCause::Unknown;
+
+            if (termStr == "time forfeit") {
+                cause = GameEndCause::Timeout;
+            }
+            else if (termStr == "rules infraction") {
+                cause = GameEndCause::Forfeit;
+            }
+            else if (termStr == "adjudication") {
+                cause = GameEndCause::Adjudication;
+            }
+            else if (termStr == "unterminated") {
+                cause = GameEndCause::Ongoing;
+            }
+            else {
+                cause = GameEndCause::Unknown;
+            }
+
+            game.setGameEnd(cause, result);        
+        }
+    }
+}
+
 void PgnIO::finalizeParsedTags(GameRecord& game) {
     const auto& tags = game.getTags();
 
@@ -148,22 +191,7 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
             game.setGameInRound(*round);
         }
     }
-    if (auto it = tags.find("Result"); it != tags.end()) {
-        auto [cause, result] = game.getGameResult();
-        // We prefer game end information (1-0) over the Result tag, if both are conflicting.
-        if (result  == GameResult::Unterminated) {
-            if (it->second == "1-0") {
-                result = GameResult::WhiteWins;
-            }
-            else if (it->second == "0-1") {
-                result = GameResult::BlackWins;
-            }
-            else if (it->second == "1/2-1/2") {
-                result = GameResult::Draw;
-            }
-            game.setGameEnd(GameEndCause::Ongoing, result);
-        }
-    }
+   
     if (auto it = tags.find("TimeControl"); it != tags.end()) {
         TimeControl tc;
         tc.fromPgnTimeControlString(it->second); 
@@ -177,6 +205,8 @@ void PgnIO::finalizeParsedTags(GameRecord& game) {
         tcB.fromPgnTimeControlString(itB->second);
         game.setTimeControl(tcW, tcB);
     }
+    updateGameEndFromTags(game, tags);
+
 }
 
 void PgnIO::saveMove(std::ostream& out, const std::string& san, 
@@ -497,19 +527,26 @@ std::string PgnIO::collectTerminationCause(const std::vector<std::string>& token
 }
 
 void PgnIO::setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
-                                        std::optional<GameResult> result, 
+                                        std::optional<GameResult> parsedResult, 
                                         GameRecord& game) {
-    if (result) {
-        auto [cause, curResult] = game.getGameResult();
-        game.setGameEnd(curResult == *result ? cause : GameEndCause::Ongoing, *result);
+    auto [cause, result] = game.getGameResult();
+    // This block is unneccessary in current calling order (it is called before the tags are concidered)
+    // but kept if calling order changes in future
+    if (parsedResult && *parsedResult != result) {
+        result = *parsedResult;
+        cause = GameEndCause::Ongoing;
     }
     // Game-end info in move comment is more specific than Result tag
     if (!moves.empty() && moves.back().result_ != GameResult::Unterminated) {
-        auto [cause, curResult] = game.getGameResult();
-        if (curResult == GameResult::Unterminated || curResult == moves.back().result_) {
-            game.setGameEnd(moves.back().endCause_, moves.back().result_);
+        if (result == GameResult::Unterminated || result == moves.back().result_) {
+            result = moves.back().result_;
+            cause = moves.back().endCause_;
         }
     }
+    if (result != GameResult::Unterminated && cause == GameEndCause::Ongoing) {
+        cause = GameEndCause::Unknown;
+    }
+    game.setGameEnd(cause, result);
 }
 
 size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move) {
@@ -568,7 +605,9 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
     }
 
     std::string pv;
+    std::optional<double> seconds;
     size_t pos = start + 1;
+
 
     // PGN comment format: {eval/depth time pv, game-end-info}
     // Example: {+0.31/14 0.89s e2e4 d7d5, White mates}
@@ -606,12 +645,9 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
             // Ignore commas (we use one as separator before game-end info, 
             // but accept them anywhere for robustness)
         }
-        else if (tok.ends_with("s")) {
-            try {
-                double seconds = std::stod(tok.substr(0, tok.size() - 1));
-                move.timeMs = static_cast<uint64_t>(seconds * 1000);
-            }
-            catch (...) {}
+        else if (tok.ends_with("s") && (seconds = QaplaHelpers::to_double(tok.substr(0, tok.size() - 1)))) {
+            constexpr double msPerSecond = 1000.0;
+            move.timeMs = static_cast<uint64_t>(*seconds * msPerSecond);
         }
         else {
             // All remaining tokens in a comment are PV moves until we either hit } or ","
