@@ -540,6 +540,18 @@ public:
 
 
 	/**
+	 * @brief Creates a copy of this GameRecord excluding the position information.
+	 *
+	 * This method generates a new `GameRecord` object that contains all information
+	 * from the current record except for all position related information like fen and moves.
+	 * The engine names, PGN tags, time control and tournament information are copied.
+	 *
+	 * @return A new `GameRecord` object without position information.
+	 */
+	[[nodiscard]] GameRecord copyAllButPosition() const;
+
+
+	/**
 	 * @brief Get the Change Tracker object
 	 * 
 	 * @return const ChangeTracker& 
