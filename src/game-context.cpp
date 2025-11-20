@@ -173,6 +173,7 @@ void GameContext::newGame()
 {
     ensureStarted();
     std::scoped_lock lock(engineMutex_);
+    updateEngineNames();
     for (size_t i = 0; i < players_.size(); ++i)
     {
         bool isWhite = (i == 0 && !switchedSide_) || (i == 1 && switchedSide_);
@@ -211,7 +212,11 @@ void GameContext::setPosition(const GameRecord &gameRecord)
     {
         std::scoped_lock lock(gameRecordMutex_);
         gameRecord_ = gameRecord;
-        updateEngineNames();
+        if (gameRecord_.getWhiteEngineName().empty() ||
+            gameRecord_.getBlackEngineName().empty())
+        {
+            updateEngineNames();
+        }
     }
 
     setCurrentPosition();
