@@ -389,6 +389,13 @@ void PlayerContext::cancelCompute() {
     ponderMove_.clear();
 }
 
+void PlayerContext::setStartPosition(const GameRecord& startPosition, bool engineIsWhite) {
+    std::scoped_lock lock(stateMutex_);
+    gameState_.setFromGameRecord(startPosition, startPosition.nextMoveIndex());
+    ponderState_.setFromGameRecord(startPosition, startPosition.nextMoveIndex());
+    setTimeControl(startPosition, engineIsWhite);
+}
+
 void PlayerContext::doMove(const MoveRecord& moveRecord) {
     const auto move = gameState_.stringToMove(moveRecord.original, false);
     doMove(move);

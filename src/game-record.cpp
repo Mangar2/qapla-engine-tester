@@ -247,6 +247,22 @@ GameRecord GameRecord::createMinimalCopy() const
     return record;
 }
 
+GameRecord GameRecord::copyAllButPosition() const
+{
+    GameRecord record;
+    record.tags_ = tags_;
+    record.whiteTimeControl_ = whiteTimeControl_;
+    record.blackTimeControl_ = blackTimeControl_;
+    record.whiteEngineName_ = whiteEngineName_;
+    record.blackEngineName_ = blackEngineName_;
+    record.totalGameNo_ = totalGameNo_;
+    record.gameInRound_ = gameInRound_;
+    record.opening_ = opening_;
+    record.round_ = round_;
+
+    return record;
+}
+
 std::string GameRecord::movesToStringUpToPly(uint32_t lastPly, const MoveRecord::toStringOptions& opts) const {
 
     constexpr size_t MAX_LINE_LENGTH = 80;

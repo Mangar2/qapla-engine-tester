@@ -279,7 +279,7 @@ std::tuple<QaplaBasics::Move, bool, bool> GameState::resolveMove(
 
 GameRecord GameState::setFromGameRecordAndCopy(const GameRecord& game, std::optional<uint32_t> plies, 
 	bool verbose) {
-	GameRecord copy;
+	GameRecord copy = game.copyAllButPosition();
 	if (!setFen(game.getStartPos(), game.getStartFen())) {
 		return copy;
 	}
