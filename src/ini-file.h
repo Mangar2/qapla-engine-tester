@@ -85,6 +85,7 @@ public:
 
     /**
      * @brief Loads the INI file sections from the input stream.
+     * @warning This function is deprecated. Use ConfigData class for more advanced configuration handling.
      *
      * @param in The input stream to read from.
      * @return SectionList A list of sections parsed from the INI file.
