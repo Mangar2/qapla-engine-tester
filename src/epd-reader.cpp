@@ -19,6 +19,10 @@
 
 #include "epd-reader.h"
 #include "string-helper.h"
+#include "game-state.h"
+
+#include "qapla-engine/fenscanner.h"
+#include "qapla-engine/movegenerator.h"
 
 #include <array>
 #include <sstream>
@@ -31,10 +35,13 @@
 
 namespace QaplaTester {
 
-EpdReader::EpdReader(const std::string& filePath): filePath_(filePath) {
+EpdReader::EpdReader(const std::string& filePath, 
+                     std::optional<size_t> maxEntries,
+                     size_t maxStoredErrorLines)
+    : filePath_(filePath), maxStoredErrorLines_(maxStoredErrorLines) {
     std::ifstream file(filePath);
     if (!file) {
-        int err = errno;
+        auto err = errno;
 
         std::string errMsg;
     #ifdef _WIN32
@@ -42,8 +49,8 @@ EpdReader::EpdReader(const std::string& filePath): filePath_(filePath) {
         strerror_s(buf.data(), buf.size(), err);
         errMsg = buf.data();
     #else
-        std::error_code ec(err, std::generic_category());
-        errMsg = ec.message();
+        std::error_code errCode(err, std::generic_category());
+        errMsg = errCode.message();
     #endif
         throw std::runtime_error(
             "Failed to open EPD file: " + filePath +
@@ -52,16 +59,29 @@ EpdReader::EpdReader(const std::string& filePath): filePath_(filePath) {
     }
     std::string line;
     size_t lineNumber = 0;
+    size_t processedCount = 0;
     while (std::getline(file, line)) {
-        if (!line.empty()) {
-            ++lineNumber;
-            auto entry = parseEpdLine(line);
-            // Add auto-generated ID if not present
-            if (!entry.operations.contains("id") || entry.operations["id"].empty()) {
-                entry.operations["id"] = { std::to_string(lineNumber) };
-            }
-            entries_.emplace_back(std::move(entry));
+        if (line.empty()) {
+            continue;
         }
+        ++lineNumber;
+        ++processedCount;
+        if (maxEntries.has_value() && processedCount > maxEntries.value()) {
+            break;
+        }
+        auto entry = parseEpdLine(line);
+        if (entry.fen.empty()) {
+            ++parseErrorCount_;
+            if (errorLines_.size() < maxStoredErrorLines_) {
+                errorLines_.push_back(line);
+            }
+            continue;
+        }
+        // Add auto-generated ID if not present
+        if (!entry.operations.contains("id") || entry.operations["id"].empty()) {
+            entry.operations["id"] = { std::to_string(lineNumber) };
+        }
+        entries_.emplace_back(std::move(entry));
     }
     currentIndex_ = 0;
 }
@@ -81,51 +101,102 @@ const std::vector<EpdEntry>& EpdReader::all() const {
     return entries_;
 }
 
+EpdReaderResult EpdReader::getResult() const {
+    EpdReaderResult result;
+    result.entries = entries_;
+    result.errorCount = parseErrorCount_;
+    result.errorLines = errorLines_;
+    return result;
+}
+
 EpdEntry EpdReader::parseEpdLine(const std::string& line) {
-    std::istringstream stream(line);
     EpdEntry result;
 
-    auto [fen, rest] = extractFen(stream); // liefert FEN + Rest
-    result.fen = std::move(fen);
-    parseOperations(rest, result);
+    FenParserInput input;
+    input.fenString = line;
+    input.startPos = 0;
+    input.maxSearchLength = 10;
+
+    auto fenResult = parseFen(input);
+    if (!fenResult.gameRecord) {
+        return result;
+    }
+
+    result.fen = fenResult.gameRecord->getStartFen();
+    
+    // Check for move list before operations
+    auto posAfterMoves = parseMoveList(line, fenResult.nextPos, result);
+    parseOperations(line, posAfterMoves, result);
 
     return result;
 }
 
-std::pair<std::string, std::string>
-EpdReader::extractFen(std::istringstream& stream) {
-    std::ostringstream fenStream;
-    std::string token;
+FenParserResult EpdReader::parseFen(const FenParserInput& input) {
+    FenParserResult result;
+    result.nextPos = input.startPos;
 
-    for (int part = 0; part < 4; ++part) {
-        if (!(stream >> token)) {
-            throw std::runtime_error("Incomplete FEN in EPD line");
-        }
-        if (part != 0) {
-            fenStream << ' ';
-        }
-        fenStream << token;
+    // skip blanks at the beginning
+    size_t startPos = input.fenString.find_first_not_of(' ', input.startPos);
+    if (startPos == std::string::npos) {
+        return result;
     }
 
-    for (int i = 0; i < 2; ++i) {
-        int v;
-        bool isInt = static_cast<bool>(stream >> v);
-        if (isInt && v >= 0) {
-            fenStream << ' ' << v;
-        } else {
-            stream.clear();
-            break;
+    size_t searchLength = std::min(input.fenString.length(), input.maxSearchLength + startPos);
+    
+    for (; startPos < searchLength; ++startPos) {
+        
+        QaplaInterface::FenScanner scanner;
+        QaplaMoveGenerator::MoveGenerator position;
+        try {
+            result.nextPos = scanner.setBoard(input.fenString, position, startPos);
+            if (result.nextPos == 0) {
+                continue;
+            }
+            std::string fen = input.fenString.substr(startPos, result.nextPos - startPos);
+            GameState gameState;
+            gameState.setFen(false, fen);
+            
+            result.gameRecord = GameRecord();
+            result.gameRecord->setStartPosition(
+                false,                              // Not standard start position
+                fen,                                // FEN string
+                gameState.isWhiteToMove(),          // Who to move
+                gameState.getStartHalfmoves()       // Half-move clock
+            );
+            return result;
+        } catch (...) {
+            // Continue searching if GameState creation fails
+            continue;
         }
     }
+    if (!result.gameRecord) {
+        result.error = 1; 
+    }
 
-    std::string rest;
-    std::getline(stream, rest);
-    return { fenStream.str(), rest };
+    return result;
 }
 
-void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
+bool EpdReader::isMoveNumber(const std::string& opcode) {
+    if (opcode.empty() || opcode.back() != '.') {
+        return false;
+    }
+    // Check if all characters before the dot are digits
+    for (size_t idx = 0; idx < opcode.size() - 1; ++idx) {
+        if (std::isdigit(static_cast<unsigned char>(opcode[idx])) == 0) {
+            return false;
+        }
+    }
+    return opcode.size() > 1;
+}
+
+size_t EpdReader::parseMoveList(const std::string& /*input*/, size_t startPos, EpdEntry& /*result*/) {
+    // TODO: Implement move list parsing (e.g., "1. e4 e5 2. Nf3")
+    return startPos;
+}
+
+void EpdReader::parseOperations(const std::string& input, size_t startPos, EpdEntry& result) {
     // Remove all carriage returns from input before parsing
-    std::string cleanedInput = input;
+    auto cleanedInput = input.substr(startPos);
     std::erase(cleanedInput, '\r');
     
     std::istringstream stream(cleanedInput);
@@ -133,9 +204,9 @@ void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
     std::string opCode;
 
     while (stream >> std::ws) {
-        char ch = static_cast<char>(stream.peek());
-        if (ch == '"') {
-            stream.get(); // skip opening quote
+        auto chr = static_cast<char>(stream.peek());
+        if (chr == '"') {
+            stream.get();
             std::getline(stream, token, '"');
         }
         else {
@@ -154,6 +225,10 @@ void EpdReader::parseOperations(const std::string& input, EpdEntry& result) {
             }
         }
         else if (opCode.empty()) {
+            // Skip move numbers (e.g., "1.", "23.")
+            if (isMoveNumber(token)) {
+                continue;
+            }
             opCode = std::move(token);
         }
         else {

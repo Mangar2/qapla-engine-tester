@@ -18,22 +18,105 @@
  */
 
 #include "opening-parser.h"
+#include "epd-reader.h"
 #include "pgn-io.h"
 
 #include <algorithm>
+#include <format>
 #include <ranges>
 #include <cctype>
 
 namespace QaplaTester {
 
+namespace {
+    constexpr double MAX_ERROR_RATE = 0.2;
+    constexpr size_t PROBE_LINE_COUNT = 100;
+    constexpr size_t MAX_STORED_ERROR_LINES = 10;
+}
+
 OpeningParser::OpeningParser() {
+    // Register EPD parser first
+    addParser("EPD", {".epd", ".raw"}, [](const std::filesystem::path& filePath, 
+                                          ParserTraceEntry& trace) -> std::optional<std::vector<GameRecord>> {
+        try {
+            // First probe with limited lines to check error rate
+            EpdReader probeReader(filePath.string(), PROBE_LINE_COUNT, MAX_STORED_ERROR_LINES);
+            auto probeResult = probeReader.getResult();
+            
+            trace.messages.push_back(std::format("Probe: {} lines, {} entries, {} errors ({:.1f}% error rate)",
+                PROBE_LINE_COUNT, probeResult.entries.size(), probeResult.errorCount, 
+                probeResult.getErrorRate() * 100.0));
+            
+            if (probeResult.getTotalCount() == 0) {
+                trace.messages.push_back("Probe failed: no lines processed");
+                return std::nullopt;
+            }
+            
+            if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
+                trace.messages.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                    probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+                for (const auto& errorLine : probeResult.errorLines) {
+                    trace.messages.push_back(std::format("  Error line: {}", errorLine));
+                }
+                return std::nullopt;
+            }
+            
+            // Read full file
+            EpdReader fullReader(filePath.string(), std::nullopt, MAX_STORED_ERROR_LINES);
+            auto fullResult = fullReader.getResult();
+            
+            trace.messages.push_back(std::format("Full scan: {} entries, {} errors ({:.1f}% error rate)",
+                fullResult.entries.size(), fullResult.errorCount, fullResult.getErrorRate() * 100.0));
+            
+            if (fullResult.getTotalCount() == 0) {
+                trace.messages.push_back("Full scan failed: no lines processed");
+                return std::nullopt;
+            }
+            
+            if (fullResult.getErrorRate() > MAX_ERROR_RATE) {
+                trace.messages.push_back(std::format("Full scan failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                    fullResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+                for (const auto& errorLine : fullResult.errorLines) {
+                    trace.messages.push_back(std::format("  Error line: {}", errorLine));
+                }
+                return std::nullopt;
+            }
+            
+            // Convert EPD entries to GameRecords
+            std::vector<GameRecord> result;
+            result.reserve(fullResult.entries.size());
+            for (const auto& entry : fullResult.entries) {
+                GameRecord record;
+                record.setStartPosition(false, entry.fen, true, 0);
+                result.push_back(std::move(record));
+            }
+            
+            trace.messages.push_back(std::format("Success: {} game records created", result.size()));
+            trace.success = true;
+            return result;
+        } catch (const std::exception& exc) {
+            trace.messages.push_back(std::format("Exception: {}", exc.what()));
+            return std::nullopt;
+        } catch (...) {
+            trace.messages.push_back("Unknown exception");
+            return std::nullopt;
+        }
+    });
+
     // Register PGN parser
-    addParser("PGN", {".pgn"}, [](const std::filesystem::path& filePath) -> std::optional<std::vector<GameRecord>> {
+    addParser("PGN", {".pgn"}, [](const std::filesystem::path& filePath,
+                                  ParserTraceEntry& trace) -> std::optional<std::vector<GameRecord>> {
         try {
             PgnIO pgnIO;
             auto games = pgnIO.loadGames(filePath.string());
+            trace.messages.push_back(std::format("Loaded {} games from PGN", games.size()));
+            trace.success = true;
             return games;
+        } catch (const std::exception& exc) {
+            trace.messages.push_back(std::format("Exception: {}", exc.what()));
+            return std::nullopt;
         } catch (...) {
+            trace.messages.push_back("Unknown exception");
             return std::nullopt;
         }
     });
@@ -44,6 +127,14 @@ void OpeningParser::addParser(const std::string& name, const std::vector<std::st
 }
 
 std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePath) const {
+    auto result = parseWithTrace(filePath);
+    return result.games;
+}
+
+OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& filePath) const {
+    OpeningParserResult result;
+    result.filePath = filePath.string();
+    
     const auto extension = filePath.extension().string();
     
     // Helper to check if an extension matches (case-insensitive)
@@ -51,19 +142,35 @@ std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePa
         if (ext.length() != extension.length()) {
             return false;
         }
-        return std::ranges::equal(ext, extension, [](char a, char b) {
-            return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+        return std::ranges::equal(ext, extension, [](char chr1, char chr2) {
+            return std::tolower(static_cast<unsigned char>(chr1)) == std::tolower(static_cast<unsigned char>(chr2));
         });
+    };
+
+    // Helper to try a parser and record trace
+    auto tryParser = [&](const ParserEntry& entry) -> bool {
+        ParserTraceEntry traceEntry;
+        traceEntry.parserName = entry.name;
+        
+        if (auto games = entry.parser(filePath, traceEntry); games) {
+            result.games = std::move(*games);
+            result.successfulParser = entry.name;
+            traceEntry.success = true;
+            result.trace.push_back(std::move(traceEntry));
+            return true;
+        }
+        result.trace.push_back(std::move(traceEntry));
+        return false;
     };
 
     // First try parsers with matching extension
     for (const auto& entry : parsers_) {
         for (const auto& ext : entry.extensions) {
             if (matchesExtension(ext)) {
-                 if (auto result = entry.parser(filePath); result) {
-                     return *result;
-                 }
-                 break; 
+                if (tryParser(entry)) {
+                    return result;
+                }
+                break; 
             }
         }
     }
@@ -79,13 +186,13 @@ std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePa
         }
         
         if (!alreadyTried) {
-            if (auto result = entry.parser(filePath); result) {
-                return *result;
+            if (tryParser(entry)) {
+                return result;
             }
         }
     }
 
-    return {};
+    return result;
 }
 
 } // namespace QaplaTester

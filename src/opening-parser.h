@@ -30,12 +30,41 @@
 namespace QaplaTester {
 
 /**
+ * @brief Trace information for a single parser attempt.
+ */
+struct ParserTraceEntry {
+    std::string parserName;             ///< Name of the parser that was tried
+    bool success = false;               ///< Whether the parser succeeded
+    std::vector<std::string> messages;  ///< Trace messages from this parser
+};
+
+/**
+ * @brief Result of parsing an opening file.
+ */
+struct OpeningParserResult {
+    std::vector<GameRecord> games;              ///< Parsed game records
+    std::string filePath;                       ///< Path to the parsed file
+    std::string successfulParser;               ///< Name of the parser that succeeded (empty if none)
+    std::vector<ParserTraceEntry> trace;        ///< Trace information from all attempted parsers
+    
+    /**
+     * @brief Returns whether parsing was successful.
+     * @return true if at least one game was parsed.
+     */
+    [[nodiscard]] bool success() const {
+        return !games.empty();
+    }
+};
+
+/**
  * @brief Function type for parsing opening files.
  * 
- * Takes a file path and returns a vector of GameRecords if successful,
- * or std::nullopt if the parser cannot handle the file or fails.
+ * Takes a file path and a trace entry reference to fill with diagnostic info.
+ * Returns a vector of GameRecords if successful, or std::nullopt if the parser 
+ * cannot handle the file or fails.
  */
-using OpeningParserFunction = std::function<std::optional<std::vector<GameRecord>>(const std::filesystem::path&)>;
+using OpeningParserFunction = std::function<std::optional<std::vector<GameRecord>>(
+    const std::filesystem::path&, ParserTraceEntry&)>;
 
 /**
  * @brief Manages parsing of opening files in various formats.
@@ -69,6 +98,16 @@ public:
      * @return A vector of GameRecords found in the file. Returns empty vector if no games found or parsing failed.
      */
     [[nodiscard]] std::vector<GameRecord> parse(const std::filesystem::path& filePath) const;
+
+    /**
+     * @brief Parses a file and returns detailed result with trace information.
+     * 
+     * Tries parsers matching the file extension first, then other parsers.
+     * 
+     * @param filePath The path to the file to parse.
+     * @return OpeningParserResult containing games, parser info, and trace.
+     */
+    [[nodiscard]] OpeningParserResult parseWithTrace(const std::filesystem::path& filePath) const;
 
 private:
     struct ParserEntry {
