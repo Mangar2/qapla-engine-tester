@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "game-record.h"
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -34,56 +36,151 @@ struct EpdEntry {
     std::unordered_map<std::string, std::vector<std::string>> operations; ///< Opcode to operands
 };
 
+struct FenParserResult {
+    std::optional<GameRecord> gameRecord;
+    uint32_t error = 0;
+    size_t nextPos;
+};
+
+struct FenParserInput {
+    std::string fenString;              ///< The FEN string to parse
+    size_t startPos = 0;                ///< The position to start parsing from
+    size_t maxSearchLength = 10;        ///< The maximum length to search for a valid FEN
+};
+
+/**
+ * @brief Result of reading an EPD file.
+ */
+struct EpdReaderResult {
+    std::vector<EpdEntry> entries;          ///< Successfully parsed entries
+    size_t errorCount = 0;                  ///< Number of lines that failed to parse
+    std::vector<std::string> errorLines;    ///< First N lines that failed to parse
+    
+    /**
+     * @brief Calculates the error rate.
+     * @return Error rate as a value between 0.0 and 1.0.
+     */
+    [[nodiscard]] double getErrorRate() const {
+        auto total = entries.size() + errorCount;
+        return (total == 0) ? 0.0 : static_cast<double>(errorCount) / static_cast<double>(total);
+    }
+    
+    /**
+     * @brief Returns the total number of processed lines.
+     * @return Total count of entries plus errors.
+     */
+    [[nodiscard]] size_t getTotalCount() const {
+        return entries.size() + errorCount;
+    }
+};
+
 class EpdReader {
 public:
     /**
-     * Constructs an EpdReader and loads all entries from the specified file.
-     *
+     * @brief Constructs an EpdReader and loads all entries from the specified file.
      * @param filePath Path to the EPD file.
+     * @param maxEntries Maximum number of entries to read (excluding empty lines). If nullopt, read all.
+     * @param maxStoredErrorLines Maximum number of error lines to store (default 10).
      * @throws std::runtime_error if the file cannot be read.
      */
-    explicit EpdReader(const std::string& filePath);
+    explicit EpdReader(const std::string& filePath, 
+                       std::optional<size_t> maxEntries = std::nullopt,
+                       size_t maxStoredErrorLines = 10);
 
     /**
-     * Resets the reading position to the beginning.
+     * @brief Resets the reading position to the beginning.
      */
     void reset();
 
     /**
-     * Returns the next EPD entry if available.
-     *
+     * @brief Returns the next EPD entry if available.
      * @return std::optional containing the next EpdEntry, or std::nullopt if end reached.
      */
     std::optional<EpdEntry> next();
 
     /**
-     * Returns all loaded EPD entries.
-     *
+     * @brief Returns all loaded EPD entries.
      * @return const reference to the vector of all entries.
      */
     [[nodiscard]] const std::vector<EpdEntry>& all() const;
 
+    /**
+     * @brief Returns the file path of the EPD file.
+     * @return const reference to the file path.
+     */
 	[[nodiscard]] const std::string& getFilePath() const {
 		return filePath_;
 	}
+
+    /**
+     * @brief Returns the number of lines that could not be parsed.
+     * @return Number of parse errors.
+     */
+    [[nodiscard]] size_t getParseErrorCount() const {
+        return parseErrorCount_;
+    }
+
+    /**
+     * @brief Returns the first N error lines encountered during parsing.
+     * @return const reference to the vector of error lines.
+     */
+    [[nodiscard]] const std::vector<std::string>& getErrorLines() const {
+        return errorLines_;
+    }
+
+    /**
+     * @brief Returns the complete result including entries, error count and error lines.
+     * @return EpdReaderResult with all parsing information.
+     */
+    [[nodiscard]] EpdReaderResult getResult() const;
+
+    /**
+     * @brief Parses a FEN string starting from a given position.
+     * @param input The FenParserInput structure containing the FEN string and parameters.
+     * @return FenParserResult containing the parsed GameRecord and status.
+     */
+    [[nodiscard]]
+    static FenParserResult parseFen(const FenParserInput& input);
 
 private:
     std::vector<EpdEntry> entries_;
     std::size_t currentIndex_;
     std::string filePath_;
+    size_t parseErrorCount_ = 0;
+    std::vector<std::string> errorLines_;
+    size_t maxStoredErrorLines_ = 10;
 
     /**
-     * Parses a single EPD line into FEN and opcode-operand pairs.
-     *
+     * @brief Parses a single EPD line into FEN and opcode-operand pairs.
      * @param line The EPD line as a string.
-     * @return Parsed EpdEntry structure.
-     * @throws std::runtime_error on invalid format.
+     * @return Parsed EpdEntry structure, fen is empty if parsing failed.
      */
     static EpdEntry parseEpdLine(const std::string& line);
 
-    static std::pair<std::string, std::string> extractFen(std::istringstream& stream);
+    /**
+     * @brief Parses a move list from the input string (e.g., "1. e4 e5 2. Nf3").
+     * @param input The input string containing the move list.
+     * @param startPos The position to start parsing from.
+     * @param result The EpdEntry to store parsed moves (currently unused).
+     * @return The position after the parsed move list.
+     */
+    static size_t parseMoveList(const std::string& input, size_t startPos, EpdEntry& result);
 
-    static void parseOperations(const std::string& input, EpdEntry& result);
+    /**
+     * @brief Checks if an opcode looks like a move number (e.g., "1.", "23.").
+     * @param opcode The opcode string to check.
+     * @return true if the opcode matches the move number pattern.
+     */
+    [[nodiscard]]
+    static bool isMoveNumber(const std::string& opcode);
+
+    /**
+     * @brief Parses operations (opcode-operand pairs) from the input string.
+     * @param input The input string containing operations.
+     * @param startPos The position to start parsing from.
+     * @param result The EpdEntry to store parsed operations.
+     */
+    static void parseOperations(const std::string& input, size_t startPos, EpdEntry& result);
 
 };
 
