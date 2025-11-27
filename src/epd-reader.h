@@ -25,8 +25,48 @@
 #include <vector>
 #include <unordered_map>
 #include <optional>
+#include <chrono>
 
 namespace QaplaTester {
+
+/**
+ * @brief Represents a single trace entry during EPD file processing.
+ */
+struct TraceEntry {
+    enum class Level {
+        Info,
+        Warning,
+        Error
+    };
+
+    Level level = Level::Info;
+    std::string message;
+    std::optional<size_t> lineNumber;  ///< Line number if applicable
+    std::string context;                ///< Additional context (e.g., the actual line content)
+
+    TraceEntry(Level lvl, std::string msg, std::optional<size_t> line = std::nullopt, std::string ctx = "")
+        : level(lvl), message(std::move(msg)), lineNumber(line), context(std::move(ctx)) {}
+
+    [[nodiscard]] std::string levelToString() const {
+        switch (level) {
+            case Level::Info: return "INFO";
+            case Level::Warning: return "WARNING";
+            case Level::Error: return "ERROR";
+        }
+        return "UNKNOWN";
+    }
+
+    [[nodiscard]] std::string toString() const {
+        std::string result = "[" + levelToString() + "] " + message;
+        if (lineNumber.has_value()) {
+            result += " (line " + std::to_string(lineNumber.value()) + ")";
+        }
+        if (!context.empty()) {
+            result += ": " + context;
+        }
+        return result;
+    }
+};
 
 /**
  * Represents the parsed contents of a single EPD line.
@@ -49,12 +89,15 @@ struct FenParserInput {
 };
 
 /**
- * @brief Result of reading an EPD file.
+ * @brief Result of reading an EPD file with complete trace information.
  */
 struct EpdReaderResult {
     std::vector<EpdEntry> entries;          ///< Successfully parsed entries
     size_t errorCount = 0;                  ///< Number of lines that failed to parse
-    std::vector<std::string> errorLines;    ///< First N lines that failed to parse
+    std::vector<TraceEntry> trace;          ///< Complete trace of the reading process
+    std::string filePath;                   ///< Path of the processed file
+    bool fileOpened = false;                ///< Whether the file was successfully opened
+    std::chrono::milliseconds duration{0};  ///< Time taken to process the file
     
     /**
      * @brief Calculates the error rate.
@@ -72,6 +115,32 @@ struct EpdReaderResult {
     [[nodiscard]] size_t getTotalCount() const {
         return entries.size() + errorCount;
     }
+
+    /**
+     * @brief Returns only error-level trace entries.
+     * @return Vector of error trace entries.
+     */
+    [[nodiscard]] std::vector<TraceEntry> getErrors() const {
+        std::vector<TraceEntry> errors;
+        for (const auto& entry : trace) {
+            if (entry.level == TraceEntry::Level::Error) {
+                errors.push_back(entry);
+            }
+        }
+        return errors;
+    }
+
+    /**
+     * @brief Returns the complete trace as a formatted string.
+     * @return Formatted trace string.
+     */
+    [[nodiscard]] std::string getTraceString() const {
+        std::string result;
+        for (const auto& entry : trace) {
+            result += entry.toString() + "\n";
+        }
+        return result;
+    }
 };
 
 class EpdReader {
@@ -80,12 +149,12 @@ public:
      * @brief Constructs an EpdReader and loads all entries from the specified file.
      * @param filePath Path to the EPD file.
      * @param maxEntries Maximum number of entries to read (excluding empty lines). If nullopt, read all.
-     * @param maxStoredErrorLines Maximum number of error lines to store (default 10).
+     * @param maxStoredErrorTraceEntries Maximum number of error trace entries to store (default 10).
      * @throws std::runtime_error if the file cannot be read.
      */
     explicit EpdReader(const std::string& filePath, 
                        std::optional<size_t> maxEntries = std::nullopt,
-                       size_t maxStoredErrorLines = 10);
+                       size_t maxStoredErrorTraceEntries = 10);
 
     /**
      * @brief Resets the reading position to the beginning.
@@ -121,11 +190,11 @@ public:
     }
 
     /**
-     * @brief Returns the first N error lines encountered during parsing.
-     * @return const reference to the vector of error lines.
+     * @brief Returns the trace entries collected during parsing.
+     * @return const reference to the vector of trace entries.
      */
-    [[nodiscard]] const std::vector<std::string>& getErrorLines() const {
-        return errorLines_;
+    [[nodiscard]] const std::vector<TraceEntry>& getTrace() const {
+        return trace_;
     }
 
     /**
@@ -147,8 +216,12 @@ private:
     std::size_t currentIndex_;
     std::string filePath_;
     size_t parseErrorCount_ = 0;
-    std::vector<std::string> errorLines_;
-    size_t maxStoredErrorLines_ = 10;
+    std::vector<TraceEntry> trace_;
+    size_t maxStoredErrorTraceEntries_ = 10;
+    size_t storedErrorTraceCount_ = 0;
+    std::chrono::steady_clock::time_point startTime_;
+    std::chrono::milliseconds duration_{0};
+    bool fileOpened_ = false;
 
     /**
      * @brief Parses a single EPD line into FEN and opcode-operand pairs.

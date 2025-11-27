@@ -55,8 +55,8 @@ OpeningParser::OpeningParser() {
             if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
                 trace.messages.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
                     probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
-                for (const auto& errorLine : probeResult.errorLines) {
-                    trace.messages.push_back(std::format("  Error line: {}", errorLine));
+                for (const auto& traceEntry : probeResult.getErrors()) {
+                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
                 }
                 return std::nullopt;
             }
@@ -76,8 +76,8 @@ OpeningParser::OpeningParser() {
             if (fullResult.getErrorRate() > MAX_ERROR_RATE) {
                 trace.messages.push_back(std::format("Full scan failed: error rate {:.1f}% exceeds maximum {:.1f}%",
                     fullResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
-                for (const auto& errorLine : fullResult.errorLines) {
-                    trace.messages.push_back(std::format("  Error line: {}", errorLine));
+                for (const auto& traceEntry : fullResult.getErrors()) {
+                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
                 }
                 return std::nullopt;
             }

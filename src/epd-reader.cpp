@@ -37,10 +37,15 @@ namespace QaplaTester {
 
 EpdReader::EpdReader(const std::string& filePath, 
                      std::optional<size_t> maxEntries,
-                     size_t maxStoredErrorLines)
-    : filePath_(filePath), maxStoredErrorLines_(maxStoredErrorLines) {
+                     size_t maxStoredErrorTraceEntries)
+    : filePath_(filePath), maxStoredErrorTraceEntries_(maxStoredErrorTraceEntries) {
+    
+    startTime_ = std::chrono::steady_clock::now();
+    trace_.emplace_back(TraceEntry::Level::Info, "Starting EPD file processing", std::nullopt, filePath);
+    
     std::ifstream file(filePath);
     if (!file) {
+        fileOpened_ = false;
         auto err = errno;
 
         std::string errMsg;
@@ -52,28 +57,51 @@ EpdReader::EpdReader(const std::string& filePath,
         std::error_code errCode(err, std::generic_category());
         errMsg = errCode.message();
     #endif
+        
+        trace_.emplace_back(TraceEntry::Level::Error, 
+            "Failed to open file (errno: " + std::to_string(err) + ", " + errMsg + ")",
+            std::nullopt, filePath);
+        
+        duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime_);
+        trace_.emplace_back(TraceEntry::Level::Info, 
+            "Processing finished with errors after " + std::to_string(duration_.count()) + "ms");
+        
         throw std::runtime_error(
             "Failed to open EPD file: " + filePath +
             " (errno: " + std::to_string(err) + ", " + errMsg + ")"
         );
     }
+    
+    fileOpened_ = true;
+    trace_.emplace_back(TraceEntry::Level::Info, "File opened successfully");
+    
     std::string line;
     size_t lineNumber = 0;
     size_t processedCount = 0;
+    size_t emptyLineCount = 0;
+    
     while (std::getline(file, line)) {
+        ++lineNumber;
         if (line.empty()) {
+            ++emptyLineCount;
             continue;
         }
-        ++lineNumber;
         ++processedCount;
         if (maxEntries.has_value() && processedCount > maxEntries.value()) {
+            trace_.emplace_back(TraceEntry::Level::Info, 
+                "Reached maximum entry limit", lineNumber, 
+                "max=" + std::to_string(maxEntries.value()));
             break;
         }
         auto entry = parseEpdLine(line);
         if (entry.fen.empty()) {
             ++parseErrorCount_;
-            if (errorLines_.size() < maxStoredErrorLines_) {
-                errorLines_.push_back(line);
+            if (storedErrorTraceCount_ < maxStoredErrorTraceEntries_) {
+                trace_.emplace_back(TraceEntry::Level::Error, 
+                    "Failed to parse EPD line", lineNumber, 
+                    line.length() > 100 ? line.substr(0, 100) + "..." : line);
+                ++storedErrorTraceCount_;
             }
             continue;
         }
@@ -83,7 +111,34 @@ EpdReader::EpdReader(const std::string& filePath,
         }
         entries_.emplace_back(std::move(entry));
     }
+    
+    // Check for file read errors
+    if (file.bad()) {
+        trace_.emplace_back(TraceEntry::Level::Error, 
+            "File read error occurred during processing", lineNumber);
+    }
+    
     currentIndex_ = 0;
+    
+    duration_ = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - startTime_);
+    
+    // Add summary trace entries
+    trace_.emplace_back(TraceEntry::Level::Info, 
+        "Total lines read: " + std::to_string(lineNumber));
+    if (emptyLineCount > 0) {
+        trace_.emplace_back(TraceEntry::Level::Info, 
+            "Empty lines skipped: " + std::to_string(emptyLineCount));
+    }
+    trace_.emplace_back(TraceEntry::Level::Info, 
+        "Successfully parsed entries: " + std::to_string(entries_.size()));
+    if (parseErrorCount_ > 0) {
+        trace_.emplace_back(TraceEntry::Level::Warning, 
+            "Parse errors: " + std::to_string(parseErrorCount_) + 
+            " (" + std::to_string(storedErrorTraceCount_) + " traced)");
+    }
+    trace_.emplace_back(TraceEntry::Level::Info, 
+        "Processing completed in " + std::to_string(duration_.count()) + "ms");
 }
 
 void EpdReader::reset() {
@@ -105,7 +160,10 @@ EpdReaderResult EpdReader::getResult() const {
     EpdReaderResult result;
     result.entries = entries_;
     result.errorCount = parseErrorCount_;
-    result.errorLines = errorLines_;
+    result.trace = trace_;
+    result.filePath = filePath_;
+    result.fileOpened = fileOpened_;
+    result.duration = duration_;
     return result;
 }
 
