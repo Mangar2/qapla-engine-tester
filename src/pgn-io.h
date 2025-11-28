@@ -282,6 +282,26 @@ public:
 		return instance;
 	}
 
+    /**
+     * @brief Parses a SAN move and attached annotations starting at a position.
+     * @param tokens Token list from PGN input.
+     * @param start Position to begin parsing from.
+     * @param loadComments Whether to parse move comments or skip them.
+     * @return Pair {MoveRecord, next position}. If no valid move, next == start.
+     */
+    static std::pair<MoveRecord, size_t> parseMove(const std::vector<std::string>& tokens, size_t start, bool loadComments = true);
+
+    /**
+     * @brief Parses a game end cause annotation from tokens and updates the GameRecord.
+     * 
+     * @param tokens Token list from PGN input.
+     * @param start Position to begin checking.
+     * @param cause Optional GameEndCause to populate if found.
+     * @return Next token position after processing the annotation.
+     */
+    static size_t parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, 
+        std::optional<GameEndCause>& cause);
+
 private:
 
     /**
@@ -301,30 +321,6 @@ private:
      */
     void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move,
         uint32_t plyIndex, bool isWhiteStart) const;
-
-    /**
-     * @brief Parses a SAN move and attached annotations starting at a position.
-     * @param tokens Token list from PGN input.
-     * @param start Position to begin parsing from.
-     * @param loadComments Whether to parse move comments or skip them.
-     * @return Pair {MoveRecord, next position}. If no valid move, next == start.
-     */
-    static std::pair<MoveRecord, size_t> parseMove(const std::vector<std::string>& tokens, size_t start, bool loadComments = true);
-
-    /**
-     * @brief Parses a PGN tag line.
-	 * @param tokens Tokenized line from PGN input.
-     * @return ParseTagResult containing key, value, and any trace lines from errors.
-     */
-    static ParseTagResult parseTag(const std::vector<std::string>& tokens);
-
-    /**
-     * @brief Parses a PGN move line from tokens.
-     * @param tokens Tokenized line from PGN input.
-     * @param loadComments Whether to parse move comments or skip them.
-     * @return Pair of move list and optional game result (1-0, 0-1, 1/2-1/2, *).
-     */
-    static std::pair<std::vector<MoveRecord>, std::optional<GameResult>> parseMoveLine(const std::vector<std::string>& tokens, bool loadComments = true);
 
     /**
      * @brief Skips a move-number indication like 12. or 23... starting at position.
@@ -354,17 +350,6 @@ private:
      */
     static size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, MoveRecord& move);
 
-    /**
-     * @brief Parses a game end cause annotation from tokens and updates the GameRecord.
-     * 
-     * @param tokens Token list from PGN input.
-     * @param start Position to begin checking.
-     * @param cause Optional GameEndCause to populate if found.
-     * @return Next token position after processing the annotation.
-     */
-    static size_t parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, 
-        std::optional<GameEndCause>& cause);
-
     static void parseMateScore(const std::string& token, int32_t factor, MoveRecord& move);
     static void parseCpScore(const std::string& token, MoveRecord& move);
     
@@ -388,16 +373,6 @@ private:
     static std::string collectTerminationCause(const std::vector<std::string>& tokens, size_t& pos);
 
     /**
-     * @brief Sets game result from parsed result token and move comments.
-     * @param moves List of parsed moves.
-     * @param parsedResult Optional result from PGN result token (1-0, 0-1, etc.).
-     * @param game GameRecord to update with final result and end cause.
-     */
-    static void setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
-                                           std::optional<GameResult> parsedResult, 
-                                           GameRecord& game);
-
-    /**
      * @brief Skips a comment block following a SAN move without parsing.
      * @param tokens Token list from PGN input.
      * @param start Position of the opening "{" token.
@@ -406,13 +381,7 @@ private:
     static size_t skipMoveComment(const std::vector<std::string>& tokens, size_t start);
 
     /**
-     * @brief Interprets known PGN tags and sets corresponding GameRecord fields.
-     * @param game The GameRecord whose tags will be finalized.
-     */
-    static void finalizeParsedTags(GameRecord& game);
-
-    /**
-     * @brief Processes the lines of the PGN file in the while loop.
+     * @brief Processes the lines of the PGN file.
      * @param inFile The input file stream.
      * @param fileSize Size of the file for progress calculation.
      * @param params Load parameters containing options for parsing.
