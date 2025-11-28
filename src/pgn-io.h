@@ -73,6 +73,34 @@ struct PgnTraceEntry {
 };
 
 /**
+ * @brief Result of parsing a single PGN tag.
+ */
+struct ParseTagResult {
+    std::string key;                        ///< Tag key (empty if parsing failed)
+    std::string value;                      ///< Tag value
+    std::vector<std::string> traceLines;    ///< Trace lines if parsing errors occurred
+    
+    [[nodiscard]] bool isValid() const { return !key.empty(); }
+};
+
+/**
+ * @brief Result of parsing a single PGN game.
+ */
+struct ParseGameResult {
+    GameRecord game;                        ///< The parsed game record
+    std::vector<std::string> traceLines;    ///< Trace lines from tag parsing errors
+};
+
+/**
+ * @brief Result of processing file lines.
+ */
+struct ProcessFileLinesResult {
+    std::vector<GameRecord> games;          ///< Successfully parsed games
+    std::vector<std::string> traceLines;    ///< Trace lines from parsing errors
+    bool completed = true;                  ///< Whether processing completed normally
+};
+
+/**
  * @brief Result of reading a PGN file with complete trace information.
  */
 struct PgnReaderResult {
@@ -151,11 +179,11 @@ public:
      * @brief Parameters for loading games from a PGN file.
      */
     struct LoadParams {
-        std::string filePath;               ///< Path to the PGN file
-        bool loadComments;                  ///< Whether to parse move comments
-        std::optional<size_t> maxGames;     ///< Maximum number of games to load (nullopt = all)
-        size_t maxStoredErrorTraceEntries;  ///< Maximum number of error trace entries to store
-        std::function<bool(const GameRecord&, float)> gameCallback;  ///< Optional progress callback
+        std::string filePath;                              ///< Path to the PGN file
+        bool loadComments = false;                         ///< Whether to parse move comments
+        std::optional<size_t> maxGames = std::nullopt;     ///< Maximum number of games to load (nullopt = all)
+        size_t maxStoredErrorTraceEntries = 100;           ///< Maximum number of error trace entries to store
+        std::function<bool(const GameRecord&, float)> gameCallback = nullptr;  ///< Optional progress callback
     };
 
     PgnIO() = default;
@@ -286,9 +314,9 @@ private:
     /**
      * @brief Parses a PGN tag line.
 	 * @param tokens Tokenized line from PGN input.
-     * @return Pair of tag key and value. Returns {"", ""} if invalid.
+     * @return ParseTagResult containing key, value, and any trace lines from errors.
      */
-    static std::pair<std::string, std::string> parseTag(const std::vector<std::string>& tokens);
+    static ParseTagResult parseTag(const std::vector<std::string>& tokens);
 
     /**
      * @brief Parses a PGN move line from tokens.
@@ -349,6 +377,7 @@ private:
      * @return Next position if pattern recognized, otherwise unchanged position.
      */
     static size_t parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move);
+    static size_t parseGameEndInfo2(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move);
     
     /**
      * @brief Collects tokens forming a game termination cause until delimiter.
@@ -386,40 +415,12 @@ private:
      * @brief Processes the lines of the PGN file in the while loop.
      * @param inFile The input file stream.
      * @param fileSize Size of the file for progress calculation.
-     * @param games Vector to store parsed games.
-     * @param currentGame Current game being parsed.
-     * @param inMoveSection Flag indicating if we are in the move section.
-     * @param gameCallback Optional callback for progress.
-     * @param loadComments Whether to load comments.
+     * @param params Load parameters containing options for parsing.
+     * @return ProcessFileLinesResult containing games, trace lines, and completion status.
      */
-    void processFileLines(std::ifstream& inFile, 
+    ProcessFileLinesResult processFileLines(std::ifstream& inFile, 
         std::streamsize fileSize, 
-        std::vector<GameRecord>& games, 
-        GameRecord& currentGame, 
-        bool& inMoveSection, 
-        const std::function<bool(const GameRecord&, float)>& gameCallback, 
-        bool loadComments);
-
-    /**
-     * @brief Processes the lines of the PGN file in the while loop.
-     * @param inFile The input file stream.
-     * @param fileSize Size of the file for progress calculation.
-     * @param games Vector to store parsed games.
-     * @param currentGame Current game being parsed.
-     * @param inMoveSection Flag indicating if we are in the move section.
-     * @param gameCallback Optional callback for progress.
-     * @param loadComments Whether to load comments.
-     * @param maxGames Maximum number of games to load (nullopt = all).
-     * @return true if loading completed normally, false if stopped by maxGames limit.
-     */
-    bool processFileLines(std::ifstream& inFile, 
-        std::streamsize fileSize, 
-        std::vector<GameRecord>& games, 
-        GameRecord& currentGame, 
-        bool& inMoveSection, 
-        const std::function<bool(const GameRecord&, float)>& gameCallback, 
-        bool loadComments,
-        std::optional<size_t> maxGames);
+        const LoadParams& params);
 
     Options options_;
     std::vector<std::streampos> gamePositions_;  // Positions of games in the last loaded file
