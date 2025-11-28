@@ -39,6 +39,13 @@ struct ParserTraceEntry {
 };
 
 /**
+ * @brief Parameters for parsing opening files.
+ */
+struct OpeningParserParams {
+    std::optional<size_t> maxGames;     ///< Maximum number of games to load (nullopt = all)
+};
+
+/**
  * @brief Result of parsing an opening file.
  */
 struct OpeningParserResult {
@@ -59,12 +66,13 @@ struct OpeningParserResult {
 /**
  * @brief Function type for parsing opening files.
  * 
- * Takes a file path and a trace entry reference to fill with diagnostic info.
+ * Takes a file path, a trace entry reference to fill with diagnostic info,
+ * and optional parameters for parsing.
  * Returns a vector of GameRecords if successful, or std::nullopt if the parser 
  * cannot handle the file or fails.
  */
 using OpeningParserFunction = std::function<std::optional<std::vector<GameRecord>>(
-    const std::filesystem::path&, ParserTraceEntry&)>;
+    const std::filesystem::path&, ParserTraceEntry&, const OpeningParserParams&)>;
 
 /**
  * @brief Manages parsing of opening files in various formats.
@@ -95,9 +103,11 @@ public:
      * Tries parsers matching the file extension first, then other parsers.
      * 
      * @param filePath The path to the file to parse.
+     * @param maxGames Maximum number of games to load (nullopt = all).
      * @return A vector of GameRecords found in the file. Returns empty vector if no games found or parsing failed.
      */
-    [[nodiscard]] std::vector<GameRecord> parse(const std::filesystem::path& filePath) const;
+    [[nodiscard]] std::vector<GameRecord> parse(const std::filesystem::path& filePath, 
+                                                 std::optional<size_t> maxGames = std::nullopt) const;
 
     /**
      * @brief Parses a file and returns detailed result with trace information.
@@ -105,9 +115,11 @@ public:
      * Tries parsers matching the file extension first, then other parsers.
      * 
      * @param filePath The path to the file to parse.
+     * @param maxGames Maximum number of games to load (nullopt = all).
      * @return OpeningParserResult containing games, parser info, and trace.
      */
-    [[nodiscard]] OpeningParserResult parseWithTrace(const std::filesystem::path& filePath) const;
+    [[nodiscard]] OpeningParserResult parseWithTrace(const std::filesystem::path& filePath,
+                                                      std::optional<size_t> maxGames = std::nullopt) const;
 
 private:
     struct ParserEntry {
