@@ -181,6 +181,7 @@ public:
     struct LoadParams {
         std::string filePath;                              ///< Path to the PGN file
         bool loadComments = false;                         ///< Whether to parse move comments
+        bool skipEmptyGames = false;                       ///< Whether to skip games without moves and without custom FEN
         std::optional<size_t> maxGames = std::nullopt;     ///< Maximum number of games to load (nullopt = all)
         size_t maxStoredErrorTraceEntries = 100;           ///< Maximum number of error trace entries to store
         std::function<bool(const GameRecord&, float)> gameCallback = nullptr;  ///< Optional progress callback
@@ -282,26 +283,6 @@ public:
 		return instance;
 	}
 
-    /**
-     * @brief Parses a SAN move and attached annotations starting at a position.
-     * @param tokens Token list from PGN input.
-     * @param start Position to begin parsing from.
-     * @param loadComments Whether to parse move comments or skip them.
-     * @return Pair {MoveRecord, next position}. If no valid move, next == start.
-     */
-    static std::pair<MoveRecord, size_t> parseMove(const std::vector<std::string>& tokens, size_t start, bool loadComments = true);
-
-    /**
-     * @brief Parses a game end cause annotation from tokens and updates the GameRecord.
-     * 
-     * @param tokens Token list from PGN input.
-     * @param start Position to begin checking.
-     * @param cause Optional GameEndCause to populate if found.
-     * @return Next token position after processing the annotation.
-     */
-    static size_t parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, 
-        std::optional<GameEndCause>& cause);
-
 private:
 
     /**
@@ -322,64 +303,7 @@ private:
     void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move,
         uint32_t plyIndex, bool isWhiteStart) const;
 
-    /**
-     * @brief Skips a move-number indication like 12. or 23... starting at position.
-     * @param tokens Token list from PGN input.
-     * @param start Position to begin checking.
-     * @return Next token position after move-number sequence.
-     */
-    static size_t skipMoveNumber(const std::vector<std::string>& tokens, size_t start);
-
-
-    /**
-    * @brief Skips a recursive variation in PGN notation starting at a given position.
-    *        Recursive variations are enclosed in parentheses and can contain nested variations.
-    * @param tokens Token list from PGN input.
-    * @param start Position to begin checking.
-    * @return Next token position after the recursive variation.
-    *         If no valid variation is found, returns the start position.
-    */
-    static size_t skipRecursiveVariation(const std::vector<std::string>& tokens, size_t start);
-
-    /**
-     * @brief Parses a comment block following a SAN move and extracts metadata.
-     * @param tokens Token list from PGN input.
-     * @param start Position of the opening "{" token.
-     * @param move MoveRecord to populate.
-     * @return Position after closing "}" or unchanged on error.
-     */
-    static size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, MoveRecord& move);
-
-    static void parseMateScore(const std::string& token, int32_t factor, MoveRecord& move);
-    static void parseCpScore(const std::string& token, MoveRecord& move);
-    
-    /**
-     * @brief Parses game-end information from comment tokens.
-     *        Recognizes patterns like "White mates", "Black wins by resignation", "Draw by stalemate".
-     * @param tokens Token list from PGN comment.
-     * @param pos Current position in token list.
-     * @param move MoveRecord to update with result and end cause.
-     * @return Next position if pattern recognized, otherwise unchanged position.
-     */
-    static size_t parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move);
-    static size_t parseGameEndInfo2(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move);
-    
-    /**
-     * @brief Collects tokens forming a game termination cause until delimiter.
-     * @param tokens Token list from PGN comment.
-     * @param pos Current position, updated to position after cause.
-     * @return Concatenated cause string (e.g. "time forfeit", "50-move rule").
-     */
-    static std::string collectTerminationCause(const std::vector<std::string>& tokens, size_t& pos);
-
-    /**
-     * @brief Skips a comment block following a SAN move without parsing.
-     * @param tokens Token list from PGN input.
-     * @param start Position of the opening "{" token.
-     * @return Position after closing "}" or unchanged on error.
-     */
-    static size_t skipMoveComment(const std::vector<std::string>& tokens, size_t start);
-
+ 
     /**
      * @brief Processes the lines of the PGN file.
      * @param inFile The input file stream.
