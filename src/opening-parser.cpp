@@ -33,10 +33,75 @@ namespace {
     constexpr size_t PROBE_GAME_COUNT = 100;
     constexpr size_t PROBE_LINE_COUNT = 100;
     constexpr size_t MAX_STORED_ERROR_LINES = 10;
+
+    /**
+     * @brief Checks if an EPD probe result is valid.
+     * @param probeResult The probe result to check.
+     * @param probeTrace Vector to add probe messages to.
+     * @return true if probe passed, false if it failed.
+     */
+    bool checkEpdProbeResult(const EpdReaderResult& probeResult, std::vector<std::string>& probeTrace) {
+        probeTrace.push_back(std::format("Probe: {} lines, {} entries, {} errors ({:.1f}% error rate)",
+            PROBE_LINE_COUNT, probeResult.entries.size(), probeResult.errorCount, 
+            probeResult.getErrorRate() * 100.0));
+        
+        if (probeResult.getTotalCount() == 0) {
+            probeTrace.emplace_back("Probe failed: no lines processed");
+            return false;
+        }
+        
+        if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
+            probeTrace.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+            for (const auto& traceEntry : probeResult.getErrors()) {
+                probeTrace.push_back(std::format("  {}", traceEntry.toString()));
+            }
+            return false;
+        }
+        
+        return true;
+    }
+
+    /**
+     * @brief Checks if a PGN probe result is valid.
+     * @param probeResult The probe result to check.
+     * @param probeTrace Vector to add probe messages to.
+     * @return true if probe passed, false if it failed.
+     */
+    bool checkPgnProbeResult(const PgnReaderResult& probeResult, std::vector<std::string>& probeTrace) {
+        probeTrace.push_back(std::format("Probe: {} games, {} errors ({:.1f}% error rate)",
+            probeResult.games.size(), probeResult.errorCount, 
+            probeResult.getErrorRate() * 100.0));
+        
+        if (!probeResult.fileOpened) {
+            probeTrace.emplace_back("Probe failed: could not open file");
+            return false;
+        }
+        
+        if (probeResult.getTotalCount() == 0) {
+            probeTrace.emplace_back("Probe failed: no games processed");
+            return false;
+        }
+        
+        if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
+            probeTrace.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+            for (const auto& entry : probeResult.trace) {
+                probeTrace.push_back(std::format("  {}", entry.toString()));
+            }
+            return false;
+        }
+        
+        return true;
+    }
 }
 
 OpeningParser::OpeningParser() {
-    // Register EPD parser first
+    registerEpdParser();
+    registerPgnParser();
+}
+
+void OpeningParser::registerEpdParser() {
     addParser("EPD", {".epd", ".raw"}, [](const std::filesystem::path& filePath, 
                                           ParserTraceEntry& trace,
                                           const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
@@ -45,21 +110,10 @@ OpeningParser::OpeningParser() {
             EpdReader probeReader(filePath.string(), PROBE_LINE_COUNT, MAX_STORED_ERROR_LINES);
             auto probeResult = probeReader.getResult();
             
-            trace.messages.push_back(std::format("Probe: {} lines, {} entries, {} errors ({:.1f}% error rate)",
-                PROBE_LINE_COUNT, probeResult.entries.size(), probeResult.errorCount, 
-                probeResult.getErrorRate() * 100.0));
-            
-            if (probeResult.getTotalCount() == 0) {
-                trace.messages.push_back("Probe failed: no lines processed");
-                return std::nullopt;
-            }
-            
-            if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
-                trace.messages.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
-                    probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
-                for (const auto& traceEntry : probeResult.getErrors()) {
-                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
-                }
+            std::vector<std::string> probeTrace;
+            if (!checkEpdProbeResult(probeResult, probeTrace)) {
+                // Add probe trace only on failure
+                trace.messages.insert(trace.messages.end(), probeTrace.begin(), probeTrace.end());
                 return std::nullopt;
             }
             
@@ -71,7 +125,7 @@ OpeningParser::OpeningParser() {
                 fullResult.entries.size(), fullResult.errorCount, fullResult.getErrorRate() * 100.0));
             
             if (fullResult.getTotalCount() == 0) {
-                trace.messages.push_back("Full scan failed: no lines processed");
+                trace.messages.emplace_back("Full scan failed: no lines processed");
                 return std::nullopt;
             }
             
@@ -100,12 +154,13 @@ OpeningParser::OpeningParser() {
             trace.messages.push_back(std::format("Exception: {}", exc.what()));
             return std::nullopt;
         } catch (...) {
-            trace.messages.push_back("Unknown exception");
+            trace.messages.emplace_back("Unknown exception");
             return std::nullopt;
         }
     });
+}
 
-    // Register PGN parser
+void OpeningParser::registerPgnParser() {
     addParser("PGN", {".pgn"}, [](const std::filesystem::path& filePath,
                                   ParserTraceEntry& trace,
                                   const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
@@ -122,26 +177,10 @@ OpeningParser::OpeningParser() {
             
             auto probeResult = pgnIO.loadGamesWithResult(probeParams);
             
-            trace.messages.push_back(std::format("Probe: {} games, {} errors ({:.1f}% error rate)",
-                probeResult.games.size(), probeResult.errorCount, 
-                probeResult.getErrorRate() * 100.0));
-            
-            if (!probeResult.fileOpened) {
-                trace.messages.push_back("Probe failed: could not open file");
-                return std::nullopt;
-            }
-            
-            if (probeResult.getTotalCount() == 0) {
-                trace.messages.push_back("Probe failed: no games processed");
-                return std::nullopt;
-            }
-            
-            if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
-                trace.messages.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
-                    probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
-                for (const auto& traceEntry : probeResult.getErrors()) {
-                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
-                }
+            std::vector<std::string> probeTrace;
+            if (!checkPgnProbeResult(probeResult, probeTrace)) {
+                // Add probe trace only on failure
+                trace.messages.insert(trace.messages.end(), probeTrace.begin(), probeTrace.end());
                 return std::nullopt;
             }
             
@@ -158,17 +197,24 @@ OpeningParser::OpeningParser() {
             trace.messages.push_back(std::format("Full scan: {} games, {} errors ({:.1f}% error rate)",
                 fullResult.games.size(), fullResult.errorCount, fullResult.getErrorRate() * 100.0));
             
+            // Add trace entries from full scan (up to limit)
+            size_t addedTraceEntries = 0;
+            for (const auto& entry : fullResult.trace) {
+                if (addedTraceEntries >= MAX_STORED_ERROR_LINES) {
+                    break;
+                }
+                trace.messages.push_back(std::format("  {}", entry.toString()));
+                ++addedTraceEntries;
+            }
+            
             if (fullResult.getTotalCount() == 0) {
-                trace.messages.push_back("Full scan failed: no games processed");
+                trace.messages.emplace_back("Full scan failed: no games processed");
                 return std::nullopt;
             }
             
             if (fullResult.getErrorRate() > MAX_ERROR_RATE) {
                 trace.messages.push_back(std::format("Full scan failed: error rate {:.1f}% exceeds maximum {:.1f}%",
                     fullResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
-                for (const auto& traceEntry : fullResult.getErrors()) {
-                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
-                }
                 return std::nullopt;
             }
             
@@ -179,14 +225,16 @@ OpeningParser::OpeningParser() {
             trace.messages.push_back(std::format("Exception: {}", exc.what()));
             return std::nullopt;
         } catch (...) {
-            trace.messages.push_back("Unknown exception");
+            trace.messages.emplace_back("Unknown exception");
             return std::nullopt;
         }
     });
 }
 
 void OpeningParser::addParser(const std::string& name, const std::vector<std::string>& extensions, const OpeningParserFunction& parser) {
-    parsers_.push_back({name, extensions, parser});
+    parsers_.push_back({
+       .name = name, .extensions = extensions, .parser = parser
+    });
 }
 
 std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePath, 

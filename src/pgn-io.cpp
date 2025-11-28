@@ -81,6 +81,13 @@ void PgnIO::saveTags(std::ostream& out, const GameRecord& game) {
         out << "[Result \"" << to_string(result) << "\"]\n";
 	    std::string termination = "normal";
         switch (cause) {
+            case GameEndCause::Checkmate:
+            case GameEndCause::Stalemate:
+            case GameEndCause::DrawByRepetition:
+            case GameEndCause::DrawByFiftyMoveRule:
+            case GameEndCause::DrawByInsufficientMaterial:
+                termination = "normal";
+                break;
 		    case GameEndCause::Ongoing:
 		        termination = "unterminated";
 		        break;
@@ -98,13 +105,6 @@ void PgnIO::saveTags(std::ostream& out, const GameRecord& game) {
             case GameEndCause::Timeout:
 			    termination = "time forfeit";
 			    break;
-            case GameEndCause::Checkmate:
-            case GameEndCause::Stalemate:
-            case GameEndCause::DrawByRepetition:
-            case GameEndCause::DrawByFiftyMoveRule:
-            case GameEndCause::DrawByInsufficientMaterial:
-                termination = "normal";
-                break;
             default:
                 termination = "normal";
                 break;
@@ -457,20 +457,37 @@ std::pair<MoveRecord, size_t> PgnIO::parseMove(
     return { move, pos };
 }
 
-std::pair<std::string, std::string> PgnIO::parseTag(const std::vector<std::string>& tokens) {
+ParseTagResult PgnIO::parseTag(const std::vector<std::string>& tokens) {
+    ParseTagResult result;
+    
+    auto tokensToString = [&tokens]() {
+        std::string s;
+        for (const auto& t : tokens) {
+            if (!s.empty()) {
+                s += " ";
+            }
+            s += t;
+        }
+        return s;
+    };
+    
     if (tokens.size() != 4) {
-        return { "", "" };
+        result.traceLines.push_back("Invalid tag: expected 4 tokens, got " + 
+            std::to_string(tokens.size()) + ": " + tokensToString());
+        return result;
     }
     if (tokens[0] != "[" || tokens[3] != "]") {
-        return { "", "" };
+        result.traceLines.push_back("Invalid tag: missing brackets: " + tokensToString());
+        return result;
     }
     if (tokens[2].size() < 2 || tokens[2].front() != '"' || tokens[2].back() != '"') {
-        return { "", "" };
+        result.traceLines.push_back("Invalid tag: value not quoted properly: " + tokensToString());
+        return result;
     }
 
-    std::string tagName = tokens[1];
-    std::string tagValue = tokens[2].substr(1, tokens[2].size() - 2);
-    return { tagName, tagValue };
+    result.key = tokens[1];
+    result.value = tokens[2].substr(1, tokens[2].size() - 2);
+    return result;
 }
 
 void PgnIO::parseMateScore(const std::string& token, int32_t factor, MoveRecord& move) {
@@ -486,11 +503,10 @@ void PgnIO::parseMateScore(const std::string& token, int32_t factor, MoveRecord&
 
 void PgnIO::parseCpScore(const std::string& token, MoveRecord& move) {
     // Centipawn score, e.g. +0.21 or -1.5
-    try {
-        double cp = std::stod(token);
-        move.scoreCp = static_cast<int>(cp * 100.0);
+    auto cp =QaplaHelpers::to_double(token); 
+    if (cp) {
+        move.scoreCp = static_cast<int>(*cp * 100.0);
     }
-    catch (...) {}
 }
 
 size_t PgnIO::parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, std::optional<GameEndCause>& cause) {
@@ -551,8 +567,11 @@ void PgnIO::setGameResultFromParsedData(const std::vector<MoveRecord>& moves,
 
 size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move) {
     const std::string& tok = tokens[pos];
+    if (pos + 1 >= tokens.size()) {
+        return pos;
+    }
     
-    if (tok == "White" && pos + 1 < tokens.size()) {
+    if (tok == "White") {
         const std::string& nextTok = tokens[pos + 1];
         if (nextTok == "mates") {
             move.result_ = GameResult::WhiteWins;
@@ -569,7 +588,7 @@ size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t po
             return causePos;
         }
     }
-    else if (tok == "Black" && pos + 1 < tokens.size()) {
+    else if (tok == "Black") {
         const std::string& nextTok = tokens[pos + 1];
         if (nextTok == "mates") {
             move.result_ = GameResult::BlackWins;
@@ -586,7 +605,7 @@ size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t po
             return causePos;
         }
     }
-    else if (tok == "Draw" && pos + 1 < tokens.size() && tokens[pos + 1] == "by") {
+    else if (tok == "Draw" && tokens[pos + 1] == "by") {
         move.result_ = GameResult::Draw;
         size_t causePos = pos + 2;
         auto cause = tryParseGameEndCause(collectTerminationCause(tokens, causePos));
@@ -605,58 +624,62 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
     }
 
     std::string pv;
-    std::optional<double> seconds;
     size_t pos = start + 1;
-
 
     // PGN comment format: {eval/depth time pv, game-end-info}
     // Example: {+0.31/14 0.89s e2e4 d7d5, White mates}
-    while (pos < tokens.size() && tokens[pos] != "}") {
+    for (; pos < tokens.size() && tokens[pos] != "}"; ++pos) {
         const std::string& tok = tokens[pos];
         if (tok.empty()) {
-            ++pos;
             continue;
         }
 
         size_t nextPos = parseGameEndInfo(tokens, pos, move);
         if (nextPos != pos) {
-            pos = nextPos;
+            // nextPos is pointing to the next token. 
+            // As ++pos will advance pos again, we need to decrement by 1 here.
+            pos = nextPos - 1;
             continue;
         }
 
         if (tok[0] == 'M' || tok[0] == '#') {
             parseMateScore(tok, 1, move);
+            continue;
         }
-        else if (tok.length() >= 2 && (tok[1] == 'M' || tok[1] == '#')) {
+        if (tok.length() >= 2 && (tok[1] == 'M' || tok[1] == '#')) {
             parseMateScore(tok, tok[0] == '+' ? 1 : -1, move);
+            continue;
         }
-        else if (tok[0] == '+' || tok[0] == '-') {
+        if (tok[0] == '+' || tok[0] == '-') {
             parseCpScore(tok, move);
+            continue;
         }
-        else if (tok == "/") {
+        if (tok == "/") {
             if (pos + 1 < tokens.size()) {
                 if (auto depth = QaplaHelpers::to_int(tokens[pos + 1])) {
                     move.depth = static_cast<uint32_t>(*depth < 0 ? 0 : *depth);
                     ++pos;
                 }
             }
+            continue;
         }
-        else if (tok == ",") {
+        if (tok == ",") {
             // Ignore commas (we use one as separator before game-end info, 
             // but accept them anywhere for robustness)
+            continue;
         }
-        else if (tok.ends_with("s") && (seconds = QaplaHelpers::to_double(tok.substr(0, tok.size() - 1)))) {
-            constexpr double msPerSecond = 1000.0;
-            move.timeMs = static_cast<uint64_t>(*seconds * msPerSecond);
-        }
-        else {
-            // All remaining tokens in a comment are PV moves until we either hit } or ","
-            if (!pv.empty()) {
-                pv += " ";
+        if (tok.ends_with("s")) {
+            if (auto seconds = QaplaHelpers::to_double(tok.substr(0, tok.size() - 1))) {
+                constexpr double msPerSecond = 1000.0;
+                move.timeMs = static_cast<uint64_t>(*seconds * msPerSecond);
+                continue;
             }
-            pv += tok;
         }
-        ++pos;
+        // All remaining tokens in a comment are PV moves until we either hit } or ","
+        if (!pv.empty()) {
+            pv += " ";
+        }
+        pv += tok;
     }
 
     move.pv = std::move(pv);
@@ -767,23 +790,16 @@ PgnReaderResult PgnIO::loadGamesWithResult(const LoadParams& params)
 
     currentFileName_ = params.filePath;
     gamePositions_.clear();
-    GameRecord currentGame;
-    bool inMoveSection = false;
 
     gamePositions_.push_back(inFile.tellg());
 
-    processFileLines(inFile, fileSize, result.games, currentGame, inMoveSection, 
-                     params.gameCallback, params.loadComments, params.maxGames);
-
-    if (inMoveSection || !currentGame.getTags().empty()) {
-        // Check if we already hit the game limit
-        if (!params.maxGames || result.games.size() < *params.maxGames) {
-            finalizeParsedTags(currentGame);
-            result.games.push_back(std::move(currentGame));
-            if (params.gameCallback) {
-                params.gameCallback(result.games.back(), 100.0F);
-            }
-        }
+    auto processResult = processFileLines(inFile, fileSize, params);
+    
+    result.games = std::move(processResult.games);
+    
+    // Convert trace lines to PgnTraceEntry entries
+    for (const auto& traceLine : processResult.traceLines) {
+        result.trace.emplace_back(PgnTraceEntry::Level::Warning, traceLine);
     }
     
     auto endTime = std::chrono::steady_clock::now();
@@ -795,16 +811,16 @@ PgnReaderResult PgnIO::loadGamesWithResult(const LoadParams& params)
 GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readability-function-cognitive-complexity)
     GameRecord game;
     auto tokens = PgnTokenizer::tokenize(pgnString);
-    size_t pos = 0;
+    long long pos = 0;
 
-    while (pos < tokens.size()) {
+    while (static_cast<size_t>(pos) < tokens.size()) {
         if (tokens[pos] == "[") {
             // Parse tag (assumes 4 tokens: [, key, value, ])
-            if (pos + 3 < tokens.size()) {
+            if (static_cast<size_t>(pos) + 3 < tokens.size()) {
                 std::vector<std::string> tagTokens(tokens.begin() + pos, tokens.begin() + pos + 4);
-                auto [key, value] = parseTag(tagTokens);
-                if (!key.empty()) {
-                    game.setTag(key, value);
+                auto tagResult = parseTag(tagTokens);
+                if (tagResult.isValid()) {
+                    game.setTag(tagResult.key, tagResult.value);
                 }
                 pos += 4;
             } else {
@@ -824,7 +840,7 @@ GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readabilit
                     game.setGameEnd(moves.back().endCause_, moves.back().result_);
                 }
             }
-            pos = tokens.size();
+            pos = static_cast<long long>(tokens.size());
             if (game.nextMoveIndex() > 2000) {
                 break;
             }
@@ -837,27 +853,16 @@ GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readabilit
     return game;
 }
 
-void PgnIO::processFileLines(std::ifstream& inFile, 
+ProcessFileLinesResult PgnIO::processFileLines(std::ifstream& inFile, 
     std::streamsize fileSize, 
-    std::vector<GameRecord>& games, 
-    GameRecord& currentGame, 
-    bool& inMoveSection, 
-    const std::function<bool(const GameRecord&, float)>& gameCallback, 
-    bool loadComments) 
+    const LoadParams& params) 
 {
-    processFileLines(inFile, fileSize, games, currentGame, inMoveSection, 
-                     gameCallback, loadComments, std::nullopt);
-}
-
-bool PgnIO::processFileLines(std::ifstream& inFile, 
-    std::streamsize fileSize, 
-    std::vector<GameRecord>& games, 
-    GameRecord& currentGame, 
-    bool& inMoveSection, 
-    const std::function<bool(const GameRecord&, float)>& gameCallback, 
-    bool loadComments,
-    std::optional<size_t> maxGames) 
-{
+    ProcessFileLinesResult result;
+    result.completed = true;
+    
+    GameRecord currentGame;
+    bool inMoveSection = false;
+    size_t gameNumber = 0;
     std::string line;
     std::streampos currentPos;
 
@@ -871,37 +876,61 @@ bool PgnIO::processFileLines(std::ifstream& inFile,
             // If we were in a move section, finalize the previous game
             if (inMoveSection) {
                 finalizeParsedTags(currentGame);
-                games.push_back(std::move(currentGame));
-                float progress = fileSize > 0 ? static_cast<float>(currentPos) / fileSize : 0.0F;
+                result.games.push_back(std::move(currentGame));
+                gameNumber++;
+                float progress = fileSize > 0 ? 
+                    static_cast<float>(currentPos) / static_cast<float>(fileSize) : 0.0F;
                 inMoveSection = false;
                 currentGame = {};
-                if (gameCallback && !gameCallback(games.back(), progress)) {
-                    return false; // Stop loading if callback returns false
+                if (params.gameCallback && !params.gameCallback(result.games.back(), progress)) {
+                    result.completed = false;
+                    return result;
                 }
                 // Check if we've reached the maximum number of games
-                if (maxGames && games.size() >= *maxGames) {
-                    return false;
+                if (params.maxGames && result.games.size() >= *params.maxGames) {
+                    result.completed = false;
+                    return result;
                 }
                 gamePositions_.push_back(currentPos);
             } 
-            auto [key, value] = parseTag(tokens);
-            if (!key.empty()) {
-                currentGame.setTag(key, value);
+            auto tagResult = parseTag(tokens);
+            if (tagResult.isValid()) {
+                currentGame.setTag(tagResult.key, tagResult.value);
+                if (QaplaHelpers::to_lowercase(tagResult.key) == "fen") {
+                    currentGame.setFen(tagResult.value);
+                }
             }
-            if (QaplaHelpers::to_lowercase(key) == "fen") {
-                currentGame.setFen(value);
+            // Collect trace lines if within limit
+            if (!tagResult.traceLines.empty() && result.traceLines.size() < params.maxStoredErrorTraceEntries) {
+                for (const auto& traceLine : tagResult.traceLines) {
+                    if (result.traceLines.size() < params.maxStoredErrorTraceEntries) {
+                        result.traceLines.push_back("Game " + std::to_string(gameNumber + 1) + ": " + traceLine);
+                    }
+                }
             }
             continue;
         }
 
-        auto [moves, result] = parseMoveLine(tokens, loadComments);
+        auto [moves, parseResult] = parseMoveLine(tokens, params.loadComments);
         for (const auto& move : moves) {
             currentGame.addMove(move);
         }
-        setGameResultFromParsedData(moves, result, currentGame);
+        setGameResultFromParsedData(moves, parseResult, currentGame);
         inMoveSection = true;
     }
-    return true;
+    
+    // Handle the last game if still in progress
+    if (inMoveSection || !currentGame.getTags().empty()) {
+        if (!params.maxGames || result.games.size() < *params.maxGames) {
+            finalizeParsedTags(currentGame);
+            result.games.push_back(std::move(currentGame));
+            if (params.gameCallback) {
+                params.gameCallback(result.games.back(), 100.0F);
+            }
+        }
+    }
+    
+    return result;
 }
 
 } // namespace QaplaTester

@@ -128,6 +128,16 @@ private:
         OpeningParserFunction parser;
     };
 
+    /**
+     * @brief Registers the EPD parser.
+     */
+    void registerEpdParser();
+
+    /**
+     * @brief Registers the PGN parser.
+     */
+    void registerPgnParser();
+
     std::vector<ParserEntry> parsers_;
 };
 
