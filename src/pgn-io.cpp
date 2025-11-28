@@ -735,35 +735,61 @@ PgnIO::parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) 
 std::vector<GameRecord> PgnIO::loadGames(const std::string& fileName, bool loadComments,
     const std::function<bool(const GameRecord&, float)>& gameCallback) 
 {
-    std::vector<GameRecord> games;
-    std::ifstream inFile(fileName, std::ios::binary);
+    LoadParams params;
+    params.filePath = fileName;
+    params.loadComments = loadComments;
+    params.maxGames = std::nullopt;
+    params.maxStoredErrorTraceEntries = 0;
+    params.gameCallback = gameCallback;
+    
+    auto result = loadGamesWithResult(params);
+    return std::move(result.games);
+}
+
+PgnReaderResult PgnIO::loadGamesWithResult(const LoadParams& params)
+{
+    PgnReaderResult result;
+    result.filePath = params.filePath;
+    
+    auto startTime = std::chrono::steady_clock::now();
+    
+    std::ifstream inFile(params.filePath, std::ios::binary);
     if (!inFile) {
-        return games;
+        result.fileOpened = false;
+        return result;
     }
+    result.fileOpened = true;
 
     // Get file size for progress calculation
     inFile.seekg(0, std::ios::end);
     std::streamsize fileSize = inFile.tellg();
     inFile.seekg(0, std::ios::beg);
 
-    currentFileName_ = fileName;
+    currentFileName_ = params.filePath;
     gamePositions_.clear();
     GameRecord currentGame;
     bool inMoveSection = false;
 
     gamePositions_.push_back(inFile.tellg());
 
-    processFileLines(inFile, fileSize, games, currentGame, inMoveSection, gameCallback, loadComments);
+    processFileLines(inFile, fileSize, result.games, currentGame, inMoveSection, 
+                     params.gameCallback, params.loadComments, params.maxGames);
 
     if (inMoveSection || !currentGame.getTags().empty()) {
-        finalizeParsedTags(currentGame);
-        games.push_back(std::move(currentGame));
-        if (gameCallback) {
-            gameCallback(games.back(), 100.0F); // Don't stop at the end
+        // Check if we already hit the game limit
+        if (!params.maxGames || result.games.size() < *params.maxGames) {
+            finalizeParsedTags(currentGame);
+            result.games.push_back(std::move(currentGame));
+            if (params.gameCallback) {
+                params.gameCallback(result.games.back(), 100.0F);
+            }
         }
     }
+    
+    auto endTime = std::chrono::steady_clock::now();
+    result.duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
-    return games;
+    return result;
 }
 
 GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readability-function-cognitive-complexity)
@@ -819,6 +845,19 @@ void PgnIO::processFileLines(std::ifstream& inFile,
     const std::function<bool(const GameRecord&, float)>& gameCallback, 
     bool loadComments) 
 {
+    processFileLines(inFile, fileSize, games, currentGame, inMoveSection, 
+                     gameCallback, loadComments, std::nullopt);
+}
+
+bool PgnIO::processFileLines(std::ifstream& inFile, 
+    std::streamsize fileSize, 
+    std::vector<GameRecord>& games, 
+    GameRecord& currentGame, 
+    bool& inMoveSection, 
+    const std::function<bool(const GameRecord&, float)>& gameCallback, 
+    bool loadComments,
+    std::optional<size_t> maxGames) 
+{
     std::string line;
     std::streampos currentPos;
 
@@ -837,7 +876,11 @@ void PgnIO::processFileLines(std::ifstream& inFile,
                 inMoveSection = false;
                 currentGame = {};
                 if (gameCallback && !gameCallback(games.back(), progress)) {
-                    return; // Stop loading if callback returns false
+                    return false; // Stop loading if callback returns false
+                }
+                // Check if we've reached the maximum number of games
+                if (maxGames && games.size() >= *maxGames) {
+                    return false;
                 }
                 gamePositions_.push_back(currentPos);
             } 
@@ -858,6 +901,7 @@ void PgnIO::processFileLines(std::ifstream& inFile,
         setGameResultFromParsedData(moves, result, currentGame);
         inMoveSection = true;
     }
+    return true;
 }
 
 } // namespace QaplaTester

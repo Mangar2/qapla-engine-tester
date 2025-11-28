@@ -30,6 +30,7 @@ namespace QaplaTester {
 
 namespace {
     constexpr double MAX_ERROR_RATE = 0.2;
+    constexpr size_t PROBE_GAME_COUNT = 100;
     constexpr size_t PROBE_LINE_COUNT = 100;
     constexpr size_t MAX_STORED_ERROR_LINES = 10;
 }
@@ -37,7 +38,8 @@ namespace {
 OpeningParser::OpeningParser() {
     // Register EPD parser first
     addParser("EPD", {".epd", ".raw"}, [](const std::filesystem::path& filePath, 
-                                          ParserTraceEntry& trace) -> std::optional<std::vector<GameRecord>> {
+                                          ParserTraceEntry& trace,
+                                          const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
         try {
             // First probe with limited lines to check error rate
             EpdReader probeReader(filePath.string(), PROBE_LINE_COUNT, MAX_STORED_ERROR_LINES);
@@ -61,8 +63,8 @@ OpeningParser::OpeningParser() {
                 return std::nullopt;
             }
             
-            // Read full file
-            EpdReader fullReader(filePath.string(), std::nullopt, MAX_STORED_ERROR_LINES);
+            // Read full file (or limited by maxGames)
+            EpdReader fullReader(filePath.string(), params.maxGames, MAX_STORED_ERROR_LINES);
             auto fullResult = fullReader.getResult();
             
             trace.messages.push_back(std::format("Full scan: {} entries, {} errors ({:.1f}% error rate)",
@@ -105,13 +107,74 @@ OpeningParser::OpeningParser() {
 
     // Register PGN parser
     addParser("PGN", {".pgn"}, [](const std::filesystem::path& filePath,
-                                  ParserTraceEntry& trace) -> std::optional<std::vector<GameRecord>> {
+                                  ParserTraceEntry& trace,
+                                  const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
         try {
             PgnIO pgnIO;
-            auto games = pgnIO.loadGames(filePath.string());
-            trace.messages.push_back(std::format("Loaded {} games from PGN", games.size()));
+            
+            // First probe with limited games to check error rate
+            PgnIO::LoadParams probeParams;
+            probeParams.filePath = filePath.string();
+            probeParams.loadComments = false;
+            probeParams.maxGames = PROBE_GAME_COUNT;
+            probeParams.maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES;
+            probeParams.gameCallback = nullptr;
+            
+            auto probeResult = pgnIO.loadGamesWithResult(probeParams);
+            
+            trace.messages.push_back(std::format("Probe: {} games, {} errors ({:.1f}% error rate)",
+                probeResult.games.size(), probeResult.errorCount, 
+                probeResult.getErrorRate() * 100.0));
+            
+            if (!probeResult.fileOpened) {
+                trace.messages.push_back("Probe failed: could not open file");
+                return std::nullopt;
+            }
+            
+            if (probeResult.getTotalCount() == 0) {
+                trace.messages.push_back("Probe failed: no games processed");
+                return std::nullopt;
+            }
+            
+            if (probeResult.getErrorRate() > MAX_ERROR_RATE) {
+                trace.messages.push_back(std::format("Probe failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                    probeResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+                for (const auto& traceEntry : probeResult.getErrors()) {
+                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
+                }
+                return std::nullopt;
+            }
+            
+            // Read full file (or limited by maxGames)
+            PgnIO::LoadParams fullParams;
+            fullParams.filePath = filePath.string();
+            fullParams.loadComments = false;
+            fullParams.maxGames = params.maxGames;
+            fullParams.maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES;
+            fullParams.gameCallback = nullptr;
+            
+            auto fullResult = pgnIO.loadGamesWithResult(fullParams);
+            
+            trace.messages.push_back(std::format("Full scan: {} games, {} errors ({:.1f}% error rate)",
+                fullResult.games.size(), fullResult.errorCount, fullResult.getErrorRate() * 100.0));
+            
+            if (fullResult.getTotalCount() == 0) {
+                trace.messages.push_back("Full scan failed: no games processed");
+                return std::nullopt;
+            }
+            
+            if (fullResult.getErrorRate() > MAX_ERROR_RATE) {
+                trace.messages.push_back(std::format("Full scan failed: error rate {:.1f}% exceeds maximum {:.1f}%",
+                    fullResult.getErrorRate() * 100.0, MAX_ERROR_RATE * 100.0));
+                for (const auto& traceEntry : fullResult.getErrors()) {
+                    trace.messages.push_back(std::format("  {}", traceEntry.toString()));
+                }
+                return std::nullopt;
+            }
+            
+            trace.messages.push_back(std::format("Success: {} games loaded", fullResult.games.size()));
             trace.success = true;
-            return games;
+            return std::move(fullResult.games);
         } catch (const std::exception& exc) {
             trace.messages.push_back(std::format("Exception: {}", exc.what()));
             return std::nullopt;
@@ -126,14 +189,19 @@ void OpeningParser::addParser(const std::string& name, const std::vector<std::st
     parsers_.push_back({name, extensions, parser});
 }
 
-std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePath) const {
-    auto result = parseWithTrace(filePath);
+std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePath, 
+                                              std::optional<size_t> maxGames) const {
+    auto result = parseWithTrace(filePath, maxGames);
     return result.games;
 }
 
-OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& filePath) const {
+OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& filePath,
+                                                   std::optional<size_t> maxGames) const {
     OpeningParserResult result;
     result.filePath = filePath.string();
+    
+    OpeningParserParams params;
+    params.maxGames = maxGames;
     
     const auto extension = filePath.extension().string();
     
@@ -152,7 +220,7 @@ OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& f
         ParserTraceEntry traceEntry;
         traceEntry.parserName = entry.name;
         
-        if (auto games = entry.parser(filePath, traceEntry); games) {
+        if (auto games = entry.parser(filePath, traceEntry, params); games) {
             result.games = std::move(*games);
             result.successfulParser = entry.name;
             traceEntry.success = true;
