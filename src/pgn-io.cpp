@@ -362,7 +362,9 @@ void PgnIO::saveGame(const std::string& fileName, const GameRecord& game) {
     saveGameToStream(out, game);
 }
 
-size_t PgnIO::skipMoveNumber(const std::vector<std::string>& tokens, size_t start) {
+namespace {
+
+size_t skipMoveNumber(const std::vector<std::string>& tokens, size_t start) {
     if (start >= tokens.size()) {
         return start;
     }
@@ -397,7 +399,7 @@ size_t PgnIO::skipMoveNumber(const std::vector<std::string>& tokens, size_t star
     return pos;
 }
 
-size_t PgnIO::skipRecursiveVariation(const std::vector<std::string>& tokens, size_t start) {
+size_t skipRecursiveVariation(const std::vector<std::string>& tokens, size_t start) {
 	if (start >= tokens.size() || tokens[start] != "(") {
 		return start;
 	}
@@ -418,46 +420,7 @@ size_t PgnIO::skipRecursiveVariation(const std::vector<std::string>& tokens, siz
 	return pos; 
 }
 
-std::pair<MoveRecord, size_t> PgnIO::parseMove(
-    const std::vector<std::string>& tokens, size_t start, bool loadComments) {
-    
-    size_t pos = skipMoveNumber(tokens, start);
-    if (pos >= tokens.size()) {
-        return { {}, pos };
-    }
-
-    MoveRecord move;
-    move.san_ = tokens[pos];
-    ++pos;
-
-    while (pos < tokens.size()) {
-        const std::string& tok = tokens[pos];
-
-        if (tok[0] == '$') {
-            if (tok.size() > 1 && std::isdigit(static_cast<unsigned char>(tok[1])) != 0) {
-                move.nag = tok;
-            }
-            ++pos;
-        }
-        else if (tok == "{") {
-            if (loadComments) {
-                pos = parseMoveComment(tokens, pos, move);
-            } else {
-                pos = skipMoveComment(tokens, pos);
-            }
-        }
-        else if (tok == "(") {
-            pos = skipRecursiveVariation(tokens, pos);
-        }
-        else {
-            break;
-        }
-    }
-
-    return { move, pos };
-}
-
-static ParseTagResult parseTag(const std::vector<std::string>& tokens) {
+ParseTagResult parseTag(const std::vector<std::string>& tokens) {
     ParseTagResult result;
     
     auto tokensToString = [&tokens]() {
@@ -490,7 +453,7 @@ static ParseTagResult parseTag(const std::vector<std::string>& tokens) {
     return result;
 }
 
-void PgnIO::parseMateScore(const std::string& token, int32_t factor, MoveRecord& move) {
+void parseMateScore(const std::string& token, int32_t factor, MoveRecord& move) {
     size_t i = 0;
     while (i < token.size() && (std::isdigit(static_cast<unsigned char>(token[i])) == 0)) {
         ++i;
@@ -501,7 +464,7 @@ void PgnIO::parseMateScore(const std::string& token, int32_t factor, MoveRecord&
     }
 }
 
-void PgnIO::parseCpScore(const std::string& token, MoveRecord& move) {
+void parseCpScore(const std::string& token, MoveRecord& move) {
     // Centipawn score, e.g. +0.21 or -1.5
     auto cp =QaplaHelpers::to_double(token); 
     if (cp) {
@@ -509,7 +472,7 @@ void PgnIO::parseCpScore(const std::string& token, MoveRecord& move) {
     }
 }
 
-size_t PgnIO::parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, std::optional<GameEndCause>& cause) {
+size_t parseCauseAnnotation(const std::vector<std::string>& tokens, size_t start, std::optional<GameEndCause>& cause) {
     if (tokens[start] != "{") {
         return start;
     }
@@ -530,7 +493,7 @@ size_t PgnIO::parseCauseAnnotation(const std::vector<std::string>& tokens, size_
     return start;
 }
 
-std::string PgnIO::collectTerminationCause(const std::vector<std::string>& tokens, size_t& pos) {
+std::string collectTerminationCause(const std::vector<std::string>& tokens, size_t& pos) {
     std::string causeStr;
     while (pos < tokens.size() && tokens[pos] != "}" && tokens[pos] != ",") {
         if (!causeStr.empty()) {
@@ -542,30 +505,8 @@ std::string PgnIO::collectTerminationCause(const std::vector<std::string>& token
     return causeStr;
 }
 
-static void setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
-                                        std::optional<GameResult> parsedResult, 
-                                        GameRecord& game) {
-    auto [cause, result] = game.getGameResult();
-    // This block is unneccessary in current calling order (it is called before the tags are concidered)
-    // but kept if calling order changes in future
-    if (parsedResult && *parsedResult != result) {
-        result = *parsedResult;
-        cause = GameEndCause::Ongoing;
-    }
-    // Game-end info in move comment is more specific than Result tag
-    if (!moves.empty() && moves.back().result_ != GameResult::Unterminated) {
-        if (result == GameResult::Unterminated || result == moves.back().result_) {
-            result = moves.back().result_;
-            cause = moves.back().endCause_;
-        }
-    }
-    if (result != GameResult::Unterminated && cause == GameEndCause::Ongoing) {
-        cause = GameEndCause::Unknown;
-    }
-    game.setGameEnd(cause, result);
-}
 
-size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move) {
+size_t parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, MoveRecord& move) {
     const std::string& tok = tokens[pos];
     if (pos + 1 >= tokens.size()) {
         return pos;
@@ -618,7 +559,7 @@ size_t PgnIO::parseGameEndInfo(const std::vector<std::string>& tokens, size_t po
     return pos;
 }
 
-size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t start, MoveRecord& move) { // NOLINT(readability-function-cognitive-complexity)
+size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, MoveRecord& move) { // NOLINT(readability-function-cognitive-complexity)
     if (tokens[start] != "{") {
         return start;
     }
@@ -689,7 +630,7 @@ size_t PgnIO::parseMoveComment(const std::vector<std::string>& tokens, size_t st
     return pos;
 }
 
-size_t PgnIO::skipMoveComment(const std::vector<std::string>& tokens, size_t start) {
+size_t skipMoveComment(const std::vector<std::string>& tokens, size_t start) {
     if (tokens[start] != "{") {
         return start;
     }
@@ -704,7 +645,69 @@ size_t PgnIO::skipMoveComment(const std::vector<std::string>& tokens, size_t sta
     return pos;
 }
 
-static std::pair<std::vector<MoveRecord>, std::optional<GameResult>> 
+std::pair<MoveRecord, size_t> parseMove(
+    const std::vector<std::string>& tokens, size_t start, bool loadComments) {
+    
+    size_t pos = skipMoveNumber(tokens, start);
+    if (pos >= tokens.size()) {
+        return { {}, pos };
+    }
+
+    MoveRecord move;
+    move.san_ = tokens[pos];
+    ++pos;
+
+    while (pos < tokens.size()) {
+        const std::string& tok = tokens[pos];
+
+        if (tok[0] == '$') {
+            if (tok.size() > 1 && std::isdigit(static_cast<unsigned char>(tok[1])) != 0) {
+                move.nag = tok;
+            }
+            ++pos;
+        }
+        else if (tok == "{") {
+            if (loadComments) {
+                pos = parseMoveComment(tokens, pos, move);
+            } else {
+                pos = skipMoveComment(tokens, pos);
+            }
+        }
+        else if (tok == "(") {
+            pos = skipRecursiveVariation(tokens, pos);
+        }
+        else {
+            break;
+        }
+    }
+
+    return { move, pos };
+}
+
+void setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
+                                        std::optional<GameResult> parsedResult, 
+                                        GameRecord& game) {
+    auto [cause, result] = game.getGameResult();
+    // This block is unneccessary in current calling order (it is called before the tags are concidered)
+    // but kept if calling order changes in future
+    if (parsedResult && *parsedResult != result) {
+        result = *parsedResult;
+        cause = GameEndCause::Ongoing;
+    }
+    // Game-end info in move comment is more specific than Result tag
+    if (!moves.empty() && moves.back().result_ != GameResult::Unterminated) {
+        if (result == GameResult::Unterminated || result == moves.back().result_) {
+            result = moves.back().result_;
+            cause = moves.back().endCause_;
+        }
+    }
+    if (result != GameResult::Unterminated && cause == GameEndCause::Ongoing) {
+        cause = GameEndCause::Unknown;
+    }
+    game.setGameEnd(cause, result);
+}
+
+std::pair<std::vector<MoveRecord>, std::optional<GameResult>> 
 parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NOLINT(readability-function-cognitive-complexity)
     std::vector<MoveRecord> moves;
     std::optional<GameResult> result;
@@ -738,13 +741,13 @@ parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NO
             }
         }
 
-        auto causePos = PgnIO::parseCauseAnnotation(tokens, pos, cause);
+        auto causePos = parseCauseAnnotation(tokens, pos, cause);
         if (causePos != pos) {
             pos = causePos;
             continue;
         }
 
-        auto [move, nextPos] = PgnIO::parseMove(tokens, pos, loadComments);
+        auto [move, nextPos] = parseMove(tokens, pos, loadComments);
         if (!move.san_.empty()) {
             moves.push_back(move);
         }
@@ -754,6 +757,8 @@ parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NO
 
     return { moves, result };
 }
+
+} // namespace
 
 std::vector<GameRecord> PgnIO::loadGames(const std::string& fileName, bool loadComments,
     const std::function<bool(const GameRecord&, float)>& gameCallback) 
@@ -941,6 +946,13 @@ private:
 
     bool finalizeCurrentGame() {
         finalizeParsedTags(currentGame_);
+        
+        // Skip empty games if requested
+        if (params_.skipEmptyGames && isEmptyGame(currentGame_)) {
+            resetForNextGame();
+            return true;
+        }
+        
         result_.games.push_back(std::move(currentGame_));
         
         float progress = calculateProgress();
@@ -954,11 +966,19 @@ private:
             return false;
         }
         
+        resetForNextGame();
+        return true;
+    }
+    
+    void resetForNextGame() {
         gameNumber_++;
         inMoveSection_ = false;
         currentGame_ = {};
         gamePositions_.push_back(currentPos_);
-        return true;
+    }
+    
+    [[nodiscard]] static bool isEmptyGame(const GameRecord& game) {
+        return game.history().empty() && game.getStartPos();
     }
 
     void finalizeLastGame() {
@@ -970,6 +990,12 @@ private:
         }
         
         finalizeParsedTags(currentGame_);
+        
+        // Skip empty games if requested
+        if (params_.skipEmptyGames && isEmptyGame(currentGame_)) {
+            return;
+        }
+        
         result_.games.push_back(std::move(currentGame_));
         
         if (params_.gameCallback) {
@@ -995,7 +1021,7 @@ private:
     GameRecord currentGame_;
     bool inMoveSection_ = false;
     size_t gameNumber_ = 0;
-    std::streampos currentPos_{};
+    std::streampos currentPos_;
 };
 
 } // anonymous namespace

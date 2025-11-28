@@ -168,12 +168,12 @@ void OpeningParser::registerPgnParser() {
             PgnIO pgnIO;
             
             // First probe with limited games to check error rate
-            PgnIO::LoadParams probeParams;
-            probeParams.filePath = filePath.string();
-            probeParams.loadComments = false;
-            probeParams.maxGames = PROBE_GAME_COUNT;
-            probeParams.maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES;
-            probeParams.gameCallback = nullptr;
+            PgnIO::LoadParams probeParams {
+                .filePath = filePath.string(),
+                .loadComments = true,
+                .maxGames = PROBE_GAME_COUNT,
+                .maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES,
+            };
             
             auto probeResult = pgnIO.loadGamesWithResult(probeParams);
             
@@ -185,12 +185,12 @@ void OpeningParser::registerPgnParser() {
             }
             
             // Read full file (or limited by maxGames)
-            PgnIO::LoadParams fullParams;
-            fullParams.filePath = filePath.string();
-            fullParams.loadComments = false;
-            fullParams.maxGames = params.maxGames;
-            fullParams.maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES;
-            fullParams.gameCallback = nullptr;
+            PgnIO::LoadParams fullParams {
+                .filePath = filePath.string(),
+                .loadComments = true,
+                .maxGames = params.maxGames,
+                .maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES
+            };
             
             auto fullResult = pgnIO.loadGamesWithResult(fullParams);
             
