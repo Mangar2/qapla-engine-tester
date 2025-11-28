@@ -169,7 +169,7 @@ auto [cause, result] = game.getGameResult();
     }
 }
 
-void PgnIO::finalizeParsedTags(GameRecord& game) {
+static void finalizeParsedTags(GameRecord& game) {
     const auto& tags = game.getTags();
 
     if (auto it = tags.find("White"); it != tags.end()) {
@@ -457,7 +457,7 @@ std::pair<MoveRecord, size_t> PgnIO::parseMove(
     return { move, pos };
 }
 
-ParseTagResult PgnIO::parseTag(const std::vector<std::string>& tokens) {
+static ParseTagResult parseTag(const std::vector<std::string>& tokens) {
     ParseTagResult result;
     
     auto tokensToString = [&tokens]() {
@@ -542,7 +542,7 @@ std::string PgnIO::collectTerminationCause(const std::vector<std::string>& token
     return causeStr;
 }
 
-void PgnIO::setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
+static void setGameResultFromParsedData(const std::vector<MoveRecord>& moves, 
                                         std::optional<GameResult> parsedResult, 
                                         GameRecord& game) {
     auto [cause, result] = game.getGameResult();
@@ -704,8 +704,8 @@ size_t PgnIO::skipMoveComment(const std::vector<std::string>& tokens, size_t sta
     return pos;
 }
 
-std::pair<std::vector<MoveRecord>, std::optional<GameResult>> 
-PgnIO::parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NOLINT(readability-function-cognitive-complexity)
+static std::pair<std::vector<MoveRecord>, std::optional<GameResult>> 
+parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NOLINT(readability-function-cognitive-complexity)
     std::vector<MoveRecord> moves;
     std::optional<GameResult> result;
     std::optional<GameEndCause> cause;
@@ -738,13 +738,13 @@ PgnIO::parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) 
             }
         }
 
-        auto causePos = parseCauseAnnotation(tokens, pos, cause);
+        auto causePos = PgnIO::parseCauseAnnotation(tokens, pos, cause);
         if (causePos != pos) {
             pos = causePos;
             continue;
         }
 
-        auto [move, nextPos] = parseMove(tokens, pos, loadComments);
+        auto [move, nextPos] = PgnIO::parseMove(tokens, pos, loadComments);
         if (!move.san_.empty()) {
             moves.push_back(move);
         }
@@ -853,84 +853,159 @@ GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readabilit
     return game;
 }
 
+namespace {
+
+/**
+ * @brief Internal class for parsing PGN files line by line.
+ * 
+ * This class encapsulates all state needed during file parsing,
+ * making the code cleaner and easier to maintain.
+ */
+class PgnFileParser {
+public:
+    PgnFileParser(std::ifstream& inFile, 
+                  std::streamsize fileSize,
+                  const PgnIO::LoadParams& params,
+                  std::vector<std::streampos>& gamePositions)
+        : inFile_(inFile)
+        , fileSize_(fileSize)
+        , params_(params)
+        , gamePositions_(gamePositions) {}
+
+    ProcessFileLinesResult parse() {
+        std::string line;
+        
+        while ((currentPos_ = inFile_.tellg()), std::getline(inFile_, line)) {
+            auto tokens = PgnTokenizer::tokenize(line);
+            if (tokens.empty()) {
+                continue;
+            }
+
+            if (tokens[0] == "[") {
+                if (!processTagSection(tokens)) {
+                    return result_;
+                }
+            } else {
+                processMoveSection(tokens);
+            }
+        }
+        
+        finalizeLastGame();
+        return result_;
+    }
+
+private:
+    bool processTagSection(const std::vector<std::string>& tokens) {
+        if (inMoveSection_) {
+            if (!finalizeCurrentGame()) {
+                return false;
+            }
+        }
+        
+        auto tagResult = parseTag(tokens);
+        applyTag(tagResult);
+        collectTraceLines(tagResult);
+        return true;
+    }
+
+    void processMoveSection(const std::vector<std::string>& tokens) {
+        auto [moves, parseResult] = parseMoveLine(tokens, params_.loadComments);
+        for (const auto& move : moves) {
+            currentGame_.addMove(move);
+        }
+        setGameResultFromParsedData(moves, parseResult, currentGame_);
+        inMoveSection_ = true;
+    }
+
+    void applyTag(const ParseTagResult& tagResult) {
+        if (tagResult.isValid()) {
+            currentGame_.setTag(tagResult.key, tagResult.value);
+            if (QaplaHelpers::to_lowercase(tagResult.key) == "fen") {
+                currentGame_.setFen(tagResult.value);
+            }
+        }
+    }
+
+    void collectTraceLines(const ParseTagResult& tagResult) {
+        if (tagResult.traceLines.empty() || 
+            result_.traceLines.size() >= params_.maxStoredErrorTraceEntries) {
+            return;
+        }
+        for (const auto& traceLine : tagResult.traceLines) {
+            if (result_.traceLines.size() >= params_.maxStoredErrorTraceEntries) {
+                break;
+            }
+            result_.traceLines.push_back("Game " + std::to_string(gameNumber_ + 1) + ": " + traceLine);
+        }
+    }
+
+    bool finalizeCurrentGame() {
+        finalizeParsedTags(currentGame_);
+        result_.games.push_back(std::move(currentGame_));
+        
+        float progress = calculateProgress();
+        if (params_.gameCallback && !params_.gameCallback(result_.games.back(), progress)) {
+            result_.completed = false;
+            return false;
+        }
+        
+        if (params_.maxGames && result_.games.size() >= *params_.maxGames) {
+            result_.completed = false;
+            return false;
+        }
+        
+        gameNumber_++;
+        inMoveSection_ = false;
+        currentGame_ = {};
+        gamePositions_.push_back(currentPos_);
+        return true;
+    }
+
+    void finalizeLastGame() {
+        if (!inMoveSection_ && currentGame_.getTags().empty()) {
+            return;
+        }
+        if (params_.maxGames && result_.games.size() >= *params_.maxGames) {
+            return;
+        }
+        
+        finalizeParsedTags(currentGame_);
+        result_.games.push_back(std::move(currentGame_));
+        
+        if (params_.gameCallback) {
+            params_.gameCallback(result_.games.back(), 100.0F);
+        }
+    }
+
+    [[nodiscard]] float calculateProgress() const {
+        if (fileSize_ <= 0) {
+            return 0.0F;
+        }
+        return static_cast<float>(currentPos_) / static_cast<float>(fileSize_);
+    }
+
+    // Input references
+    std::ifstream& inFile_;
+    std::streamsize fileSize_;
+    const PgnIO::LoadParams& params_;
+    std::vector<std::streampos>& gamePositions_;
+
+    // State
+    ProcessFileLinesResult result_;
+    GameRecord currentGame_;
+    bool inMoveSection_ = false;
+    size_t gameNumber_ = 0;
+    std::streampos currentPos_{};
+};
+
+} // anonymous namespace
+
 ProcessFileLinesResult PgnIO::processFileLines(std::ifstream& inFile, 
     std::streamsize fileSize, 
     const LoadParams& params) 
 {
-    ProcessFileLinesResult result;
-    result.completed = true;
-    
-    GameRecord currentGame;
-    bool inMoveSection = false;
-    size_t gameNumber = 0;
-    std::string line;
-    std::streampos currentPos;
-
-    while ((currentPos = inFile.tellg()), std::getline(inFile, line)) {
-        auto tokens = PgnTokenizer::tokenize(line);
-        if (tokens.empty()) {
-            continue;
-        }
-
-        if (tokens[0] == "[") {
-            // If we were in a move section, finalize the previous game
-            if (inMoveSection) {
-                finalizeParsedTags(currentGame);
-                result.games.push_back(std::move(currentGame));
-                gameNumber++;
-                float progress = fileSize > 0 ? 
-                    static_cast<float>(currentPos) / static_cast<float>(fileSize) : 0.0F;
-                inMoveSection = false;
-                currentGame = {};
-                if (params.gameCallback && !params.gameCallback(result.games.back(), progress)) {
-                    result.completed = false;
-                    return result;
-                }
-                // Check if we've reached the maximum number of games
-                if (params.maxGames && result.games.size() >= *params.maxGames) {
-                    result.completed = false;
-                    return result;
-                }
-                gamePositions_.push_back(currentPos);
-            } 
-            auto tagResult = parseTag(tokens);
-            if (tagResult.isValid()) {
-                currentGame.setTag(tagResult.key, tagResult.value);
-                if (QaplaHelpers::to_lowercase(tagResult.key) == "fen") {
-                    currentGame.setFen(tagResult.value);
-                }
-            }
-            // Collect trace lines if within limit
-            if (!tagResult.traceLines.empty() && result.traceLines.size() < params.maxStoredErrorTraceEntries) {
-                for (const auto& traceLine : tagResult.traceLines) {
-                    if (result.traceLines.size() < params.maxStoredErrorTraceEntries) {
-                        result.traceLines.push_back("Game " + std::to_string(gameNumber + 1) + ": " + traceLine);
-                    }
-                }
-            }
-            continue;
-        }
-
-        auto [moves, parseResult] = parseMoveLine(tokens, params.loadComments);
-        for (const auto& move : moves) {
-            currentGame.addMove(move);
-        }
-        setGameResultFromParsedData(moves, parseResult, currentGame);
-        inMoveSection = true;
-    }
-    
-    // Handle the last game if still in progress
-    if (inMoveSection || !currentGame.getTags().empty()) {
-        if (!params.maxGames || result.games.size() < *params.maxGames) {
-            finalizeParsedTags(currentGame);
-            result.games.push_back(std::move(currentGame));
-            if (params.gameCallback) {
-                params.gameCallback(result.games.back(), 100.0F);
-            }
-        }
-    }
-    
-    return result;
+    PgnFileParser parser(inFile, fileSize, params, gamePositions_);
+    return parser.parse();
 }
 
 } // namespace QaplaTester
