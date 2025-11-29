@@ -20,11 +20,10 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
-#include "epd-reader.h"
 #include "sprt-manager.h"
 #include "game-manager-pool.h"
 #include "logger.h"
-#include "pgn-io.h"
+#include "opening-parser.h"
 #include "pgn-save.h"
 #include "engine-config-manager.h"
 
@@ -56,21 +55,12 @@ void SprtManager::createTournament(
         return;
     }
 
-    if (config.openings.format == "epd" || config.openings.format == "raw") {
-        EpdReader reader(config.openings.file);
-        for (const auto& entry : reader.all()) {
-            if (!entry.fen.empty()) {
-                startPositions_->fens.push_back(entry.fen);
-            }
-        }
-    }
-    else if (config.openings.format == "pgn") {
-        PgnIO pgnReader;
-        startPositions_->games = pgnReader.loadGames(config.openings.file);
-    }
-    else {
+    OpeningParser parser;
+    startPositions_->games = parser.parse(config.openings.file);
+
+    if (startPositions_->games.empty()) {
         throw AppError::makeInvalidParameters(
-            "Unsupported openings format: " + config.openings.format);
+            "No valid openings found in file: " + config.openings.file);
     }
 
     tournamentConfig_.games = config.maxGames;

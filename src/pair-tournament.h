@@ -46,13 +46,12 @@ namespace QaplaTester {
  * @brief Represents a collection of chess openings for a tournament.
  */
 struct StartPositions {
-    std::vector<std::string> fens;
     std::vector<GameRecord> games;
 	[[nodiscard]] uint32_t size() const {
-		return std::max(static_cast<uint32_t>(fens.size()), static_cast<uint32_t>(games.size()));
+		return static_cast<uint32_t>(games.size());
 	}
 	[[nodiscard]] bool empty() const {
-		return fens.empty() && games.empty();
+		return games.empty();
 	}
 };
 

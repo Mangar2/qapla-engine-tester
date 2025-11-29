@@ -123,7 +123,6 @@ void QaplaSettings::init() {
     // Openings group
     Manager::registerGroup("openings", "Defines how start positions are selected", true, {
         { "file",  { "Path to file with opening positions", true, "", ValueType::PathExists } },
-        { "format", { "Format of the file: epd, raw, pgn", false, "epd", ValueType::String } },
         { "order", { "Order of position selection: random, sequential", false, "sequential", ValueType::String } },
         { "srand", { "Seed for random opening selection", false, 5489, ValueType::UInt } },
         { "plies", { "Max number of plies per opening (all = unlimited)", false, "all", ValueType::String}},
@@ -284,7 +283,6 @@ void QaplaSettings::readOpenings() {
 
     auto openings = std::make_unique<Openings>(Openings{
         .file = opening->get<std::string>("file"),
-        .format = opening->get<std::string>("format"),
         .order = opening->get<std::string>("order"),
         .plies = plies,
         .start = opening->get<unsigned int>("start"),
@@ -298,9 +296,6 @@ void QaplaSettings::readOpenings() {
     }
     openings->start--; // 0-based
 
-    if (openings->format != "epd" && openings->format != "raw" && openings->format != "pgn") {
-        throw AppError::makeInvalidParameters("Unsupported openings format: " + openings->format);
-    }
     if (openings->order != "sequential" && openings->order != "random") {
         throw AppError::makeInvalidParameters("Unsupported openings order: " + openings->order);
     }

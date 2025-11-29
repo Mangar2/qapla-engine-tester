@@ -29,7 +29,6 @@ namespace QaplaTester {
   */
 struct Openings {
     std::string file;
-    std::string format = "raw";
     std::string order = "sequential";
     std::optional<int> plies;
     uint32_t start = 0;

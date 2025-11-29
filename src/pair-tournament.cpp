@@ -110,15 +110,7 @@ uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
 void PairTournament::updateOpening(uint32_t openingIndex) {
     GameState gameState;
     openingIndex_ = openingIndex;
-    if (startPositions_->fens.empty()) {
-        curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
-    }
-    else {
-        auto& fen = startPositions_->fens[openingIndex];
-        gameState.setFen(false, fen);
-        curRecord_.setStartPosition(false, gameState.getFen(), gameState.isWhiteToMove(), gameState.getStartHalfmoves(),
-            engineA_.getName(), engineB_.getName());
-    }
+    curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
 }
 
 std::optional<GameTask> PairTournament::nextTask() {
