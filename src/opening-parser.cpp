@@ -160,6 +160,19 @@ void OpeningParser::registerEpdParser() {
     });
 }
 
+
+void addTraceEntries(std::vector<std::string>& traceMessages, 
+    const std::vector<QaplaTester::PgnTraceEntry>& entries, size_t maxEntries) {
+    size_t addedEntries = 0;
+    for (const auto& entry : entries) {
+        if (addedEntries >= maxEntries) {
+            break;
+        }
+        traceMessages.push_back(std::format("  {}", entry.toString()));
+        ++addedEntries;
+    }
+}
+
 void OpeningParser::registerPgnParser() {
     addParser("PGN", {".pgn"}, [](const std::filesystem::path& filePath,
                                   ParserTraceEntry& trace,
@@ -182,6 +195,7 @@ void OpeningParser::registerPgnParser() {
             if (!checkPgnProbeResult(probeResult, probeTrace)) {
                 // Add probe trace only on failure
                 trace.messages.insert(trace.messages.end(), probeTrace.begin(), probeTrace.end());
+                addTraceEntries(trace.messages, probeResult.trace, MAX_STORED_ERROR_LINES);
                 return std::nullopt;
             }
             
@@ -200,14 +214,7 @@ void OpeningParser::registerPgnParser() {
                 fullResult.games.size(), fullResult.errorCount, fullResult.getErrorRate() * 100.0));
             
             // Add trace entries from full scan (up to limit)
-            size_t addedTraceEntries = 0;
-            for (const auto& entry : fullResult.trace) {
-                if (addedTraceEntries >= MAX_STORED_ERROR_LINES) {
-                    break;
-                }
-                trace.messages.push_back(std::format("  {}", entry.toString()));
-                ++addedTraceEntries;
-            }
+            addTraceEntries(trace.messages, fullResult.trace, MAX_STORED_ERROR_LINES);
             
             if (fullResult.getTotalCount() == 0) {
                 trace.messages.emplace_back("Full scan failed: no games processed");
@@ -266,9 +273,10 @@ OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& f
     };
 
     // Helper to try a parser and record trace
-    auto tryParser = [&](const ParserEntry& entry) -> bool {
+    auto tryParser = [&](const ParserEntry& entry, const std::string& selectionReason) -> bool {
         ParserTraceEntry traceEntry;
         traceEntry.parserName = entry.name;
+        traceEntry.messages.push_back(std::format("Parser selection: {}", selectionReason));
         
         if (auto games = entry.parser(filePath, traceEntry, params); games) {
             result.games = std::move(*games);
@@ -285,7 +293,9 @@ OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& f
     for (const auto& entry : parsers_) {
         for (const auto& ext : entry.extensions) {
             if (matchesExtension(ext)) {
-                if (tryParser(entry)) {
+                auto reason = std::format("File extension '{}' matches parser extension '{}'", 
+                    extension, ext);
+                if (tryParser(entry, reason)) {
                     return result;
                 }
                 break; 
@@ -304,7 +314,17 @@ OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& f
         }
         
         if (!alreadyTried) {
-            if (tryParser(entry)) {
+            auto reason = std::format("Fallback attempt: no extension match, trying parser '{}' (supports: {})", 
+                entry.name, 
+                [&]() {
+                    std::string extList;
+                    for (size_t i = 0; i < entry.extensions.size(); ++i) {
+                        if (i > 0) extList += ", ";
+                        extList += entry.extensions[i];
+                    }
+                    return extList;
+                }());
+            if (tryParser(entry, reason)) {
                 return result;
             }
         }
