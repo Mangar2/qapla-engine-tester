@@ -73,25 +73,6 @@ struct PgnTraceEntry {
 };
 
 /**
- * @brief Result of parsing a single PGN tag.
- */
-struct ParseTagResult {
-    std::string key;                        ///< Tag key (empty if parsing failed)
-    std::string value;                      ///< Tag value
-    std::vector<std::string> traceLines;    ///< Trace lines if parsing errors occurred
-    
-    [[nodiscard]] bool isValid() const { return !key.empty(); }
-};
-
-/**
- * @brief Result of parsing a single PGN game.
- */
-struct ParseGameResult {
-    GameRecord game;                        ///< The parsed game record
-    std::vector<std::string> traceLines;    ///< Trace lines from tag parsing errors
-};
-
-/**
  * @brief Result of processing file lines.
  */
 struct ProcessFileLinesResult {

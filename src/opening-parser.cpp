@@ -171,6 +171,7 @@ void OpeningParser::registerPgnParser() {
             PgnIO::LoadParams probeParams {
                 .filePath = filePath.string(),
                 .loadComments = true,
+                .skipEmptyGames = true,
                 .maxGames = PROBE_GAME_COUNT,
                 .maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES,
             };
@@ -188,6 +189,7 @@ void OpeningParser::registerPgnParser() {
             PgnIO::LoadParams fullParams {
                 .filePath = filePath.string(),
                 .loadComments = true,
+                .skipEmptyGames = true,
                 .maxGames = params.maxGames,
                 .maxStoredErrorTraceEntries = MAX_STORED_ERROR_LINES
             };
