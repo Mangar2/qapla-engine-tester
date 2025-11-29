@@ -27,6 +27,7 @@
 #include "logger.h"
 #include "tournament.h"
 #include "pgn-io.h"
+#include "pgn-save.h"
 #include "engine-config-manager.h"
 #include "input-handler.h"
 #include "adjudication-manager.h"
@@ -201,7 +202,7 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
 			break;
 		}
 	}
-	PgnIO::tournament().initialize(config_.event, isResumingTournament);
+	PgnSave::tournament().initialize(config_.event, isResumingTournament);
 	
 	pool.setConcurrency(concurrency, true);
     if (registerToInputhandler) {

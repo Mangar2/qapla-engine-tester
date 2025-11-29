@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "pgn-io.h"
+#include "pgn-save.h"
 #include "adjudication-manager.h"
 
 #include <string>
@@ -73,7 +73,7 @@ public:
      * @brief Gets the PGN output options
      * @return Optional containing PGN options if configured, nullopt otherwise
      */
-    [[nodiscard]] std::optional<PgnIO::Options> getPgnOptions() const;
+    [[nodiscard]] std::optional<PgnSave::Options> getPgnOptions() const;
 
     /**
      * @brief Gets the draw adjudication options
@@ -160,7 +160,7 @@ private:
     void readSprtConfig();
 
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
-    std::optional<PgnIO::Options> m_pgnOptions; ///< PGN output options
+    std::optional<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::optional<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
     std::optional<AdjudicationManager::ResignAdjudicationConfig> m_resignConfig; ///< Resign adjudication config
     std::unique_ptr<Openings> m_openings; ///< Openings configuration

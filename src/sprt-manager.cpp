@@ -25,6 +25,7 @@
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "pgn-io.h"
+#include "pgn-save.h"
 #include "engine-config-manager.h"
 
 namespace QaplaTester {
@@ -93,7 +94,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
     
 	// Initialize PGN output - at this point all tournament data is loaded
 	bool isResumingTournament = tournament_ && tournament_->hasResults();
-	PgnIO::tournament().initialize("Sprt", isResumingTournament);
+	PgnSave::tournament().initialize("Sprt", isResumingTournament);
 	
     sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
         InputHandler::ImmediateCommand::Info,

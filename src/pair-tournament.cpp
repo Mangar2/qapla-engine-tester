@@ -20,7 +20,7 @@
 #include "game-result.h"
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
-#include "pgn-io.h"
+#include "pgn-save.h"
 #include "string-helper.h"
 
 #include <random>
@@ -201,7 +201,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     results_[gameInRound - 1] = result;
     GameRecord pgnRecord = record;
     pgnRecord.setTotalGameNo(gameInRound + config_.gameNumberOffset);
-    PgnIO::tournament().saveGame(pgnRecord);
+    PgnSave::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
     if (verbose_) {
