@@ -40,7 +40,7 @@
 #include "tournament.h"
 #include "timer.h"
 #include "time-control.h"
-#include "pgn-io.h"
+#include "pgn-save.h"
 #include "input-handler.h"
 #include "game-manager-pool.h"
 #include "adjudication-manager.h"
@@ -308,7 +308,7 @@ static void handlePgnOptions() {
     const auto& pgnOptions = CliSettings::QaplaSettings::instance().getPgnOptions();
     if (!pgnOptions) return;
 
-    PgnIO::tournament().setOptions(*pgnOptions);
+    PgnSave::tournament().setOptions(*pgnOptions);
 }
 
 static void handleEngineOptions() {

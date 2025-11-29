@@ -156,25 +156,10 @@ struct PgnReaderResult {
 };
 
 /**
- * @brief Thread-safe PGN input/output handler.
+ * @brief Thread-safe PGN load handler.
  */
 class PgnIO {
 public:
-    /**
-     * @brief PGN output configuration options.
-     */
-    struct Options {
-        std::string file;
-        bool append = true;
-        bool onlyFinishedGames = true;
-        bool minimalTags = false;
-        bool saveAfterMove = false;
-        bool includeClock = true;
-        bool includeEval = true;
-        bool includePv = true;
-        bool includeDepth = true;
-    };
-
     /**
      * @brief Parameters for loading games from a PGN file.
      */
@@ -188,35 +173,6 @@ public:
     };
 
     PgnIO() = default;
-
-    /**
-     * @brief Initializes the PGN output file depending on append mode.
-     *        Clears file if append is false and not resuming an existing tournament.
-     * @param event Event name for the tournament.
-     * @param isResumingTournament If true, never truncates the file even in overwrite mode.
-     *                            This should be true when loading existing tournament results.
-     */
-    void initialize(const std::string& event = "", bool isResumingTournament = false);
-
-    /**
-     * @brief Saves the given game record to the PGN file.
-     * @param game Game record to be saved.
-     */
-    void saveGame(const GameRecord& game);
-
-    /**
-     * @brief Saves the given game record to the specified PGN file.
-     * @param fileName Name of the PGN file to save to.
-     * @param game Game record to be saved.
-     */
-    void saveGame(const std::string& fileName, const GameRecord& game);
-
-    /**
-     * @brief Saves the given game record to the provided output stream.
-     * @param out Output stream to write to.
-     * @param game Game record to be saved.
-     */
-    void saveGameToStream(std::ostream& out, const GameRecord& game);
 
     /**
      * @brief Loads games from a PGN file.
@@ -270,40 +226,8 @@ public:
      */
     static GameRecord parseGame(const std::string& pgnString);
 
-	/**
-	 * @brief Sets the options for PGN output.
-	 * @param options New options to apply.
-	 */
-	void setOptions(const Options& options) {
-		options_ = options;
-	}
-
-	static PgnIO& tournament() {
-		static PgnIO instance;
-		return instance;
-	}
-
 private:
 
-    /**
-     * @brief Writes PGN tag section for the given game.
-     * @param out Output stream to write to.
-     * @param game Game record to generate tags from.
-     */
-    void saveTags(std::ostream& out, const GameRecord& game);
-
-    /**
-     * @brief Writes a single PGN move with optional annotations.
-     * @param out Output stream to write to.
-	 * @param san Standard Algebraic Notation (SAN) of the move.
-     * @param move Move to write.
-     * @param plyIndex Zero-based ply index to determine move number and side.
-     * @param isWhiteStart Whether white starts (relevant for proper numbering if not).
-     */
-    void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move,
-        uint32_t plyIndex, bool isWhiteStart) const;
-
- 
     /**
      * @brief Processes the lines of the PGN file.
      * @param inFile The input file stream.
@@ -315,12 +239,9 @@ private:
         std::streamsize fileSize, 
         const LoadParams& params);
 
-    Options options_;
     std::vector<std::streampos> gamePositions_;  // Positions of games in the last loaded file
     std::string currentFileName_;  // Name of the last loaded file
     std::mutex mutex_;  // For thread safety
-    std::mutex fileMutex_;
-    std::string event_;
 };
 
 } // namespace QaplaTester

@@ -205,7 +205,7 @@ void QaplaSettings::readPgnOptions() {
     }
 
     const auto& pgn = *pgnOptionInstance;
-    m_pgnOptions = PgnIO::Options{
+    m_pgnOptions = PgnSave::Options{
         .file = pgn.get<std::string>("file"),
         .append = pgn.get<bool>("append"),
         .onlyFinishedGames = pgn.get<bool>("fi"),
@@ -217,7 +217,7 @@ void QaplaSettings::readPgnOptions() {
     };
 }
 
-std::optional<PgnIO::Options> QaplaSettings::getPgnOptions() const {
+std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
     return m_pgnOptions;
 }
 
