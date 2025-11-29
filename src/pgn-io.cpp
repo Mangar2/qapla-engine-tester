@@ -23,12 +23,38 @@
 #include "time-control.h"
 #include "game-state.h"
 #include "string-helper.h"
+#include "qapla-engine/movescanner.h"
 
 #include "game-result.h"
 
 #include <chrono>
 
 namespace QaplaTester {
+
+/**
+ * @brief Result of parsing a single PGN tag.
+ * Internal struct used only within pgn-io.cpp.
+ */
+struct ParseTagResult {
+    std::string key;                        ///< Tag key (empty if parsing failed)
+    std::string value;                      ///< Tag value
+    std::vector<std::string> traceLines;    ///< Trace lines if parsing errors occurred
+    
+    [[nodiscard]] bool isValid() const { return !key.empty(); }
+};
+
+/**
+ * @brief Result of parsing a move line (sequence of moves in PGN).
+ * Internal struct used only within pgn-io.cpp.
+ */
+struct ParseMoveLineResult {
+    std::vector<MoveRecord> moves;          ///< Successfully parsed moves
+    std::optional<GameResult> gameResult;   ///< Game result if found (e.g., 1-0, 0-1, 1/2-1/2)
+    std::vector<std::string> traceLines;    ///< Trace lines for illegal moves or parsing errors
+};
+
+/// Maximum number of illegal moves allowed before aborting move parsing in a game
+static constexpr size_t kMaxIllegalMovesBeforeAbort = 3;
 
 static void updateGameEndFromTags(GameRecord& game, const std::map<std::string, std::string>& tags) {
 auto [cause, result] = game.getGameResult();
@@ -519,38 +545,59 @@ void setGameResultFromParsedData(const std::vector<MoveRecord>& moves,
     game.setGameEnd(cause, result);
 }
 
-std::pair<std::vector<MoveRecord>, std::optional<GameResult>> 
-parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NOLINT(readability-function-cognitive-complexity)
-    std::vector<MoveRecord> moves;
-    std::optional<GameResult> result;
+/**
+ * @brief Detects game-end tokens and returns the corresponding GameResult.
+ * @param tokens Token vector to check
+ * @param pos Current position in the token vector
+ * @return Optional GameResult if a game-end token was detected, nullopt otherwise
+ */
+std::optional<GameResult> detectGameEnd(const std::vector<std::string>& tokens, size_t pos) {
+    if (pos >= tokens.size()) {
+        return std::nullopt;
+    }
+    
+    const auto& tok = tokens[pos];
+    
+    // Single-token game results
+    if (tok == "1-0") {
+        return GameResult::WhiteWins;
+    }
+    if (tok == "0-1") {
+        return GameResult::BlackWins;
+    }
+    if (tok == "1/2-1/2") {
+        return GameResult::Draw;
+    }
+    if (tok == "*") {
+        return GameResult::Unterminated;
+    }
+    
+    // Check for spaced-out results
+    if (pos + 2 < tokens.size()) {
+        if (tok == "1" && tokens[pos+1] == "-" && tokens[pos+2] == "0") {
+            return GameResult::WhiteWins;
+        }
+        if (tok == "0" && tokens[pos+1] == "-" && tokens[pos+2] == "1") {
+            return GameResult::BlackWins;
+        }
+        if (tok == "1" && tokens[pos+1] == "/" && (tokens[pos+2] == "2-1" || tokens[pos+2] == "2")) {
+            return GameResult::Draw;
+        }
+    }
+    
+    return std::nullopt;
+}
+
+ParseMoveLineResult parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NOLINT(readability-function-cognitive-complexity)
+    ParseMoveLineResult result;
     std::optional<GameEndCause> cause;
     size_t pos = 0;
 
     while (pos < tokens.size()) {
-        const auto& tok = tokens[pos];
-        if (tok == "1-0") {
-            return { moves, GameResult::WhiteWins };
-        }
-        if (tok == "0-1") {
-            return { moves, GameResult::BlackWins };
-        }
-        if (tok == "1/2-1/2") {
-            return { moves, GameResult::Draw };
-        }
-        if (tok == "*") {
-            return { moves, GameResult::Unterminated };
-        }
-        // Check for spaced-out results
-        if (pos + 2 < tokens.size()) {
-            if (tok == "1" && tokens[pos+1] == "-" && tokens[pos+2] == "0") {
-                return { moves, GameResult::WhiteWins };
-            }
-            if (tok == "0" && tokens[pos+1] == "-" && tokens[pos+2] == "1") {
-                return { moves, GameResult::BlackWins };
-            }
-            if (tok == "1" && tokens[pos+1] == "/" && (tokens[pos+2] == "2-1" || tokens[pos+2] == "2")) {
-                return { moves, GameResult::Draw };
-            }
+        // Check for game-end tokens
+        if (auto gameEnd = detectGameEnd(tokens, pos)) {
+            result.gameResult = *gameEnd;
+            return result;
         }
 
         auto causePos = parseCauseAnnotation(tokens, pos, cause);
@@ -561,13 +608,23 @@ parseMoveLine(const std::vector<std::string>& tokens, bool loadComments) { // NO
 
         auto [move, nextPos] = parseMove(tokens, pos, loadComments);
         if (!move.san_.empty()) {
-            moves.push_back(move);
+            // Validate move using MoveScanner
+            QaplaInterface::MoveScanner scanner(move.san_);
+            if (scanner.isLegal()) {
+                // If move is in LAN format, also fill lan_ field
+                if (scanner.isLan()) {
+                    move.lan_ = move.san_;
+                }
+                result.moves.push_back(move);
+            } else {
+                // Illegal move - add trace entry instead of pushing move
+                result.traceLines.push_back("Illegal move notation: '" + move.san_ + "'");
+            }
         }
         pos = nextPos;
-
     }
 
-    return { moves, result };
+    return result;
 }
 
 } // namespace
@@ -645,16 +702,16 @@ GameRecord PgnIO::parseGame(const std::string& pgnString) { // NOLINT(readabilit
             }
         } else {
             std::vector<std::string> moveTokens(tokens.begin() + pos, tokens.end());
-            auto [moves, result] = parseMoveLine(moveTokens, true);
-            for (const auto& move : moves) {
+            auto moveLineResult = parseMoveLine(moveTokens, true);
+            for (const auto& move : moveLineResult.moves) {
                 game.addMove(move);
             }
-            setGameResultFromParsedData(moves, result, game);
+            setGameResultFromParsedData(moveLineResult.moves, moveLineResult.gameResult, game);
             // We prefer game end information (1-0) over the Result tag, if both are conflicting.
-            if (!moves.empty() && moves.back().result_ != GameResult::Unterminated) {
+            if (!moveLineResult.moves.empty() && moveLineResult.moves.back().result_ != GameResult::Unterminated) {
                 auto [cause, curResult] = game.getGameResult();
-                if (curResult == GameResult::Unterminated || curResult == moves.back().result_) {
-                    game.setGameEnd(moves.back().endCause_, moves.back().result_);
+                if (curResult == GameResult::Unterminated || curResult == moveLineResult.moves.back().result_) {
+                    game.setGameEnd(moveLineResult.moves.back().endCause_, moveLineResult.moves.back().result_);
                 }
             }
             pos = static_cast<long long>(tokens.size());
@@ -726,11 +783,30 @@ private:
     }
 
     void processMoveSection(const std::vector<std::string>& tokens) {
-        auto [moves, parseResult] = parseMoveLine(tokens, params_.loadComments);
-        for (const auto& move : moves) {
+        // Skip parsing if we already exceeded the illegal move limit
+        if (illegalMoveCount_ >= kMaxIllegalMovesBeforeAbort) {
+            inMoveSection_ = true;
+            return;
+        }
+        
+        auto moveLineResult = parseMoveLine(tokens, params_.loadComments);
+        
+        // Collect trace lines from illegal moves
+        for (const auto& traceLine : moveLineResult.traceLines) {
+            if (result_.traceLines.size() < params_.maxStoredErrorTraceEntries) {
+                result_.traceLines.push_back("Game " + std::to_string(gameNumber_ + 1) + ": " + traceLine);
+            }
+            ++illegalMoveCount_;
+            if (illegalMoveCount_ >= kMaxIllegalMovesBeforeAbort) {
+                // Stop adding moves after reaching the limit
+                break;
+            }
+        }
+        
+        for (const auto& move : moveLineResult.moves) {
             currentGame_.addMove(move);
         }
-        setGameResultFromParsedData(moves, parseResult, currentGame_);
+        setGameResultFromParsedData(moveLineResult.moves, moveLineResult.gameResult, currentGame_);
         inMoveSection_ = true;
     }
 
@@ -785,6 +861,7 @@ private:
     void resetForNextGame() {
         gameNumber_++;
         inMoveSection_ = false;
+        illegalMoveCount_ = 0;
         currentGame_ = {};
         gamePositions_.push_back(currentPos_);
     }
@@ -833,6 +910,7 @@ private:
     GameRecord currentGame_;
     bool inMoveSection_ = false;
     size_t gameNumber_ = 0;
+    size_t illegalMoveCount_ = 0;  ///< Counter for illegal moves in current game
     std::streampos currentPos_;
 };
 
