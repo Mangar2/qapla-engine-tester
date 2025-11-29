@@ -22,11 +22,10 @@
 #include <iomanip>
 #include <ctime>
 #include <random>
-#include "epd-reader.h"
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "tournament.h"
-#include "pgn-io.h"
+#include "opening-parser.h"
 #include "pgn-save.h"
 #include "engine-config-manager.h"
 #include "input-handler.h"
@@ -49,24 +48,10 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     engineConfig_ = engines;
     config_ = config;
 
-    if (config.openings.format == "epd" || config.openings.format == "raw") {
-        EpdReader reader(config.openings.file);
-        for (const auto& entry : reader.all()) {
-            if (!entry.fen.empty()) {
-                startPositions_->fens.push_back(entry.fen);
-            }
-        }
-    }
-    else if (config.openings.format == "pgn") {
-        PgnIO pgnReader;
-        startPositions_->games = pgnReader.loadGames(config.openings.file);
-    }
-    else {
-		throw AppError::makeInvalidParameters(
-			"Unsupported openings format: " + config.openings.format);
-    }
+    OpeningParser parser;
+    startPositions_->games = parser.parse(config.openings.file);
 
-    if (startPositions_->fens.empty() && startPositions_->games.empty()) {
+    if (startPositions_->games.empty()) {
 		throw AppError::makeInvalidParameters(
 			"No valid openings found in file: " + config.openings.file);
     }
