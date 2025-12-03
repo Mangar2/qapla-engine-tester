@@ -64,6 +64,15 @@ struct SprtResult {
     std::string engineB;           // Name of engine B
     int eloLower;                  // Lower elo bound from config
     int eloUpper;                  // Upper elo bound from config
+    bool reachedMaxGames = false;  // true if max games limit was reached without decision
+
+    /**
+     * @brief Checks if the SPRT test has finished.
+     * @return true if a decision was made or max games limit was reached.
+     */
+    bool isFinished() const {
+        return decision.has_value() || reachedMaxGames;
+    }
 };
 
 /**
@@ -213,6 +222,14 @@ public:
     }
 
     /**
+     * @brief Checks if the tournament has any game results.
+     * @return true if at least one game has been played, false otherwise.
+     */
+    bool hasResults() const {
+        return tournament_->getResult().total() > 0;
+    }
+
+    /**
      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
      *
      * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
@@ -220,7 +237,15 @@ public:
      */
     SprtResult computeSprt() const;
 
-
+    /**
+     * @brief Checks if the SPRT test has finished.
+     * @details The test is considered finished if a decision has been made (H0 or H1 accepted)
+     *          or if the maximum number of games has been reached without a decision.
+     * @return true if the test is finished, false otherwise.
+     */
+    bool isFinished() const {
+        return computeSprt().isFinished();
+    }
 
 private:
     std::unique_ptr<PairTournament> tournament_ = std::make_unique<PairTournament>();

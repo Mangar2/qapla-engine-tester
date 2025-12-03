@@ -291,6 +291,10 @@ SprtResult SprtManager::computeSprt(
         result.decision = std::nullopt;
     }
 
+    // Check if max games limit was reached without a decision
+    int totalGames = winsA + draws + winsB;
+    result.reachedMaxGames = !result.decision.has_value() && (totalGames >= static_cast<int>(config_.maxGames));
+
     result.info = computeSprtInfo(result);
     
     return result;
@@ -304,6 +308,18 @@ std::string SprtManager::computeSprtInfo(const SprtResult& result) {
         }
         return "H0 accepted, " + result.engineA + " is not stronger than " + result.engineB
             + " by at least " + std::to_string(result.eloUpper) + " elo.";
+    }
+    
+    // Check if max games limit reached without decision
+    if (result.reachedMaxGames) {
+        int totalGames = result.winsA + result.draws + result.winsB;
+        std::ostringstream oss;
+        oss << "No decision after " << totalGames << " games. "
+            << "LLR=" << std::fixed << std::setprecision(2) << result.llr
+            << " (bounds: [" << result.lowerBound << ", " << result.upperBound << "]). "
+            << "Score: " << result.winsA << "/" << result.draws << "/" << result.winsB
+            << " (" << result.engineA << " vs " << result.engineB << ").";
+        return oss.str();
     }
     
     std::ostringstream oss;
