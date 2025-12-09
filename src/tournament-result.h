@@ -205,6 +205,30 @@ public:
         double elo;             ///< Computed Elo rating
         double total;           ///< Total number of games played
         int error;              ///< Error margin for the Elo rating
+
+        /**
+         * @brief Calculates the total points scored.
+         * @return Points as score * total games
+         */
+        [[nodiscard]] double getPoints() const {
+            return score * total;
+        }
+
+        /**
+         * @brief Calculates the percentage score.
+         * @return Score as percentage (0-100)
+         */
+        [[nodiscard]] double getPercentage() const {
+            return score * 100.0;
+        }
+
+        /**
+         * @brief Formats the score as "points/total" string.
+         * @return Formatted score string like "5.5/10"
+         */
+        [[nodiscard]] std::string formatScore() const {
+            return std::format("{:.1f}/{}", score * total, static_cast<int>(total));
+        }
     };
     /**
      * @brief pushes a single EngineDuelResult to the internal collection.
