@@ -105,14 +105,17 @@ public:
     ~SprtManager() override;
 
     /**
-     * @brief Initializes and starts the SPRT testing procedure between two engines.
+     * @brief Initializes and starts the SPRT testing procedure between engines.
      *
-	 * @param engine0 Configuration for the first engine.
-     * @param engine1 Configuration for the second engine.
+     * @param engines Vector of engine configurations. Must contain at least 2 engines.
+     *                If exactly one engine does NOT have gauntlet flag set, it becomes
+     *                the comparison engine (engine1), and the first gauntlet engine becomes
+     *                the engine under test (engine0). Otherwise, uses indices [0] and [1].
      * @param config All configuration parameters required for the SPRT test.
+     * 
+     * @note Future: Will support multiple gauntlet engines for parallel SPRT testing.
      */
-    void createTournament(const EngineConfig& engine0, const EngineConfig& engine1,
-        const SprtConfig& config);
+    void createTournament(const std::vector<EngineConfig>& engines, const SprtConfig& config);
 
     /**
      * @brief Schedules the tournament and registers all pairings as task providers.

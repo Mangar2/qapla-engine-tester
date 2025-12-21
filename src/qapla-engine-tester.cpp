@@ -209,7 +209,7 @@ static auto runSprt(AppReturnCode code) {
         }
         else {
             auto filename = CliSettings::Manager::getGroupInstance("sprt")->get<std::string>("resultfile");
-            manager->createTournament(activeEngines[0], activeEngines[1], *sprtConfig);
+            manager->createTournament(activeEngines, *sprtConfig);
             // manager->load(filename);
             // manager->schedule(manager, concurrency);
             // manager->wait();

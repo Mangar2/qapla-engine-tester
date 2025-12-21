@@ -40,11 +40,39 @@ SprtManager::~SprtManager() {
 }
 
 void SprtManager::createTournament(
-    const EngineConfig& engine0, const EngineConfig& engine1, const SprtConfig& config) {
+    const std::vector<EngineConfig>& engines, const SprtConfig& config) {
 
-	config_ = config;
-    engine0_ = engine0;
-    engine1_ = engine1;
+    if (engines.size() < 2) {
+        throw AppError::makeInvalidParameters(
+            "SPRT tournament requires at least 2 engines, got " + std::to_string(engines.size()));
+    }
+
+    // Select engine0 (under test) and engine1 (comparison) based on gauntlet flags
+    // Find all engines with and without gauntlet flag
+    std::vector<EngineConfig> gauntletEngines;
+    std::vector<EngineConfig> nonGauntletEngines;
+    
+    for (const auto& engine : engines) {
+        if (engine.isGauntlet()) {
+            gauntletEngines.push_back(engine);
+        } else {
+            nonGauntletEngines.push_back(engine);
+        }
+    }
+
+    // Selection logic: if exactly one non-gauntlet engine exists, use it as comparison
+    // Otherwise fall back to index-based selection for backward compatibility
+    if (nonGauntletEngines.size() == 1 && !gauntletEngines.empty()) {
+        // Gauntlet mode: first gauntlet engine is under test, non-gauntlet is comparison
+        engine0_ = gauntletEngines[0];
+        engine1_ = nonGauntletEngines[0];
+    } else {
+        // Fallback: use first two engines (backward compatibility)
+        engine0_ = engines[0];
+        engine1_ = engines[1];
+    }
+
+    config_ = config;
 
     if (!startPositions_) {
         startPositions_ = std::make_shared<StartPositions>();
@@ -164,7 +192,7 @@ void SprtManager::loadFromSection(const QaplaHelpers::IniFile::Section& section)
     try {
         tournament_->fromSection(section);
     } catch (const std::exception& ex) {
-        // Ignore invalid section
+        Logger::reportLogger().log("Failed to load SPRT tournament from section: " + std::string(ex.what()), TraceLevel::error);
     }
 }
 
@@ -172,7 +200,7 @@ void SprtManager::load(const QaplaHelpers::IniFile::Section& section) {
     try {
         tournament_->fromSection(section);
     } catch (const std::exception& ex) {
-        // Ignore invalid section
+        Logger::reportLogger().log("Failed to load SPRT tournament from section: " + std::string(ex.what()), TraceLevel::error);
     }
 }
 
@@ -293,7 +321,8 @@ SprtResult SprtManager::computeSprt(
 
     // Check if max games limit was reached without a decision
     int totalGames = winsA + draws + winsB;
-    result.reachedMaxGames = !result.decision.has_value() && (totalGames >= static_cast<int>(config_.maxGames));
+    result.reachedMaxGames = !result.decision.has_value() && 
+        (std::cmp_greater_equal(totalGames, config_.maxGames));
 
     result.info = computeSprtInfo(result);
     
@@ -328,7 +357,9 @@ std::string SprtManager::computeSprtInfo(const SprtResult& result) {
     return oss.str();
 }
 
-void SprtManager::runMonteCarloSingleTest(int simulationsPerElo, int elo, double drawRate, int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames)
+void SprtManager::runMonteCarloSingleTest(
+    int simulationsPerElo, int elo, double drawRate, 
+    int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames)
 {
     for (int sim = 0; sim < simulationsPerElo; ++sim)
     {
@@ -352,9 +383,9 @@ void SprtManager::runMonteCarloSingleTest(int simulationsPerElo, int elo, double
         const double winProb = (1.0 - drawRate) * trueScore;
 
         std::optional<bool> decision;
-        uint64_t g = 0;
+        int64_t gamesPlayed = 0;
 
-        for (; g < config_.maxGames; ++g)
+        for (; std::cmp_less(gamesPlayed, config_.maxGames); ++gamesPlayed)
         {
             double r = static_cast<double>(rand()) / RAND_MAX;
             if (r < winProb)
@@ -386,7 +417,7 @@ void SprtManager::runMonteCarloSingleTest(int simulationsPerElo, int elo, double
             numH0 += *decision ? 0 : 1;
             numH1 += *decision ? 1 : 0;
         }
-        totalGames += (g + 1);
+        totalGames += (gamesPlayed + 1);
     }
 }
 
