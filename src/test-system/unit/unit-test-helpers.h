@@ -37,6 +37,7 @@ namespace QaplaTester::Test {
         bool ponder = false;
         std::string timeControl = "depth=5";
         std::string traceLevel = "none";
+        bool isGauntlet = false;
     };
 
     /**
@@ -55,6 +56,7 @@ namespace QaplaTester::Test {
         engine.setPonder(params.ponder);
         engine.setTimeControl(params.timeControl);
         engine.setTraceLevel(params.traceLevel);
+        engine.setGauntlet(params.isGauntlet);
         return engine;
     }
 
