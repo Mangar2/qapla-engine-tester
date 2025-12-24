@@ -66,7 +66,7 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
         createRoundRobinPairings(engines, config);
     }
     restoreResults(savedPairings);
-    updateCnt_ ++;
+    changeTracker_.trackModification();
 }
 
 void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
@@ -150,10 +150,10 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     ++raitingTrigger_;
     ++outcomeTrigger_;
     ++saveTrigger_;
-    ++updateCnt_;
     {
         std::scoped_lock lock(stateMutex_);
         result_ = getResult();
+        changeTracker_.trackUpdate();
     }
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
@@ -260,7 +260,7 @@ void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
     std::string engineB;
     uint32_t round = 0;
     std::string games;
-    updateCnt_++;
+    changeTracker_.trackModification();
     try {
         for (const auto& [key, value]: section.entries) {
             if (key == "engineA") {

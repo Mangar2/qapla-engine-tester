@@ -161,13 +161,14 @@ std::optional<GameTask> PairTournament::nextTask() {
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
 
-        std::ostringstream oss;
-        std::cout << std::left
-            << "started round " << std::setw(3) << (config_.round + 1)
-            << " game " << std::setw(3) << i + 1
-            << " opening " << std::setw(6) << openingIndex_
-            << " engines " << white.getName() << " vs " << black.getName()
-            << "\n" << std::flush;
+        if (verbose_) {
+            std::cout << std::left
+                << "started round " << std::setw(3) << (config_.round + 1)
+                << " game " << std::setw(3) << i + 1
+                << " opening " << std::setw(6) << openingIndex_
+                << " engines " << white.getName() << " vs " << black.getName()
+                << "\n" << std::flush;
+        }
 
         return task;
     }

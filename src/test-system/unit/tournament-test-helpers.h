@@ -44,6 +44,7 @@ public:
      */
     TournamentBuilder(const std::vector<EngineConfig>& engines, const TournamentConfig& config) {
         tournament.createTournament(engines, config);
+        tournament.setVerbose(false);
     }
 
     /**
