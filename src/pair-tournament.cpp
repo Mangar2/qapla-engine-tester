@@ -216,6 +216,13 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
 
 }
 
+void PairTournament::copyResultsFrom(const PairTournament& other) {
+    duelResult_ = other.duelResult_;
+    results_ = other.results_;
+    // Compute isFinished_ based on current configuration, don't copy it from other
+    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
+}
+
 std::string PairTournament::getResultSequenceEngineView() const {
     std::ostringstream oss;
     for (size_t i = 0; i < results_.size(); ++i) {
