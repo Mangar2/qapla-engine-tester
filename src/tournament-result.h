@@ -42,6 +42,8 @@ struct CauseStats
     int win = 0;  ///< Number of wins by this cause (from engineA's perspective)
     int loss = 0; ///< Number of losses by this cause (from engineA's perspective)
     int draw = 0; ///< Number of draws by this cause
+
+    bool operator==(const CauseStats& other) const = default;
 };
 
 using CauseStatsArray = std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)>;
@@ -60,6 +62,7 @@ public:
     {
     }
     EngineDuelResult() = default;
+    bool operator==(const EngineDuelResult& other) const = default;
 
     int winsEngineA = 0;        ///< Wins by engineA
     int winsEngineB = 0;        ///< Wins by engineB
@@ -178,6 +181,7 @@ struct EngineResult
 {
     std::vector<EngineDuelResult> duels;
     std::string engineName;
+    bool operator==(const EngineResult& other) const = default;
 
     /**
      * @brief Returns a single aggregated result across all duels.
@@ -230,6 +234,12 @@ public:
             return std::format("{:.1f}/{}", score * total, static_cast<int>(total));
         }
     };
+
+    const std::vector<EngineDuelResult>& results() const
+    {
+        return results_;
+    }
+
     /**
      * @brief pushes a single EngineDuelResult to the internal collection.
      *        Can include matches between any engine pair.
@@ -257,6 +267,10 @@ public:
      */
     [[nodiscard]] std::optional<EngineResult> forEngine(const std::string &name) const;
 
+    /**
+     * @brief Returns a summary of all engines with their scores and statistics.
+     * @return A vector of string vectors representing the summary table.
+     */
     [[nodiscard]] std::vector<std::vector<std::string>> getSummary() const;
     void printSummary(std::ostream &os) const;
     

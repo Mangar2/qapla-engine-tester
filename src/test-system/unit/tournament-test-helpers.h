@@ -50,14 +50,14 @@ public:
     /**
      * @brief Plays a single game in the specified pair tournament.
      * 
-     * @param pairIndex Index of the pair tournament (0-based)
+     * @param pairTournamentIndex Index of the pair tournament (0-based)
      * @param result Game result (WhiteWins, BlackWins, Draw)
      * @param cause Cause of game end (default: Checkmate)
      * @return true if game was played successfully, false if no more games available
      */
-    bool playGame(size_t pairIndex, GameResult result, 
+    bool playGame(size_t pairTournamentIndex, GameResult result, 
                   GameEndCause cause = GameEndCause::Checkmate) {
-        auto pairOpt = tournament.getPairTournament(pairIndex);
+        auto pairOpt = tournament.getPairTournament(pairTournamentIndex);
         if (!pairOpt.has_value()) {
             return false;
         }
@@ -77,15 +77,15 @@ public:
     /**
      * @brief Plays multiple games in sequence for a pair tournament.
      * 
-     * @param pairIndex Index of the pair tournament
+     * @param pairTournamentIndex Index of the pair tournament
      * @param games Vector of (result, cause) pairs to play
      * @return Number of games successfully played
      */
-    size_t playGames(size_t pairIndex, 
+    size_t playGames(size_t pairTournamentIndex, 
                      const std::vector<std::pair<GameResult, GameEndCause>>& games) {
         size_t played = 0;
         for (const auto& [result, cause] : games) {
-            if (!playGame(pairIndex, result, cause)) {
+            if (!playGame(pairTournamentIndex, result, cause)) {
                 break;
             }
             ++played;
@@ -100,10 +100,10 @@ public:
      * @param results Vector of game results
      * @return Number of games successfully played
      */
-    size_t playGames(size_t pairIndex, const std::vector<GameResult>& results) {
+    size_t playGames(size_t pairTournamentIndex, const std::vector<GameResult>& results) {
         size_t played = 0;
         for (const auto& result : results) {
-            if (!playGame(pairIndex, result)) {
+            if (!playGame(pairTournamentIndex, result)) {
                 break;
             }
             ++played;
@@ -120,11 +120,11 @@ public:
      * @param results Vector of results to cycle through
      * @return Number of games played
      */
-    size_t playAllGames(size_t pairIndex, const std::vector<GameResult>& results) {
+    size_t playAllGames(size_t pairTournamentIndex, const std::vector<GameResult>& results) {
         size_t played = 0;
         size_t resultIdx = 0;
         
-        while (playGame(pairIndex, results[resultIdx % results.size()])) {
+        while (playGame(pairTournamentIndex, results[resultIdx % results.size()])) {
             ++played;
             ++resultIdx;
         }
