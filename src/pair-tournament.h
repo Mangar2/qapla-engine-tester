@@ -167,10 +167,7 @@ public:
      *
      * @param other Another PairTournament instance to copy results from.
      */
-    void copyResultsFrom(const PairTournament& other) {
-       duelResult_ = other.duelResult_;
-       results_ = other.results_;
-    }
+    void copyResultsFrom(const PairTournament& other);
 
     /**
 	 * @brief Returns the result of the duel between the two engines.
