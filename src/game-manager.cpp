@@ -336,14 +336,14 @@ std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
 
 	const auto& gameRecord = gameContext_.gameRecord();
 
-	QaplaTester::AdjudicationManager::poolInstance().testAdjudicate(gameRecord);
+	pool_->getAdjudicationManager().testAdjudicate(gameRecord);
 
-	auto [dcause, dresult] = QaplaTester::AdjudicationManager::poolInstance().adjudicateDraw(gameRecord);
+	auto [dcause, dresult] = pool_->getAdjudicationManager().adjudicateDraw(gameRecord);
     if (dresult != GameResult::Unterminated) {
         return { dcause, dresult };
     }
 
-	auto [rcause, rresult] = QaplaTester::AdjudicationManager::poolInstance().adjudicateResign(gameRecord);
+	auto [rcause, rresult] = pool_->getAdjudicationManager().adjudicateResign(gameRecord);
 	if (rresult != GameResult::Unterminated) {
         return { rcause, rresult };
     }
@@ -589,7 +589,7 @@ void GameManager::finalizeTaskAndContinue() {
     // Inform the task provider about the finished game
 	const auto& gameRecord = gameContext_.gameRecord();
     taskProvider_->setGameRecord(taskId_, gameRecord);
-	QaplaTester::AdjudicationManager::poolInstance().onGameFinished(gameRecord);
+	pool_->getAdjudicationManager().onGameFinished(gameRecord);
     // Check if we are requested to pause
     {
         std::scoped_lock lock(pauseMutex_);
