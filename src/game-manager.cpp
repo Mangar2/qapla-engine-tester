@@ -330,7 +330,7 @@ std::tuple<GameEndCause, GameResult> GameManager::getGameResult() {
 	auto [cause, result] = gameContext_.checkGameResult();
     
     // If any player detects a game  - end return it. 
-    if (cause != GameEndCause::Ongoing) {
+    if (result != GameResult::Unterminated) {
         return { cause, result };
     }
 

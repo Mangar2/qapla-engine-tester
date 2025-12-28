@@ -32,7 +32,7 @@ namespace QaplaTester {
  * for engine testing or protocol-level termination.
  */
 enum class GameEndCause : std::uint8_t {
-	Ongoing,               // The game is still in progress
+	Ongoing,               // The game is known to be in progress
 	Checkmate,             // One player is checkmated
 	Stalemate,             // The game ended in stalemate
 	DrawByRepetition,      // Draw due to threefold repetition

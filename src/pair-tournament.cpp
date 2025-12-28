@@ -154,6 +154,8 @@ std::optional<GameTask> PairTournament::nextTask() {
         task.gameRecord.setTimeControl(white.getTimeControl(), black.getTimeControl());
         task.gameRecord.setWhiteEngineName(white.getName());
         task.gameRecord.setBlackEngineName(black.getName());
+        // Mark game as ongoing, GameEndCause is no longer Unknown
+        task.gameRecord.setGameEnd(GameEndCause::Ongoing, GameResult::Unterminated);
         if (!positionName_.empty()) {
             task.gameRecord.setPositionName(positionName_ + " " + std::to_string(i + 1));
         }
