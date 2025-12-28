@@ -60,6 +60,76 @@ namespace QaplaTester {
 
 using QaplaHelpers::Timer;
 
+#ifndef _WIN32
+namespace {
+
+/**
+ * @brief Splits a command-line argument string into individual arguments.
+ * Supports:
+ * - Double quotes: "hello world" → hello world
+ * - Single quotes: 'hello world' → hello world
+ * - Escaped quotes: "hello \"world\"" → hello "world"
+ * - Backslash escaping: hello\ world → hello world
+ * - Mixed quoting and escaping
+ * @param argumentString The command-line argument string to split.
+ * @return Vector of individual arguments.
+ */
+std::vector<std::string> splitCommandLineArguments(const std::string& argumentString) {
+    std::vector<std::string> args;
+    std::string currentArg;
+    bool inDoubleQuotes = false;
+    bool inSingleQuotes = false;
+    bool nextCharEscaped = false;
+    
+    for (size_t idx = 0; idx < argumentString.length(); ++idx) {
+        char chr = argumentString[idx];
+        
+        if (nextCharEscaped) {
+            currentArg += chr;
+            nextCharEscaped = false;
+            continue;
+        }
+        
+        if (chr == '\\') {
+            nextCharEscaped = true;
+            continue;
+        }
+        
+        if (chr == '"' && !inSingleQuotes) {
+            inDoubleQuotes = !inDoubleQuotes;
+            continue;
+        }
+        
+        if (chr == '\'' && !inDoubleQuotes) {
+            inSingleQuotes = !inSingleQuotes;
+            continue;
+        }
+        
+        if (chr == ' ' && !inDoubleQuotes && !inSingleQuotes) {
+            if (!currentArg.empty()) {
+                args.push_back(currentArg);
+                currentArg.clear();
+            }
+            continue;
+        }
+        
+        currentArg += chr;
+    }
+    
+    if (nextCharEscaped) {
+        currentArg += '\\';
+    }
+    
+    if (!currentArg.empty()) {
+        args.push_back(currentArg);
+    }
+    
+    return args;
+}
+
+} // anonymous namespace
+#endif
+
 #ifdef _WIN32
 struct EngineProcess::Win32IoData {
     OVERLAPPED overlappedRead{};
@@ -77,20 +147,21 @@ struct EngineProcess::Win32IoData {
 };
 #endif
 
-EngineProcess::EngineProcess(const std::filesystem::path &path,
-                             const std::optional<std::filesystem::path> &workingDir,
-                             std::string identifier)
-    : executablePath_(path), workingDirectory_(workingDir), identifier_(std::move(identifier))
+EngineProcess::EngineProcess(const EngineStartupParams& params)
+    : executablePath_(params.executablePath), 
+      workingDirectory_(params.workingDirectory), 
+      executableArguments_(params.executableArguments),
+      identifier_(params.identifierStr)
 {
-    if (!std::filesystem::exists(path))
+    if (!std::filesystem::exists(params.executablePath))
     {
-        throw std::runtime_error("Engine executable not found: " + path.string());
+        throw std::runtime_error("Engine executable not found: " + params.executablePath.string());
     }
-    if (!std::filesystem::is_regular_file(path))
+    if (!std::filesystem::is_regular_file(params.executablePath))
     {
-        throw std::runtime_error("Engine path is not a regular file: " + path.string());
+        throw std::runtime_error("Engine path is not a regular file: " + params.executablePath.string());
     }
-    if (workingDir && !std::filesystem::exists(*workingDir))
+    if (!params.workingDirectory.empty() && !std::filesystem::exists(params.workingDirectory))
     {
         workingDirectory_ = ".";
     }
@@ -151,6 +222,9 @@ void EngineProcess::startWin32Overlapped() {
     siStartInfo.dwFlags |= STARTF_USESTDHANDLES;
 
     std::string cmd = executablePath_.string();
+    if (!executableArguments_.empty()) {
+        cmd += " " + executableArguments_;
+    }
 
     BOOL success = CreateProcessA(
         nullptr,
@@ -160,7 +234,7 @@ void EngineProcess::startWin32Overlapped() {
         TRUE,
         CREATE_NO_WINDOW,
         nullptr,
-        workingDirectory_ ? workingDirectory_->string().c_str() : nullptr,
+        !workingDirectory_.empty() ? workingDirectory_.string().c_str() : nullptr,
         &siStartInfo,
         &piProcInfo);
     CloseHandle(stdinReadTmp);
@@ -223,7 +297,7 @@ void EngineProcess::start()
         // This ensures the child process is killed if the parent dies unexpectedly
         prctl(PR_SET_PDEATHSIG, SIGKILL);
         #endif
-        if (workingDirectory_ && chdir(workingDirectory_->c_str()) == -1) {
+        if (!workingDirectory_.empty() && chdir(workingDirectory_.c_str()) == -1) {
             perror("chdir failed");
         }            
 
@@ -249,7 +323,25 @@ void EngineProcess::start()
         close(execStatusPipe[0]); // close unused read end
         // Signal exec error to parent if execl fails
 
-        execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
+        if (executableArguments_.empty()) {
+            execl(executablePath_.c_str(), executablePath_.c_str(), nullptr);
+        }
+        else {
+            // Parse arguments and use execv
+            std::vector<std::string> args;
+            args.push_back(executablePath_.string());
+            
+            auto parsedArgs = splitCommandLineArguments(executableArguments_);
+            args.insert(args.end(), parsedArgs.begin(), parsedArgs.end());
+            
+            std::vector<char*> argv;
+            for (auto& arg : args) {
+                argv.push_back(arg.data());
+            }
+            argv.push_back(nullptr);
+            
+            execv(executablePath_.c_str(), argv.data());
+        }
 
         // only on failure:
         int err = errno;

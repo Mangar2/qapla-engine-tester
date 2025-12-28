@@ -102,25 +102,28 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConf
     // Acquire a start slot - this will block if too many engines are starting
     EngineStartGuard guard;
     
-    auto executablePath = config.getCmd();
-    auto workingDirectory = config.getDir();
-    
     // Atomic fetch_add ensures each engine gets a unique identifier
     auto id = identifier_.fetch_add(1, std::memory_order_relaxed);
-    auto identifierStr = "#" + std::to_string(id);
+    
+    EngineStartupParams params {
+        .executablePath = config.getCmd(),
+        .workingDirectory = config.getDir(),
+        .identifierStr = "#" + std::to_string(id),
+        .executableArguments = config.getArgs()
+    };
     
     std::unique_ptr<EngineAdapter> adapter;
     if (config.getProtocol() == EngineProtocol::Uci) {
-		adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+		adapter = std::make_unique<UciAdapter>(params);
 	}
     else if (config.getProtocol() == EngineProtocol::XBoard) {
-        adapter = std::make_unique<WinboardAdapter>(executablePath, workingDirectory, identifierStr);
+        adapter = std::make_unique<WinboardAdapter>(params);
     } 
     else {
         throw AppError::makeInvalidParameters("Unsupported engine protocol: " + to_string(config.getProtocol()));
     }
     adapter->setSuppressInfoLines(suppressInfoLines_);
-    auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, config);
+    auto worker = std::make_unique<EngineWorker>(std::move(adapter), params.identifierStr, config);
     return worker;
     // guard destructor automatically releases the slot
 }

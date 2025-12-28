@@ -45,6 +45,16 @@ struct EngineLine {
     Error error = Error::NoError;
 };
 
+/**
+ * @brief Parameters for starting an engine process.
+ */
+struct EngineStartupParams {
+    std::filesystem::path executablePath;
+    std::filesystem::path workingDirectory;
+    std::string identifierStr;
+    std::string executableArguments;
+};
+
  /**
   * @brief Manages the lifecycle and communication of an external engine process.
   *
@@ -55,13 +65,10 @@ class EngineProcess {
 public:
     /**
      * @brief Constructs and starts the engine process.
-     * @param executablePath Path to the engine executable.
-     * @param workingDirectory Optional working directory for the process.
+     * @param params Engine startup parameters.
      * @throws std::runtime_error if the process cannot be started.
      */
-    EngineProcess(const std::filesystem::path& executablePath,
-        const std::optional<std::filesystem::path>& workingDirectory,
-        std::string identifier);
+    explicit EngineProcess(const EngineStartupParams& params);
 
     /**
      * @brief Destructor ensures the process is safely terminated.
@@ -169,7 +176,8 @@ private:
 
     mutable std::string stdoutBuffer_;
     std::filesystem::path executablePath_;
-    std::optional<std::filesystem::path> workingDirectory_;
+    std::filesystem::path workingDirectory_;
+    std::string executableArguments_;
     std::string identifier_;
 
     /**
