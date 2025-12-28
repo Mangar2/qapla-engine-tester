@@ -112,15 +112,16 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         }
         else if (key == "cmd") { setCmd(std::get<std::string>(value)); }
         else if (key == "dir") { setDir(std::get<std::string>(value)); }
+        else if (key == "args") { setArgs(std::get<std::string>(value)); }
         else if (key == "restart") { restart_ = parseRestartOption(std::get<std::string>(value)); }
         else if (key == "proto") { setProtocol(std::get<std::string>(value)); }
         else if (key.starts_with("option.")) { setOptionValue(key.substr(7), toString(value)); }
         else {
             AppError::throwOnInvalidOption(
-                { "name", "cmd", "dir", "tc", "ponder", "gauntlet", "whitepov", "trace", "restart", "proto", "option."},
+                { "name", "cmd", "dir", "args", "tc", "ponder", "gauntlet", "whitepov", "trace", "restart", "proto", "option."},
                 key, 
 				"Invalid engine option key: " + key + 
-                ". Supported keys are: name, cmd, dir, tc, ponder, gauntlet, whitepov, trace, restart, proto, option.[name] ."
+                ". Supported keys are: name, cmd, dir, args, tc, ponder, gauntlet, whitepov, trace, restart, proto, option.[name] ."
             );
         }
     }
@@ -161,6 +162,7 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
         && lhs.author_ == rhs.author_
         && lhs.cmd_ == rhs.cmd_
         && lhs.dir_ == rhs.dir_
+        && lhs.args_ == rhs.args_
         && lhs.tc_ == rhs.tc_
         && lhs.protocol_ == rhs.protocol_
         && lhs.ponder_ == rhs.ponder_
@@ -175,6 +177,7 @@ void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     else if (key == "author") { setAuthor(value); }
     else if (key == "cmd") { setCmd(value); }
     else if (key == "dir") { setDir(value); }
+    else if (key == "args") { setArgs(value); }
     else if (key == "tc") { setTimeControl(value); }
     else if (key == "gauntlet") {
         if (value == "true" || value == "1" || value.empty()) { setGauntlet(true); }
@@ -239,6 +242,7 @@ void EngineConfig::save(std::ostream& out, const std::string& section) const {
     out << "author=" << author_ << '\n';
     out << "cmd=" << cmd_ << '\n';
     out << "dir=" << dir_ << '\n';
+    out << "args=" << args_ << '\n';
     out << "proto=" << to_string(protocol_) << '\n';
     out << "trace=" << to_string(traceLevel_) << '\n';
     out << "restart=" << to_string(restart_) << '\n';
@@ -270,6 +274,10 @@ std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap()
 
     if (!author_.empty()) {
         result["author"] = author_;
+    }
+
+    if (!args_.empty()) {
+        result["args"] = args_;
     }
 
     result["proto"] = to_string(protocol_);

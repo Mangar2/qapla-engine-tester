@@ -32,10 +32,8 @@
 
 namespace QaplaTester {
 
-WinboardAdapter::WinboardAdapter(const std::filesystem::path& enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory,
-    const std::string& identifier)
-	: EngineAdapter(enginePath, workingDirectory, identifier)
+WinboardAdapter::WinboardAdapter(const EngineStartupParams& params)
+	: EngineAdapter(params)
 {
     suppressInfoLines_ = true;
 }

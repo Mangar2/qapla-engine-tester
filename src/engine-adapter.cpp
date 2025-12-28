@@ -22,11 +22,9 @@
 
 namespace QaplaTester {
 
-EngineAdapter::EngineAdapter(const std::filesystem::path& enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory, 
-    const std::string& identifier)
-    : process_(enginePath, workingDirectory, identifier), 
-      identifier_(identifier) {
+EngineAdapter::EngineAdapter(const EngineStartupParams& params)
+    : process_(params), 
+      identifier_(params.identifierStr) {
 }
 
 EngineAdapter::~EngineAdapter() {

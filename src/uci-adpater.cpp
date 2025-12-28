@@ -32,10 +32,8 @@
 
 namespace QaplaTester {
 
-UciAdapter::UciAdapter(const std::filesystem::path& enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory,
-    const std::string& identifier)
-	: EngineAdapter(enginePath, workingDirectory, identifier)
+UciAdapter::UciAdapter(const EngineStartupParams& params)
+	: EngineAdapter(params)
 {
     suppressInfoLines_ = true;
 }
