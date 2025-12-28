@@ -91,14 +91,6 @@ public:
     }
 
     /**
-     * @brief Returns a singleton instance for usage in games managed by the GameManagerPool.
-     */
-    static AdjudicationManager& poolInstance() {
-        static AdjudicationManager poolSingletonInstance;
-        return poolSingletonInstance;
-    }
-
-    /**
      * @brief Set the configuration for draw adjudication.
      * @param config The draw configuration to apply.
      */
@@ -168,12 +160,11 @@ public:
      */
     void printTestResult(std::ostream& out) const;
 
+    AdjudicationManager() = default;
 
 private:
     [[nodiscard]] std::optional<size_t> findDrawAdjudicationIndex(const GameRecord& game) const;
     [[nodiscard]] std::pair<GameResult, size_t> findResignAdjudicationIndex(const GameRecord& game) const;
-
-    AdjudicationManager() = default;
 
     DrawAdjudicationConfig drawConfig_;
     ResignAdjudicationConfig resignConfig_;

@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include "adjudication-manager.h"
 #include "engine-config.h"
 #include "game-manager.h"
 #include "input-handler.h"
@@ -193,6 +194,14 @@ public:
         const std::function<bool(uint32_t)>& filterFn
     );
 
+    /**
+     * @brief Returns a reference to the AdjudicationManager for this pool.
+     * @return Reference to the pool's AdjudicationManager instance.
+     */
+    AdjudicationManager& getAdjudicationManager() {
+        return adjudicationManager_;
+    }
+
 private:
     
     void printRunningGames(std::ostream& out) const;
@@ -246,6 +255,8 @@ private:
     std::mutex managerMutex_;
     std::mutex startManagerMutex_;
     bool paused_ = false;
+
+    AdjudicationManager adjudicationManager_;
 
 	// InputHandler
     std::unique_ptr<InputHandler::CallbackRegistration> inputCallback_;
