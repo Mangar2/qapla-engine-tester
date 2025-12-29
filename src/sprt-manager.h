@@ -32,6 +32,7 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <array>
 
 namespace QaplaTester {
 
@@ -92,6 +93,63 @@ struct MonteCarloResultRow {
 struct MonteCarloResult {
     std::vector<MonteCarloResultRow> rows;
     SprtConfig config;          // Configuration used for the test
+};
+
+/**
+ * @brief Pentanomial SPRT implementation for paired games.
+ */
+class PentaSprt {
+public:
+    PentaSprt(double alpha, double beta, double elo0, double elo1, double drawRate);
+
+    /**
+     * @brief Records the outcome of a game pair.
+     * @param resultIndex Index in [0,4] representing the pentanomial outcome.
+     */
+    void record(int resultIndex);
+
+    /**
+     * @brief Returns the current decision status.
+     * @return std::optional<bool> with true for H1, false for H0, std::nullopt if undecided.
+     */
+    [[nodiscard]] std::optional<bool> status() const {
+        return status_;
+    }
+
+    /**
+     * @brief Returns the current log-likelihood ratio.
+     */
+    [[nodiscard]] double llr() const {
+        return llr_;
+    }
+
+    /**
+     * @brief Returns the internal pentanomial result counters.
+     */
+    [[nodiscard]] const std::array<int64_t, 5>& results() const {
+        return results_;
+    }
+
+    /**
+     * @brief Returns the total number of games represented by all recorded pairs.
+     */
+    [[nodiscard]] int gameCount() const;
+
+private:
+    std::array<int64_t, 5> results_{};
+    double elo0_;
+    double elo1_;
+    double drawRate_;
+    double la_;
+    double lb_;
+    double llr_ = 0.0;
+    double minLlr_ = 0.0;
+    double maxLlr_ = 0.0;
+    double sq0_ = 0.0;
+    double sq1_ = 0.0;
+    double o0_ = 0.0;
+    double o1_ = 0.0;
+    std::optional<bool> status_;
 };
 
 
