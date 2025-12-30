@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <ctime>
 #include "sprt-manager.h"
+#include "sprt-calculation.h"
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "opening-parser.h"
@@ -29,41 +30,6 @@
 
 namespace QaplaTester {
 
-namespace {
-
-double logisticScore(double elo) {
-    return 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
-}
-
-std::array<double, 5> pentanomialProbabilities(double elo, double drawRate) {
-    const double expectedScore = logisticScore(elo);
-    const double pDraw = drawRate;
-    const double decisiveFactor = 1.0 - pDraw;
-    const double pWin = decisiveFactor * expectedScore;
-    const double pLoss = decisiveFactor * (1.0 - expectedScore);
-
-    std::array<double, 5> p{};
-    p[0] = pWin * pWin;
-    p[4] = pLoss * pLoss;
-    p[1] = 2.0 * pWin * pDraw;
-    p[3] = 2.0 * pLoss * pDraw;
-    p[2] = 2.0 * pWin * pLoss + pDraw * pDraw;
-    return p;
-}
-
-double computePentaLLR(const std::array<int64_t, 5>& results,
-    const std::array<double, 5>& p0,
-    const std::array<double, 5>& p1) {
-    double llr = 0.0;
-    for (std::size_t i = 0; i < results.size(); ++i) {
-        const double count = static_cast<double>(results[i]) + 0.5;
-        llr += count * std::log(p1[i] / p0[i]);
-    }
-    return llr;
-}
-
-} // namespace
-
 SprtManager::~SprtManager() {
     // Stop any running Monte Carlo test
     stopMonteCarloTest();
@@ -71,58 +37,6 @@ SprtManager::~SprtManager() {
     // Wait for the thread to finish if it's running
     if (monteCarloThread_.joinable()) {
         monteCarloThread_.join();
-    }
-}
-
-PentaSprt::PentaSprt(double alpha, double beta, double elo0, double elo1, double drawRate)
-    : elo0_(elo0)
-    , elo1_(elo1)
-    , drawRate_(drawRate)
-    , la_(std::log(beta / (1.0 - alpha)))
-    , lb_(std::log((1.0 - beta) / alpha)) {
-}
-
-int PentaSprt::gameCount() const {
-    int64_t sum = 0;
-    for (auto value : results_) {
-        sum += value;
-    }
-    return static_cast<int>(2 * sum);
-}
-
-void PentaSprt::record(int resultIndex) {
-    if (status_.has_value()) {
-        return;
-    }
-
-    if (resultIndex < 0 || std::cmp_greater_equal(resultIndex, static_cast<int>(results_.size()))) {
-        return;
-    }
-
-    results_[static_cast<std::size_t>(resultIndex)] += 1;
-
-    const auto p0 = pentanomialProbabilities(elo0_, drawRate_);
-    const auto p1 = pentanomialProbabilities(elo1_, drawRate_);
-    llr_ = computePentaLLR(results_, p0, p1);
-
-    if (llr_ > maxLlr_) {
-        const double diff = llr_ - maxLlr_;
-        sq1_ += diff * diff;
-        maxLlr_ = llr_;
-        o1_ = sq1_ / llr_ / 2.0;
-    }
-
-    if (llr_ < minLlr_) {
-        const double diff = llr_ - minLlr_;
-        sq0_ += diff * diff;
-        minLlr_ = llr_;
-        o0_ = -sq0_ / llr_ / 2.0;
-    }
-
-    if (llr_ > lb_ - o1_) {
-        status_ = true;
-    } else if (llr_ < la_ + o0_) {
-        status_ = false;
     }
 }
 
@@ -291,81 +205,6 @@ void SprtManager::load(const QaplaHelpers::IniFile::Section& section) {
     }
 }
 
-/**
- * @brief Computes the decision boundaries for the SPRT test.
- *
- * Given type I and II error probabilities, this function calculates the lower and upper
- * log-likelihood ratio bounds used to decide acceptance of H0 or H1 in a sequential test.
- *
- * @param alpha Maximum allowed type I error (false positive rate).
- * @param beta Maximum allowed type II error (false negative rate).
- * @return std::tuple<double, double> A pair of log-likelihood thresholds (lowerBound, upperBound).
- */
-static std::tuple<double, double> sprtBounds(double alpha, double beta) {
-    const double lBound = std::log(beta / (1.0 - alpha));         
-    const double uBound = std::log((1.0 - beta) / alpha);         
-    return { lBound, uBound };
-}
-
-/**
- * @brief Estimates the drawElo parameter based on regularized outcome counts.
- *
- * @param wins number of wins.
- * @param losses number of losses.
- * @param draws number of draws.
- * @return double Estimated drawElo value.
- */
-static double computeDrawElo(double wins, double draws, double losses) {
-    wins += 0.5;
-    draws += 0.5;
-    losses += 0.5;
-
-    auto count = wins + draws + losses;
-    auto pWin = wins / count;
-    auto pLoss = losses / count;
-	return 200.0 * std::log10((1.0 - pLoss) / pLoss * (1.0 - pWin) / pWin);
-}
-
-/**
- * @brief Computes outcome probabilities based on BayesElo parameters.
- *
- * @param bayesElo Elo difference under the hypothesis.
- * @param drawElo Estimated drawElo value.
- * @return std::tuple<double, double, double> Probabilities for win, draw and loss.
- */
-static std::tuple<double, double, double> bayesEloProbabilities(double bayesElo, double drawElo) {
-    const double pWin = 1.0 / (1.0 + std::pow(10.0, (drawElo - bayesElo) / 400.0));
-    const double pLoss = 1.0 / (1.0 + std::pow(10.0, (drawElo + bayesElo) / 400.0));
-    const double pDraw = 1.0 - pWin - pLoss;
-    return { pWin, pDraw, pLoss };
-}
-
-/**
- * @brief Computes the Log-Likelihood Ratio (LLR) based on observed and expected probabilities.
- *
- * @param wins Regularized number of wins.
- * @param draws Regularized number of draws.
- * @param losses Regularized number of losses.
- * @param p0 Tuple of probabilities under H0 (win, loss, draw).
- * @param p1 Tuple of probabilities under H1 (win, loss, draw).
- * @return double Computed LLR value.
- */
-static double computeLLR(double wins, double draws, double losses,
-    const std::tuple<double, double, double>& p0,
-    const std::tuple<double, double, double>& p1) {
-    wins += 0.5;
-	losses += 0.5;
-	draws += 0.5;
-    const auto& [pWin0, pDraw0, pLoss0] = p0;
-    const auto& [pWin1, pDraw1, pLoss1] = p1;
-
-    return 
-        wins * std::log(pWin1 / pWin0) +
-        losses * std::log(pLoss1 / pLoss0) +
-        draws * std::log(pDraw1 / pDraw0);
-}
-
-
 SprtResult SprtManager::computeSprt() const {
     auto duel = tournament_->getResult();
     return computeSprt(duel.winsEngineA, duel.draws, duel.winsEngineB, duel.getEngineA(), duel.getEngineB());
@@ -373,75 +212,13 @@ SprtResult SprtManager::computeSprt() const {
 
 SprtResult SprtManager::computeSprt(
     int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const {
-	const double drawElo = computeDrawElo(winsA, draws, winsB);
-
-    const double x = std::pow(10.0, -drawElo / 400.0); 
-	const double xSquare = (x + 1.0) * (x + 1.0); 
-    const double scale = 4.0 * x / xSquare;
-
-    const auto p0 = bayesEloProbabilities(config_.eloLower / scale, drawElo);
-    const auto p1 = bayesEloProbabilities(config_.eloUpper / scale, drawElo);
-
-    const double llr = computeLLR(winsA, draws, winsB, p0, p1);
-    const auto [lBound, uBound] = sprtBounds(config_.alpha, config_.beta);
-
-    SprtResult result;
-    result.llr = llr;
-    result.lowerBound = lBound;
-    result.upperBound = uBound;
-    result.drawElo = drawElo;
-    result.winsA = winsA;
-    result.draws = draws;
-    result.winsB = winsB;
-    result.engineA = engineA;
-    result.engineB = engineB;
-    result.eloLower = config_.eloLower;
-    result.eloUpper = config_.eloUpper;
-
-    if (llr >= uBound) { 
-        result.decision = true;
-    } else if (llr <= lBound) {
-        result.decision = false;
-	} else {
-        result.decision = std::nullopt;
-    }
-
-    // Check if max games limit was reached without a decision
-    int totalGames = winsA + draws + winsB;
-    result.reachedMaxGames = !result.decision.has_value() && 
-        (std::cmp_greater_equal(totalGames, config_.maxGames));
-
-    result.info = computeSprtInfo(result);
-    
-    return result;
-}
-
-std::string SprtManager::computeSprtInfo(const SprtResult& result) {
-    if (result.decision.has_value()) {
-        if (*result.decision) {
-            return "H1 accepted, " + result.engineA + " is at least " + std::to_string(result.eloLower)
-                + " elo stronger than " + result.engineB;
-        }
-        return "H0 accepted, " + result.engineA + " is not stronger than " + result.engineB
-            + " by at least " + std::to_string(result.eloUpper) + " elo.";
-    }
-    
-    // Check if max games limit reached without decision
-    if (result.reachedMaxGames) {
-        int totalGames = result.winsA + result.draws + result.winsB;
-        std::ostringstream oss;
-        oss << "No decision after " << totalGames << " games. "
-            << "LLR=" << std::fixed << std::setprecision(2) << result.llr
-            << " (bounds: [" << result.lowerBound << ", " << result.upperBound << "]). "
-            << "Score: " << result.winsA << "/" << result.draws << "/" << result.winsB
-            << " (" << result.engineA << " vs " << result.engineB << ").";
-        return oss.str();
-    }
-    
-    std::ostringstream oss;
-    oss << "[ " << std::fixed << std::setprecision(2) << result.lowerBound << " < " 
-        << std::setw(5) << result.llr << " < " << result.upperBound << " ]";
-    return oss.str();
+    return ClassicalSprt::compute(
+        winsA, draws, winsB,
+        engineA, engineB,
+        config_.eloLower, config_.eloUpper,
+        config_.alpha, config_.beta,
+        config_.maxGames
+    );
 }
 
 void SprtManager::runMonteCarloSingleTest(

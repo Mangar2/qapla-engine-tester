@@ -26,6 +26,7 @@
 #include "pair-tournament.h"
 #include "input-handler.h"
 #include "ini-file.h"
+#include "sprt-calculation.h"
 
 #include <tuple>
 #include <thread>
@@ -48,33 +49,7 @@ struct SprtConfig {
     Openings openings;
 };
 
-/**
- * @brief Result of a SPRT computation containing all values for display.
- */
-struct SprtResult {
-    std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
-    std::string info;              // Human-readable decision info
-    double llr;                    // Log-Likelihood Ratio
-    double lowerBound;             // Lower decision boundary
-    double upperBound;             // Upper decision boundary
-    double drawElo;                // Computed drawElo value
-    int winsA;                     // Wins for engine A
-    int draws;                     // Number of draws
-    int winsB;                      // Wins for engine B
-    std::string engineA;           // Name of engine A
-    std::string engineB;           // Name of engine B
-    int eloLower;                  // Lower elo bound from config
-    int eloUpper;                  // Upper elo bound from config
-    bool reachedMaxGames = false;  // true if max games limit was reached without decision
 
-    /**
-     * @brief Checks if the SPRT test has finished.
-     * @return true if a decision was made or max games limit was reached.
-     */
-    bool isFinished() const {
-        return decision.has_value() || reachedMaxGames;
-    }
-};
 
 /**
  * @brief Result row from a single Monte Carlo simulation run.
@@ -93,63 +68,6 @@ struct MonteCarloResultRow {
 struct MonteCarloResult {
     std::vector<MonteCarloResultRow> rows;
     SprtConfig config;          // Configuration used for the test
-};
-
-/**
- * @brief Pentanomial SPRT implementation for paired games.
- */
-class PentaSprt {
-public:
-    PentaSprt(double alpha, double beta, double elo0, double elo1, double drawRate);
-
-    /**
-     * @brief Records the outcome of a game pair.
-     * @param resultIndex Index in [0,4] representing the pentanomial outcome.
-     */
-    void record(int resultIndex);
-
-    /**
-     * @brief Returns the current decision status.
-     * @return std::optional<bool> with true for H1, false for H0, std::nullopt if undecided.
-     */
-    [[nodiscard]] std::optional<bool> status() const {
-        return status_;
-    }
-
-    /**
-     * @brief Returns the current log-likelihood ratio.
-     */
-    [[nodiscard]] double llr() const {
-        return llr_;
-    }
-
-    /**
-     * @brief Returns the internal pentanomial result counters.
-     */
-    [[nodiscard]] const std::array<int64_t, 5>& results() const {
-        return results_;
-    }
-
-    /**
-     * @brief Returns the total number of games represented by all recorded pairs.
-     */
-    [[nodiscard]] int gameCount() const;
-
-private:
-    std::array<int64_t, 5> results_{};
-    double elo0_;
-    double elo1_;
-    double drawRate_;
-    double la_;
-    double lb_;
-    double llr_ = 0.0;
-    double minLlr_ = 0.0;
-    double maxLlr_ = 0.0;
-    double sq0_ = 0.0;
-    double sq1_ = 0.0;
-    double o0_ = 0.0;
-    double o1_ = 0.0;
-    std::optional<bool> status_;
 };
 
 
@@ -316,22 +234,10 @@ private:
     PairTournamentConfig tournamentConfig_;
 
     /**
-     * @brief Computes a human-readable SPRT info string.
-     * @param result The SPRT result to print.
-     * @return A formatted string containing the SPRT decision or bounds.
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
+     *
+     * Internal version with explicit parameters.
      */
-    static std::string computeSprtInfo(const SprtResult& result);
-
-    /**
-     * @brief Evaluates the current SPRT test state and logs result if decision boundary is reached.
-     * @return true if the test should be stopped (H0 or H1 accepted), false otherwise.
-     */
-    
-     /**
-      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
-      *
-      * Internal version with explicit parameters.
-      */
     SprtResult computeSprt(
         int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;
 
