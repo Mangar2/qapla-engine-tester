@@ -212,7 +212,7 @@ SprtResult SprtManager::computeSprt() const {
 
 SprtResult SprtManager::computeSprt(
     int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const {
-    return ClassicalSprt::compute(
+    return FastchessSprt::compute(
         winsA, draws, winsB,
         engineA, engineB,
         config_.eloLower, config_.eloUpper,
@@ -317,7 +317,19 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 	config_ = config;
     constexpr int simulationsPerElo = 1000;
     constexpr double drawRate = 0.4;
-    constexpr std::array<int, 11> eloDiffs = { -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25 };
+    
+    // Calculate dynamic step size: ceil((upper-lower)/5) rounded up to 0.1
+    double rawStep = std::abs(config.eloUpper - config.eloLower) / 5.0;
+    double step = std::ceil(rawStep * 10.0) / 10.0;
+    
+    // Generate test range: 2 steps below eloLower to 2 steps above eloUpper
+    double startElo = config.eloLower - 2.0 * step;
+    double endElo = config.eloUpper + 2.0 * step;
+    
+    std::vector<int> eloDiffs;
+    for (double elo = startElo; elo <= endElo + 0.01; elo += step) {
+        eloDiffs.push_back(static_cast<int>(std::round(elo)));
+    }
 
     {
         std::scoped_lock lock(monteCarloResultMutex_);
@@ -329,44 +341,70 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     std::cout << "Running SPRT Monte carlo simulation: "
         << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
         << " | alpha: " << config.alpha << ", beta: " << config.beta
-        << " | maxGames: " << config.maxGames << "\n" << std::flush;
+        << " | maxGames: " << config.maxGames
+        << " | step: " << step << "\n" << std::flush;
 
+    std::vector<std::thread> threads;
+    
     for (int elo : eloDiffs) {
-        // Check if we should stop
-        if (monteCarloShouldStop_.load()) {
-            std::cout << "Monte Carlo test stopped early.\n" << std::flush;
-            break;
+        threads.emplace_back([this, elo]() {
+            // Check if we should stop
+            if (monteCarloShouldStop_.load()) {
+                return;
+            }
+
+            int64_t numH1 = 0;
+            int64_t numH0 = 0;
+            int64_t noDecisions = 0;
+            int64_t totalGames = 0;
+
+            runMonteCarloSingleTest(simulationsPerElo, elo, drawRate, noDecisions, numH0, numH1, totalGames);
+
+            double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
+            double noDecisionPercent = (static_cast<double>(noDecisions) * 100.0) / simulationsPerElo;
+            double h0AcceptedPercent = (static_cast<double>(numH0) * 100.0) / simulationsPerElo;
+            double h1AcceptedPercent = (static_cast<double>(numH1) * 100.0) / simulationsPerElo;
+
+            {
+                std::scoped_lock lock(monteCarloResultMutex_);
+                monteCarloResult_.rows.push_back({
+                    .eloDifference = elo,
+                    .noDecisionPercent = noDecisionPercent,
+                    .h0AcceptedPercent = h0AcceptedPercent,
+                    .h1AcceptedPercent = h1AcceptedPercent,
+                    .avgGames = avgGames
+                });
+                std::ranges::sort(monteCarloResult_.rows,
+                    [](const MonteCarloResultRow& a, const MonteCarloResultRow& b) {
+                        return a.eloDifference < b.eloDifference;
+                    });
+            }
+        });
+    }
+
+    // Wait for all threads to complete
+    for (auto& thread : threads) {
+        if (thread.joinable()) {
+            thread.join();
         }
+    }
 
-        int64_t numH1 = 0;
-        int64_t numH0 = 0;
-		int64_t noDecisions = 0;
-        int64_t totalGames = 0;
+    if (monteCarloShouldStop_.load()) {
+        std::cout << "Monte Carlo test stopped early.\n" << std::flush;
+    }
 
-        runMonteCarloSingleTest(simulationsPerElo, elo, drawRate, noDecisions, numH0, numH1, totalGames);
+    // Sort results by eloDifference and output
+    {
+        std::scoped_lock lock(monteCarloResultMutex_);
 
-        double avgGames = (simulationsPerElo > 0) ? static_cast<double>(totalGames) / simulationsPerElo : 0.0;
-        double noDecisionPercent = (static_cast<double>(noDecisions) * 100.0) / simulationsPerElo;
-        double h0AcceptedPercent = (static_cast<double>(numH0) * 100.0) / simulationsPerElo;
-        double h1AcceptedPercent = (static_cast<double>(numH1) * 100.0) / simulationsPerElo;
-
-        {
-            std::scoped_lock lock(monteCarloResultMutex_);
-            monteCarloResult_.rows.push_back({
-                .eloDifference = elo,
-                .noDecisionPercent = noDecisionPercent,
-                .h0AcceptedPercent = h0AcceptedPercent,
-                .h1AcceptedPercent = h1AcceptedPercent,
-                .avgGames = avgGames
-            });
+        for (const auto& row : monteCarloResult_.rows) {
+            std::cout << std::fixed << std::setprecision(1)
+                << "Simulated elo difference: " << std::setw(6) << row.eloDifference
+                << "  No Decisions: " << std::setw(6) << row.noDecisionPercent << "%"
+                << "  H0 Accepted: " << std::setw(6) << row.h0AcceptedPercent << "%"
+                << "  H1 Accepted: " << std::setw(6) << row.h1AcceptedPercent << "%"
+                << "  Average Games: " << std::setw(6) << row.avgGames << "\n";
         }
-
-        std::cout << std::fixed << std::setprecision(1)
-            << "Simulated elo difference: " << std::setw(6) << elo
-            << "  No Decisions: " << std::setw(6) << noDecisionPercent << "%"
-            << "  H0 Accepted: " << std::setw(6) << h0AcceptedPercent << "%"
-            << "  H1 Accepted: " << std::setw(6) << h1AcceptedPercent << "%"
-            << "  Average Games: " << std::setw(6) << avgGames << "\n";
     }
 }
 
