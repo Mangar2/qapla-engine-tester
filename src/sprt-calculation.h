@@ -157,6 +157,40 @@ namespace ClassicalSprt {
 } // namespace ClassicalSprt
 
 /**
+ * @brief Fastchess SPRT implementation (recommended).
+ * 
+ * This uses the fastchess implementation with proper Maximum Likelihood Estimation.
+ * Supports multiple models: bayesian, logistic, normalized.
+ */
+namespace FastchessSprt {
+
+    /**
+     * @brief Computes the complete SPRT result using fastchess algorithm.
+     *
+     * @param winsA Wins for engine A.
+     * @param draws Number of draws.
+     * @param winsB Wins for engine B.
+     * @param engineA Name of engine A.
+     * @param engineB Name of engine B.
+     * @param eloLower Lower bound of H0 hypothesis.
+     * @param eloUpper Upper bound of H1 hypothesis.
+     * @param alpha Type I error probability.
+     * @param beta Type II error probability.
+     * @param maxGames Maximum number of games before stopping.
+     * @param model SPRT model: "bayesian", "logistic", or "normalized" (default: "bayesian").
+     * @return SprtResult containing decision, LLR, bounds and all relevant values.
+     */
+    SprtResult compute(
+        int winsA, int draws, int winsB,
+        const std::string& engineA, const std::string& engineB,
+        int eloLower, int eloUpper,
+        double alpha, double beta,
+        uint32_t maxGames,
+        const std::string& model = "bayesian");
+
+} // namespace FastchessSprt
+
+/**
  * @brief Pentanomial SPRT implementation for paired games.
  * 
  * This is an experimental implementation for pentanomial SPRT analysis.

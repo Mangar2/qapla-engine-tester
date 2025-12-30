@@ -18,6 +18,7 @@
  */
 
 #include "sprt-calculation.h"
+#include "fastchess-sprt.h"
 #include <cmath>
 #include <sstream>
 #include <iomanip>
@@ -161,6 +162,62 @@ std::string formatInfo(const SprtResult& result) {
 }
 
 } // namespace ClassicalSprt
+
+// ============================================================================
+// Fastchess SPRT (Recommended)
+// ============================================================================
+
+namespace FastchessSprt {
+
+SprtResult compute(
+    int winsA, int draws, int winsB,
+    const std::string& engineA, const std::string& engineB,
+    int eloLower, int eloUpper,
+    double alpha, double beta,
+    uint32_t maxGames,
+    const std::string& model) {
+
+    fastchess::SPRT sprt(alpha, beta, eloLower, eloUpper, model, true);
+    
+    fastchess::Stats stats;
+    stats.wins = winsA;
+    stats.draws = draws;
+    stats.losses = winsB;
+    
+    double llr = sprt.getLLR(stats, false);
+    auto result = sprt.getResult(llr);
+    
+    SprtResult sprtResult;
+    sprtResult.llr = llr;
+    sprtResult.lowerBound = sprt.getLowerBound();
+    sprtResult.upperBound = sprt.getUpperBound();
+    sprtResult.drawElo = ClassicalSprt::computeDrawElo(winsA, draws, winsB);
+    sprtResult.winsA = winsA;
+    sprtResult.draws = draws;
+    sprtResult.winsB = winsB;
+    sprtResult.engineA = engineA;
+    sprtResult.engineB = engineB;
+    sprtResult.eloLower = eloLower;
+    sprtResult.eloUpper = eloUpper;
+    
+    if (result == fastchess::SPRT_H1) {
+        sprtResult.decision = true;
+    } else if (result == fastchess::SPRT_H0) {
+        sprtResult.decision = false;
+    } else {
+        sprtResult.decision = std::nullopt;
+    }
+    
+    int totalGames = winsA + draws + winsB;
+    sprtResult.reachedMaxGames = !sprtResult.decision.has_value() && 
+        (std::cmp_greater_equal(totalGames, maxGames));
+    
+    sprtResult.info = ClassicalSprt::formatInfo(sprtResult);
+    
+    return sprtResult;
+}
+
+} // namespace FastchessSprt
 
 // ============================================================================
 // Pentanomial SPRT (Experimental - Not Currently Used)
