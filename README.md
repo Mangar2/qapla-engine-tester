@@ -756,6 +756,17 @@ This will:
 
 ---
 
+## Third-Party Code
+
+### fastchess SPRT Implementation
+
+The SPRT (Sequential Probability Ratio Test) calculations in this project use algorithms from the [fastchess](https://github.com/Disservin/fastchess) project by Disservin.  
+**License:** MIT
+
+The fastchess SPRT implementation provides optimized Maximum Likelihood Estimation for statistical engine testing.
+
+---
+
 ## Limitations
 
 - Only UCI protocol is supported, Winboard is not yet supported
