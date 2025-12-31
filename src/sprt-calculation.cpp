@@ -163,15 +163,24 @@ namespace FastchessSprt {
 
 SprtResult compute(SprtParameters params) {
 
+
     fastchess::SPRT sprt(params.alpha, params.beta, params.eloLower, params.eloUpper, params.model, true);
+    bool report_penta = params.pentanomial;
+    sprt.isValid(params.alpha, params.beta, params.eloLower, params.eloUpper, params.model, report_penta);
     
     fastchess::Stats stats {
         .wins = params.winsA,
         .draws = params.draws,
-        .losses = params.winsB
+        .losses = params.winsB,
+        .penta_WW = params.pentaWW,
+        .penta_WD = params.pentaWD,
+        .penta_WL = params.pentaWL,
+        .penta_DD = params.pentaDD,
+        .penta_LD = params.pentaLD,
+        .penta_LL = params.pentaLL
     };
     
-    double llr = sprt.getLLR(stats, false);
+    double llr = sprt.getLLR(stats, report_penta);
     auto result = sprt.getResult(llr);
     int totalGames = params.winsA + params.draws + params.winsB; 
     

@@ -46,10 +46,10 @@ struct SprtConfig {
     double alpha;
     double beta;
     uint32_t maxGames;
+    std::string model = "normalized";  ///> Model for SPRT: "bayesian", "logistic", "normalized"
+    bool pentanomial = false;           ///> Use pentanomial statistics (not available with bayesian)
     Openings openings;
 };
-
-
 
 /**
  * @brief Result row from a single Monte Carlo simulation run.
@@ -69,7 +69,6 @@ struct MonteCarloResult {
     std::vector<MonteCarloResultRow> rows;
     SprtConfig config;          // Configuration used for the test
 };
-
 
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
@@ -175,12 +174,6 @@ public:
     void loadFromSection(const QaplaHelpers::IniFile::Section& section);
 
     /**
-     * @brief Loads the state from a stream - do nothing, if the file cannot be loaded.
-	 * @param filename The file to load the state from.
-     */
-    void load(const QaplaHelpers::IniFile::Section& section);
-
-    /**
      * @brief Returns the result of the tournament as a TournamentResult object.
      * 
      * @return TournamentResult containing the one duel result as vector.
@@ -209,12 +202,17 @@ public:
     }
 
     /**
-     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
+     * 
+     * @param model Optional model override ("bayesian", "logistic", "normalized").
+     * @param usePentanomial Optional flag to override pentanomial statistics usage.
      *
-     * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
-     * Returns SprtResult containing decision, llr, bounds and all relevant values.
+     * Uses the configured model (normalized, logistic, or bayesian) and either trinomial
+     * or pentanomial statistics depending on configuration. Returns SprtResult containing
+     * decision, LLR, bounds and all relevant values.
      */
-    SprtResult computeSprt() const;
+    SprtResult computeSprt(std::optional<std::string> model = std::nullopt, 
+        std::optional<bool> usePentanomial = std::nullopt) const;
 
     /**
      * @brief Checks if the SPRT test has finished.
@@ -234,9 +232,16 @@ private:
     PairTournamentConfig tournamentConfig_;
 
     /**
-     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
+     * @brief Computes the SPRT decision and updates internal state.
+     * @return SprtResult containing the decision and related statistics.
+     */
+    SprtResult computeDecision();
+
+    /**
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
      *
-     * Internal version with explicit parameters.
+     * Internal version with explicit trinomial parameters for Monte Carlo simulations.
+     * Uses the configured model but always trinomial statistics (not pentanomial).
      */
     SprtResult computeSprt(
         int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;

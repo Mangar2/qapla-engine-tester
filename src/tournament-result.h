@@ -69,6 +69,14 @@ public:
     int draws = 0;              ///< Draw count
     CauseStatsArray causeStats; ///< Stats per end cause
 
+    // Pentanomial statistics for paired games (both games from engineA's perspective)
+    int pentaWW = 0;  ///< Both games won by engineA
+    int pentaWD = 0;  ///< One win, one draw for engineA
+    int pentaWL = 0;  ///< One win for engineA, one loss
+    int pentaDD = 0;  ///< Both games drawn
+    int pentaLD = 0;  ///< One loss, one draw for engineA
+    int pentaLL = 0;  ///< Both games lost by engineA
+
     [[nodiscard]] const std::string &getEngineA() const
     {
         return engineA;
@@ -86,6 +94,12 @@ public:
         winsEngineA = 0;
         winsEngineB = 0;
         draws = 0;
+        pentaWW = 0;
+        pentaWD = 0;
+        pentaWL = 0;
+        pentaDD = 0;
+        pentaLD = 0;
+        pentaLL = 0;
         for (auto &cs : causeStats) {
             cs = {};
         }

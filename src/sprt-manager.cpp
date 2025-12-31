@@ -107,6 +107,9 @@ void SprtManager::createTournament(
     }
     tournament_->setVerbose(false);
     tournament_->setPositionName("SPRT");
+    // We keep previous results but they may lead to a different SPRT decision due to changed parameters
+    decision_.reset();
+
 }
 
 void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency, GameManagerPool& pool) {
@@ -143,6 +146,22 @@ std::optional<GameTask> SprtManager::nextTask() {
     return tournament_->nextTask();
 }
 
+SprtResult SprtManager::computeDecision() {
+    auto sprtResult = computeSprt();
+    std::ostringstream oss;
+
+    if (!decision_) {
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+    }
+    if (sprtResult.decision) {
+		if (!decision_) {
+            GameManagerPool::getInstance().stopAll();
+        }
+        decision_ = sprtResult.decision;
+    }
+    return sprtResult;
+}
+
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
 	bool engine1IsWhite = tournament_->getEngineA().getName() == record.getWhiteEngineName();
     tournament_->setGameRecord(taskId, record);
@@ -150,7 +169,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto [cause, result] = record.getGameResult();
     auto duel = tournament_->getResult();
 
-    auto sprtResult = computeSprt();
+    auto sprtResult = computeDecision();
 
     std::ostringstream oss;
     oss << std::left
@@ -159,16 +178,6 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         << " cause " << std::setw(21) << to_string(cause)
         << " sprt " << sprtResult.info
         << " engines " << duel.toString();
-
-    if (!decision_) {
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
-    }
-    if (sprtResult.decision.has_value()) {
-		if (!decision_) {
-            GameManagerPool::getInstance().stopAll();
-        }
-        decision_ = sprtResult.decision;
-    }
 }
 
 void SprtManager::save(const std::string& filename) const {
@@ -197,17 +206,31 @@ void SprtManager::loadFromSection(const QaplaHelpers::IniFile::Section& section)
     }
 }
 
-void SprtManager::load(const QaplaHelpers::IniFile::Section& section) {
-    try {
-        tournament_->fromSection(section);
-    } catch (const std::exception& ex) {
-        Logger::reportLogger().log("Failed to load SPRT tournament from section: " + std::string(ex.what()), TraceLevel::error);
-    }
-}
-
-SprtResult SprtManager::computeSprt() const {
+SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optional<bool> usePentanomial) const {
     auto duel = tournament_->getResult();
-    return computeSprt(duel.winsEngineA, duel.draws, duel.winsEngineB, duel.getEngineA(), duel.getEngineB());
+    
+    SprtParameters params {
+        .winsA = duel.winsEngineA,
+        .draws = duel.draws,
+        .winsB = duel.winsEngineB,
+        .engineA = duel.getEngineA(),
+        .engineB = duel.getEngineB(),
+        .eloLower = config_.eloLower,
+        .eloUpper = config_.eloUpper,
+        .alpha = config_.alpha,
+        .beta = config_.beta,
+        .maxGames = config_.maxGames,
+        .model = model ? *model : config_.model,
+        .pentanomial = usePentanomial ? *usePentanomial : config_.pentanomial,
+        .pentaWW = duel.pentaWW,
+        .pentaWD = duel.pentaWD,
+        .pentaWL = duel.pentaWL,
+        .pentaDD = duel.pentaDD,
+        .pentaLD = duel.pentaLD,
+        .pentaLL = duel.pentaLL
+    };
+    
+    return FastchessSprt::compute(params);
 }
 
 SprtResult SprtManager::computeSprt(
@@ -223,6 +246,8 @@ SprtResult SprtManager::computeSprt(
         .alpha = config_.alpha,
         .beta = config_.beta,
         .maxGames = config_.maxGames,
+        .model = config_.model,
+        .pentanomial = false  // Monte Carlo uses trinomial only
     });
 }
 
