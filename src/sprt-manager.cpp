@@ -212,13 +212,18 @@ SprtResult SprtManager::computeSprt() const {
 
 SprtResult SprtManager::computeSprt(
     int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const {
-    return FastchessSprt::compute(
-        winsA, draws, winsB,
-        engineA, engineB,
-        config_.eloLower, config_.eloUpper,
-        config_.alpha, config_.beta,
-        config_.maxGames
-    );
+    return FastchessSprt::compute({
+        .winsA = winsA,
+        .draws = draws,
+        .winsB = winsB,
+        .engineA = engineA,
+        .engineB = engineB,
+        .eloLower = config_.eloLower,
+        .eloUpper = config_.eloUpper,
+        .alpha = config_.alpha,
+        .beta = config_.beta,
+        .maxGames = config_.maxGames,
+    });
 }
 
 void SprtManager::runMonteCarloSingleTest(

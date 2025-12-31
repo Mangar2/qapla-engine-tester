@@ -25,18 +25,35 @@
 #include <cstdint>
 #include <tuple>
 
+
+
 namespace QaplaTester {
+
+/**
+ * @brief Parameters for SPRT computation.
+ */
+struct SprtParameters {
+    int winsA = 0;          ///> Wins for engine A
+    int draws = 0;          ///> Number of draws
+    int winsB = 0;          ///> Wins for engine B
+    std::string engineA;    ///> Name of engine A
+    std::string engineB;    ///> Name of engine B
+    int eloLower = 0;       ///> Lower bound of H0 hypothesis
+    int eloUpper = 3;       ///> Upper bound of H1 hypothesis
+    double alpha = 0.05;    ///> Type I error probability
+    double beta = 0.05;     ///> Type II error probability
+    uint32_t maxGames = 200000; ///> Maximum number of games before stopping
+    std::string model = "bayesian"; // "bayesian", "logistic", "normalized"
+};
 
 /**
  * @brief Result of a SPRT computation containing all values for display.
  */
 struct SprtResult {
-    std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
-    std::string info;              // Human-readable decision info
+    std::string info{};            // Human-readable decision info
     double llr;                    // Log-Likelihood Ratio
     double lowerBound;             // Lower decision boundary
     double upperBound;             // Upper decision boundary
-    double drawElo;                // Computed drawElo value
     int winsA;                     // Wins for engine A
     int draws;                     // Number of draws
     int winsB;                      // Wins for engine B
@@ -44,6 +61,7 @@ struct SprtResult {
     std::string engineB;           // Name of engine B
     int eloLower;                  // Lower elo bound from config
     int eloUpper;                  // Upper elo bound from config
+    std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
     bool reachedMaxGames = false;  // true if max games limit was reached without decision
 
     /**
@@ -81,6 +99,14 @@ namespace SprtBase {
      * @return Expected score between 0 and 1.
      */
     double logisticScore(double elo);
+
+    
+    /**
+     * @brief Computes a human-readable SPRT info string.
+     * @param result The SPRT result to format.
+     * @return A formatted string containing the SPRT decision or bounds.
+     */
+    std::string formatInfo(const SprtResult& result);
 
 } // namespace SprtBase
 
@@ -128,31 +154,11 @@ namespace ClassicalSprt {
     /**
      * @brief Computes the complete SPRT result for classical trinomial SPRT.
      *
-     * @param winsA Wins for engine A.
-     * @param draws Number of draws.
-     * @param winsB Wins for engine B.
-     * @param engineA Name of engine A.
-     * @param engineB Name of engine B.
-     * @param eloLower Lower bound of H0 hypothesis.
-     * @param eloUpper Upper bound of H1 hypothesis.
-     * @param alpha Type I error probability.
-     * @param beta Type II error probability.
-     * @param maxGames Maximum number of games before stopping.
+     * @param params Parameters for the SPRT computation.
      * @return SprtResult containing decision, LLR, bounds and all relevant values.
      */
-    SprtResult compute(
-        int winsA, int draws, int winsB,
-        const std::string& engineA, const std::string& engineB,
-        int eloLower, int eloUpper,
-        double alpha, double beta,
-        uint32_t maxGames);
+    SprtResult compute(SprtParameters params);
 
-    /**
-     * @brief Computes a human-readable SPRT info string.
-     * @param result The SPRT result to format.
-     * @return A formatted string containing the SPRT decision or bounds.
-     */
-    std::string formatInfo(const SprtResult& result);
 
 } // namespace ClassicalSprt
 
@@ -167,130 +173,11 @@ namespace FastchessSprt {
     /**
      * @brief Computes the complete SPRT result using fastchess algorithm.
      *
-     * @param winsA Wins for engine A.
-     * @param draws Number of draws.
-     * @param winsB Wins for engine B.
-     * @param engineA Name of engine A.
-     * @param engineB Name of engine B.
-     * @param eloLower Lower bound of H0 hypothesis.
-     * @param eloUpper Upper bound of H1 hypothesis.
-     * @param alpha Type I error probability.
-     * @param beta Type II error probability.
-     * @param maxGames Maximum number of games before stopping.
-     * @param model SPRT model: "bayesian", "logistic", or "normalized" (default: "bayesian").
+     * @param params Parameters for the SPRT computation.
      * @return SprtResult containing decision, LLR, bounds and all relevant values.
      */
-    SprtResult compute(
-        int winsA, int draws, int winsB,
-        const std::string& engineA, const std::string& engineB,
-        int eloLower, int eloUpper,
-        double alpha, double beta,
-        uint32_t maxGames,
-        const std::string& model = "bayesian");
+    SprtResult compute(SprtParameters params);
 
 } // namespace FastchessSprt
-
-/**
- * @brief Pentanomial SPRT implementation for paired games.
- * 
- * This is an experimental implementation for pentanomial SPRT analysis.
- * It is currently NOT used in the active tournament system.
- * 
- * The pentanomial approach analyzes game pairs (A vs B, B vs A) and categorizes
- * outcomes into 5 categories: (2,0), (1.5,0.5), (1,1), (0.5,1.5), (0,2).
- */
-namespace PentaSprt {
-
-    /**
-     * @brief Computes pentanomial outcome probabilities for a given Elo difference and draw rate.
-     *
-     * @param elo Elo difference between players.
-     * @param drawRate Expected draw rate (between 0 and 1).
-     * @return Array of 5 probabilities for outcomes: [WW, WD, WL+DD, DL, LL].
-     */
-    std::array<double, 5> computeProbabilities(double elo, double drawRate);
-
-    /**
-     * @brief Computes the pentanomial Log-Likelihood Ratio.
-     *
-     * @param results Array of observed pentanomial outcome counts.
-     * @param p0 Probabilities under H0 hypothesis.
-     * @param p1 Probabilities under H1 hypothesis.
-     * @return Computed LLR value.
-     */
-    double computeLLR(
-        const std::array<int64_t, 5>& results,
-        const std::array<double, 5>& p0,
-        const std::array<double, 5>& p1);
-
-    /**
-     * @brief Pentanomial SPRT state tracker.
-     * 
-     * This class maintains the state of a pentanomial SPRT test and updates
-     * the decision based on recorded game pair outcomes.
-     */
-    class Analyzer {
-    public:
-        /**
-         * @brief Constructs a pentanomial SPRT analyzer.
-         * @param alpha Maximum type I error.
-         * @param beta Maximum type II error.
-         * @param elo0 Elo difference under H0.
-         * @param elo1 Elo difference under H1.
-         * @param drawRate Expected draw rate.
-         */
-        Analyzer(double alpha, double beta, double elo0, double elo1, double drawRate);
-
-        /**
-         * @brief Records the outcome of a game pair.
-         * @param resultIndex Index in [0,4] representing the pentanomial outcome.
-         */
-        void record(int resultIndex);
-
-        /**
-         * @brief Returns the current decision status.
-         * @return std::optional<bool> with true for H1, false for H0, std::nullopt if undecided.
-         */
-        [[nodiscard]] std::optional<bool> status() const {
-            return status_;
-        }
-
-        /**
-         * @brief Returns the current log-likelihood ratio.
-         */
-        [[nodiscard]] double llr() const {
-            return llr_;
-        }
-
-        /**
-         * @brief Returns the internal pentanomial result counters.
-         */
-        [[nodiscard]] const std::array<int64_t, 5>& results() const {
-            return results_;
-        }
-
-        /**
-         * @brief Returns the total number of games represented by all recorded pairs.
-         */
-        [[nodiscard]] int gameCount() const;
-
-    private:
-        std::array<int64_t, 5> results_{};
-        double elo0_;
-        double elo1_;
-        double drawRate_;
-        double la_;
-        double lb_;
-        double llr_ = 0.0;
-        double minLlr_ = 0.0;
-        double maxLlr_ = 0.0;
-        double sq0_ = 0.0;
-        double sq1_ = 0.0;
-        double o0_ = 0.0;
-        double o1_ = 0.0;
-        std::optional<bool> status_;
-    };
-
-} // namespace PentaSprt
 
 } // namespace QaplaTester
