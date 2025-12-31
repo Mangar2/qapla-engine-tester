@@ -65,6 +65,7 @@ struct PairTournamentConfig {
     uint32_t seed = 0;
     uint32_t gameNumberOffset = 0;
     bool swapColors = true;
+    bool pentanomial = false;  ///< Collect pentanomial statistics from game pairs
     Openings openings;
 };
 
@@ -280,6 +281,16 @@ private:
      * @return String containing encoded results for all games.
      */
     std::string getResultSequenceEngineView() const;
+
+    /**
+     * @brief Collects pentanomial statistics from a completed game pair.
+     * 
+     * Called when a game pair (with reversed colors) is completed.
+     * Updates pentaWW, pentaWD, pentaWL, pentaDD, pentaLD, pentaLL counters.
+     * 
+     * @param gameInRound The round number of the just-completed game (1-based).
+     */
+    void collectPentanomialStats(uint32_t gameInRound);
 
     std::string getTournamentInfo() const;
 

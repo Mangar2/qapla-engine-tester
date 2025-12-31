@@ -199,6 +199,12 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     PgnSave::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
+
+    // Collect pentanomial statistics. The check is always true for sprt turnament as this is a non changable setting.
+    if (config_.swapColors && gameInRound >= 2 && (gameInRound % 2) == 0) {
+        collectPentanomialStats(gameInRound);
+    }
+
     if (verbose_) {
         std::ostringstream oss;
         oss << std::left
@@ -223,6 +229,38 @@ void PairTournament::copyResultsFrom(const PairTournament& other) {
     results_ = other.results_;
     // Compute isFinished_ based on current configuration, don't copy it from other
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
+}
+
+void PairTournament::collectPentanomialStats(uint32_t gameInRound) {
+    // Get results of the game pair (previous game + current game)
+    GameResult prevResult = results_[gameInRound - 2];
+    GameResult currResult = results_[gameInRound - 1];
+    
+    // Determine results from engineA's perspective
+    // gameInRound-2 is even (0-based indexing), so engineA was white in prevGame
+    // gameInRound-1 is odd, so engineA was black in currGame
+    bool prevAWon = (prevResult == GameResult::WhiteWins);
+    bool prevDraw = (prevResult == GameResult::Draw);
+    bool prevALost = (prevResult == GameResult::BlackWins);
+    
+    bool currAWon = (currResult == GameResult::BlackWins);
+    bool currDraw = (currResult == GameResult::Draw);
+    bool currALost = (currResult == GameResult::WhiteWins);
+    
+    // Update pentanomial counts
+    if (prevAWon && currAWon) {
+        ++duelResult_.pentaWW;
+    } else if ((prevAWon && currDraw) || (prevDraw && currAWon)) {
+        ++duelResult_.pentaWD;
+    } else if ((prevAWon && currALost) || (prevALost && currAWon)) {
+        ++duelResult_.pentaWL;
+    } else if (prevDraw && currDraw) {
+        ++duelResult_.pentaDD;
+    } else if ((prevALost && currDraw) || (prevDraw && currALost)) {
+        ++duelResult_.pentaLD;
+    } else if (prevALost && currALost) {
+        ++duelResult_.pentaLL;
+    }
 }
 
 std::string PairTournament::getResultSequenceEngineView() const {
@@ -385,6 +423,21 @@ void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) 
             parseEndCauses(value, duelResult_, &CauseStats::loss);
         }
     }
+    
+    // Recalculate pentanomial statistics for loaded games
+    if (config_.swapColors) {
+        duelResult_.pentaWW = 0;
+        duelResult_.pentaWD = 0;
+        duelResult_.pentaWL = 0;
+        duelResult_.pentaDD = 0;
+        duelResult_.pentaLD = 0;
+        duelResult_.pentaLL = 0;
+        
+        for (size_t gameIndex = 2; gameIndex <= results_.size(); gameIndex += 2) {
+            collectPentanomialStats(static_cast<uint32_t>(gameIndex));
+        }
+    }
+    
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
 }
 

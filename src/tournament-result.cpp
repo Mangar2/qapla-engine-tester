@@ -59,6 +59,14 @@ EngineDuelResult EngineDuelResult::switchedSides() const
     result.winsEngineB = winsEngineA;
     result.draws = draws;
 
+    // Swap pentanomial stats (WW becomes LL, etc.)
+    result.pentaWW = pentaLL;
+    result.pentaWD = pentaLD;
+    result.pentaWL = pentaWL;  // WL is symmetric
+    result.pentaDD = pentaDD;  // DD is symmetric
+    result.pentaLD = pentaWD;
+    result.pentaLL = pentaWW;
+
     for (size_t i = 0; i < static_cast<size_t>(GameEndCause::Count); ++i)
     {
         result.causeStats[i].win = causeStats[i].loss;
@@ -82,6 +90,12 @@ EngineDuelResult &EngineDuelResult::operator+=(const EngineDuelResult &other)
     {
         winsEngineA += other.winsEngineA;
         winsEngineB += other.winsEngineB;
+        pentaWW += other.pentaWW;
+        pentaWD += other.pentaWD;
+        pentaWL += other.pentaWL;
+        pentaDD += other.pentaDD;
+        pentaLD += other.pentaLD;
+        pentaLL += other.pentaLL;
         for (size_t i = 0; i < causeStats.size(); ++i)
         {
             causeStats[i].win += other.causeStats[i].win;
@@ -93,6 +107,12 @@ EngineDuelResult &EngineDuelResult::operator+=(const EngineDuelResult &other)
     {
         winsEngineA += other.winsEngineB;
         winsEngineB += other.winsEngineA;
+        pentaWW += other.pentaLL;
+        pentaWD += other.pentaLD;
+        pentaWL += other.pentaWL;
+        pentaDD += other.pentaDD;
+        pentaLD += other.pentaWD;
+        pentaLL += other.pentaWW;
         for (size_t i = 0; i < causeStats.size(); ++i)
         {
             causeStats[i].win += other.causeStats[i].loss;

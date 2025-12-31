@@ -44,6 +44,15 @@ struct SprtParameters {
     double beta = 0.05;     ///> Type II error probability
     uint32_t maxGames = 200000; ///> Maximum number of games before stopping
     std::string model = "bayesian"; // "bayesian", "logistic", "normalized"
+    bool pentanomial = false;  ///> Use pentanomial statistics
+    
+    // Pentanomial statistics (from engineA's perspective)
+    int pentaWW = 0;  ///> Both games won by engineA
+    int pentaWD = 0;  ///> One win, one draw for engineA
+    int pentaWL = 0;  ///> One win for engineA, one loss
+    int pentaDD = 0;  ///> Both games drawn
+    int pentaLD = 0;  ///> One loss, one draw for engineA
+    int pentaLL = 0;  ///> Both games lost by engineA
 };
 
 /**
@@ -51,6 +60,7 @@ struct SprtParameters {
  */
 struct SprtResult {
     std::string info{};            // Human-readable decision info
+    std::string type{};            // Human-readable type of SPRT used
     double llr;                    // Log-Likelihood Ratio
     double lowerBound;             // Lower decision boundary
     double upperBound;             // Upper decision boundary
