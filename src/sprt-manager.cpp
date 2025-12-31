@@ -243,8 +243,14 @@ void SprtManager::runMonteCarloSingleTest(
             std::cout << elo << ", " << correctDecisions << ", " << avgGames << "\n";
         }
         */
-        const double trueScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
-        const double winProb = (1.0 - drawRate) * trueScore;
+        // Expected score for player 1 according to Elo formula
+        const double expectedScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
+        // Reduced draw rate based on distance from 50% score
+        const double adaptedDrawRate = drawRate * (0.5 - std::abs(0.5 - expectedScore)) * 2.0;
+        // Win probability adjusted for draws. It ensures total probabilities sum to 1 and stable excpected score 
+        // differences
+        // Example: expectedScore=0.7, drawRate=0.4 -> Player 1 winProb=0.5, Player 2 winProb=0.1
+        const double winProb = expectedScore - (adaptedDrawRate / 2.0);
 
         std::optional<bool> decision;
         int64_t gamesPlayed = 0;
@@ -256,13 +262,17 @@ void SprtManager::runMonteCarloSingleTest(
             {
                 ++winsP1;
             }
-            else if (r < winProb + drawRate)
+            else if (r < winProb + adaptedDrawRate)
             {
                 ++draws;
             }
             else
             {
                 ++winsP2;
+            }
+            if (gamesPlayed % 100 != 0 && std::cmp_not_equal(gamesPlayed + 1, config_.maxGames))
+            {
+                continue;
             }
             auto sprtResult = computeSprt(winsP1, draws, winsP2, "P1", "P2");
             if (sprtResult.decision.has_value())
@@ -315,7 +325,7 @@ bool SprtManager::runMonteCarloTest(const SprtConfig& config) {
 
 void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 	config_ = config;
-    constexpr int simulationsPerElo = 1000;
+    constexpr int simulationsPerElo = 2000;
     constexpr double drawRate = 0.4;
     
     // Calculate dynamic step size: ceil((upper-lower)/5) rounded up to 0.1
