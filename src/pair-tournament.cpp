@@ -72,6 +72,10 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
         }
     }
 
+    for (size_t gameIndex = 1; gameIndex < results_.size(); gameIndex += 2) {
+        collectPentanomialStats(static_cast<uint32_t>(gameIndex));
+    }
+
 }
 
 void PairTournament::schedule(const std::shared_ptr<PairTournament>& self, GameManagerPool& pool) {
@@ -199,11 +203,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     PgnSave::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
-
-    // Collect pentanomial statistics. The check is always true for sprt turnament as this is a non changable setting.
-    if (config_.swapColors && gameInRound >= 2 && (gameInRound % 2) == 0) {
-        collectPentanomialStats(gameInRound);
-    }
+    collectPentanomialStats(gameInRound - 1);
 
     if (verbose_) {
         std::ostringstream oss;
@@ -231,36 +231,14 @@ void PairTournament::copyResultsFrom(const PairTournament& other) {
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
 }
 
-void PairTournament::collectPentanomialStats(uint32_t gameInRound) {
-    // Get results of the game pair (previous game + current game)
-    GameResult prevResult = results_[gameInRound - 2];
-    GameResult currResult = results_[gameInRound - 1];
-    
-    // Determine results from engineA's perspective
-    // gameInRound-2 is even (0-based indexing), so engineA was white in prevGame
-    // gameInRound-1 is odd, so engineA was black in currGame
-    bool prevAWon = (prevResult == GameResult::WhiteWins);
-    bool prevDraw = (prevResult == GameResult::Draw);
-    bool prevALost = (prevResult == GameResult::BlackWins);
-    
-    bool currAWon = (currResult == GameResult::BlackWins);
-    bool currDraw = (currResult == GameResult::Draw);
-    bool currALost = (currResult == GameResult::WhiteWins);
-    
-    // Update pentanomial counts
-    if (prevAWon && currAWon) {
-        ++duelResult_.pentaWW;
-    } else if ((prevAWon && currDraw) || (prevDraw && currAWon)) {
-        ++duelResult_.pentaWD;
-    } else if ((prevAWon && currALost) || (prevALost && currAWon)) {
-        ++duelResult_.pentaWL;
-    } else if (prevDraw && currDraw) {
-        ++duelResult_.pentaDD;
-    } else if ((prevALost && currDraw) || (prevDraw && currALost)) {
-        ++duelResult_.pentaLD;
-    } else if (prevALost && currALost) {
-        ++duelResult_.pentaLL;
+void PairTournament::collectPentanomialStats(uint32_t gameIndex) {
+    uint32_t baseIndex = gameIndex - (gameIndex % 2);
+    if (baseIndex + 1 >= results_.size()) {
+        return;
     }
+    GameResult result1 = results_[baseIndex];
+    GameResult result2 = results_[baseIndex + 1];
+    duelResult_.addPentanomialResult(result1, result2, config_.swapColors);
 }
 
 std::string PairTournament::getResultSequenceEngineView() const {
@@ -300,15 +278,12 @@ void PairTournament::fromString(const std::string& line) {
     // Initializing it to 0 allows nextTask() to scan results_ for unfinished games and schedule them accordingly.
     nextIndex_ = 0; 
     std::string resultString = line;
+    results_.reserve(resultString.size());
 
     auto pos = line.find(": ");
     if (pos != std::string::npos) {
         resultString = line.substr(pos + 2);
     }
-
-	duelResult_.clear();
-    results_.clear();
-    results_.reserve(resultString.size());
 
     for (size_t i = 0; i < resultString.size(); ++i) {
         char ch = resultString[i];
@@ -408,6 +383,8 @@ static void parseEndCauses(std::string_view text, EngineDuelResult& result, int 
 
 void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) {
     std::string line;
+   	duelResult_.clear();
+    results_.clear();
     for (const auto& entry : section.entries) {
         auto [key, value] = entry;
         if (key == "games") {
@@ -423,19 +400,9 @@ void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) 
             parseEndCauses(value, duelResult_, &CauseStats::loss);
         }
     }
-    
-    // Recalculate pentanomial statistics for loaded games
-    if (config_.swapColors) {
-        duelResult_.pentaWW = 0;
-        duelResult_.pentaWD = 0;
-        duelResult_.pentaWL = 0;
-        duelResult_.pentaDD = 0;
-        duelResult_.pentaLD = 0;
-        duelResult_.pentaLL = 0;
-        
-        for (size_t gameIndex = 2; gameIndex <= results_.size(); gameIndex += 2) {
-            collectPentanomialStats(static_cast<uint32_t>(gameIndex));
-        }
+   
+    for (size_t gameIndex = 1; gameIndex < results_.size(); gameIndex += 2) {
+        collectPentanomialStats(static_cast<uint32_t>(gameIndex));
     }
     
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
