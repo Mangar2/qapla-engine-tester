@@ -60,7 +60,6 @@ struct SprtParameters {
  */
 struct SprtResult {
     std::string info{};            // Human-readable decision info
-    std::string type{};            // Human-readable type of SPRT used
     double llr;                    // Log-Likelihood Ratio
     double lowerBound;             // Lower decision boundary
     double upperBound;             // Upper decision boundary
@@ -73,6 +72,8 @@ struct SprtResult {
     float eloUpper;                // Upper elo bound from config
     std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
     bool reachedMaxGames = false;  // true if max games limit was reached without decision
+    std::string model;           // Model used: "normalized", "logistic", "bayesian"
+    bool pentanomial = false;      // true if pentanomial statistics used, false for trinomial
 
     /**
      * @brief Checks if the SPRT test has finished.
@@ -80,6 +81,14 @@ struct SprtResult {
      */
     bool isFinished() const {
         return decision.has_value() || reachedMaxGames;
+    }
+
+    /**
+     * @brief Checks if the SPRT test is currently running.
+     * @return true if the test is ongoing.
+     */
+    bool isRunning() const {
+        return !isFinished() && (winsA + winsB + draws) > 0;
     }
 };
 

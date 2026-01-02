@@ -145,7 +145,9 @@ SprtResult compute(
         .eloUpper = eloUpper,
         .decision = llr >= uBound ? std::optional<bool>(true) :
                      llr <= lBound ? std::optional<bool>(false) : std::nullopt,
-        .reachedMaxGames = std::cmp_greater_equal(totalGames, maxGames)
+        .reachedMaxGames = std::cmp_greater_equal(totalGames, maxGames),
+        .model = "bayesian",
+        .pentanomial = false
     };
 
     result.info = SprtBase::formatInfo(result);
@@ -198,7 +200,9 @@ SprtResult compute(SprtParameters params) {
         .decision = result == fastchess::SPRT_H1 ? std::optional<bool>(true) :
                      result == fastchess::SPRT_H0 ? std::optional<bool>(false) : std::nullopt,
         .reachedMaxGames = result == fastchess::SPRT_CONTINUE && 
-            (std::cmp_greater_equal(totalGames, params.maxGames))
+            (std::cmp_greater_equal(totalGames, params.maxGames)),
+        .model = params.model,
+        .pentanomial = params.pentanomial
     };
     
     sprtResult.info = SprtBase::formatInfo(sprtResult);
