@@ -115,7 +115,7 @@ double computeLLR(double wins, double draws, double losses,
 SprtResult compute(
     int winsA, int draws, int winsB,
     const std::string& engineA, const std::string& engineB,
-    int eloLower, int eloUpper,
+    float eloLower, float eloUpper,
     double alpha, double beta,
     uint32_t maxGames) {
 
@@ -125,8 +125,8 @@ SprtResult compute(
 	const double xSquare = (x + 1.0) * (x + 1.0); 
     const double scale = 4.0 * x / xSquare;
 
-    const auto p0 = computeProbabilities(eloLower / scale, drawElo);
-    const auto p1 = computeProbabilities(eloUpper / scale, drawElo);
+    const auto p0 = computeProbabilities(static_cast<double>(eloLower) / scale, drawElo);
+    const auto p1 = computeProbabilities(static_cast<double>(eloUpper) / scale, drawElo);
 
     const double llr = computeLLR(winsA, draws, winsB, p0, p1);
     const auto [lBound, uBound] = SprtBase::computeBounds(alpha, beta);
