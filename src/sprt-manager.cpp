@@ -252,7 +252,7 @@ SprtResult SprtManager::computeSprt(
 }
 
 void SprtManager::runMonteCarloSingleTest(
-    int simulationsPerElo, int elo, double drawRate, 
+    int simulationsPerElo, float elo, double drawRate, 
     int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames)
 {
     for (int sim = 0; sim < simulationsPerElo; ++sim)
@@ -274,7 +274,7 @@ void SprtManager::runMonteCarloSingleTest(
         }
         */
         // Expected score for player 1 according to Elo formula
-        const double expectedScore = 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
+        const double expectedScore = 1.0 / (1.0 + std::pow(10.0, -static_cast<double>(elo) / 400.0));
         // Reduced draw rate based on distance from 50% score
         const double adaptedDrawRate = drawRate * (0.5 - std::abs(0.5 - expectedScore)) * 2.0;
         // Win probability adjusted for draws. It ensures total probabilities sum to 1 and stable excpected score 
@@ -358,17 +358,19 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     constexpr int simulationsPerElo = 2000;
     constexpr double drawRate = 0.4;
     
-    // Calculate dynamic step size: ceil((upper-lower)/5) rounded up to 0.1
+    // Calculate dynamic step size rounded to one decimal place
     double rawStep = std::abs(config.eloUpper - config.eloLower) / 5.0;
-    double step = std::ceil(rawStep * 10.0) / 10.0;
+    float step = std::round(rawStep * 10.0F) / 10.0F;
     
     // Generate test range: 2 steps below eloLower to 2 steps above eloUpper
-    double startElo = config.eloLower - 2.0 * step;
-    double endElo = config.eloUpper + 2.0 * step;
+    float startElo = config.eloLower - 2.0F * step;
+    float endElo = config.eloUpper + 2.0F * step;
     
-    std::vector<int> eloDiffs;
-    for (double elo = startElo; elo <= endElo + 0.01; elo += step) {
-        eloDiffs.push_back(static_cast<int>(std::round(elo)));
+    std::vector<float> eloDiffs;
+    int numSteps = static_cast<int>(std::round((endElo - startElo) / step)) + 1;
+    for (int i = 0; i < numSteps; ++i) {
+        float elo = startElo + static_cast<float>(i) * step;
+        eloDiffs.push_back(std::round(elo * 10.0F) / 10.0F);
     }
 
     {
@@ -386,7 +388,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 
     std::vector<std::thread> threads;
     
-    for (int elo : eloDiffs) {
+    for (float elo : eloDiffs) {
         threads.emplace_back([this, elo]() {
             // Check if we should stop
             if (monteCarloShouldStop_.load()) {

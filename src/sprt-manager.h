@@ -41,8 +41,8 @@ namespace QaplaTester {
  * @brief Configuration parameters for a SPRT test run.
  */
 struct SprtConfig {
-    int eloUpper;
-    int eloLower;
+    float eloUpper;
+    float eloLower;
     double alpha;
     double beta;
     uint32_t maxGames;
@@ -55,7 +55,7 @@ struct SprtConfig {
  * @brief Result row from a single Monte Carlo simulation run.
  */
 struct MonteCarloResultRow {
-    int eloDifference;          // Simulated elo difference
+    float eloDifference;        // Simulated elo difference
     double noDecisionPercent;   // Percentage of runs with no decision
     double h0AcceptedPercent;   // Percentage of runs where H0 was accepted
     double h1AcceptedPercent;   // Percentage of runs where H1 was accepted
@@ -246,7 +246,7 @@ private:
     SprtResult computeSprt(
         int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;
 
-    void runMonteCarloSingleTest(int simulationsPerElo, int elo, double drawRate, 
+    void runMonteCarloSingleTest(int simulationsPerElo, float elo, double drawRate, 
         int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames);
 
     /**

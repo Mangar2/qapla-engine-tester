@@ -176,6 +176,20 @@ namespace QaplaHelpers {
     };
 
     /**
+     * @brief Converts a string view to an optional float.
+     * @param s The string view to convert.
+     * @return Optional float if conversion succeeds, nullopt otherwise.
+     */
+    auto to_float = [](std::string_view s) -> std::optional<float> {
+        try {
+            float value = std::stof(std::string(s));
+            return value;
+        } catch (...) {
+            return std::nullopt;
+        }
+    };
+
+    /**
      * @brief Parses a section header from a line.
      * @param line The line to parse.
      * @return Optional section name if valid, nullopt otherwise.
