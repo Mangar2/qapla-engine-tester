@@ -153,15 +153,6 @@ public:
     std::string toString() const;
 
     /**
-     * @brief Parses a tournament result line and updates internal state.
-     *
-     * Must be called only after initialize(). Does not validate engine names.
-     *
-     * @param line A single line in the format: "games: <result-sequence>" or "<result-sequence>"
-     */
-    void fromString(const std::string& line);
-
-    /**
      * @brief Copies results and duel statistics from another PairTournament instance.
      *
      * Both tournaments must have been initialized with the same engines and configuration.
@@ -288,9 +279,18 @@ private:
      * Called when a game pair (with reversed colors) is completed.
      * Updates pentaWW, pentaWD, pentaWL, pentaDD, pentaLD, pentaLL counters.
      * 
-     * @param gameInRound The round number of the just-completed game (1-based).
+     * @param gameIndex The index of the second game in the pair (0-based).
      */
-    void collectPentanomialStats(uint32_t gameInRound);
+    void collectPentanomialStats(uint32_t gameIndex);
+
+    /**
+     * @brief Parses a tournament result line and updates internal state.
+     *
+     * Must be called only after initialize(). Does not validate engine names.
+     *
+     * @param line A single line in the format: "games: <result-sequence>" or "<result-sequence>"
+     */
+    void fromString(const std::string& line);
 
     std::string getTournamentInfo() const;
 

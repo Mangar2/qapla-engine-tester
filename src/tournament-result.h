@@ -77,6 +77,15 @@ public:
     int pentaLD = 0;  ///< One loss, one draw for engineA
     int pentaLL = 0;  ///< Both games lost by engineA
 
+    /**
+     * @brief Adds pentanomial statistics from a pair of game results.
+     * @param result1 Result of the first game in the pair
+     * @param result2 Result of the second game in the pair
+     * @param switchColors Whether engineA switches colors between games
+     * @return True if statistics were added, false if games not finished
+     */
+    bool addPentanomialResult(GameResult result1, GameResult result2, bool switchColors);
+
     [[nodiscard]] const std::string &getEngineA() const
     {
         return engineA;

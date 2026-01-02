@@ -52,6 +52,36 @@ void EngineDuelResult::addResult(const GameRecord &record)
     }
 }
 
+bool EngineDuelResult::addPentanomialResult(GameResult result1, GameResult result2, bool switchColors) {
+    if (result1 == GameResult::Unterminated || result2 == GameResult::Unterminated) {
+        return false;
+    }
+
+    bool aWon1 = (result1 == GameResult::WhiteWins);
+    bool draw1 = (result1 == GameResult::Draw);
+    bool aLost1 = (result1 == GameResult::BlackWins);
+
+    bool aWon2 = (result2 == (switchColors ? GameResult::BlackWins : GameResult::WhiteWins));
+    bool draw2 = (result2 == GameResult::Draw);
+    bool aLost2 = (result2 == (switchColors ? GameResult::WhiteWins : GameResult::BlackWins));
+
+    if (aWon1 && aWon2) {
+        ++pentaWW;
+    } else if ((aWon1 && draw2) || (draw1 && aWon2)) {
+        ++pentaWD;
+    } else if ((aWon1 && aLost2) || (aLost1 && aWon2)) {
+        ++pentaWL;
+    } else if (draw1 && draw2) {
+        ++pentaDD;
+    } else if ((aLost1 && draw2) || (draw1 && aLost2)) {
+        ++pentaLD;
+    } else if (aLost1 && aLost2) {
+        ++pentaLL;
+    }
+
+    return true;
+}
+
 EngineDuelResult EngineDuelResult::switchedSides() const
 {
     EngineDuelResult result(engineB, engineA);
