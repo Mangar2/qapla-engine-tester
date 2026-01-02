@@ -38,6 +38,27 @@
 namespace QaplaTester {
 
 /**
+ * @brief Results of engine matches for SPRT testing.
+ * Contains trinomial and pentanomial statistics.
+ */
+struct SprtEnginesResult {
+    int winsA = 0;       ///< Wins by engine A
+    int draws = 0;       ///< Draw count
+    int winsB = 0;       ///< Wins by engine B
+    int pentaWW = 0;     ///< Both games won by engineA
+    int pentaWD = 0;     ///< One win, one draw for engineA
+    int pentaWL = 0;     ///< One win for engineA, one loss
+    int pentaDD = 0;     ///< Both games drawn
+    int pentaLD = 0;     ///< One loss, one draw for engineA
+    int pentaLL = 0;     ///< Both games lost by engineA
+
+    void clear() {
+        winsA = draws = winsB = 0;
+        pentaWW = pentaWD = pentaWL = pentaDD = pentaLD = pentaLL = 0;
+    }
+};
+
+/**
  * @brief Configuration parameters for a SPRT test run.
  */
 struct SprtConfig {
@@ -240,11 +261,19 @@ private:
     /**
      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
      *
-     * Internal version with explicit trinomial parameters for Monte Carlo simulations.
-     * Uses the configured model but always trinomial statistics (not pentanomial).
+     * Internal version with SprtEnginesResult for Monte Carlo simulations.
+     * Uses the configured model and pentanomial settings from config.
      */
     SprtResult computeSprt(
-        int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;
+        const SprtEnginesResult& result, const std::string& engineA, const std::string& engineB) const;
+
+    /**
+     * @brief Simulates a single pair of games (white/black swap) for Monte Carlo testing.
+     * @param elo ELO difference for the simulation
+     * @param drawRate Base draw rate
+     * @param result Reference to SprtEnginesResult to update with game results
+     */
+    void simulateGamePair(float elo, double drawRate, SprtEnginesResult& result);
 
     void runMonteCarloSingleTest(int simulationsPerElo, float elo, double drawRate, 
         int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames);

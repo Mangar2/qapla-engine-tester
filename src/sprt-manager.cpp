@@ -20,6 +20,7 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
+#include <array>
 #include "sprt-manager.h"
 #include "sprt-calculation.h"
 #include "game-manager-pool.h"
@@ -233,12 +234,65 @@ SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optio
     return FastchessSprt::compute(params);
 }
 
+void SprtManager::simulateGamePair(float elo, double drawRate, SprtEnginesResult& result) {
+    // White advantage bias (added to expected score when playing white)
+    constexpr double WHITE_BIAS = 0.05;
+    
+    // Base expected score for engine A according to Elo formula
+    const double baseExpectedScore = 1.0 / (1.0 + std::pow(10.0, -static_cast<double>(elo) / 400.0));
+    
+    // Simulate two games: engineA as white, then as black
+    enum class GameOutcome : uint8_t { Win, Draw, Loss };
+    std::array<GameOutcome, 2> gameResults;
+    
+    for (int game = 0; game < 2; ++game) {
+        // Apply white bias: +bias when engineA plays white (game 0), -bias when black (game 1)
+        const double biasedExpectedScore = baseExpectedScore + (game == 0 ? WHITE_BIAS : -WHITE_BIAS);
+        
+        // Reduced draw rate based on distance from 50% score
+        const double adaptedDrawRate = drawRate * (0.5 - std::abs(0.5 - biasedExpectedScore)) * 2.0;
+        
+        // Win probability adjusted for draws
+        const double winProb = biasedExpectedScore - (adaptedDrawRate / 2.0);
+        
+        double r = static_cast<double>(rand()) / RAND_MAX;
+        if (r < winProb) {
+            gameResults[game] = GameOutcome::Win;
+            ++result.winsA;
+        } else if (r < winProb + adaptedDrawRate) {
+            gameResults[game] = GameOutcome::Draw;
+            ++result.draws;
+        } else {
+            gameResults[game] = GameOutcome::Loss;
+            ++result.winsB;
+        }
+    }
+
+    // Update pentanomial statistics (both games from engineA's perspective)
+    if (gameResults[0] == GameOutcome::Win && gameResults[1] == GameOutcome::Win) {
+        ++result.pentaWW;
+    } else if ((gameResults[0] == GameOutcome::Win && gameResults[1] == GameOutcome::Draw) ||
+               (gameResults[0] == GameOutcome::Draw && gameResults[1] == GameOutcome::Win)) {
+        ++result.pentaWD;
+    } else if ((gameResults[0] == GameOutcome::Win && gameResults[1] == GameOutcome::Loss) ||
+               (gameResults[0] == GameOutcome::Loss && gameResults[1] == GameOutcome::Win)) {
+        ++result.pentaWL;
+    } else if (gameResults[0] == GameOutcome::Draw && gameResults[1] == GameOutcome::Draw) {
+        ++result.pentaDD;
+    } else if ((gameResults[0] == GameOutcome::Loss && gameResults[1] == GameOutcome::Draw) ||
+               (gameResults[0] == GameOutcome::Draw && gameResults[1] == GameOutcome::Loss)) {
+        ++result.pentaLD;
+    } else if (gameResults[0] == GameOutcome::Loss && gameResults[1] == GameOutcome::Loss) {
+        ++result.pentaLL;
+    }
+}
+
 SprtResult SprtManager::computeSprt(
-    int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const {
+    const SprtEnginesResult& result, const std::string& engineA, const std::string& engineB) const {
     return FastchessSprt::compute({
-        .winsA = winsA,
-        .draws = draws,
-        .winsB = winsB,
+        .winsA = result.winsA,
+        .draws = result.draws,
+        .winsB = result.winsB,
         .engineA = engineA,
         .engineB = engineB,
         .eloLower = config_.eloLower,
@@ -247,7 +301,13 @@ SprtResult SprtManager::computeSprt(
         .beta = config_.beta,
         .maxGames = config_.maxGames,
         .model = config_.model,
-        .pentanomial = false  // Monte Carlo uses trinomial only
+        .pentanomial = config_.pentanomial,
+        .pentaWW = result.pentaWW,
+        .pentaWD = result.pentaWD,
+        .pentaWL = result.pentaWL,
+        .pentaDD = result.pentaDD,
+        .pentaLD = result.pentaLD,
+        .pentaLL = result.pentaLL
     });
 }
 
@@ -262,49 +322,23 @@ void SprtManager::runMonteCarloSingleTest(
             break;
         }
 
-        // Reset intern
-        int winsP1 = 0;
-        int winsP2 = 0;
-        int draws = 0;
-        /*
-        if (sim % 1000 == 0) {
-            std::cout << "Simulation " << sim << " for Elo " << elo << std::endl;
-            double avgGames = (sim > 0) ? static_cast<double>(totalGames) / sim : 0.0;
-            std::cout << elo << ", " << correctDecisions << ", " << avgGames << "\n";
-        }
-        */
-        // Expected score for player 1 according to Elo formula
-        const double expectedScore = 1.0 / (1.0 + std::pow(10.0, -static_cast<double>(elo) / 400.0));
-        // Reduced draw rate based on distance from 50% score
-        const double adaptedDrawRate = drawRate * (0.5 - std::abs(0.5 - expectedScore)) * 2.0;
-        // Win probability adjusted for draws. It ensures total probabilities sum to 1 and stable excpected score 
-        // differences
-        // Example: expectedScore=0.7, drawRate=0.4 -> Player 1 winProb=0.5, Player 2 winProb=0.1
-        const double winProb = expectedScore - (adaptedDrawRate / 2.0);
-
+        SprtEnginesResult result;
         std::optional<bool> decision;
-        int64_t gamesPlayed = 0;
+        int64_t gamePairsPlayed = 0;
+        const int64_t maxGamePairs = config_.maxGames / 2;
 
-        for (; std::cmp_less(gamesPlayed, config_.maxGames); ++gamesPlayed)
+        for (; gamePairsPlayed < maxGamePairs; ++gamePairsPlayed)
         {
-            double r = static_cast<double>(rand()) / RAND_MAX;
-            if (r < winProb)
-            {
-                ++winsP1;
-            }
-            else if (r < winProb + adaptedDrawRate)
-            {
-                ++draws;
-            }
-            else
-            {
-                ++winsP2;
-            }
-            if (gamesPlayed % 100 != 0 && std::cmp_not_equal(gamesPlayed + 1, config_.maxGames))
+            // Simulate a pair of games (white/black swap)
+            simulateGamePair(elo, drawRate, result);
+
+            // Check for decision every 50 game pairs or at the end
+            if (gamePairsPlayed % 50 != 0 && gamePairsPlayed + 1 != maxGamePairs)
             {
                 continue;
             }
-            auto sprtResult = computeSprt(winsP1, draws, winsP2, "P1", "P2");
+            
+            auto sprtResult = computeSprt(result, "P1", "P2");
             if (sprtResult.decision.has_value())
             {
                 decision = sprtResult.decision;
@@ -321,7 +355,8 @@ void SprtManager::runMonteCarloSingleTest(
             numH0 += *decision ? 0 : 1;
             numH1 += *decision ? 1 : 0;
         }
-        totalGames += (gamesPlayed + 1);
+        // Total games = pairs * 2
+        totalGames += (gamePairsPlayed + 1) * 2;
     }
 }
 
