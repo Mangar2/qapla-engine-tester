@@ -179,6 +179,36 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         << " cause " << std::setw(21) << to_string(cause)
         << " sprt " << sprtResult.info
         << " engines " << duel.toString();
+
+    uint32_t resultIndex = record.getRound() - 1; // Round is 1-based
+    uint32_t totalGames = duel.total();
+    bool hasEnoughGamesForPenta = (totalGames >= 2);
+
+    std::lock_guard<std::mutex> lock(sprtResultsMutex_);
+
+    if (sprtResults_.size() <= resultIndex) {
+        sprtResults_.resize(resultIndex + 1);
+    }
+
+    SprtResultsPerTournament& resultsForRound = sprtResults_[resultIndex];
+    resultsForRound.clear();
+
+    auto normalizedTrinomial = computeSprt("normalized", false);
+    resultsForRound.push_back(normalizedTrinomial);
+
+    auto logisticTrinomial = computeSprt("logistic", false);
+    resultsForRound.push_back(logisticTrinomial);
+
+    auto bayesianTrinomial = computeSprt("bayesian", false);
+    resultsForRound.push_back(bayesianTrinomial);
+
+    if (hasEnoughGamesForPenta) {
+        auto normalizedPenta = computeSprt("normalized", true);
+        resultsForRound.push_back(normalizedPenta);
+
+        auto logisticPenta = computeSprt("logistic", true);
+        resultsForRound.push_back(logisticPenta);
+    }
 }
 
 void SprtManager::save(const std::string& filename) const {

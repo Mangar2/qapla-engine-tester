@@ -91,6 +91,9 @@ struct MonteCarloResult {
     SprtConfig config;          // Configuration used for the test
 };
 
+using SprtResultsPerTournament = std::vector<SprtResult>;
+using SprtResultsAllTournaments = std::vector<SprtResultsPerTournament>;
+
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
   * Provides GameTasks for engine workers and collects their results.
@@ -245,6 +248,16 @@ public:
         return computeSprt().isFinished();
     }
 
+    /**
+     * @brief Returns the cached SPRT results for all tournaments.
+     * @details Returns a vector of SprtResult vectors, where each inner vector contains
+     *          the 5 variants (3 trinomial + 2 pentanomial) for one tournament round.
+     * @return Const reference to the cached SPRT results.
+     */
+    const SprtResultsAllTournaments& getSprtResults() const {
+        return sprtResults_;
+    }
+
 private:
     std::unique_ptr<PairTournament> tournament_ = std::make_unique<PairTournament>();
     std::shared_ptr<StartPositions> startPositions_;
@@ -299,6 +312,10 @@ private:
     std::atomic<bool> monteCarloTestRunning_{false};
     std::atomic<bool> monteCarloShouldStop_{false};
     MonteCarloResult monteCarloResult_;
+
+    // SPRT results cache (one entry per tournament/round)
+    SprtResultsAllTournaments sprtResults_;
+    mutable std::mutex sprtResultsMutex_;
 
 };
 } // namespace QaplaTester
