@@ -13,6 +13,7 @@
 *.pgn
 *.raw
 *.DS_Store
+/.vscode/
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
