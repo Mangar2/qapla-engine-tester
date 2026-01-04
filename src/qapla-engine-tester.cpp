@@ -201,8 +201,6 @@ static auto runSprt(AppReturnCode code) {
     });
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     try {
-        uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
-
         auto manager = std::make_shared<SprtManager>();
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
@@ -220,7 +218,11 @@ static auto runSprt(AppReturnCode code) {
 			Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
-                auto decision = manager->getDecision();
+                std::optional<bool> decision;
+                auto sprtResults = manager->getSprtResults();
+                if (!sprtResults.empty() && !sprtResults.front().empty()) {
+                    decision = sprtResults.front().front().decision;
+                }
 				code = !decision ? AppReturnCode::UndefinedResult : 
                     (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
             }

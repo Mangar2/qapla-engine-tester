@@ -120,7 +120,7 @@ void PairTournament::updateOpening(uint32_t openingIndex) {
 std::optional<GameTask> PairTournament::nextTask() {
     std::scoped_lock lock(mutex_);
 
-    if (!initialized_ || !startPositions_ || startPositions_->empty()) {
+    if (isFinished_ || !initialized_ || !startPositions_ || startPositions_->empty()) {
         return std::nullopt;
     }
 
