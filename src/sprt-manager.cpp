@@ -49,6 +49,13 @@ void SprtManager::createTournament(
             "SPRT tournament requires at least 2 engines, got " + std::to_string(engines.size()));
     }
 
+    if (config.pentanomial && config.model == "bayesian") {
+        throw AppError::makeInvalidParameters(
+            "SPRT: Pentanomial statistics not supported with Bayesian model.");
+    }
+
+    AppError::throwOnInvalidOption({ "normalized", "logistic", "bayesian" }, config.model, "Unsupported model for SPRT");
+
     // Select engine0 (under test) and engine1 (comparison) based on gauntlet flags
     // Find all engines with and without gauntlet flag
     std::vector<EngineConfig> gauntletEngines;
@@ -147,8 +154,6 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto duel = tournament_->getResult();
 
     uint32_t resultIndex = record.getRound() - 1;
-    uint32_t totalGames = duel.total();
-    bool hasEnoughGamesForPenta = (totalGames >= 2);
 
     std::scoped_lock lock(sprtResultsMutex_);
 
@@ -167,40 +172,30 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto configuredResult = computeSprt(config_.model, config_.pentanomial);
     resultsForRound.push_back(configuredResult);
 
-    auto normalizedTrinomial = computeSprt("normalized", false);
-    if (normalizedTrinomial.model != configuredResult.model || normalizedTrinomial.pentanomial != configuredResult.pentanomial) {
-        resultsForRound.push_back(normalizedTrinomial);
-    }
-
-    auto logisticTrinomial = computeSprt("logistic", false);
-    if (logisticTrinomial.model != configuredResult.model || logisticTrinomial.pentanomial != configuredResult.pentanomial) {
-        resultsForRound.push_back(logisticTrinomial);
-    }
-
-    auto bayesianTrinomial = computeSprt("bayesian", false);
-    if (bayesianTrinomial.model != configuredResult.model || bayesianTrinomial.pentanomial != configuredResult.pentanomial) {
-        resultsForRound.push_back(bayesianTrinomial);
-    }
-
-    if (hasEnoughGamesForPenta) {
-        auto normalizedPenta = computeSprt("normalized", true);
-        if (normalizedPenta.model != configuredResult.model || normalizedPenta.pentanomial != configuredResult.pentanomial) {
-            resultsForRound.push_back(normalizedPenta);
+    for (auto model : { "normalized", "logistic", "bayesian" }) {
+        if (model != config_.model || config_.pentanomial) {
+            auto altResult = computeSprt(model, false);
+            resultsForRound.push_back(altResult);
         }
-
-        auto logisticPenta = computeSprt("logistic", true);
-        if (logisticPenta.model != configuredResult.model || logisticPenta.pentanomial != configuredResult.pentanomial) {
-            resultsForRound.push_back(logisticPenta);
+    }
+    for (auto model : { "normalized", "logistic" }) {
+        if (model != config_.model || !config_.pentanomial) {
+            auto altPentaResult = computeSprt(model, true);
+            resultsForRound.push_back(altPentaResult);
         }
     }
 
     std::ostringstream oss;
     oss << std::left
-        << "  match game " << std::setw(4) << record.getRound()
+        << "match game " << std::setw(4) << record.getGameInRound()
         << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
         << " cause " << std::setw(21) << to_string(cause)
         << " sprt " << configuredResult.info
         << " engines " << duel.toString();
+
+   if (!configuredResult.isFinished()) {
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+    }
 
     finishTournament();
 }

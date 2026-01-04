@@ -17,11 +17,6 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include <sstream>
-#include <fstream>
-#include <iomanip>
-#include <ctime>
-#include <random>
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "tournament.h"
@@ -30,6 +25,13 @@
 #include "engine-config-manager.h"
 #include "cli/input-handler.h"
 #include "adjudication-manager.h"
+
+#include <sstream>
+#include <fstream>
+#include <iomanip>
+#include <ctime>
+#include <random>
+#include <format>
 
 namespace QaplaTester {
 
@@ -79,10 +81,10 @@ void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines
     }
 
     if (gauntlets.empty() || opponents.empty()) {
-        std::string message = "Gauntlet tournament requires both gauntlet and opponent engines. ";
-        message += "Found: " + std::to_string(gauntlets.size()) + " gauntlet(s), ";
-        message += std::to_string(opponents.size()) + " opponent(s).";
-        throw AppError::make(message);
+        throw AppError::make(
+            std::format("Gauntlet tournament requires both gauntlet and opponent engines. Found: {} gauntlet(s), {} opponent(s).",
+            gauntlets.size(), opponents.size())
+        );
     }
 
     createPairings(gauntlets, opponents, config, false);

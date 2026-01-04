@@ -25,6 +25,7 @@
 #include "../openings.h"
 #include "../tournament.h"
 #include "../sprt-manager.h"
+#include "../engine-worker-factory.h"
 
 namespace QaplaTester::CliSettings {
 
@@ -38,6 +39,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::parseCommandLine(m_arguments);
 
     // Read options after all settings are registered and read.
+    readEngineOptions();
     readPgnOptions();
     readDrawAdjudicationConfig();
     readResignAdjudicationConfig();
@@ -125,6 +127,8 @@ void QaplaSettings::init() {
         { "alpha", { "Type I error threshold", false, 0.05f, ValueType::Float } },
         { "beta",  { "Type II error threshold", false, 0.05f, ValueType::Float } },
         { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, 0, ValueType::UInt } },
+        { "model", { "Model used for SPRT calculations normalized, logistic, bayesian", false, "normalized", ValueType::String } },
+        { "pentanomial", { "Use pentanomial model for SPRT calculations", false, true, ValueType::Bool } },
         { "montecarlo", { "Run Monte Carlo test instead of SPRT", false, false, ValueType::Bool } }
     });
 
@@ -195,6 +199,54 @@ void QaplaSettings::init() {
         { "test",      { "If true, only reports what would be adjudicated without taking action", false, false, ValueType::Bool } }
     });
 }
+
+void QaplaSettings::readEngineOptions() {
+	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("rapid"));
+    std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
+    if (!enginesFile.empty()) {
+        EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
+    }
+    auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
+	auto eachSetting = CliSettings::Manager::getGroupInstance("each");
+	CliSettings::ValueMap eachOptions;
+	if (eachSetting) {
+		eachOptions = eachSetting->getValues();
+	}
+    EngineConfig config;
+
+    for (const auto& engine : engineSettings) {
+        std::string cmd = engine.get<std::string>("cmd");
+        std::string conf = engine.get<std::string>("conf");
+        std::string name = engine.get<std::string>("name");
+
+        CliSettings::ValueMap options = engine.getValues();
+        options.insert(eachOptions.begin(), eachOptions.end());
+
+        if (!cmd.empty()) {
+            config = EngineConfig::createFromValueMap(options);
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+		}
+		else if (!conf.empty()) {
+			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+			if (!engineConfig) {
+				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
+			}
+            config = *engineConfig;
+			config.setCommandLineOptions(options, true);
+            name = config.getName();
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+		}
+		else {
+            std::string engineName = name.empty() ? "" : " (for " + name + ")";
+            throw AppError::makeInvalidParameters("No engine command or configuration provided"
+                + engineName + ".Please specify either 'cmd' or 'conf'.");
+		}
+
+    }
+    // Ensure that all active engines have different names
+    EngineWorkerFactory::assignUniqueDisplayNames();
+}
+
 
 void QaplaSettings::readPgnOptions() {
     auto pgnOptionInstance = Manager::getGroupInstance("pgnoutput");
@@ -369,6 +421,8 @@ void QaplaSettings::readSprtConfig() {
         .alpha = sprt->get<double>("alpha"),
         .beta = sprt->get<double>("beta"),
         .maxGames = sprt->get<unsigned int>("maxgames"),
+        .model = sprt->get<std::string>("model"),
+        .pentanomial = sprt->get<bool>("pentanomial"),
         .openings = m_openings ? *m_openings : Openings{}
     });
 }
