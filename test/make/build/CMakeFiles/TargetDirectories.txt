@@ -1,3 +1,0 @@
-C:/Development/qapla-chess-gui/extern/qapla-engine-tester/test/make/build/CMakeFiles/qapla-engine-tester-tests.dir
-C:/Development/qapla-chess-gui/extern/qapla-engine-tester/test/make/build/CMakeFiles/ALL_BUILD.dir
-C:/Development/qapla-chess-gui/extern/qapla-engine-tester/test/make/build/CMakeFiles/ZERO_CHECK.dir

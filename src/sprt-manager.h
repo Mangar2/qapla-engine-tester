@@ -24,7 +24,7 @@
 #include "game-task.h"
 #include "openings.h"
 #include "pair-tournament.h"
-#include "input-handler.h"
+#include "cli/input-handler.h"
 #include "ini-file.h"
 #include "sprt-calculation.h"
 

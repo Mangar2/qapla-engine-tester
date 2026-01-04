@@ -17,9 +17,10 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "app-error.h"
-#include "string-helper.h"
 #include "cli-settings-manager.h"
+
+#include "../app-error.h"
+#include "../string-helper.h"
 
 #include <cstring>
 #include <iostream>

@@ -18,7 +18,7 @@
  */
 
 #include "engine-config-manager.h"
-#include "cli-settings-manager.h"
+
 #include "string-helper.h"
 
 namespace QaplaTester {

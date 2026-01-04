@@ -24,8 +24,8 @@
 #include <optional>
 #include <iostream>
 #include <vector>
-#include "app-error.h"
-#include "string-helper.h"
+#include "../app-error.h"
+#include "../string-helper.h"
 
 namespace QaplaTester::CliSettings {
 

@@ -20,11 +20,11 @@
 #include "qapla-settings.h"
 
 #include "cli-settings-manager.h"
-#include "pgn-io.h"
-#include "app-error.h"
-#include "openings.h"
-#include "tournament.h"
-#include "sprt-manager.h"
+#include "../pgn-io.h"
+#include "../app-error.h"
+#include "../openings.h"
+#include "../tournament.h"
+#include "../sprt-manager.h"
 
 namespace QaplaTester::CliSettings {
 
