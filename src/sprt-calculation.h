@@ -80,7 +80,7 @@ struct SprtResult {
      * @return true if a decision was made or max games limit was reached.
      */
     bool isFinished() const {
-        return decision.has_value() || reachedMaxGames;
+        return decision || reachedMaxGames;
     }
 
     /**

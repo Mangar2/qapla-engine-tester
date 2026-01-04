@@ -257,6 +257,15 @@ public:
         positionName_ = name;
     }
 
+    /**
+     * @brief Stops the tournament.
+     *
+     * Prevents nextTask() from returning further tasks.
+     */
+    void stop() {
+        isFinished_ = true;
+    }
+
 private:
 
     /**

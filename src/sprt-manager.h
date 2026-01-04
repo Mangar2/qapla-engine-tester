@@ -172,14 +172,6 @@ public:
     void withMonteCarloResult(const std::function<void(const MonteCarloResult&)>& callback);
 
     /**
-	 * @brief Returns the current decision of the SPRT test.
-	 * @return std::optional<bool> containing true if H1 accepted, false if H0 accepted, or std::nullopt if inconclusive.
-	 */
-	std::optional<bool> getDecision() const {
-		return decision_;
-	}
-
-    /**
 	 * @brief Saves the current SPRT test state to a stream.
 	 * @param filename The file to save the state to.
      */
@@ -249,6 +241,12 @@ public:
     }
 
     /**
+     * @brief Checks if a decision was made and stops tournament if all results have decisions.
+     * @details Called after each game to check if tournament should be finished.
+     */
+    void finishTournament();
+
+    /**
      * @brief Returns the cached SPRT results for all tournaments.
      * @details Returns a vector of SprtResult vectors, where each inner vector contains
      *          the 5 variants (3 trinomial + 2 pentanomial) for one tournament round.
@@ -266,12 +264,6 @@ private:
     PairTournamentConfig tournamentConfig_;
 
     /**
-     * @brief Computes the SPRT decision and updates internal state.
-     * @return SprtResult containing the decision and related statistics.
-     */
-    SprtResult computeDecision();
-
-    /**
      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
      *
      * Internal version with SprtEnginesResult for Monte Carlo simulations.
@@ -286,9 +278,18 @@ private:
      * @param drawRate Base draw rate
      * @param result Reference to SprtEnginesResult to update with game results
      */
-    void simulateGamePair(float elo, double drawRate, SprtEnginesResult& result);
+    static void simulateGamePair(float elo, float drawRate, SprtEnginesResult& result);
 
-    void runMonteCarloSingleTest(int simulationsPerElo, float elo, double drawRate, 
+    /**
+     * @brief Runs a single Monte Carlo simulation test for a given ELO difference.
+     * @param simulationsPerElo Number of simulations to run for this ELO difference.
+     * @param elo ELO difference for the simulation.
+     * @param drawRate Base draw rate.
+     * @param noDecisions Reference to count of no-decision outcomes.
+     * @param numH0 Reference to count of H0 accepted outcomes.
+     * @param numH1 Reference to count of H1 accepted outcomes.
+     */
+    void runMonteCarloSingleTest(int simulationsPerElo, float elo, float drawRate, 
         int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames);
 
     /**
@@ -298,10 +299,7 @@ private:
      */
     void runMonteCarloTestInternal(const SprtConfig& config);
 
-    bool rememberStop_ = false;
-
     SprtConfig config_;
-	std::optional<bool> decision_ = std::nullopt;
 
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;

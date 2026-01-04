@@ -108,8 +108,6 @@ void SprtManager::createTournament(
     }
     tournament_->setVerbose(false);
     tournament_->setPositionName("SPRT");
-    // We keep previous results but they may lead to a different SPRT decision due to changed parameters
-    decision_.reset();
 
 }
 
@@ -138,30 +136,9 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
 }
 
 std::optional<GameTask> SprtManager::nextTask() {
-    auto sprtResult = computeSprt();
-    rememberStop_ = rememberStop_ || sprtResult.decision.has_value();
-    if (rememberStop_) {
-        return std::nullopt;
-    }
-
     return tournament_->nextTask();
 }
 
-SprtResult SprtManager::computeDecision() {
-    auto sprtResult = computeSprt();
-    std::ostringstream oss;
-
-    if (!decision_) {
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
-    }
-    if (sprtResult.decision) {
-		if (!decision_) {
-            GameManagerPool::getInstance().stopAll();
-        }
-        decision_ = sprtResult.decision;
-    }
-    return sprtResult;
-}
 
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
 	bool engine1IsWhite = tournament_->getEngineA().getName() == record.getWhiteEngineName();
@@ -170,45 +147,63 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto [cause, result] = record.getGameResult();
     auto duel = tournament_->getResult();
 
-    auto sprtResult = computeDecision();
-
-    std::ostringstream oss;
-    oss << std::left
-        << "  match game " << std::setw(4) << record.getRound()
-        << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
-        << " cause " << std::setw(21) << to_string(cause)
-        << " sprt " << sprtResult.info
-        << " engines " << duel.toString();
-
-    uint32_t resultIndex = record.getRound() - 1; // Round is 1-based
+    uint32_t resultIndex = record.getRound() - 1;
     uint32_t totalGames = duel.total();
     bool hasEnoughGamesForPenta = (totalGames >= 2);
 
-    std::lock_guard<std::mutex> lock(sprtResultsMutex_);
+    std::scoped_lock lock(sprtResultsMutex_);
 
     if (sprtResults_.size() <= resultIndex) {
         sprtResults_.resize(resultIndex + 1);
     }
 
     SprtResultsPerTournament& resultsForRound = sprtResults_[resultIndex];
+    
+    if (!resultsForRound.empty() && resultsForRound[0].decision.has_value()) {
+        return;
+    }
+
     resultsForRound.clear();
 
+    auto configuredResult = computeSprt(config_.model, config_.pentanomial);
+    resultsForRound.push_back(configuredResult);
+
     auto normalizedTrinomial = computeSprt("normalized", false);
-    resultsForRound.push_back(normalizedTrinomial);
+    if (normalizedTrinomial.model != configuredResult.model || normalizedTrinomial.pentanomial != configuredResult.pentanomial) {
+        resultsForRound.push_back(normalizedTrinomial);
+    }
 
     auto logisticTrinomial = computeSprt("logistic", false);
-    resultsForRound.push_back(logisticTrinomial);
+    if (logisticTrinomial.model != configuredResult.model || logisticTrinomial.pentanomial != configuredResult.pentanomial) {
+        resultsForRound.push_back(logisticTrinomial);
+    }
 
     auto bayesianTrinomial = computeSprt("bayesian", false);
-    resultsForRound.push_back(bayesianTrinomial);
+    if (bayesianTrinomial.model != configuredResult.model || bayesianTrinomial.pentanomial != configuredResult.pentanomial) {
+        resultsForRound.push_back(bayesianTrinomial);
+    }
 
     if (hasEnoughGamesForPenta) {
         auto normalizedPenta = computeSprt("normalized", true);
-        resultsForRound.push_back(normalizedPenta);
+        if (normalizedPenta.model != configuredResult.model || normalizedPenta.pentanomial != configuredResult.pentanomial) {
+            resultsForRound.push_back(normalizedPenta);
+        }
 
         auto logisticPenta = computeSprt("logistic", true);
-        resultsForRound.push_back(logisticPenta);
+        if (logisticPenta.model != configuredResult.model || logisticPenta.pentanomial != configuredResult.pentanomial) {
+            resultsForRound.push_back(logisticPenta);
+        }
     }
+
+    std::ostringstream oss;
+    oss << std::left
+        << "  match game " << std::setw(4) << record.getRound()
+        << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
+        << " cause " << std::setw(21) << to_string(cause)
+        << " sprt " << configuredResult.info
+        << " engines " << duel.toString();
+
+    finishTournament();
 }
 
 void SprtManager::save(const std::string& filename) const {
@@ -264,12 +259,35 @@ SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optio
     return FastchessSprt::compute(params);
 }
 
-void SprtManager::simulateGamePair(float elo, double drawRate, SprtEnginesResult& result) {
+void SprtManager::finishTournament() {
+    std::scoped_lock lock(sprtResultsMutex_);
+    
+    bool allHaveDecisions = true;
+    bool anyHasDecision = false;
+    
+    for (const auto& resultsForRound : sprtResults_) {
+        if (resultsForRound.empty() || !resultsForRound[0].decision.has_value()) {
+            allHaveDecisions = false;
+        } else {
+            anyHasDecision = true;
+        }
+    }
+    
+    if (anyHasDecision) {
+        tournament_->stop();
+    }
+    
+    if (allHaveDecisions) {
+        GameManagerPool::getInstance().stopAll();
+    }
+}
+
+void SprtManager::simulateGamePair(float elo, float drawRate, SprtEnginesResult& result) {
     // White advantage bias (added to expected score when playing white)
-    constexpr double WHITE_BIAS = 0.05;
+    constexpr float WHITE_BIAS = 0.05F;
     
     // Base expected score for engine A according to Elo formula
-    const double baseExpectedScore = 1.0 / (1.0 + std::pow(10.0, -static_cast<double>(elo) / 400.0));
+    const float baseExpectedScore = 1.0F / (1.0F + std::pow(10.0F, -elo / 400.0F));
     
     // Simulate two games: engineA as white, then as black
     enum class GameOutcome : uint8_t { Win, Draw, Loss };
@@ -342,7 +360,7 @@ SprtResult SprtManager::computeSprt(
 }
 
 void SprtManager::runMonteCarloSingleTest(
-    int simulationsPerElo, float elo, double drawRate, 
+    int simulationsPerElo, float elo, float drawRate, 
     int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames)
 {
     for (int sim = 0; sim < simulationsPerElo; ++sim)
@@ -421,10 +439,10 @@ bool SprtManager::runMonteCarloTest(const SprtConfig& config) {
 void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 	config_ = config;
     constexpr int simulationsPerElo = 2000;
-    constexpr double drawRate = 0.4;
+    constexpr float drawRate = 0.4F;
     
     // Calculate dynamic step size rounded to one decimal place
-    double rawStep = std::abs(config.eloUpper - config.eloLower) / 5.0;
+    float rawStep = std::abs(config.eloUpper - config.eloLower) / 5.0F;
     float step = std::round(rawStep * 10.0F) / 10.0F;
     
     // Generate test range: 2 steps below eloLower to 2 steps above eloUpper
