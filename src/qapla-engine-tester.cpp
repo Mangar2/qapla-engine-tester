@@ -272,7 +272,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
 			// tournament.save(tournamentConfig->tournamentFilename);
 		}
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
-        AdjudicationManager::instance().printTestResult(std::cout);
+        GameManagerPool::getInstance().getAdjudicationManager().printTestResult(std::cout);
         std::string resultString = tournament.getResultString();
         Logger::reportLogger().log(resultString, TraceLevel::result);
 
@@ -290,71 +290,25 @@ static AppReturnCode runTournament(AppReturnCode code) {
     return code;
 }
 
-static void handleAdjudicationOptions() {
+static void setAdjudicationOptions() {
     const auto& drawConfig = CliSettings::QaplaSettings::instance().getDrawAdjudicationConfig();
     if (drawConfig) {
-        AdjudicationManager::instance().setDrawAdjudicationConfig(*drawConfig);
+        GameManagerPool::getInstance().getAdjudicationManager().setDrawAdjudicationConfig(*drawConfig);
     }
 
     const auto& resignConfig = CliSettings::QaplaSettings::instance().getResignAdjudicationConfig();
     if (resignConfig) {
-        AdjudicationManager::instance().setResignAdjudicationConfig(*resignConfig);
+        GameManagerPool::getInstance().getAdjudicationManager().setResignAdjudicationConfig(*resignConfig);
     }
 }
 
-static void handlePgnOptions() {
+static void setPgnOptions() {
     const auto& pgnOptions = CliSettings::QaplaSettings::instance().getPgnOptions();
     if (!pgnOptions) return;
 
     PgnSave::tournament().setOptions(*pgnOptions);
 }
 
-static void handleEngineOptions() {
-	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("rapid"));
-    std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
-    if (!enginesFile.empty()) {
-        EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
-    }
-    auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
-	auto eachSetting = CliSettings::Manager::getGroupInstance("each");
-	CliSettings::ValueMap eachOptions;
-	if (eachSetting) {
-		eachOptions = eachSetting->getValues();
-	}
-    EngineConfig config;
-
-    for (const auto& engine : engineSettings) {
-        std::string cmd = engine.get<std::string>("cmd");
-        std::string conf = engine.get<std::string>("conf");
-        std::string name = engine.get<std::string>("name");
-
-        CliSettings::ValueMap options = engine.getValues();
-        options.insert(eachOptions.begin(), eachOptions.end());
-
-        if (!cmd.empty()) {
-            config = EngineConfig::createFromValueMap(options);
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-		}
-		else if (!conf.empty()) {
-			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
-			if (!engineConfig) {
-				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
-			}
-            config = *engineConfig;
-			config.setCommandLineOptions(options, true);
-            name = config.getName();
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-		}
-		else {
-            std::string engineName = name.empty() ? "" : " (for " + name + ")";
-            throw AppError::makeInvalidParameters("No engine command or configuration provided"
-                + engineName + ".Please specify either 'cmd' or 'conf'.");
-		}
-
-    }
-    // Ensure that all active engines have different names
-    EngineWorkerFactory::assignUniqueDisplayNames();
-}
 
 static AppReturnCode run() {
     AppReturnCode returnCode = AppReturnCode::NoError;
@@ -364,9 +318,8 @@ static AppReturnCode run() {
         || CliSettings::Manager::get<bool>("interactive"));
 
     handleGlobalOptions(returnCode);
-    handlePgnOptions();
-    handleEngineOptions();
-    handleAdjudicationOptions();
+    setPgnOptions();
+    setAdjudicationOptions();
 
     if (auto test = CliSettings::Manager::getGroupInstance("test")) {
         returnCode = runTest(*test, returnCode);

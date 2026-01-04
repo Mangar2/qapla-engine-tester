@@ -130,6 +130,11 @@ private:
     [[nodiscard]] static std::vector<std::string> argvToVector(int argc, char* argv[]);
 
     /**
+     * @brief Reads engine options from CLI settings
+     */
+    static void readEngineOptions();
+
+    /**
      * @brief Reads PGN options from CLI settings
      */
     void readPgnOptions();

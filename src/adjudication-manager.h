@@ -83,14 +83,6 @@ public:
     };
 
     /**
-     * @brief Returns the singleton instance.
-     */
-    static AdjudicationManager& instance() {
-        static AdjudicationManager singletonInstance;
-        return singletonInstance;
-    }
-
-    /**
      * @brief Set the configuration for draw adjudication.
      * @param config The draw configuration to apply.
      */
