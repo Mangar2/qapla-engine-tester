@@ -36,6 +36,14 @@ QaplaSettings& QaplaSettings::instance() {
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     m_arguments = Manager::mergeWithSettingsFile(args);
     Manager::parseCommandLine(m_arguments);
+
+    // Read options after all settings are registered and read.
+    readPgnOptions();
+    readDrawAdjudicationConfig();
+    readResignAdjudicationConfig();
+    readOpenings();
+    readTournamentConfig();
+    readSprtConfig();
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {
@@ -186,14 +194,6 @@ void QaplaSettings::init() {
         { "twosided",  { "If true, both sides must meet respective score conditions", false, false, ValueType::Bool } },
         { "test",      { "If true, only reports what would be adjudicated without taking action", false, false, ValueType::Bool } }
     });
-
-    // Read options after all settings are registered
-    readPgnOptions();
-    readDrawAdjudicationConfig();
-    readResignAdjudicationConfig();
-    readOpenings();
-    readTournamentConfig();
-    readSprtConfig();
 }
 
 void QaplaSettings::readPgnOptions() {

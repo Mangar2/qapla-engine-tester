@@ -81,8 +81,7 @@ void SprtManager::createTournament(
     }
 
     if (config.openings.file.empty()) {
-        Logger::reportLogger().log("No openings file provided.", TraceLevel::error);
-        return;
+        throw AppError::makeInvalidParameters("SPRT: No openings file provided.");
     }
 
     OpeningParser parser;
@@ -260,7 +259,6 @@ SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optio
 }
 
 void SprtManager::finishTournament() {
-    std::scoped_lock lock(sprtResultsMutex_);
     
     bool allHaveDecisions = true;
     bool anyHasDecision = false;
