@@ -21,7 +21,7 @@
 #include "adjudication-manager.h"
 #include "engine-config.h"
 #include "game-manager.h"
-#include "input-handler.h"
+#include "cli/input-handler.h"
 
 #include <memory>
 #include <string>

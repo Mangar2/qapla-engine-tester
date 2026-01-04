@@ -28,7 +28,7 @@
 #include "opening-parser.h"
 #include "pgn-save.h"
 #include "engine-config-manager.h"
-#include "input-handler.h"
+#include "cli/input-handler.h"
 #include "adjudication-manager.h"
 
 namespace QaplaTester {

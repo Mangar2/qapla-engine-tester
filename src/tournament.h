@@ -22,7 +22,7 @@
 #include "pair-tournament.h"
 #include "engine-config.h"
 #include "time-control.h"
-#include "input-handler.h"
+#include "cli/input-handler.h"
 #include "ini-file.h"
 #include "game-manager-pool.h"
 #include "change-tracker.h"

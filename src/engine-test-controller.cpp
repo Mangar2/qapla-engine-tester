@@ -26,7 +26,7 @@
 #include "engine-test-controller.h"
 #include "engine-worker-factory.h"
 #include "engine-report.h"
-#include "cli-settings-manager.h"
+#include "cli/cli-settings-manager.h"
 #include "epd-test-manager.h"
 #include "compute-task.h"
 #include "game-manager.h"
