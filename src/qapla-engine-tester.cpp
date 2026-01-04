@@ -178,15 +178,11 @@ static void checkTimeControl() {
 static auto runSprt(AppReturnCode code) {
     const auto& sprtConfig = CliSettings::QaplaSettings::instance().getSprtConfig();
     if (!sprtConfig) return code;
+    const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     auto isMontecarlo = CliSettings::Manager::getGroupInstance("sprt")->get<bool>("montecarlo");
     
-    if (activeEngines.size() < 2 && !isMontecarlo) {
-        Logger::reportLogger().log("At least two engines must be defined for SPRT tests. Please define two engines, see --help for more info.",
-            TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
-    }
     if (!isMontecarlo && !CliSettings::QaplaSettings::instance().getOpenings()) {
         Logger::reportLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
@@ -208,9 +204,9 @@ static auto runSprt(AppReturnCode code) {
         else {
             auto filename = CliSettings::Manager::getGroupInstance("sprt")->get<std::string>("resultfile");
             manager->createTournament(activeEngines, *sprtConfig);
-            // manager->load(filename);
-            // manager->schedule(manager, concurrency);
-            // manager->wait();
+            GameManagerPool& pool = GameManagerPool::getInstance();
+            manager->schedule(manager, concurrency, pool);
+            pool.waitForTask();
             if (!filename.empty()) {
                 manager->save(filename);
             }

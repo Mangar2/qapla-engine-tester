@@ -283,9 +283,9 @@ void GameManagerPool::waitForTaskPolling(std::chrono::milliseconds pollingInterv
 void GameManagerPool::waitForTask() {
 
     while (true) {
-        std::scoped_lock lock(managerMutex_);
         std::vector<GameManager*> managers;
         {
+            std::scoped_lock lock(managerMutex_);
             for (const auto& managerPtr : managers_) {
                 GameManager* manager = managerPtr.get();
                 const auto& future = manager->getFinishedFuture();
@@ -296,11 +296,11 @@ void GameManagerPool::waitForTask() {
                 }
             }
         }
-
 		if (managers.empty()) {
             break;
 		}
 
+        // Warte auf die Futures OHNE den Mutex zu halten
         for (auto& manager : managers) {
             const auto& future = manager->getFinishedFuture();
             if (future.valid()) {
