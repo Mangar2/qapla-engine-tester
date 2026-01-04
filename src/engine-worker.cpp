@@ -33,15 +33,15 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
     const EngineConfig& engineConfig)
     : identifier_(std::move(identifier)), adapter_(std::move(adapter))
 {
-    cliTraceLevel_ = Logger::engineLogger().getCliThreshold();
+    cliTraceLevel_ = EngineLogger::engineLogger().getCliThreshold();
     if (!adapter_) {
         throw std::invalid_argument("Internal Error: EngineWorker requires a valid EngineAdapter");
     }
     engineConfig_ = engineConfig;
 
     adapter_->setProtocolLogger([this, id = identifier_](std::string_view message, bool isOutput, TraceLevel traceLevel) {
-        Logger::engineLogger().log(id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
-        
+        EngineLogger::engineLogger({.engineId = id}).log(
+            id, message, isOutput, cliTraceLevel_, engineConfig_.getTraceLevel(), traceLevel);
         });
     
 	asyncStartup(engineConfig.getOptionValues());
@@ -108,7 +108,9 @@ void EngineWorker::stop(bool wait) {
         }
 
         if (readThread_.joinable()) {
+            // std::cout << "[" << identifier_ << "] Waiting for read thread to join..." << std::endl;
             readThread_.join();
+            // std::cout << "[" << identifier_ << "] Read thread joined." << std::endl;
         }
     }
 }
@@ -117,7 +119,7 @@ void EngineWorker::stop(bool wait) {
  * @brief Main execution loop for the worker thread.
  */
 void EngineWorker::writeLoop() {
-    if (workerState_ == WorkerState::stopped) {
+    if (workerState_ == WorkerState::stopped || workerState_ == WorkerState::failure) {
         return;
     }
     while (true) {
@@ -142,11 +144,11 @@ void EngineWorker::writeLoop() {
         catch (const std::exception& e) {
             // Usually the engine disconnected this is reported as error elswhere
             // Thus we log it with TraceLevel:info only
-            Logger::testLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
+            Logger::reportLogger().log("Exception in threadLoop, id " + getIdentifier() + " " 
                 + std::string(e.what()), TraceLevel::info);
         }
         catch (...) {
-            Logger::testLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 
+            Logger::reportLogger().log("Unknown exception in threadLoop, id " + getIdentifier(), 
                 TraceLevel::error);
         }
     }
@@ -195,6 +197,28 @@ bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
             }
         }
         adapter.moveNow();
+        });
+    if (!wait) {
+        return true;
+    }
+    return waitForHandshake(timeout);
+}
+
+bool EngineWorker::stopCompute(bool wait, std::chrono::milliseconds timeout) {
+    post([this, wait](EngineAdapter& adapter) {
+        waitForHandshake_ = EngineEvent::Type::None;
+        if (wait) {
+            waitForHandshake_ = adapter.waitAfterMoveNowHandshake();
+            if (waitForHandshake_ == EngineEvent::Type::None) {
+                // Notify for handshake right away
+                {
+                    std::scoped_lock lock(handshakeMutex_);
+                    handshakeReceived_ = true;
+                }
+                handshakeCv_.notify_all();
+            }
+        }
+        adapter.stop();
         });
     if (!wait) {
         return true;
@@ -300,7 +324,7 @@ void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& lim
 
 void EngineWorker::readLoop() {
 	// Must end on disconnected_ to prevent endless looping
-    while (workerState_ != WorkerState::stopped && !disconnected_) {
+    while (workerState_ != WorkerState::stopped && workerState_ != WorkerState::failure && !disconnected_) {
         // Blocking call
         try {
             EngineEvent event = adapter_->readEvent();
@@ -329,16 +353,16 @@ void EngineWorker::readLoop() {
 				disconnected_ = true;
                 workerState_ = WorkerState::failure;
                 std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
-                Logger::testLogger().log(msg, TraceLevel::error);
-                Logger::engineLogger().log(msg, TraceLevel::error);
+                Logger::reportLogger().log(msg, TraceLevel::error);
+                EngineLogger::engineLogger({.engineId = identifier_}).log(msg, TraceLevel::error);
 			}
         }
 		catch (const std::exception& e) {
-			Logger::testLogger().log("Exception in readLoop, id " + getIdentifier() + " "
+			Logger::reportLogger().log("Exception in readLoop, id " + getIdentifier() + " "
 				+ std::string(e.what()), TraceLevel::error);
 		}
 		catch (...) {
-			Logger::testLogger().log("Unknown exception in readLoop, id " + getIdentifier(),
+			Logger::reportLogger().log("Unknown exception in readLoop, id " + getIdentifier(),
 				TraceLevel::error);
 		}
     }

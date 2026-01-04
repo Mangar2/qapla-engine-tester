@@ -18,152 +18,190 @@
  */
 
 #include "logger.h"
+#include <format>
+#include <iomanip>
 
 namespace QaplaTester {
 
-/**
- * @brief Converts TraceLevel enum to its string representation.
- * @param level The trace level to convert.
- * @return String representation of the trace level.
- */
-std::string to_string(QaplaTester::TraceLevel level) {
-    switch (level) {
-        case QaplaTester::TraceLevel::error: return "error";
-        case QaplaTester::TraceLevel::command: return "command";
-        case QaplaTester::TraceLevel::result: return "result";
-        case QaplaTester::TraceLevel::warning: return "warning";
-        case QaplaTester::TraceLevel::info: return "all";
-        case QaplaTester::TraceLevel::none: return "none";
-        default: return "command";
-    }
-}
+// ============================================================================
+// Logger (Report Logger) Implementation
+// ============================================================================
 
-/**
- * @brief Logs a message with prefix and direction indicator.
- * 
- * Messages are written to both file and console based on their respective trace level thresholds.
- * 
- * @param prefix Logical source identifier (e.g., engine name).
- * @param message The message content to log.
- * @param isOutput true for outgoing messages (->), false for incoming (<-).
- * @param cliThreshold Trace level threshold for console output.
- * @param fileThreshold Trace level threshold for file logging.
- * @param level The trace level of this message (default: info).
- */
-void Logger::log(std::string_view prefix, std::string_view message, bool isOutput, 
-    TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level) {
 
-    std::scoped_lock lock(mutex_);
-    if (level <= fileThreshold && fileStream_.is_open()) {
-        fileStream_ << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
-    }
-    
-    if (level > cliThreshold) {
-        return;
-    }
-    if (message.empty()) {
-        std::cout << prefix << (isOutput ? " -> " : " <- ") << "\n" << std::flush;
-        return;
-    }
-    std::cout << prefix << (isOutput ? " -> " : " <- ") << message << "\n" << std::flush;
-}
-
-/**
- * @brief Logs a simple message without prefix.
- * @param message The message content to log.
- * @param level The trace level of this message (default: command).
- */
-void Logger::log(std::string_view message, TraceLevel level) {
-
-    std::scoped_lock lock(mutex_);
-    if (level <= fileThreshold_ && fileStream_.is_open()) {
-        fileStream_ << message << "\n" << std::flush;
-    }
-
-    if (level > cliThreshold_) {
-        return;
-    }
-    std::cout << message << "\n" << std::flush;
-}
-
-/**
- * @brief Logs a message with aligned topic and content.
- * 
- * The topic is left-aligned with a fixed width for consistent formatting.
- * 
- * @param topic The topic or label to display (will be aligned).
- * @param message The message content to display after the topic.
- * @param level The trace level of this message (default: command).
- */
 void Logger::logAligned(std::string_view topic, std::string_view message, TraceLevel level) {
     std::ostringstream oss;
     oss << std::left << std::setw(30) << topic << message;
     log(oss.str(), level);
 }
 
-/**
- * @brief Sets the output log file with timestamp.
- * 
- * Creates a new log file with a timestamped filename in the configured log directory.
- * If a file is already open, it will be closed first.
- * 
- * @param basename Base name for the log file (timestamp will be appended).
- */
-void Logger::setLogFile(const std::string& basename) {
-    std::scoped_lock lock(mutex_);
-    namespace fs = std::filesystem;
-    fs::path path = logPath_.empty() ? "" : fs::path(logPath_);
-    filename_ = (path / generateTimestampedFilename(basename)).string();
-    fileStream_.close();
-    fileStream_.open(filename_, std::ios::app);
-}
-
-/**
- * @brief Generates a timestamped filename.
- * 
- * Creates a filename in the format: basename-YYYY-MM-DD_HH-MM-SS.mmm.log
- * 
- * @param baseName The base name for the file.
- * @return Complete filename with timestamp and .log extension.
- */
-std::string Logger::generateTimestampedFilename(const std::string& baseName) {
-    using namespace std::chrono;
-
-    auto now = system_clock::now();
-    auto now_time_t = system_clock::to_time_t(now);
-    auto now_ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-
-    std::tm local_tm;
-#ifdef _WIN32
-    localtime_s(&local_tm, &now_time_t);
-#else
-    localtime_r(&now_time_t, &local_tm);
-#endif
-
-    std::ostringstream oss;
-    oss << baseName << '-'
-        << std::put_time(&local_tm, "%Y-%m-%d_%H-%M-%S")
-        << '.' << std::setw(3) << std::setfill('0') << now_ms.count()
-        << ".log";
-    return oss.str();
-}
-
-/**
- * @brief Returns the global engine logger instance.
- * @return Reference to the singleton engine logger.
- */
-Logger& Logger::engineLogger() {
+Logger& Logger::reportLogger() {
     static Logger instance;
     return instance;
 }
 
-/**
- * @brief Returns the global test logger instance.
- * @return Reference to the singleton test logger.
- */
-Logger& Logger::testLogger() {
-    static Logger instance;
+
+// ============================================================================
+// EngineLogger Implementation
+// ============================================================================
+
+void EngineLogger::log(const std::string& engineId, std::string_view message, bool isOutput, 
+    TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level) {
+
+    std::scoped_lock lock(loggingMutex_);
+
+    auto toLog = std::format("{} {} {}", engineId, isOutput ? "->" : "<-", message);
+    
+    // Add to ring buffer if this logger has an engineId
+    if (!engineId.empty()) {
+        std::scoped_lock bufferLock(engineLogBufferMutex_);
+        engineLogBuffers_[engineId].push({toLog, std::chrono::system_clock::now()});
+    }
+    
+    if (level <= fileThreshold) {
+        ensureFileOpen(logPath_);
+        if (fileStream_.is_open()) {
+            fileStream_ << toLog << "\n" << std::flush;
+        }
+    }
+    
+    if (level <= cliThreshold) {
+        std::cout << toLog << "\n" << std::flush;
+    }
+
+}
+
+EngineLogger& EngineLogger::engineLogger() {
+    static EngineLogger instance;
     return instance;
+}
+
+
+EngineLogger& EngineLogger::engineLogger(const EngineLoggerId& loggerId) {
+    
+    switch (logStrategy_) {
+        case LogFileStrategy::global:
+            return engineLoggerGlobal();
+            
+        case LogFileStrategy::perEngine:
+            if (!loggerId.engineId.has_value()) {
+                throw std::invalid_argument("engineId is required for perEngine strategy");
+            }
+            return engineLoggerPerEngine(loggerId);
+            
+        default:
+            throw std::logic_error("Unknown LogFileStrategy");
+    }
+}
+
+EngineLogger& EngineLogger::engineLoggerGlobal() {
+    static EngineLogger instance;
+    static bool initialized = false;
+    
+    if (!initialized) {
+        instance.setTraceLevel(TraceLevel::error, TraceLevel::info);
+        initialized = true;
+    }
+    
+    return instance;
+}
+
+EngineLogger& EngineLogger::engineLoggerPerEngine(const EngineLoggerId& id) {
+    std::string loggerKey = id.engineId.value();
+    
+    // Thread-safe access to logger map
+    std::scoped_lock lock(mapMutex_);
+    
+    // Check if logger already exists
+    auto it = engineLoggers_.find(loggerKey);
+    if (it != engineLoggers_.end()) {
+        return *it->second;
+    }
+    
+    // Create new logger instance
+    auto logger = std::make_unique<EngineLogger>();
+    logger->id_ = id;  // Store identity
+    logger->setTraceLevel(TraceLevel::error, TraceLevel::info);
+    
+    auto& loggerRef = *logger;
+    engineLoggers_[loggerKey] = std::move(logger);
+    
+    return loggerRef;
+}
+
+EngineLogger& EngineLogger::engineLoggerPerGame(const EngineLoggerId& id) {
+    std::string loggerKey = id.gameId.value();
+    
+    // Thread-safe access to logger map
+    std::scoped_lock lock(mapMutex_);
+    
+    // Check if logger already exists
+    auto it = engineLoggers_.find(loggerKey);
+    if (it != engineLoggers_.end()) {
+        return *it->second;
+    }
+    
+    // Create new logger instance
+    auto logger = std::make_unique<EngineLogger>();
+    logger->id_ = id;  // Store identity
+    logger->setTraceLevel(TraceLevel::error, TraceLevel::info);
+    
+    auto& loggerRef = *logger;
+    engineLoggers_[loggerKey] = std::move(logger);
+    
+    return loggerRef;
+}
+
+void EngineLogger::engineTerminated(const EngineLoggerId& loggerId) {
+
+    // Buffer is always per engine (even in global strategy where multiple engines share one logger)
+    std::scoped_lock bufferLock(engineLogBufferMutex_);
+    if (loggerId.engineId) {
+        engineLogBuffers_.erase(*loggerId.engineId);
+    }  
+    
+    switch (logStrategy_) {
+        case LogFileStrategy::global:
+            // Strategy global means that we have one file for all engines but one buffer for each engine
+            // Buffer is already removed, nothing else to do
+            return;
+            
+        case LogFileStrategy::perEngine:
+            // Per engine strategy means we have one logger instance per engine
+            if (!id_.engineId.has_value()) {
+                return;
+            }
+            {
+                std::scoped_lock fileLock(loggingMutex_);
+                if (fileStream_.is_open()) {
+                    fileStream_.close();
+                }
+            }
+            {
+                auto loggerKey = id_.engineId.value();
+                std::scoped_lock mapLock(mapMutex_);
+                engineLoggers_.erase(loggerKey);
+            }
+            break;
+            
+        default:
+            return;
+    }
+ 
+}
+
+void EngineLogger::clearEngineLoggers() {
+    // This is called only if the logging strategy changes. So no impact on engineLogBuffers_.
+    std::scoped_lock lock(mapMutex_);
+    engineLoggers_.clear();
+}
+
+void EngineLogger::withEngineLogBuffer(const std::string& engineId, 
+                                   const std::function<void(const RingBuffer&)>& callback) {
+    std::scoped_lock lock(engineLogBufferMutex_);
+    auto it = engineLogBuffers_.find(engineId);
+    if (it != engineLogBuffers_.end()) {
+        callback(it->second);
+    }
 }
 
 } // namespace QaplaTester

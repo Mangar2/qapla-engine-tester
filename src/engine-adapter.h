@@ -46,10 +46,8 @@ using OptionValues = std::unordered_map<std::string, std::string>;
   */
 class EngineAdapter {
 public:
-    EngineAdapter(const std::filesystem::path& enginePath,
-        const std::optional<std::filesystem::path>& workingDirectory,
-        const std::string& identifier);
-    virtual ~EngineAdapter() = default;
+    explicit EngineAdapter(const EngineStartupParams& params);
+    virtual ~EngineAdapter();
 
     /**
      * @brief Starts the engine protokoll.
@@ -105,6 +103,11 @@ public:
      * @brief Immediately requests the engine to produce a move, e.g. in force mode.
      */
     virtual void moveNow() = 0;
+
+    /**
+     * @brief Stops the engine's current calculation.
+     */
+    virtual void stop() = 0;
 
     /**
      * @brief Enables or disables ponder mode.

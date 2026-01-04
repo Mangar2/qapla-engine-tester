@@ -26,51 +26,57 @@
 #include "pair-tournament.h"
 #include "input-handler.h"
 #include "ini-file.h"
+#include "sprt-calculation.h"
 
 #include <tuple>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <array>
 
 namespace QaplaTester {
+
+/**
+ * @brief Results of engine matches for SPRT testing.
+ * Contains trinomial and pentanomial statistics.
+ */
+struct SprtEnginesResult {
+    int winsA = 0;       ///< Wins by engine A
+    int draws = 0;       ///< Draw count
+    int winsB = 0;       ///< Wins by engine B
+    int pentaWW = 0;     ///< Both games won by engineA
+    int pentaWD = 0;     ///< One win, one draw for engineA
+    int pentaWL = 0;     ///< One win for engineA, one loss
+    int pentaDD = 0;     ///< Both games drawn
+    int pentaLD = 0;     ///< One loss, one draw for engineA
+    int pentaLL = 0;     ///< Both games lost by engineA
+
+    void clear() {
+        winsA = draws = winsB = 0;
+        pentaWW = pentaWD = pentaWL = pentaDD = pentaLD = pentaLL = 0;
+    }
+};
 
 /**
  * @brief Configuration parameters for a SPRT test run.
  */
 struct SprtConfig {
-    int eloUpper;
-    int eloLower;
+    float eloUpper;
+    float eloLower;
     double alpha;
     double beta;
     uint32_t maxGames;
+    std::string model = "normalized";  ///> Model for SPRT: "bayesian", "logistic", "normalized"
+    bool pentanomial = false;           ///> Use pentanomial statistics (not available with bayesian)
     Openings openings;
-};
-
-/**
- * @brief Result of a SPRT computation containing all values for display.
- */
-struct SprtResult {
-    std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
-    std::string info;              // Human-readable decision info
-    double llr;                    // Log-Likelihood Ratio
-    double lowerBound;             // Lower decision boundary
-    double upperBound;             // Upper decision boundary
-    double drawElo;                // Computed drawElo value
-    int winsA;                     // Wins for engine A
-    int draws;                     // Number of draws
-    int winsB;                      // Wins for engine B
-    std::string engineA;           // Name of engine A
-    std::string engineB;           // Name of engine B
-    int eloLower;                  // Lower elo bound from config
-    int eloUpper;                  // Upper elo bound from config
 };
 
 /**
  * @brief Result row from a single Monte Carlo simulation run.
  */
 struct MonteCarloResultRow {
-    int eloDifference;          // Simulated elo difference
+    float eloDifference;        // Simulated elo difference
     double noDecisionPercent;   // Percentage of runs with no decision
     double h0AcceptedPercent;   // Percentage of runs where H0 was accepted
     double h1AcceptedPercent;   // Percentage of runs where H1 was accepted
@@ -85,6 +91,8 @@ struct MonteCarloResult {
     SprtConfig config;          // Configuration used for the test
 };
 
+using SprtResultsPerTournament = std::vector<SprtResult>;
+using SprtResultsAllTournaments = std::vector<SprtResultsPerTournament>;
 
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
@@ -96,14 +104,17 @@ public:
     ~SprtManager() override;
 
     /**
-     * @brief Initializes and starts the SPRT testing procedure between two engines.
+     * @brief Initializes and starts the SPRT testing procedure between engines.
      *
-	 * @param engine0 Configuration for the first engine.
-     * @param engine1 Configuration for the second engine.
+     * @param engines Vector of engine configurations. Must contain at least 2 engines.
+     *                If exactly one engine does NOT have gauntlet flag set, it becomes
+     *                the comparison engine (engine1), and the first gauntlet engine becomes
+     *                the engine under test (engine0). Otherwise, uses indices [0] and [1].
      * @param config All configuration parameters required for the SPRT test.
+     * 
+     * @note Future: Will support multiple gauntlet engines for parallel SPRT testing.
      */
-    void createTournament(const EngineConfig& engine0, const EngineConfig& engine1,
-        const SprtConfig& config);
+    void createTournament(const std::vector<EngineConfig>& engines, const SprtConfig& config);
 
     /**
      * @brief Schedules the tournament and registers all pairings as task providers.
@@ -161,14 +172,6 @@ public:
     void withMonteCarloResult(const std::function<void(const MonteCarloResult&)>& callback);
 
     /**
-	 * @brief Returns the current decision of the SPRT test.
-	 * @return std::optional<bool> containing true if H1 accepted, false if H0 accepted, or std::nullopt if inconclusive.
-	 */
-	std::optional<bool> getDecision() const {
-		return decision_;
-	}
-
-    /**
 	 * @brief Saves the current SPRT test state to a stream.
 	 * @param filename The file to save the state to.
      */
@@ -185,12 +188,6 @@ public:
      * @param section The section containing tournament results to load.
      */
     void loadFromSection(const QaplaHelpers::IniFile::Section& section);
-
-    /**
-     * @brief Loads the state from a stream - do nothing, if the file cannot be loaded.
-	 * @param filename The file to load the state from.
-     */
-    void load(const QaplaHelpers::IniFile::Section& section);
 
     /**
      * @brief Returns the result of the tournament as a TournamentResult object.
@@ -213,14 +210,51 @@ public:
     }
 
     /**
-     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
-     *
-     * Applies Jeffreys' prior, estimates drawElo, and compares likelihoods under H0 and H1.
-     * Returns SprtResult containing decision, llr, bounds and all relevant values.
+     * @brief Checks if the tournament has any game results.
+     * @return true if at least one game has been played, false otherwise.
      */
-    SprtResult computeSprt() const;
+    bool hasResults() const {
+        return tournament_->getResult().total() > 0;
+    }
 
+    /**
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
+     * 
+     * @param model Optional model override ("bayesian", "logistic", "normalized").
+     * @param usePentanomial Optional flag to override pentanomial statistics usage.
+     *
+     * Uses the configured model (normalized, logistic, or bayesian) and either trinomial
+     * or pentanomial statistics depending on configuration. Returns SprtResult containing
+     * decision, LLR, bounds and all relevant values.
+     */
+    SprtResult computeSprt(std::optional<std::string> model = std::nullopt, 
+        std::optional<bool> usePentanomial = std::nullopt) const;
 
+    /**
+     * @brief Checks if the SPRT test has finished.
+     * @details The test is considered finished if a decision has been made (H0 or H1 accepted)
+     *          or if the maximum number of games has been reached without a decision.
+     * @return true if the test is finished, false otherwise.
+     */
+    bool isFinished() const {
+        return computeSprt().isFinished();
+    }
+
+    /**
+     * @brief Checks if a decision was made and stops tournament if all results have decisions.
+     * @details Called after each game to check if tournament should be finished.
+     */
+    void finishTournament();
+
+    /**
+     * @brief Returns the cached SPRT results for all tournaments.
+     * @details Returns a vector of SprtResult vectors, where each inner vector contains
+     *          the 5 variants (3 trinomial + 2 pentanomial) for one tournament round.
+     * @return Const reference to the cached SPRT results.
+     */
+    const SprtResultsAllTournaments& getSprtResults() const {
+        return sprtResults_;
+    }
 
 private:
     std::unique_ptr<PairTournament> tournament_ = std::make_unique<PairTournament>();
@@ -230,26 +264,32 @@ private:
     PairTournamentConfig tournamentConfig_;
 
     /**
-     * @brief Computes a human-readable SPRT info string.
-     * @param result The SPRT result to print.
-     * @return A formatted string containing the SPRT decision or bounds.
+     * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
+     *
+     * Internal version with SprtEnginesResult for Monte Carlo simulations.
+     * Uses the configured model and pentanomial settings from config.
      */
-    static std::string computeSprtInfo(const SprtResult& result);
+    SprtResult computeSprt(
+        const SprtEnginesResult& result, const std::string& engineA, const std::string& engineB) const;
 
     /**
-     * @brief Evaluates the current SPRT test state and logs result if decision boundary is reached.
-     * @return true if the test should be stopped (H0 or H1 accepted), false otherwise.
+     * @brief Simulates a single pair of games (white/black swap) for Monte Carlo testing.
+     * @param elo ELO difference for the simulation
+     * @param drawRate Base draw rate
+     * @param result Reference to SprtEnginesResult to update with game results
      */
-    
-     /**
-      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT) using BayesElo model.
-      *
-      * Internal version with explicit parameters.
-      */
-    SprtResult computeSprt(
-        int winsA, int draws, int winsB, const std::string& engineA, const std::string& engineB) const;
+    static void simulateGamePair(float elo, float drawRate, SprtEnginesResult& result);
 
-    void runMonteCarloSingleTest(int simulationsPerElo, int elo, double drawRate, 
+    /**
+     * @brief Runs a single Monte Carlo simulation test for a given ELO difference.
+     * @param simulationsPerElo Number of simulations to run for this ELO difference.
+     * @param elo ELO difference for the simulation.
+     * @param drawRate Base draw rate.
+     * @param noDecisions Reference to count of no-decision outcomes.
+     * @param numH0 Reference to count of H0 accepted outcomes.
+     * @param numH1 Reference to count of H1 accepted outcomes.
+     */
+    void runMonteCarloSingleTest(int simulationsPerElo, float elo, float drawRate, 
         int64_t &noDecisions, int64_t &numH0, int64_t &numH1, int64_t &totalGames);
 
     /**
@@ -259,10 +299,7 @@ private:
      */
     void runMonteCarloTestInternal(const SprtConfig& config);
 
-    bool rememberStop_ = false;
-
     SprtConfig config_;
-	std::optional<bool> decision_ = std::nullopt;
 
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
@@ -273,6 +310,10 @@ private:
     std::atomic<bool> monteCarloTestRunning_{false};
     std::atomic<bool> monteCarloShouldStop_{false};
     MonteCarloResult monteCarloResult_;
+
+    // SPRT results cache (one entry per tournament/round)
+    SprtResultsAllTournaments sprtResults_;
+    mutable std::mutex sprtResultsMutex_;
 
 };
 } // namespace QaplaTester

@@ -25,6 +25,7 @@
 #include "input-handler.h"
 #include "ini-file.h"
 #include "game-manager-pool.h"
+#include "change-tracker.h"
 
 #include <vector>
 #include <memory>
@@ -119,14 +120,6 @@ public:
         return oss.str();
     }
 
-    std::pair<uint64_t, std::optional<TournamentResult>> pollResult(uint64_t updateCnt) {
-        if (updateCnt != updateCnt_) {
-			std::scoped_lock lock(stateMutex_);
-            return { updateCnt_, result_ };
-		}
-        return { updateCnt_, std::nullopt };
-	}
-
     /**
 	 * @brief Return a pointer to the PairTournament at the given index.
 	 * @result std::optional containing the PairTournament pointer if index is valid, otherwise std::nullopt.
@@ -145,15 +138,19 @@ public:
         return pairings_.size();
     }
 
-    /**
-     * @brief Returns the current update count of the tournament.
-     * 
-     * This count is incremented each time a game result is recorded.
-     * @return Current update count.
-     */
-    uint64_t getUpdateCount() const {
-        return updateCnt_;
+    const ChangeTracker& getChangeTracker() const {
+        return changeTracker_;
 	}
+
+    /**
+     * @brief Sets verbose mode for all pair tournaments.
+     * @param verbose True to enable console output, false to disable.
+     */
+    void setVerbose(bool verbose) {
+        for (auto& pairing : pairings_) {
+            pairing->setVerbose(verbose);
+        }
+    }
 
     /**
      * @brief Checks if the tournament has any tasks scheduled (i.e., has started).
@@ -176,7 +173,7 @@ public:
 
 private:
     TournamentResult result_;
-    uint64_t updateCnt_ = 1;
+    ChangeTracker changeTracker_;
 
     /**
     * @brief Called after a game finishes in any PairTournament.

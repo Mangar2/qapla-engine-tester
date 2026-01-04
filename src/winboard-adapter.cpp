@@ -32,10 +32,8 @@
 
 namespace QaplaTester {
 
-WinboardAdapter::WinboardAdapter(const std::filesystem::path& enginePath,
-    const std::optional<std::filesystem::path>& workingDirectory,
-    const std::string& identifier)
-	: EngineAdapter(enginePath, workingDirectory, identifier)
+WinboardAdapter::WinboardAdapter(const EngineStartupParams& params)
+	: EngineAdapter(params)
 {
     suppressInfoLines_ = true;
 }
@@ -66,10 +64,10 @@ void WinboardAdapter::terminateEngine() {
         process_.terminate();
     }
     catch (const std::exception& ex) {
-		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): " + std::string(ex.what()), TraceLevel::error);
+		Logger::reportLogger().log("Failed to terminate engine (" + identifier_ + "): " + std::string(ex.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::testLogger().log("Failed to terminate engine (" + identifier_ + "): ", TraceLevel::error);
+		Logger::reportLogger().log("Failed to terminate engine (" + identifier_ + "): ", TraceLevel::error);
     }
 
 }
@@ -181,6 +179,21 @@ void WinboardAdapter::moveNow() {
     setForceMode();
 }
 
+void WinboardAdapter::stop() {
+    if (forceMode_) {
+        // If we are in force mode, the engine is not doing anything and cannot move now.
+        return;
+    }
+    if (isAnalyzeMode_) {
+        writeCommand("exit");
+        isAnalyzeMode_ = false;
+    } else {
+        writeCommand("?");
+    }
+    setForceMode();
+    writeCommand("easy");
+}
+
 EngineEvent::Type WinboardAdapter::waitAfterMoveNowHandshake() {
     return isAnalyzeMode_ ? EngineEvent::Type::None : EngineEvent::Type::BestMove;
 }
@@ -226,6 +239,7 @@ uint64_t WinboardAdapter::go(bool isInfinite) {
         isAnalyzeMode_ = true;
         return writeCommand("analyze");
     }
+    writeCommand(ponderMode_ ? "hard" : "easy");
     return writeCommand("go");
 }
 
@@ -308,7 +322,6 @@ void WinboardAdapter::sendPosition(const GameStruct& game) {
     writeCommand("new");
     // The new command leaves force mode and sets white to move
     forceMode_ = false;
-    writeCommand(ponderMode_ ? "hard" : "easy");
     setForceMode();
 
     if (!game.fen.empty()) {
@@ -330,6 +343,15 @@ void WinboardAdapter::setTestOption(
 	throw AppError::make("WinboardAdapter does not support setTestOption");
 }
 
+std::string mapOptionName(const std::string& name) {
+    if (name == "Hash") {
+        return "memory";
+    } else if (name == "Threads") {
+        return "smp";
+    }
+    return name;
+}
+
 std::string WinboardAdapter::computeStandardOptions(const EngineOption& supportedOption, const std::string& value) {
     // We use uci compatible option names for memory and smp
     std::string command;
@@ -349,33 +371,33 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
         try {
 			auto opt = getSupportedOption(name);
             if (!opt) {
-                Logger::testLogger().log(std::format("Unsupported option: {}", name), TraceLevel::info);
+                Logger::reportLogger().log(std::format("{} does not support option: {}", engineName_, mapOptionName(name)), TraceLevel::info);
                 continue;
             }
 			const auto& supportedOption = *opt;
             // check type and  value constraints
             if (supportedOption.type == EngineOption::Type::String) {
                 if (value.size() > 9999) {
-                    Logger::testLogger().log(std::format("Option value for {} is too long", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Option value for {} is too long", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Spin) {
                 int intValue = std::stoi(value);
                 if (intValue < supportedOption.min || intValue > supportedOption.max) {
-                    Logger::testLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Option value for {} is out of bounds", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Check) {
                 if (value != "true" && value != "false") {
-                    Logger::testLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Invalid boolean value for option {}", name), TraceLevel::info);
                     continue;
                 }
             }
             else if (supportedOption.type == EngineOption::Type::Combo) {
                 if (std::ranges::find(supportedOption.vars, value) == supportedOption.vars.end()) {
-                    Logger::testLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
+                    Logger::reportLogger().log(std::format("Invalid value for combo option {}", name), TraceLevel::info);
                     continue;
                 }
             }
@@ -383,7 +405,7 @@ void WinboardAdapter::setOptionValues(const OptionValues& optionValues) {
             writeCommand(command);
         }
         catch (...) {
-            Logger::testLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
+            Logger::reportLogger().log(std::format("Invalid value {} for option {}", value, name), TraceLevel::info);
         }
 
 	}
@@ -642,17 +664,22 @@ EngineEvent WinboardAdapter::parseFeatureLine(std::istringstream& iss, uint64_t 
             continue;
         }
 
-        auto it = featureMap_.find(key);
-        if (it != featureMap_.end() && key != "done") {
+        featureMap_[key] = value;
+
+        // We need an extra map to track duplicate features because featureMap_ is already initialized with all available features
+        auto it = providedFeatures_.find(key);
+        if (it != providedFeatures_.end() && key != "done") {
             event.errors.push_back({ .name = "feature-report", .detail = "Feature '" + key + "' specified more than once" });
         }
-        featureMap_[key] = value;
+        providedFeatures_.insert(key);
+
     }
     finalizeFeatures();
     return event;
 }
 
 void WinboardAdapter::finalizeFeatures() {
+    static const std::unordered_set<std::string> providedFeatures = {};
     static const std::unordered_map<std::string, bool> booleanFeatureDefaults = {
         { "ping", false },
         { "setboard", false },

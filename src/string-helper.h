@@ -27,6 +27,8 @@
 #include <charconv>
 #include <optional>
 #include <vector>
+#include <format>
+#include <chrono>
 
 namespace QaplaHelpers {
 
@@ -84,17 +86,29 @@ namespace QaplaHelpers {
     }
 
     /**
-     * @brief Converts a string view to an optional integer.
+     * @brief Converts a string view to an optional signed integer of any size.
+     * @tparam T The signed integer type (int8_t, int16_t, int32_t, int64_t, int).
      * @param s The string view to convert.
-     * @return Optional integer if conversion succeeds, nullopt otherwise.
+     * @return Optional T if conversion succeeds, nullopt otherwise.
      */
-    auto to_int = [](std::string_view s) -> std::optional<int> {
-        int value;
+    template<typename T>
+    inline std::optional<T> to_signed_int(std::string_view s) {
+        static_assert(std::is_integral_v<T> && std::is_signed_v<T>, "T must be a signed integral type");
+        T value;
         auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value);
         if (ec == std::errc() && ptr == s.data() + s.size()) {
             return value;
         }
         return std::nullopt;
+    }
+
+    /**
+     * @brief Converts a string view to an optional integer.
+     * @param s The string view to convert.
+     * @return Optional integer if conversion succeeds, nullopt otherwise.
+     */
+    auto to_int = [](std::string_view s) -> std::optional<int> {
+        return to_signed_int<int>(s);
     };
 
     /**
@@ -117,22 +131,34 @@ namespace QaplaHelpers {
     }
 
     /**
-     * @brief Converts a string view to an optional uint32_t.
+     * @brief Converts a string view to an optional unsigned integer of any size.
+     * @tparam T The unsigned integer type (uint8_t, uint16_t, uint32_t, uint64_t, unsigned int).
      * @param s The string view to convert.
-     * @return Optional uint32_t if conversion succeeds, nullopt otherwise.
+     * @return Optional T if conversion succeeds, nullopt otherwise.
      */
-    auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
+    template<typename T>
+    inline std::optional<T> to_unsigned_int(std::string_view s) {
+        static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "T must be an unsigned integral type");
         auto trimmed = trim(std::string(s));
         if (trimmed.empty() || trimmed[0] == '-') {
             return std::nullopt;
         }
 
-        unsigned int value;
+        T value;
         auto [ptr, ec] = std::from_chars(trimmed.data(), trimmed.data() + trimmed.size(), value);
         if (ec == std::errc() && ptr == trimmed.data() + trimmed.size()) {
             return value;
         }
         return std::nullopt;
+    }
+
+    /**
+     * @brief Converts a string view to an optional uint32_t.
+     * @param s The string view to convert.
+     * @return Optional uint32_t if conversion succeeds, nullopt otherwise.
+     */
+    auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
+        return to_unsigned_int<uint32_t>(s);
     };
 
     /**
@@ -143,6 +169,20 @@ namespace QaplaHelpers {
     auto to_double = [](std::string_view s) -> std::optional<double> {
         try {
             double value = std::stod(std::string(s));
+            return value;
+        } catch (...) {
+            return std::nullopt;
+        }
+    };
+
+    /**
+     * @brief Converts a string view to an optional float.
+     * @param s The string view to convert.
+     * @return Optional float if conversion succeeds, nullopt otherwise.
+     */
+    auto to_float = [](std::string_view s) -> std::optional<float> {
+        try {
+            float value = std::stof(std::string(s));
             return value;
         } catch (...) {
             return std::nullopt;
@@ -197,6 +237,27 @@ namespace QaplaHelpers {
             return std::nullopt;
         }
         return std::make_pair(key, value);
+    }
+
+    /**
+     * @brief Formats a time_point into a time string (HH:MM:SS.mmm).
+     * @param timestamp The time_point to format.
+     * @return Formatted time string.
+     */
+    inline std::string formatTimeOfDay(const std::chrono::system_clock::time_point& timestamp) {
+        auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            timestamp.time_since_epoch()) % 1000;
+        
+        std::tm tm{};
+    #ifdef _WIN32
+        localtime_s(&tm, &time_t);
+    #else
+        localtime_r(&time_t, &tm);
+    #endif
+        
+        return std::format("{:02d}:{:02d}:{:02d}.{:03d}", 
+            tm.tm_hour, tm.tm_min, tm.tm_sec, static_cast<int>(ms.count()));
     }
 
     /**
@@ -350,6 +411,16 @@ namespace QaplaHelpers {
         
         result.push_back(current);
         return result;
+    }
+
+    /**
+     * @brief Converts ASCII string to wide string.
+     * @param str The input ASCII string.
+     * @return Wide string.
+     * @note Only works correctly for ASCII characters (0-127). UTF-8 encoded strings will be corrupted.
+     */
+    inline std::wstring ascii_to_wstring(const std::string& str) {
+        return std::wstring(str.begin(), str.end());
     }
 
 } // namespace QaplaHelpers

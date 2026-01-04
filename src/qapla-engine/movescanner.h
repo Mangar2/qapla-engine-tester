@@ -165,9 +165,11 @@ namespace QaplaInterface {
                 departureRank = getRank(move, curIndex);
                 departureFile = getFile(move, curIndex);
                 piece = getPiece(move, curIndex);
-                legal = (curIndex == -1);
+                // A move is legal only if all characters were consumed AND a valid destination was found
+                legal = (curIndex == -1) && (destinationFile != NO_POS) && (destinationRank != NO_POS);
             }
 
+            // Add piece 'P' only for SAN moves. LAN moves do not have piece informations.
             if (piece == 0 && (departureFile == NO_POS || departureRank == NO_POS)) {
                 piece = 'P';
             }

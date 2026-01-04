@@ -93,7 +93,7 @@ bool GameRecord::updateMove(const MoveRecord &move)
 
 void GameRecord::setGameEnd(GameEndCause cause, GameResult result)
 {
-    changeTracker_.trackModification();
+    changeTracker_.trackUpdate();
     gameEndCause_ = cause;
     gameResult_ = result;
 
@@ -243,6 +243,22 @@ GameRecord GameRecord::createMinimalCopy() const
     {
         record.moves_.emplace_back(move.createMinimalCopy());
     }
+
+    return record;
+}
+
+GameRecord GameRecord::copyAllButPosition() const
+{
+    GameRecord record;
+    record.tags_ = tags_;
+    record.whiteTimeControl_ = whiteTimeControl_;
+    record.blackTimeControl_ = blackTimeControl_;
+    record.whiteEngineName_ = whiteEngineName_;
+    record.blackEngineName_ = blackEngineName_;
+    record.totalGameNo_ = totalGameNo_;
+    record.gameInRound_ = gameInRound_;
+    record.opening_ = opening_;
+    record.round_ = round_;
 
     return record;
 }

@@ -42,6 +42,8 @@ struct CauseStats
     int win = 0;  ///< Number of wins by this cause (from engineA's perspective)
     int loss = 0; ///< Number of losses by this cause (from engineA's perspective)
     int draw = 0; ///< Number of draws by this cause
+
+    bool operator==(const CauseStats& other) const = default;
 };
 
 using CauseStatsArray = std::array<CauseStats, static_cast<size_t>(GameEndCause::Count)>;
@@ -60,11 +62,29 @@ public:
     {
     }
     EngineDuelResult() = default;
+    bool operator==(const EngineDuelResult& other) const = default;
 
     int winsEngineA = 0;        ///< Wins by engineA
     int winsEngineB = 0;        ///< Wins by engineB
     int draws = 0;              ///< Draw count
     CauseStatsArray causeStats; ///< Stats per end cause
+
+    // Pentanomial statistics for paired games (both games from engineA's perspective)
+    int pentaWW = 0;  ///< Both games won by engineA
+    int pentaWD = 0;  ///< One win, one draw for engineA
+    int pentaWL = 0;  ///< One win for engineA, one loss
+    int pentaDD = 0;  ///< Both games drawn
+    int pentaLD = 0;  ///< One loss, one draw for engineA
+    int pentaLL = 0;  ///< Both games lost by engineA
+
+    /**
+     * @brief Adds pentanomial statistics from a pair of game results.
+     * @param result1 Result of the first game in the pair
+     * @param result2 Result of the second game in the pair
+     * @param switchColors Whether engineA switches colors between games
+     * @return True if statistics were added, false if games not finished
+     */
+    bool addPentanomialResult(GameResult result1, GameResult result2, bool switchColors);
 
     [[nodiscard]] const std::string &getEngineA() const
     {
@@ -83,6 +103,12 @@ public:
         winsEngineA = 0;
         winsEngineB = 0;
         draws = 0;
+        pentaWW = 0;
+        pentaWD = 0;
+        pentaWL = 0;
+        pentaDD = 0;
+        pentaLD = 0;
+        pentaLL = 0;
         for (auto &cs : causeStats) {
             cs = {};
         }
@@ -178,6 +204,7 @@ struct EngineResult
 {
     std::vector<EngineDuelResult> duels;
     std::string engineName;
+    bool operator==(const EngineResult& other) const = default;
 
     /**
      * @brief Returns a single aggregated result across all duels.
@@ -205,7 +232,37 @@ public:
         double elo;             ///< Computed Elo rating
         double total;           ///< Total number of games played
         int error;              ///< Error margin for the Elo rating
+
+        /**
+         * @brief Calculates the total points scored.
+         * @return Points as score * total games
+         */
+        [[nodiscard]] double getPoints() const {
+            return score * total;
+        }
+
+        /**
+         * @brief Calculates the percentage score.
+         * @return Score as percentage (0-100)
+         */
+        [[nodiscard]] double getPercentage() const {
+            return score * 100.0;
+        }
+
+        /**
+         * @brief Formats the score as "points/total" string.
+         * @return Formatted score string like "5.5/10"
+         */
+        [[nodiscard]] std::string formatScore() const {
+            return std::format("{:.1f}/{}", score * total, static_cast<int>(total));
+        }
     };
+
+    const std::vector<EngineDuelResult>& results() const
+    {
+        return results_;
+    }
+
     /**
      * @brief pushes a single EngineDuelResult to the internal collection.
      *        Can include matches between any engine pair.
@@ -233,6 +290,10 @@ public:
      */
     [[nodiscard]] std::optional<EngineResult> forEngine(const std::string &name) const;
 
+    /**
+     * @brief Returns a summary of all engines with their scores and statistics.
+     * @return A vector of string vectors representing the summary table.
+     */
     [[nodiscard]] std::vector<std::vector<std::string>> getSummary() const;
     void printSummary(std::ostream &os) const;
     

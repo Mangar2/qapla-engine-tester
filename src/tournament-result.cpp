@@ -52,12 +52,50 @@ void EngineDuelResult::addResult(const GameRecord &record)
     }
 }
 
+bool EngineDuelResult::addPentanomialResult(GameResult result1, GameResult result2, bool switchColors) {
+    if (result1 == GameResult::Unterminated || result2 == GameResult::Unterminated) {
+        return false;
+    }
+
+    bool aWon1 = (result1 == GameResult::WhiteWins);
+    bool draw1 = (result1 == GameResult::Draw);
+    bool aLost1 = (result1 == GameResult::BlackWins);
+
+    bool aWon2 = (result2 == (switchColors ? GameResult::BlackWins : GameResult::WhiteWins));
+    bool draw2 = (result2 == GameResult::Draw);
+    bool aLost2 = (result2 == (switchColors ? GameResult::WhiteWins : GameResult::BlackWins));
+
+    if (aWon1 && aWon2) {
+        ++pentaWW;
+    } else if ((aWon1 && draw2) || (draw1 && aWon2)) {
+        ++pentaWD;
+    } else if ((aWon1 && aLost2) || (aLost1 && aWon2)) {
+        ++pentaWL;
+    } else if (draw1 && draw2) {
+        ++pentaDD;
+    } else if ((aLost1 && draw2) || (draw1 && aLost2)) {
+        ++pentaLD;
+    } else if (aLost1 && aLost2) {
+        ++pentaLL;
+    }
+
+    return true;
+}
+
 EngineDuelResult EngineDuelResult::switchedSides() const
 {
     EngineDuelResult result(engineB, engineA);
     result.winsEngineA = winsEngineB;
     result.winsEngineB = winsEngineA;
     result.draws = draws;
+
+    // Swap pentanomial stats (WW becomes LL, etc.)
+    result.pentaWW = pentaLL;
+    result.pentaWD = pentaLD;
+    result.pentaWL = pentaWL;  // WL is symmetric
+    result.pentaDD = pentaDD;  // DD is symmetric
+    result.pentaLD = pentaWD;
+    result.pentaLL = pentaWW;
 
     for (size_t i = 0; i < static_cast<size_t>(GameEndCause::Count); ++i)
     {
@@ -82,6 +120,12 @@ EngineDuelResult &EngineDuelResult::operator+=(const EngineDuelResult &other)
     {
         winsEngineA += other.winsEngineA;
         winsEngineB += other.winsEngineB;
+        pentaWW += other.pentaWW;
+        pentaWD += other.pentaWD;
+        pentaWL += other.pentaWL;
+        pentaDD += other.pentaDD;
+        pentaLD += other.pentaLD;
+        pentaLL += other.pentaLL;
         for (size_t i = 0; i < causeStats.size(); ++i)
         {
             causeStats[i].win += other.causeStats[i].win;
@@ -93,6 +137,12 @@ EngineDuelResult &EngineDuelResult::operator+=(const EngineDuelResult &other)
     {
         winsEngineA += other.winsEngineB;
         winsEngineB += other.winsEngineA;
+        pentaWW += other.pentaLL;
+        pentaWD += other.pentaLD;
+        pentaWL += other.pentaWL;
+        pentaDD += other.pentaDD;
+        pentaLD += other.pentaWD;
+        pentaLL += other.pentaWW;
         for (size_t i = 0; i < causeStats.size(); ++i)
         {
             causeStats[i].win += other.causeStats[i].loss;

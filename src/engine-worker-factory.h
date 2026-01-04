@@ -23,6 +23,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <atomic>
 
 #include "engine-worker.h"
 #include "engine-config-manager.h"
@@ -115,6 +116,25 @@ public:
 	 */
 	static void assignUniqueDisplayNames();
 
+	/**
+	 * @brief Sets the maximum number of engines that can be started in parallel.
+	 * @param maxParallel The maximum number of parallel engine starts (default: 4).
+	 */
+	static void setMaxParallelStarts(int maxParallel);
+
+	/**
+	 * @brief Gets the maximum number of engines that can be started in parallel.
+	 * @return The maximum number of parallel engine starts.
+	 */
+	static int getMaxParallelStarts();
+
+	/**
+	 * @brief Gets the current number of engines being started.
+	 * Useful for debugging and UI progress display.
+	 * @return The current number of active engine starts.
+	 */
+	static int getCurrentActiveStarts();
+
 private:
 	/**
 	 * @brief Creates an EngineWorker instance based on the provided engine configuration.
@@ -137,7 +157,7 @@ private:
 	 */
 	static void waitUntilAllEnginesStarted(std::vector<std::future<void>>& futures, const std::vector<EngineConfig>& configs);
 
-	static inline uint32_t identifier_ = 0; ///> Unique identifier for engine workers
+	static inline std::atomic<uint32_t> identifier_{0}; ///> Unique identifier for engine workers (thread-safe)
 	static inline EngineConfigManager configManager_; ///> Engine configuration manager
 	static inline ActiveEngines activeEngines_; ///> List of currently active engines
 

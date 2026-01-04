@@ -25,6 +25,7 @@
 #include <condition_variable>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <iostream>
 #include <map>
 
@@ -43,13 +44,9 @@ class WinboardAdapter : public EngineAdapter {
 public:
     /**
      * @brief Constructs a Winboard adapter for the given engine executable.
-     * @param enginePath Path to the engine executable.
-     * @param workingDirectory Optional working directory for the engine.
-     * @param identifier Unique identifier for this engine instance.
+     * @param params Engine startup parameters.
      */
-    explicit WinboardAdapter(const std::filesystem::path& enginePath,
-        const std::optional<std::filesystem::path>& workingDirectory,
-        const std::string& identifier);
+    explicit WinboardAdapter(const EngineStartupParams& params);
     /**
      * @brief Destructor for WinboardAdapter.
      */
@@ -135,6 +132,11 @@ public:
      * @brief Sends a move now command to the engine.
      */
     void moveNow() override;
+
+    /**
+     * @brief Stops the engine's current calculation.
+     */
+    void stop() override;
 
     /**
      * @brief Enables or disables pondering for the engine.
@@ -360,6 +362,7 @@ private:
     static inline int numUnknownCommandError_ = 0;
     bool inFeatureSection_ = false;
     std::map<std::string, std::string> featureMap_;
+    std::unordered_set<std::string> providedFeatures_;
 	uint64_t pingCounter_ = 0;
     bool forceMode_ = false;
     bool isAnalyzeMode_ = false;

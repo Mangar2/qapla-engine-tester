@@ -33,11 +33,13 @@ public:
     {}
 
     void trackModification() {
+        updateCntSinceLastModification = 0;
         modificationCnt_++;
         updateCnt_++;
     }
 
     void trackUpdate() {
+        updateCntSinceLastModification++;
         updateCnt_++;
     }
 
@@ -81,11 +83,16 @@ public:
         updateCnt_ = 0;
     }
 
+    int64_t getUpdateCountSinceLastModification() const {
+        return updateCntSinceLastModification;
+    }
+
 private:
     static inline int64_t nextId_ = 1;
     int64_t id_ = nextId_++;
     int64_t modificationCnt_ = 1;
     int64_t updateCnt_ = 1;
+    int64_t updateCntSinceLastModification = 0;
 };
 
 } // namespace QaplaTester

@@ -75,7 +75,7 @@ public:
 		if (!engine_) {
             return;
         }
-		engine_->stop();
+		engine_->stopCompute();
         computeState_ = ComputeState::Idle;
 	}
 
@@ -337,12 +337,9 @@ public:
     /**
 	 * @brief Sets the game state from a GameRecord.
 	 * @param startPosition The GameRecord to set the game state from.
+     * @param engineIsWhite True if the engine plays as white, false for black.
      */
-    void setStartPosition(const GameRecord& startPosition) {
-        std::scoped_lock lock(stateMutex_);
-        gameState_.setFromGameRecord(startPosition, startPosition.nextMoveIndex());
-        ponderState_.setFromGameRecord(startPosition, startPosition.nextMoveIndex());
-    }
+    void setStartPosition(const GameRecord& startPosition, bool engineIsWhite);
 
     /**
      * @brief Sets the game state to a new position.

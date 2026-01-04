@@ -137,14 +137,11 @@ struct EngineEvent {
         Unknown,
         NoData,
         KeepAlive,
+        StartTask,
+        StopRunning
     };
     static EngineEvent create(Type type, const std::string& eid, uint64_t timestamp, const std::string& rawLine = "") {
-        EngineEvent event;
-        event.type = type;
-        event.engineIdentifier = eid;
-        event.timestampMs = timestamp;
-        event.rawLine = rawLine;
-        return event;
+        return { .type = type, .engineIdentifier = eid, .timestampMs = timestamp, .rawLine = rawLine };
     }
     static EngineEvent createInfo(const std::string& eid, uint64_t timestamp, const std::string& rawLine) {
         auto event = create(Type::Info, eid, timestamp, rawLine);
@@ -178,16 +175,31 @@ struct EngineEvent {
 	}
 	static EngineEvent createBestMove(const std::string& eid, uint64_t timestamp, const std::string& rawLine, 
         const std::string& bestMove, const std::string& ponderMove) {
-		EngineEvent event = create(Type::BestMove, eid, timestamp, rawLine);
-		event.bestMove = bestMove;
-		event.ponderMove = ponderMove;
-		return event;
+        return { 
+            .type = Type::BestMove, 
+            .engineIdentifier = eid, 
+            .timestampMs = timestamp, 
+            .rawLine = rawLine, 
+            .bestMove = bestMove, 
+            .ponderMove = ponderMove 
+        };
 	}
     static EngineEvent createPonderMove(const std::string&eid, uint64_t timestamp, const std::string& rawLine,
         const std::string& ponderMove) {
-        EngineEvent event = create(Type::PonderMove, eid, timestamp, rawLine);
-        event.ponderMove = ponderMove;
-        return event;
+        return { 
+            .type = Type::PonderMove, 
+            .engineIdentifier = eid, 
+            .timestampMs = timestamp, 
+            .rawLine = rawLine, 
+            .bestMove = std::nullopt,
+            .ponderMove = ponderMove 
+        };
+    }
+    static EngineEvent createStartTask() {
+        return { .type = Type::StartTask };
+    }
+    static EngineEvent createStopTask() {
+        return { .type = Type::StopRunning }; 
     }
 
     struct ParseError {
@@ -196,19 +208,19 @@ struct EngineEvent {
         TraceLevel level = TraceLevel::info;
     };
 
-    Type type;
-    uint64_t timestampMs;
+    Type type = Type::None;
+    std::string engineIdentifier{};
+    uint64_t timestampMs = 0;
     bool computing = false; // Indicates if the event is related to the engine computing a move
-    std::string rawLine;
+    std::string rawLine{};
 
-    std::optional<std::string> bestMove;
-    std::optional<std::string> ponderMove;
+    std::optional<std::string> bestMove{};
+    std::optional<std::string> ponderMove{};
 
-    std::optional<SearchInfo> searchInfo;
-    std::vector<ParseError> errors;
-    std::string engineIdentifier;
-	std::optional<std::string> stringInfo;
-    std::optional<GameResult> gameResult;
+    std::optional<SearchInfo> searchInfo{};
+    std::vector<ParseError> errors{};
+	std::optional<std::string> stringInfo{};
+    std::optional<GameResult> gameResult{};
 private:
 
 };

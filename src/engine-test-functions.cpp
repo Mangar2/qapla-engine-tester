@@ -69,7 +69,7 @@ TestResult runTest(
                 checklist->logReport("starts-and-stops-cleanly", isReady, 
                     "  engine did not respond to isReady after startup in time");
                 if (!isReady) {
-                    Logger::testLogger().log("Engine " + engine->getEngineName() + 
+                    Logger::reportLogger().log("Engine " + engine->getEngineName() + 
                         " did not start successfully", TraceLevel::error);
                 }
             }
@@ -83,7 +83,7 @@ TestResult runTest(
         return result;
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during test execution: " + std::string(e.what()), 
+        Logger::reportLogger().log("Exception during test execution: " + std::string(e.what()), 
             TraceLevel::error);
         
         // Engines will be stopped automatically by destructors during stack unwinding
@@ -122,7 +122,7 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
                 "  engine did not respond to isReady after startup in time");
             
             if (!isReady) {
-                Logger::testLogger().log("Engine " + engineConfig.getName() + 
+                Logger::reportLogger().log("Engine " + engineConfig.getName() + 
                     " did not start successfully", TraceLevel::error);
                 return {TestResultEntry("Start/Stop timing", "Engine did not respond to isReady", false)};
             }
@@ -134,7 +134,7 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
             
             checklist->setAuthor(engineAuthor);
             
-            Logger::testLogger().logAligned("Engine startup test:",
+            Logger::reportLogger().logAligned("Engine startup test:",
                 "Name: " + engineName + ", Author: " + engineAuthor);
             
             // Measure shutdown time by letting engineList go out of scope
@@ -145,12 +145,12 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
         std::string timingInfo = "Started in " + std::to_string(startTime) + " ms, shutdown in " +
             std::to_string(stopTime) + " ms, memory usage " + bytesToMB(memoryInBytes) + " MB";
         
-        Logger::testLogger().logAligned("Start/Stop timing:", timingInfo);
+        Logger::reportLogger().logAligned("Start/Stop timing:", timingInfo);
         
         return {TestResultEntry("Start/Stop timing", timingInfo, true)};
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during start/stop test: " + std::string(e.what()), 
+        Logger::reportLogger().log("Exception during start/stop test: " + std::string(e.what()), 
             TraceLevel::error);
         return {TestResultEntry("Start/Stop timing", std::string(e.what()), false)};
     }
@@ -177,7 +177,7 @@ TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint
         std::string timingInfo = "Started in " + std::to_string(startTime) + " ms, shutdown in " +
             std::to_string(stopTime) + " ms";
         
-        Logger::testLogger().logAligned("Parallel start/stop (" + std::to_string(numEngines) + "):", timingInfo);
+        Logger::reportLogger().logAligned("Parallel start/stop (" + std::to_string(numEngines) + "):", timingInfo);
         
         bool success = startTime < 2000 && stopTime < 5000;
         if (!success) {
@@ -189,7 +189,7 @@ TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint
         return {TestResultEntry("Parallel start/stop (" + std::to_string(numEngines) + ")", timingInfo, success)};
     }
     catch (const std::exception& e) {
-        Logger::testLogger().log("Exception during multiple start/stop test: " + std::string(e.what()), 
+        Logger::reportLogger().log("Exception during multiple start/stop test: " + std::string(e.what()), 
             TraceLevel::error);
         return {TestResultEntry("Parallel start/stop (" + std::to_string(numEngines) + ")", std::string(e.what()), false)};
     }
@@ -225,7 +225,7 @@ TestResult runHashTableMemoryTest(const EngineConfig& engineConfig)
             " MB and with 16MB hash " + bytesToMB(memLow) + " MB" +
             (success ? " (shrinked)" : " (did not shrink enough)");
         
-        Logger::testLogger().logAligned("Hash table memory test:", resultMsg);
+        Logger::reportLogger().logAligned("Hash table memory test:", resultMsg);
         checklist->logReport("shrinks-with-hash", success, "  " + resultMsg);
         
         return {TestResultEntry("Hash table memory test", resultMsg, success)};
@@ -258,7 +258,7 @@ TestResult runLowerCaseOptionTest(const EngineConfig& engineConfig)
         std::string resultMsg = std::string("Tried \"setoption name hash value 512\", ") +
             (success ? "lowercase option is accepted" : "lowercase option is not accepted");
         
-        Logger::testLogger().logAligned("Lowercase option test:", resultMsg);
+        Logger::reportLogger().logAligned("Lowercase option test:", resultMsg);
         checklist->logReport("lower-case-option", success, "  " + resultMsg);
         
         return {TestResultEntry("Lowercase option test", resultMsg, success)};
@@ -375,12 +375,12 @@ TestResult runEngineOptionTests(const EngineConfig& engineConfig) // NOLINT(read
                 
                 if (!success) {
                     errors++;
-                    Logger::testLogger().log(std::format("Option test failed: {} - {}", testName, message), 
+                    Logger::reportLogger().log(std::format("Option test failed: {} - {}", testName, message), 
                         TraceLevel::error);
                 }
 
                 if (errors > 5) {
-                    Logger::testLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
+                    Logger::reportLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
                     std::string errorMsg = "Too many errors (" + std::to_string(errors) + 
                         ") after testing option values";
                     return {TestResultEntry("Engine option tests", errorMsg, false)};
@@ -397,11 +397,11 @@ TestResult runEngineOptionTests(const EngineConfig& engineConfig) // NOLINT(read
                 
                 if (!success) {
                     errors++;
-                    Logger::testLogger().log(std::format("Option reset test failed: {} - {}", testName, message), TraceLevel::error);
+                    Logger::reportLogger().log(std::format("Option reset test failed: {} - {}", testName, message), TraceLevel::error);
                 }
 
                 if (errors > 5) {
-                    Logger::testLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
+                    Logger::reportLogger().log("Too many errors occurred, stopping further setoption tests.", TraceLevel::error);
                     std::string errorMsg = "Too many errors (" + std::to_string(errors) + 
                         ") after testing option values";
                     return {TestResultEntry("Engine option tests", errorMsg, false)};
@@ -414,7 +414,7 @@ TestResult runEngineOptionTests(const EngineConfig& engineConfig) // NOLINT(read
             "No issues encountered." : 
             std::to_string(errors) + " failures detected. See log for details.");
         
-        Logger::testLogger().logAligned("Edge case options:", resultMsg);
+        Logger::reportLogger().logAligned("Edge case options:", resultMsg);
         
         return {TestResultEntry("Engine option tests", resultMsg, success)};
     });
@@ -453,14 +453,14 @@ TestResult runAnalyzeTest(const EngineConfig& engineConfig)
             if (!finished) {
                 bool extended = computeTask->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
                 if (!extended) {
-                    Logger::testLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
+                    Logger::reportLogger().logAligned("Testing stop command:", "Timeout after stop command (even after extended wait)");
                     checklist->logReport("reacts-on-stop", false, "Timeout after stop command (even after extended wait)");
                     return {TestResultEntry("Analyze test", "Timeout after stop command", false)};
                 }
             }
         }
         
-        Logger::testLogger().logAligned("Testing stop command:", "Engine correctly handled stop command and sent bestmove");
+        Logger::reportLogger().logAligned("Testing stop command:", "Engine correctly handled stop command and sent bestmove");
         checklist->logReport("reacts-on-stop", true, "");
         
         return {TestResultEntry("Analyze test", "Engine correctly handled stop command and sent bestmove", true)};
@@ -493,13 +493,13 @@ TestResult runImmediateStopTest(const EngineConfig& engineConfig)
         if (!finished) {
             bool extended = computeTask->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
             if (!extended) {
-                Logger::testLogger().logAligned("Testing immediate stop:", "Timeout after immediate stop");
+                Logger::reportLogger().logAligned("Testing immediate stop:", "Timeout after immediate stop");
                 checklist->logReport("correct-after-immediate-stop", false, "Timeout after immediate stop");
                 return {TestResultEntry("Immediate stop test", "Timeout after immediate stop", false)};
             }
         }
         
-        Logger::testLogger().logAligned("Testing immediate stop:", "Engine correctly handled immediate stop and sent bestmove");
+        Logger::reportLogger().logAligned("Testing immediate stop:", "Engine correctly handled immediate stop and sent bestmove");
         checklist->logReport("correct-after-immediate-stop", true, "");
         
         return {TestResultEntry("Immediate stop test", "Engine correctly handled immediate stop and sent bestmove", true)};
@@ -533,20 +533,20 @@ TestResult runInfiniteAnalyzeTest(const EngineConfig& engineConfig)
         computeTask->computeMove();
         bool exited = computeTask->getFinishedFuture().wait_for(NO_BESTMOVE_TIMEOUT) == std::future_status::ready;
         if (exited) {
-            Logger::testLogger().logAligned("Testing infinite mode:", "Engine sent bestmove without receiving 'stop'", TraceLevel::command);
+            Logger::reportLogger().logAligned("Testing infinite mode:", "Engine sent bestmove without receiving 'stop'", TraceLevel::command);
             checklist->logReport("infinite-move-does-not-exit", false, "Engine sent bestmove in infinite mode without receiving 'stop'");
             return {TestResultEntry("Infinite analyze test", "Engine sent bestmove without receiving 'stop'", false)};
         }
         computeTask->moveNow();
         bool stopped = computeTask->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
         if (!stopped) {
-            Logger::testLogger().logAligned("Testing infinite mode:", "Timeout after stop command", TraceLevel::command);
+            Logger::reportLogger().logAligned("Testing infinite mode:", "Timeout after stop command", TraceLevel::command);
             checklist->logReport("infinite-move-does-not-exit", false, "Timeout after stop command in infinite mode");
             return {TestResultEntry("Infinite analyze test", "Timeout after stop command in infinite mode", false)};
         }
         computeTask->getFinishedFuture().wait();
         
-        Logger::testLogger().logAligned("Testing infinite mode:", "Correctly waited for stop and then sent bestmove", TraceLevel::command);
+        Logger::reportLogger().logAligned("Testing infinite mode:", "Correctly waited for stop and then sent bestmove", TraceLevel::command);
         checklist->logReport("infinite-move-does-not-exit", true, "");
         
         return {TestResultEntry("Infinite analyze test", "Correctly waited for stop and then sent bestmove", true)};
@@ -612,7 +612,7 @@ TestResult runGoLimitsTest(const EngineConfig& engineConfig)
             results.emplace_back(testCase.name, result + timeStr, success);
         }
         
-        Logger::testLogger().logAligned("Testing go limits:", 
+        Logger::reportLogger().logAligned("Testing go limits:", 
             errors == 0 ? "All limits work correctly" : std::to_string(errors) + " errors");
         
         return results;
@@ -637,7 +637,7 @@ TestResult runEpFromFenTest(const EngineConfig& engineConfig)
         computeTask->computeMove();
         bool finished = computeTask->getFinishedFuture().wait_for(std::chrono::seconds(2)) == std::future_status::ready;
         
-        Logger::testLogger().logAligned("Testing EP from FEN:", 
+        Logger::reportLogger().logAligned("Testing EP from FEN:", 
             finished ? "Position handled correctly" : "Timeout");
         
         return {TestResultEntry("EP from FEN test", 
@@ -664,11 +664,11 @@ TestResult runComputeGameTest(const EngineConfig& engineConfig, bool logMoves)
             computeTask->autoPlay(logMoves);
             computeTask->getFinishedFuture().wait();
             
-            Logger::testLogger().logAligned("Testing game play:", "Game completed successfully");
+            Logger::reportLogger().logAligned("Testing game play:", "Game completed successfully");
             return {TestResultEntry("Compute game test", "Game completed successfully", true)};
         }
         catch (const std::exception& e) {
-            Logger::testLogger().logAligned("Testing game play:", std::string("Error: ") + e.what());
+            Logger::reportLogger().logAligned("Testing game play:", std::string("Error: ") + e.what());
             return {TestResultEntry("Compute game test", std::string("Error: ") + e.what(), false)};
         }
     });
@@ -765,12 +765,12 @@ TestResult runUciPonderTest(const EngineConfig& engineConfig)
             return {TestResultEntry("UCI ponder test", "All ponder scenarios tested", true)};
         }
         catch (const std::exception& e) {
-            Logger::testLogger().log("Exception during uci ponder test: " + std::string(e.what()), TraceLevel::error);
+            Logger::reportLogger().log("Exception during uci ponder test: " + std::string(e.what()), TraceLevel::error);
             checklist->logReport(testname, false, "Exception during uci ponder test: " + std::string(e.what()));
             return {TestResultEntry("UCI ponder test", "Exception: " + std::string(e.what()), false)};
         }
         catch (...) {
-            Logger::testLogger().log("Unknown exception during uci ponder test", TraceLevel::error);
+            Logger::reportLogger().log("Unknown exception during uci ponder test", TraceLevel::error);
             checklist->logReport(testname, false, "Unknown exception during uci ponder test");
             return {TestResultEntry("UCI ponder test", "Unknown exception", false)};
         }
@@ -793,7 +793,7 @@ TestResult runPonderGameTest(const EngineConfig& engineConfig, bool logMoves)
         computeTask->initEngines(std::move(engines));
         
         try {
-            Logger::testLogger().log("The engine now plays against itself with pondering enabled", TraceLevel::command);
+            Logger::reportLogger().log("The engine now plays against itself with pondering enabled", TraceLevel::command);
             
             computeTask->newGame();
             computeTask->setPosition(true);
@@ -803,11 +803,11 @@ TestResult runPonderGameTest(const EngineConfig& engineConfig, bool logMoves)
             computeTask->autoPlay(logMoves);
             computeTask->getFinishedFuture().wait();
             
-            Logger::testLogger().logAligned("Testing ponder game:", "Game completed successfully");
+            Logger::reportLogger().logAligned("Testing ponder game:", "Game completed successfully");
             return {TestResultEntry("Ponder game test", "Game completed successfully", true)};
         }
         catch (const std::exception& e) {
-            Logger::testLogger().logAligned("Testing ponder game:", std::string("Error: ") + e.what());
+            Logger::reportLogger().logAligned("Testing ponder game:", std::string("Error: ") + e.what());
             return {TestResultEntry("Ponder game test", std::string("Error: ") + e.what(), false)};
         }
     });
@@ -823,7 +823,7 @@ TestResult runEpdTest(const EngineConfig& engineConfig)
         auto* checklist = EngineReport::getChecklist(engineConfig.getName());
         
         try {
-            Logger::testLogger().log("Testing positions, this will take a while...", TraceLevel::command);
+            Logger::reportLogger().log("Testing positions, this will take a while...", TraceLevel::command);
             
             auto epdManager = std::make_shared<EpdTestManager>(checklist);
             GameManager gameManager(nullptr);
@@ -831,16 +831,16 @@ TestResult runEpdTest(const EngineConfig& engineConfig)
             gameManager.start(epdManager);
             gameManager.getFinishedFuture().wait();
             
-            Logger::testLogger().logAligned("Testing positions:", "All positions computed");
+            Logger::reportLogger().logAligned("Testing positions:", "All positions computed");
             return {TestResultEntry("EPD test", "All positions computed successfully", true)};
         }
         catch (const std::exception& e) {
-            Logger::testLogger().logAligned("Testing positions:", std::string("Error: ") + e.what());
+            Logger::reportLogger().logAligned("Testing positions:", std::string("Error: ") + e.what());
             checklist->logReport("epd-test", false, "Exception during EPD test: " + std::string(e.what()));
             return {TestResultEntry("EPD test", std::string("Error: ") + e.what(), false)};
         }
         catch (...) {
-            Logger::testLogger().logAligned("Testing positions:", "Unknown error");
+            Logger::reportLogger().logAligned("Testing positions:", "Unknown error");
             checklist->logReport("epd-test", false, "Unknown exception during EPD test");
             return {TestResultEntry("EPD test", "Unknown error", false)};
         }
@@ -854,7 +854,7 @@ TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGa
     auto* checklist = EngineReport::getChecklist(engineConfig.getName());
     
     try {
-        Logger::testLogger().log("Testing playing " + std::to_string(numGames) + " games...", TraceLevel::command);
+        Logger::reportLogger().log("Testing playing " + std::to_string(numGames) + " games...", TraceLevel::command);
         
         auto tournament = std::make_shared<TestTournament>(numGames, checklist);
         
@@ -862,16 +862,16 @@ TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGa
         GameManagerPool::getInstance().setConcurrency(concurrency, true, true);  
         GameManagerPool::getInstance().waitForTaskPolling(std::chrono::seconds(1));
 
-        Logger::testLogger().logAligned("Testing multiple games:", "All games completed");
+        Logger::reportLogger().logAligned("Testing multiple games:", "All games completed");
         return {TestResultEntry("Multiple games test", "Completed " + std::to_string(numGames) + " games successfully", true)};
     }
     catch (const std::exception& e) {
-        Logger::testLogger().logAligned("Testing multiple games:", std::string("Error: ") + e.what());
+        Logger::reportLogger().logAligned("Testing multiple games:", std::string("Error: ") + e.what());
         checklist->logReport("multiple-games", false, "Exception during multiple games test: " + std::string(e.what()));
         return {TestResultEntry("Multiple games test", std::string("Error: ") + e.what(), false)};
     }
     catch (...) {
-        Logger::testLogger().logAligned("Testing multiple games:", "Unknown error");
+        Logger::reportLogger().logAligned("Testing multiple games:", "Unknown error");
         checklist->logReport("multiple-games", false, "Unknown exception during multiple games test");
         return {TestResultEntry("Multiple games test", "Unknown error", false)};
     }

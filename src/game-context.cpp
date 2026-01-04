@@ -55,28 +55,39 @@ void GameContext::tearDown()
     players_.clear();
 }
 
+void GameContext::setCurrentPosition()
+{
+    bool isWhite = !switchedSide_;
+    for (auto &player : players_)
+    {
+        player->setStartPosition(gameRecord_, isWhite);
+        // it does not matter for engines with index > 1 if its white or not as it will never play a move
+        isWhite = switchedSide_;
+    }
+}
+
 void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines)
 {
     {
         std::scoped_lock lock(engineMutex_);
         players_.clear();
-        bool isWhite = !switchedSide_;
         for (auto &engine : engines)
         {
+            if (engine == nullptr)
+            {
+                continue;
+            }
             if (eventCallback_)
             {
                 engine->setEventSink(eventCallback_);
             }
             auto player = std::make_unique<PlayerContext>();
             player->setEngine(std::move(engine));
-            player->setStartPosition(gameRecord_);
-            player->setTimeControl(gameRecord_, isWhite);
-            // it does not matter for engines with index > 1 if its white or not as it will never play a move
-            isWhite = switchedSide_;
             players_.emplace_back(std::move(player));
         }
+        setCurrentPosition();
+        updateEngineNames();
     }
-    updateEngineNames();
     newGame();
 }
 
@@ -161,6 +172,8 @@ void GameContext::setTimeControls(const std::vector<TimeControl> &timeControls, 
 void GameContext::newGame()
 {
     ensureStarted();
+    std::scoped_lock lock(engineMutex_);
+    updateEngineNames();
     for (size_t i = 0; i < players_.size(); ++i)
     {
         bool isWhite = (i == 0 && !switchedSide_) || (i == 1 && switchedSide_);
@@ -190,11 +203,7 @@ void GameContext::setPosition(bool useStartPosition, const std::string &fen,
             }
         }
     }
-
-    for (auto &player : players_)
-    {
-        player->setStartPosition(gameRecord_);
-    }
+    setCurrentPosition();
 }
 
 void GameContext::setPosition(const GameRecord &gameRecord)
@@ -203,13 +212,14 @@ void GameContext::setPosition(const GameRecord &gameRecord)
     {
         std::scoped_lock lock(gameRecordMutex_);
         gameRecord_ = gameRecord;
-        updateEngineNames();
+        if (gameRecord_.getWhiteEngineName().empty() ||
+            gameRecord_.getBlackEngineName().empty())
+        {
+            updateEngineNames();
+        }
     }
 
-    for (auto &player : players_)
-    {
-        player->setStartPosition(gameRecord_);
-    }
+    setCurrentPosition();
 }
 
 void GameContext::setNextMoveIndex(uint32_t moveIndex)
@@ -228,10 +238,7 @@ void GameContext::setNextMoveIndex(uint32_t moveIndex)
         }
     }
 
-    for (auto &player : players_)
-    {
-        player->setStartPosition(gameRecord_);
-    }
+    setCurrentPosition();
 }
 
 void GameContext::doMove(const MoveRecord& move)

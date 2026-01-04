@@ -139,7 +139,7 @@ void EpdTest::setGameRecord(const std::string& taskId, const GameRecord& record)
 
     const auto taskIndex = QaplaHelpers::to_uint32(taskId);
     if (!taskIndex || (*taskIndex >= result_.result.size())) {
-        Logger::testLogger().log(
+        Logger::reportLogger().log(
             "EpdTest::setGameRecord: Invalid taskId " + taskId,
             TraceLevel::error);
 		return;

@@ -46,13 +46,12 @@ namespace QaplaTester {
  * @brief Represents a collection of chess openings for a tournament.
  */
 struct StartPositions {
-    std::vector<std::string> fens;
     std::vector<GameRecord> games;
 	[[nodiscard]] uint32_t size() const {
-		return std::max(static_cast<uint32_t>(fens.size()), static_cast<uint32_t>(games.size()));
+		return static_cast<uint32_t>(games.size());
 	}
 	[[nodiscard]] bool empty() const {
-		return fens.empty() && games.empty();
+		return games.empty();
 	}
 };
 
@@ -66,6 +65,7 @@ struct PairTournamentConfig {
     uint32_t seed = 0;
     uint32_t gameNumberOffset = 0;
     bool swapColors = true;
+    bool pentanomial = false;  ///< Collect pentanomial statistics from game pairs
     Openings openings;
 };
 
@@ -153,25 +153,13 @@ public:
     std::string toString() const;
 
     /**
-     * @brief Parses a tournament result line and updates internal state.
-     *
-     * Must be called only after initialize(). Does not validate engine names.
-     *
-     * @param line A single line in the format: "games: <result-sequence>" or "<result-sequence>"
-     */
-    void fromString(const std::string& line);
-
-    /**
      * @brief Copies results and duel statistics from another PairTournament instance.
      *
      * Both tournaments must have been initialized with the same engines and configuration.
      *
      * @param other Another PairTournament instance to copy results from.
      */
-    void copyResultsFrom(const PairTournament& other) {
-       duelResult_ = other.duelResult_;
-       results_ = other.results_;
-    }
+    void copyResultsFrom(const PairTournament& other);
 
     /**
 	 * @brief Returns the result of the duel between the two engines.
@@ -269,6 +257,15 @@ public:
         positionName_ = name;
     }
 
+    /**
+     * @brief Stops the tournament.
+     *
+     * Prevents nextTask() from returning further tasks.
+     */
+    void stop() {
+        isFinished_ = true;
+    }
+
 private:
 
     /**
@@ -284,6 +281,25 @@ private:
      * @return String containing encoded results for all games.
      */
     std::string getResultSequenceEngineView() const;
+
+    /**
+     * @brief Collects pentanomial statistics from a completed game pair.
+     * 
+     * Called when a game pair (with reversed colors) is completed.
+     * Updates pentaWW, pentaWD, pentaWL, pentaDD, pentaLD, pentaLL counters.
+     * 
+     * @param gameIndex The index of the second game in the pair (0-based).
+     */
+    void collectPentanomialStats(uint32_t gameIndex);
+
+    /**
+     * @brief Parses a tournament result line and updates internal state.
+     *
+     * Must be called only after initialize(). Does not validate engine names.
+     *
+     * @param line A single line in the format: "games: <result-sequence>" or "<result-sequence>"
+     */
+    void fromString(const std::string& line);
 
     std::string getTournamentInfo() const;
 

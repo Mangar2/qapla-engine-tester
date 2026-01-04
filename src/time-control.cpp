@@ -73,7 +73,25 @@ std::string TimeControl::toPgnTimeControlString(int basePrecision, int increment
         }
 		result += to_string(segment, basePrecision, incrementPrecision);
     }
-    return result;
+    if (!result.empty()) {
+        return result;
+    }
+    if (infinite_.value_or(false)) {
+        return "inf";
+    }
+    if (movetimeMs_) {
+        return std::format("movetime(ms): {}", *movetimeMs_);
+    }
+    if (depth_) {
+        return std::format("depth: {}", *depth_);
+    }
+    if (nodes_) {
+        return std::format("nodes: {}", *nodes_);
+    }
+    if (mateIn_) {
+        return std::format("mate: {}", *mateIn_);
+    }
+    return "";
 }
 
 TimeControl TimeControl::parse(const std::string& tc) {
@@ -81,32 +99,94 @@ TimeControl TimeControl::parse(const std::string& tc) {
     if (tc.empty()) {
         return timeControl;
     }
-    if (tc == "inf") {
-        timeControl.setInfinite(true);
-        return timeControl;
-    }
     timeControl.fromPgnTimeControlString(tc);
 	return timeControl;
 }
 
 void TimeControl::fromPgnTimeControlString(const std::string& pgnString) {
+    using namespace QaplaHelpers;
+    
     timeSegments_.clear();
+    infinite_.reset();
+    movetimeMs_.reset();
+    depth_.reset();
+    nodes_.reset();
+    mateIn_.reset();
+    
+    if (pgnString.empty()) {
+        return;
+    }
+    
+    // Check for infinite
+    if (pgnString == "inf") {
+        infinite_ = true;
+        return;
+    }
+    
+    // Check for engine-specific formats
+    if (pgnString.starts_with("movetime(ms):")) {
+        auto value = to_unsigned_int<uint64_t>(pgnString.substr(12));
+        if (value) {
+            movetimeMs_ = *value;
+        }
+        return;
+    }
+    
+    if (pgnString.starts_with("depth:")) {
+        auto value = to_unsigned_int<uint32_t>(pgnString.substr(6));
+        if (value) {
+            depth_ = *value;
+        }
+        return;
+    }
+    
+    if (pgnString.starts_with("nodes:")) {
+        auto value = to_unsigned_int<uint64_t>(pgnString.substr(6));
+        if (value) {
+            nodes_ = *value;
+        }
+        return;
+    }
+    
+    if (pgnString.starts_with("mate:")) {
+        auto value = to_unsigned_int<uint32_t>(pgnString.substr(5));
+        if (value) {
+            mateIn_ = *value;
+        }
+        return;
+    }
+    
+    // Parse standard time control segments
     std::istringstream iss(pgnString);
     std::string segmentStr;
     while (std::getline(iss, segmentStr, ':')) {
         TimeSegment segment;
         size_t slashPos = segmentStr.find('/');
         if (slashPos != std::string::npos) {
-            segment.movesToPlay = std::stoi(segmentStr.substr(0, slashPos));
+            auto movesToPlay = to_unsigned_int<uint32_t>(segmentStr.substr(0, slashPos));
+            if (!movesToPlay) {
+                break; // Stop parsing on error, keep what we have
+            }
+            segment.movesToPlay = *movesToPlay;
             segmentStr = segmentStr.substr(slashPos + 1);
         }
+        
         size_t plusPos = segmentStr.find('+');
         if (plusPos != std::string::npos) {
-            segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr.substr(0, plusPos)) * 1000);
-            segment.incrementMs = static_cast<uint64_t>(std::stod(segmentStr.substr(plusPos + 1)) * 1000);
+            auto baseTime = to_double(segmentStr.substr(0, plusPos));
+            auto increment = to_double(segmentStr.substr(plusPos + 1));
+            if (!baseTime || !increment) {
+                break; // Stop parsing on error, keep what we have
+            }
+            segment.baseTimeMs = static_cast<uint64_t>(*baseTime * 1000);
+            segment.incrementMs = static_cast<uint64_t>(*increment * 1000);
         }
         else {
-            segment.baseTimeMs = static_cast<uint64_t>(std::stod(segmentStr) * 1000);
+            auto baseTime = to_double(segmentStr);
+            if (!baseTime) {
+                break; // Stop parsing on error, keep what we have
+            }
+            segment.baseTimeMs = static_cast<uint64_t>(*baseTime * 1000);
         }
         timeSegments_.push_back(segment);
     }

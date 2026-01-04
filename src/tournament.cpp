@@ -22,11 +22,11 @@
 #include <iomanip>
 #include <ctime>
 #include <random>
-#include "epd-reader.h"
 #include "game-manager-pool.h"
 #include "logger.h"
 #include "tournament.h"
-#include "pgn-io.h"
+#include "opening-parser.h"
+#include "pgn-save.h"
 #include "engine-config-manager.h"
 #include "input-handler.h"
 #include "adjudication-manager.h"
@@ -41,31 +41,17 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
 
     if (config.openings.file.empty()) {
-        Logger::testLogger().log("No openings file provided.", TraceLevel::error);
+        Logger::reportLogger().log("No openings file provided.", TraceLevel::error);
         return;
     }
 
     engineConfig_ = engines;
     config_ = config;
 
-    if (config.openings.format == "epd" || config.openings.format == "raw") {
-        EpdReader reader(config.openings.file);
-        for (const auto& entry : reader.all()) {
-            if (!entry.fen.empty()) {
-                startPositions_->fens.push_back(entry.fen);
-            }
-        }
-    }
-    else if (config.openings.format == "pgn") {
-        PgnIO pgnReader;
-        startPositions_->games = pgnReader.loadGames(config.openings.file);
-    }
-    else {
-		throw AppError::makeInvalidParameters(
-			"Unsupported openings format: " + config.openings.format);
-    }
+    OpeningParser parser;
+    startPositions_->games = parser.parse(config.openings.file);
 
-    if (startPositions_->fens.empty() && startPositions_->games.empty()) {
+    if (startPositions_->games.empty()) {
 		throw AppError::makeInvalidParameters(
 			"No valid openings found in file: " + config.openings.file);
     }
@@ -80,7 +66,7 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
         createRoundRobinPairings(engines, config);
     }
     restoreResults(savedPairings);
-    updateCnt_ ++;
+    changeTracker_.trackModification();
 }
 
 void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
@@ -106,7 +92,7 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
     const TournamentConfig& config) {
 
     if (engines.size() < 2) {
-        Logger::testLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
+        Logger::reportLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
         return;
     }
 
@@ -164,10 +150,10 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     ++raitingTrigger_;
     ++outcomeTrigger_;
     ++saveTrigger_;
-    ++updateCnt_;
     {
         std::scoped_lock lock(stateMutex_);
         result_ = getResult();
+        changeTracker_.trackUpdate();
     }
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
@@ -186,7 +172,7 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
                 save(config_.tournamentFilename);
             }
         } catch (const std::exception& ex) {
-            Logger::testLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
+            Logger::reportLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
         }
     }
 }
@@ -201,7 +187,7 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
 			break;
 		}
 	}
-	PgnIO::tournament().initialize(config_.event, isResumingTournament);
+	PgnSave::tournament().initialize(config_.event, isResumingTournament);
 	
 	pool.setConcurrency(concurrency, true);
     if (registerToInputhandler) {
@@ -210,11 +196,11 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
                 InputHandler::ImmediateCommand::Info,
                 InputHandler::ImmediateCommand::Outcome
             },
-            [this](InputHandler::ImmediateCommand cmd, [[maybe_unused]] const InputHandler::CommandValue& value) {
+            [this, &pool](InputHandler::ImmediateCommand cmd, [[maybe_unused]] const InputHandler::CommandValue& value) {
                 auto result = getResult();
                 if (cmd == InputHandler::ImmediateCommand::Info) {
                     result.printRatingTableUciStyle(std::cout, config_.averageElo);
-                    QaplaTester::AdjudicationManager::poolInstance().printTestResult(std::cout);
+                    pool.getAdjudicationManager().printTestResult(std::cout);
                 }
                 else if (cmd == InputHandler::ImmediateCommand::Outcome) {
                     result.printOutcome(std::cout);
@@ -274,7 +260,7 @@ void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
     std::string engineB;
     uint32_t round = 0;
     std::string games;
-    updateCnt_++;
+    changeTracker_.trackModification();
     try {
         for (const auto& [key, value]: section.entries) {
             if (key == "engineA") {

@@ -317,6 +317,11 @@ private:
      */
     void playerRestartEngine(PlayerContext* player, bool differentThread = true);
 
+    /**
+     * @brief Sets the current position for all players based on the game record.
+     */
+    void setCurrentPosition();
+
     mutable std::mutex engineMutex_;
     std::vector<std::unique_ptr<PlayerContext>> players_;
 

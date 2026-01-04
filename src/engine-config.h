@@ -99,6 +99,12 @@ public:
      */
     void setDir(const std::string& path) { dir_ = path; }
 
+    /**
+     * @brief Sets the command-line arguments for the engine.
+     * @param arguments The command-line arguments string.
+     */
+    void setArgs(const std::string& arguments) { args_ = arguments; }
+
 	/**
 	 * @brief Sets the protocol used by the engine.
 	 * @param proto The protocol to set (Uci, XBoard, etc.).
@@ -133,6 +139,12 @@ public:
      * @return The working directory path.
      */
     [[nodiscard]] const std::string& getDir() const { return dir_; }
+
+    /**
+     * @brief Gets the command-line arguments.
+     * @return The command-line arguments string.
+     */
+    [[nodiscard]] const std::string& getArgs() const { return args_; }
 
 	/**
 	 * @brief Gets the protocol used by the engine.
@@ -337,8 +349,9 @@ private:
     std::string author_;
     std::string cmd_;
     std::string dir_;
+    std::string args_;
     TimeControl tc_;
-	TraceLevel traceLevel_ = TraceLevel::command;
+	TraceLevel traceLevel_ = TraceLevel::none;
     EngineProtocol protocol_ = EngineProtocol::Unknown;
     RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;

@@ -32,7 +32,7 @@ namespace QaplaTester {
  * for engine testing or protocol-level termination.
  */
 enum class GameEndCause : std::uint8_t {
-	Ongoing,               // The game is still in progress
+	Ongoing,               // The game is known to be in progress
 	Checkmate,             // One player is checkmated
 	Stalemate,             // The game ended in stalemate
 	DrawByRepetition,      // Draw due to threefold repetition
@@ -46,6 +46,7 @@ enum class GameEndCause : std::uint8_t {
 	Forfeit,               // Forfeit due to rule violation or technical fault
 	TerminatedByTester,    // Game was aborted or terminated by the test system
 	Disconnected,		   // Game was aborted due to engine not responding
+	Unknown,			   // Unknown or unrecognized termination cause
 	Count
 };
 
@@ -74,6 +75,7 @@ inline std::string gameEndCauseToPgnTermination(GameEndCause cause) {
 	case GameEndCause::Forfeit: return "forfeit";
 	case GameEndCause::TerminatedByTester: return "terminated";
 	case GameEndCause::Disconnected: return "disconnected";
+	case GameEndCause::Unknown: return "unknown";
 	default: return "unknown";
 	}
 }
@@ -99,7 +101,8 @@ inline std::optional<GameEndCause> tryParseGameEndCause(std::string_view str) {
 		{"adjudication", GameEndCause::Adjudication},
 		{"forfeit", GameEndCause::Forfeit},
 		{"terminated", GameEndCause::TerminatedByTester},
-		{"disconnected", GameEndCause::Disconnected}
+		{"disconnected", GameEndCause::Disconnected},
+		{"unknown", GameEndCause::Unknown}
 	};
 
 	auto it = map.find(str);

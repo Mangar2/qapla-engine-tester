@@ -23,32 +23,109 @@
 #include "engine-report.h"
 #include "engine-config-manager.h"
 
+constexpr int DEFAULT_MAX_PARALLEL_STARTS = 2;    ///> Default max parallel engine starts
+constexpr int ENGINE_START_RETRY = 3;             ///> Number of retries for engine start
+constexpr int ENGINE_START_RETRY_DELAY_MS = 2000; ///> Delay between retries in milliseconds
+
 namespace QaplaTester {
+
+// RAII helper class to manage engine start slots
+class EngineStartGuard {
+public:
+    EngineStartGuard() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        // Wait until a slot is available
+        condition_.wait(lock, [] {
+            return currentActiveStarts_ < maxParallelStarts_;
+        });
+        // Acquired a slot
+        currentActiveStarts_++;
+    }
+
+    ~EngineStartGuard() {
+        std::scoped_lock lock(mutex_);
+        currentActiveStarts_--;
+
+        // Notify one waiting thread that a slot is now available
+        condition_.notify_one();
+    }
+
+    // Delete copy and move to ensure RAII semantics
+    EngineStartGuard(const EngineStartGuard&) = delete;
+    EngineStartGuard& operator=(const EngineStartGuard&) = delete;
+    EngineStartGuard(EngineStartGuard&&) = delete;
+    EngineStartGuard& operator=(EngineStartGuard&&) = delete;
+
+    // Static configuration methods
+    static void setMaxParallelStarts(int maxParallel) {
+        std::scoped_lock lock(mutex_);
+        maxParallelStarts_ = maxParallel;
+        // Wake up all waiting threads in case limit was increased
+        condition_.notify_all();
+    }
+
+    static int getMaxParallelStarts() {
+        std::scoped_lock lock(mutex_);
+        return maxParallelStarts_;
+    }
+
+    static int getCurrentActiveStarts() {
+        std::scoped_lock lock(mutex_);
+        return currentActiveStarts_;
+    }
+
+private:
+    static inline int maxParallelStarts_ = DEFAULT_MAX_PARALLEL_STARTS;
+    static inline int currentActiveStarts_ = 0;
+    static inline std::mutex mutex_;
+    static inline std::condition_variable condition_;
+};
 
 void EngineWorkerFactory::assignUniqueDisplayNames() {
     auto& engines = getActiveEnginesMutable();
     EngineConfigManager::assignUniqueDisplayNames(engines);
 }
 
+void EngineWorkerFactory::setMaxParallelStarts(int maxParallel) {
+    EngineStartGuard::setMaxParallelStarts(maxParallel);
+}
+
+int EngineWorkerFactory::getMaxParallelStarts() {
+    return EngineStartGuard::getMaxParallelStarts();
+}
+
+int EngineWorkerFactory::getCurrentActiveStarts() {
+    return EngineStartGuard::getCurrentActiveStarts();
+}
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConfig& config) {
-    auto executablePath = config.getCmd();
-    auto workingDirectory = config.getDir();
-    auto identifierStr = "#" + std::to_string(identifier_);
+    // Acquire a start slot - this will block if too many engines are starting
+    EngineStartGuard guard;
+    
+    // Atomic fetch_add ensures each engine gets a unique identifier
+    auto id = identifier_.fetch_add(1, std::memory_order_relaxed);
+    
+    EngineStartupParams params {
+        .executablePath = config.getCmd(),
+        .workingDirectory = config.getDir(),
+        .identifierStr = "#" + std::to_string(id),
+        .executableArguments = config.getArgs()
+    };
+    
     std::unique_ptr<EngineAdapter> adapter;
     if (config.getProtocol() == EngineProtocol::Uci) {
-		adapter = std::make_unique<UciAdapter>(executablePath, workingDirectory, identifierStr);
+		adapter = std::make_unique<UciAdapter>(params);
 	}
     else if (config.getProtocol() == EngineProtocol::XBoard) {
-        adapter = std::make_unique<WinboardAdapter>(executablePath, workingDirectory, identifierStr);
+        adapter = std::make_unique<WinboardAdapter>(params);
     } 
     else {
         throw AppError::makeInvalidParameters("Unsupported engine protocol: " + to_string(config.getProtocol()));
     }
     adapter->setSuppressInfoLines(suppressInfoLines_);
-    auto worker = std::make_unique<EngineWorker>(std::move(adapter), identifierStr, config);
-    identifier_++;
+    auto worker = std::make_unique<EngineWorker>(std::move(adapter), params.identifierStr, config);
     return worker;
+    // guard destructor automatically releases the slot
 }
 
 std::unique_ptr<EngineWorker> EngineWorkerFactory::restart(const EngineWorker& worker) {
@@ -100,9 +177,9 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
     EngineList engines;
     std::vector<std::future<void>> futures;
     engines.reserve(count);
-    constexpr int RETRY = 3;
-    for (int retry = 0; retry < RETRY; retry++) {
+    for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
         futures.clear();
+        bool waitOnFailure = true;
         for (std::size_t i = 0; i < count; ++i) {
             // We initialize all engines in the first loop
             if (engines.size() <= i) {
@@ -110,6 +187,10 @@ EngineList EngineWorkerFactory::createEngines(const EngineConfig& config, std::s
                 futures.push_back(engines.back()->getStartupFuture());
             }
             else if (engines[i]->failure()) {
+                if (waitOnFailure) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+                    waitOnFailure = false;
+                }
                 // The retry loops recreate engines having exceptions in the startup process
                 engines[i] = createEngine(config);
                 futures.push_back(engines[i]->getStartupFuture());
@@ -132,10 +213,10 @@ EngineList EngineWorkerFactory::createEngines(const std::vector<EngineConfig>& c
     EngineList engines;
     std::vector<std::future<void>> futures;
     engines.reserve(configs.size());
-    constexpr int RETRY = 3;
-    for (int retry = 0; retry < RETRY; retry++) {
+    for (int retry = 0; retry < ENGINE_START_RETRY; retry++) {
         futures.clear();
         uint32_t index = 0;
+        bool waitOnFailure = true;
         for (const auto& config: configs) {
             // We initialize all engines in the first loop
             if (engines.size() <= index) {
@@ -149,6 +230,10 @@ EngineList EngineWorkerFactory::createEngines(const std::vector<EngineConfig>& c
                 }
             }
             else if (engines[index]->failure()) {
+                if (waitOnFailure) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(ENGINE_START_RETRY_DELAY_MS));
+                    waitOnFailure = false;
+                }
                 // The retry loops recreate engines having exceptions in the startup process
                 engines[index] = createEngine(config);
                 futures.push_back(engines[index]->getStartupFuture());

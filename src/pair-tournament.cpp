@@ -20,7 +20,7 @@
 #include "game-result.h"
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
-#include "pgn-io.h"
+#include "pgn-save.h"
 #include "string-helper.h"
 
 #include <random>
@@ -72,6 +72,10 @@ void PairTournament::initialize(const EngineConfig& engineA, const EngineConfig&
         }
     }
 
+    for (size_t gameIndex = 1; gameIndex < results_.size(); gameIndex += 2) {
+        collectPentanomialStats(static_cast<uint32_t>(gameIndex));
+    }
+
 }
 
 void PairTournament::schedule(const std::shared_ptr<PairTournament>& self, GameManagerPool& pool) {
@@ -110,26 +114,18 @@ uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
 void PairTournament::updateOpening(uint32_t openingIndex) {
     GameState gameState;
     openingIndex_ = openingIndex;
-    if (startPositions_->fens.empty()) {
-        curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
-    }
-    else {
-        auto& fen = startPositions_->fens[openingIndex];
-        gameState.setFen(false, fen);
-        curRecord_.setStartPosition(false, gameState.getFen(), gameState.isWhiteToMove(), gameState.getStartHalfmoves(),
-            engineA_.getName(), engineB_.getName());
-    }
+    curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
 }
 
 std::optional<GameTask> PairTournament::nextTask() {
     std::scoped_lock lock(mutex_);
 
-    if (!initialized_ || !startPositions_ || startPositions_->empty()) {
+    if (isFinished_ || !initialized_ || !startPositions_ || startPositions_->empty()) {
         return std::nullopt;
     }
 
     if (nextIndex_ == 0){
-        Logger::testLogger().log(getTournamentInfo(), TraceLevel::result);
+        Logger::reportLogger().log(getTournamentInfo(), TraceLevel::result);
     } 
 
     // Ensures robustness against unfinished games by scanning results_ instead of relying solely on nextIndex_.
@@ -160,6 +156,10 @@ std::optional<GameTask> PairTournament::nextTask() {
         auto& white = task.switchSide ? engineB_ : engineA_;
         auto& black = task.switchSide ? engineA_ : engineB_;
         task.gameRecord.setTimeControl(white.getTimeControl(), black.getTimeControl());
+        task.gameRecord.setWhiteEngineName(white.getName());
+        task.gameRecord.setBlackEngineName(black.getName());
+        // Mark game as ongoing, GameEndCause is no longer Unknown, test
+        task.gameRecord.setGameEnd(GameEndCause::Ongoing, GameResult::Unterminated);
         if (!positionName_.empty()) {
             task.gameRecord.setPositionName(positionName_ + " " + std::to_string(i + 1));
         }
@@ -167,13 +167,14 @@ std::optional<GameTask> PairTournament::nextTask() {
         results_[i] = GameResult::Unterminated;
         nextIndex_ = i + 1;
 
-        std::ostringstream oss;
-        std::cout << std::left
-            << "started round " << std::setw(3) << (config_.round + 1)
-            << " game " << std::setw(3) << i + 1
-            << " opening " << std::setw(6) << openingIndex_
-            << " engines " << white.getName() << " vs " << black.getName()
-            << "\n" << std::flush;
+        if (verbose_) {
+            std::cout << std::left
+                << "started round " << std::setw(3) << (config_.round + 1)
+                << " game " << std::setw(3) << i + 1
+                << " opening " << std::setw(6) << openingIndex_
+                << " engines " << white.getName() << " vs " << black.getName()
+                << "\n" << std::flush;
+        }
 
         return task;
     }
@@ -189,7 +190,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     
 
     if (gameInRound == 0 || gameInRound > results_.size()) {
-		Logger::testLogger().log("Invalid round number in GameRecord: Round " + std::to_string(gameInRound) 
+		Logger::reportLogger().log("Invalid round number in GameRecord: Round " + std::to_string(gameInRound) 
             + " but having " + std::to_string(results_.size()) + " games started ", TraceLevel::error);
         return;
     }
@@ -199,9 +200,11 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     results_[gameInRound - 1] = result;
     GameRecord pgnRecord = record;
     pgnRecord.setTotalGameNo(gameInRound + config_.gameNumberOffset);
-    PgnIO::tournament().saveGame(pgnRecord);
+    PgnSave::tournament().saveGame(pgnRecord);
 
 	duelResult_.addResult(record);
+    collectPentanomialStats(gameInRound - 1);
+
     if (verbose_) {
         std::ostringstream oss;
         oss << std::left
@@ -210,7 +213,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
             << " result " << std::setw(7) << to_string(result)
             << " cause " << std::setw(21) << to_string(cause)
             << " engines " << record.getWhiteEngineName() << " vs " << record.getBlackEngineName();
-        Logger::testLogger().log(oss.str(), TraceLevel::result);
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
 
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
@@ -219,6 +222,23 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         onGameFinished_(this);
     } 
 
+}
+
+void PairTournament::copyResultsFrom(const PairTournament& other) {
+    duelResult_ = other.duelResult_;
+    results_ = other.results_;
+    // Compute isFinished_ based on current configuration, don't copy it from other
+    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
+}
+
+void PairTournament::collectPentanomialStats(uint32_t gameIndex) {
+    uint32_t baseIndex = gameIndex - (gameIndex % 2);
+    if (baseIndex + 1 >= results_.size()) {
+        return;
+    }
+    GameResult result1 = results_[baseIndex];
+    GameResult result2 = results_[baseIndex + 1];
+    duelResult_.addPentanomialResult(result1, result2, config_.swapColors);
 }
 
 std::string PairTournament::getResultSequenceEngineView() const {
@@ -258,15 +278,12 @@ void PairTournament::fromString(const std::string& line) {
     // Initializing it to 0 allows nextTask() to scan results_ for unfinished games and schedule them accordingly.
     nextIndex_ = 0; 
     std::string resultString = line;
+    results_.reserve(resultString.size());
 
     auto pos = line.find(": ");
     if (pos != std::string::npos) {
         resultString = line.substr(pos + 2);
     }
-
-	duelResult_.clear();
-    results_.clear();
-    results_.reserve(resultString.size());
 
     for (size_t i = 0; i < resultString.size(); ++i) {
         char ch = resultString[i];
@@ -366,6 +383,8 @@ static void parseEndCauses(std::string_view text, EngineDuelResult& result, int 
 
 void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) {
     std::string line;
+   	duelResult_.clear();
+    results_.clear();
     for (const auto& entry : section.entries) {
         auto [key, value] = entry;
         if (key == "games") {
@@ -381,6 +400,11 @@ void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) 
             parseEndCauses(value, duelResult_, &CauseStats::loss);
         }
     }
+   
+    for (size_t gameIndex = 1; gameIndex < results_.size(); gameIndex += 2) {
+        collectPentanomialStats(static_cast<uint32_t>(gameIndex));
+    }
+    
     isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
 }
 

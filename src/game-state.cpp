@@ -55,7 +55,7 @@ bool GameState::setFen(bool startPos, const std::string& fen) {
 	gameResult_ = GameResult::Unterminated;
 	moveListOutdated = true; 
 	if (!isValid) {
-		Logger::testLogger().log("GameState::setFen: Invalid FEN string: " + fen, TraceLevel::error);
+		Logger::reportLogger().log("GameState::setFen: Invalid FEN string: " + fen, TraceLevel::error);
 		position_.clear();
 	}
 	return isValid;
@@ -96,6 +96,22 @@ std::tuple<GameEndCause, GameResult> GameState::getGameResult() {
 	gameEndCause_ = cause;
 	gameResult_ = result;
 	return { gameEndCause_, gameResult_ };
+}
+
+std::vector<QaplaBasics::Move> GameState::getLegalMoves() {
+	if (moveListOutdated) {
+		position_.genMovesOfMovingColor(legalMoves_);
+		moveListOutdated = false;
+	}
+	
+	std::vector<QaplaBasics::Move> moves;
+	moves.reserve(legalMoves_.totalMoveAmount);
+	
+	for (uint32_t i = 0; i < legalMoves_.totalMoveAmount; ++i) {
+		moves.push_back(legalMoves_[i]);
+	}
+	
+	return moves;
 }
 
 bool GameState::isThreefoldRepetition() const {
@@ -263,7 +279,7 @@ std::tuple<QaplaBasics::Move, bool, bool> GameState::resolveMove(
 
 GameRecord GameState::setFromGameRecordAndCopy(const GameRecord& game, std::optional<uint32_t> plies, 
 	bool verbose) {
-	GameRecord copy;
+	GameRecord copy = game.copyAllButPosition();
 	if (!setFen(game.getStartPos(), game.getStartFen())) {
 		return copy;
 	}
@@ -281,7 +297,7 @@ GameRecord GameState::setFromGameRecordAndCopy(const GameRecord& game, std::opti
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
 			if (verbose) {
-				Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
+				Logger::reportLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
 					TraceLevel::error);
 			}
 			return copy;
@@ -318,7 +334,7 @@ void GameState::setFromGameRecord(const GameRecord& game, std::optional<uint32_t
 		std::string moveStr = moves[i].lan_.empty() ? moves[i].san_ : moves[i].lan_;
 		auto parsed = stringToMove(moveStr, false);
 		if (parsed.isEmpty()) {
-			Logger::testLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
+			Logger::reportLogger().log("Illegal move in game record: " + moveStr + " pos: " + getFen(),
 				TraceLevel::error);
 			return;
 		}

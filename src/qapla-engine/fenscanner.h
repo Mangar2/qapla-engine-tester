@@ -34,9 +34,16 @@ namespace QaplaInterface {
 			error = true;
 		}
 
-		bool setBoard(std::string fen, QaplaMoveGenerator::MoveGenerator& position) {
+		/**
+		 * Parses a FEN string and sets up the board position
+		 * @param fen The FEN string to parse
+		 * @param position The board position to set up
+		 * @param startPos The starting position in the FEN string (default: 0)
+		 * @return The end position in the FEN string if successful, 0 otherwise
+		 */
+		size_t setBoard(const std::string& fen, QaplaMoveGenerator::MoveGenerator& position, size_t startPos = 0) {
 			position.clear();
-			std::string::iterator fenIterator = fen.begin();
+			std::string::const_iterator fenIterator = fen.begin() + startPos;
 			error = false;
 
 			scanPieceSector(fen, fenIterator, position);
@@ -65,7 +72,7 @@ namespace QaplaInterface {
 				//position->finishBoardSetup();
 			}
 
-			return !error;
+			return error ? 0 : static_cast<size_t>(fenIterator - fen.begin());
 		}
 
 	private:
@@ -75,7 +82,7 @@ namespace QaplaInterface {
 		/**
 		 * Scans the piece sector of a fen std::string
 		 */
-		void scanPieceSector(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
+		void scanPieceSector(const std::string& fen, std::string::const_iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
 
 			int16_t file = 0;
 			int16_t rank = 7;
@@ -116,7 +123,7 @@ namespace QaplaInterface {
 		/**
 		 * Skips a mandatory blank
 		 */
-		static bool skipBlank(const std::string& fen, std::string::iterator& fenIterator) {
+		static bool skipBlank(const std::string& fen, std::string::const_iterator& fenIterator) {
 			bool hasBlank = false;
 			if (fenIterator != fen.end()) {
 				if (*fenIterator == ' ') {
@@ -130,7 +137,7 @@ namespace QaplaInterface {
 		/**
 		 * Scans the side to move, either "w" or "b", default white
 		 */
-		void scanSideToMove(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
+		void scanSideToMove(const std::string& fen, std::string::const_iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			if (fenIterator != fen.end()) {
 				chessBoard.setWhiteToMove(*fenIterator == 'w');
 				if (*fenIterator != 'w' && *fenIterator != 'b') {
@@ -144,7 +151,7 @@ namespace QaplaInterface {
 		 * Scans the castling rights section 'K', 'Q' for white rights and 'k', 'q' for black rights
 		 * Or '-' for no castling rights
 		 */
-		void scanCastlingRights(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
+		void scanCastlingRights(const std::string& fen, std::string::const_iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			bool castlingRightsFound = false;
 
 			// Default: every castle right activated
@@ -190,7 +197,7 @@ namespace QaplaInterface {
 		/**
 		 * Scans an EN-Passant-Field
 		 */
-		void scanEPField(const std::string& fen, std::string::iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
+		void scanEPField(const std::string& fen, std::string::const_iterator& fenIterator, QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			int epFile = -1;
 			int epRank = -1;
 			if (fenIterator != fen.end() && *fenIterator == '-') {
@@ -226,7 +233,7 @@ namespace QaplaInterface {
 		/**
 		 * Scans a positive integer in the fen
 		 */
-		static uint32_t scanInteger(const std::string& fen, std::string::iterator& fenIterator) {
+		static uint32_t scanInteger(const std::string& fen, std::string::const_iterator& fenIterator) {
 			uint32_t result = 0;
 			while (fenIterator != fen.end() && *fenIterator >= '0' && *fenIterator <= '9') {
 				result *= 10;
@@ -236,12 +243,12 @@ namespace QaplaInterface {
 			return result;
 		}
 
-		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::iterator& fenIterator, 
+		void scanHalfMovesWithouthPawnMoveOrCapture(const std::string& fen, std::string::const_iterator& fenIterator, 
 			QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			chessBoard.setHalfmovesWithoutPawnMoveOrCapture(static_cast<uint8_t>(scanInteger(fen, fenIterator)));
 		}
 
-		void scanFullMoves(const std::string& fen, std::string::iterator& fenIterator, 
+		void scanFullMoves(const std::string& fen, std::string::const_iterator& fenIterator, 
 			QaplaMoveGenerator::MoveGenerator& chessBoard) {
 			auto fullmoves = scanInteger(fen, fenIterator);
 			// fullmoves are not 0 indexed
