@@ -216,7 +216,7 @@ void QaplaSettings::init() {
     });
 
     // SPSA optimization group
-    Manager::registerGroup("spsa", "SPSA parameter optimization configuration", false, {
+    Manager::registerGroup("spsa", "SPSA parameter optimization configuration", true, {
         { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
                             .isRequired = false, 
                             .defaultValue = 32, 

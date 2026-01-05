@@ -82,6 +82,9 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
         std::format("SPSA initialized with {} parameters, {} initial pairs created",
                    config.parameters.size(), activePerturbations_.size()),
         TraceLevel::info);
+    
+    // Log initial parameter values
+    logParameters("Initial");
 }
 
 void SPSAOptimizer::scheduleSPSA(uint32_t concurrency, GameManagerPool& pool) {
@@ -262,6 +265,9 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
     }
 
     completedIterations_++;
+    
+    // Log updated parameters
+    logParameters(std::format("After iteration {}", completedIterations_));
 }
 
 EngineConfig SPSAOptimizer::createPerturbedEngineConfig(
@@ -309,6 +315,19 @@ std::vector<int> SPSAOptimizer::generatePerturbationDeltas() {
 std::vector<double> SPSAOptimizer::getCurrentParameters() const {
     std::scoped_lock lock(stateMutex_);
     return currentParameters_;
+}
+
+void SPSAOptimizer::logParameters(const std::string& stage) const {
+    std::ostringstream oss;
+    oss << stage << " parameters: ";
+    
+    for (size_t i = 0; i < config_.parameters.size(); ++i) {
+        if (i > 0) oss << ", ";
+        oss << config_.parameters[i].name << "=" 
+            << std::fixed << std::setprecision(2) << currentParameters_[i];
+    }
+    
+    Logger::reportLogger().log(oss.str(), TraceLevel::error);
 }
 
 void SPSAOptimizer::printStatus(std::ostream& out) const {
