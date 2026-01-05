@@ -70,9 +70,17 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
     nextIteration_ = 0;
     activePerturbations_.clear();
 
+    // Create initial batch of perturbations (the actual tournament pairs)
+    for (uint32_t i = 0; i < config.maxActivePairs && nextIteration_ < config.iterations; ++i) {
+        auto perturbation = createPairWithPerturbedParameters();
+        if (!perturbation) {
+            break;
+        }
+    }
+
     Logger::reportLogger().log(
-        std::format("SPSA initialized with {} parameters, max {} active pairs",
-                   config.parameters.size(), config.maxActivePairs),
+        std::format("SPSA initialized with {} parameters, {} initial pairs created",
+                   config.parameters.size(), activePerturbations_.size()),
         TraceLevel::info);
 }
 
@@ -89,16 +97,15 @@ void SPSAOptimizer::scheduleSPSA(uint32_t concurrency, GameManagerPool& pool) {
     pool_ = &pool;
     pool.setConcurrency(concurrency, true);
 
-    // Create initial batch of perturbations
-    for (uint32_t i = 0; i < config_.maxActivePairs && nextIteration_ < config_.iterations; ++i) {
-        auto perturbation = createPairWithPerturbedParameters();
-        if (perturbation) {
+    // Schedule all existing perturbations
+    for (const auto& perturbation : activePerturbations_) {
+        if (perturbation && perturbation->pairing) {
             perturbation->pairing->schedule(perturbation->pairing, pool);
         }
     }
 
     Logger::reportLogger().log(
-        std::format("SPSA scheduled with {} initial pairs", activePerturbations_.size()),
+        std::format("SPSA scheduled {} pairs", activePerturbations_.size()),
         TraceLevel::info);
 }
 
@@ -115,6 +122,8 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
 
     // Create perturbed engine configurations
     auto enginePlus = createPerturbedEngineConfig(perturbation->deltas, perturbation->perturbedValues);
+    enginePlus.setName(
+        std::format("{}_iter{}_plus", baseEngine_.getName(), perturbation->iteration));
     
     // Create opposite perturbation for the opponent
     std::vector<int> minusDeltas = perturbation->deltas;
@@ -123,6 +132,8 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
     }
     std::vector<double> dummyValues;
     auto engineMinus = createPerturbedEngineConfig(minusDeltas, dummyValues);
+    engineMinus.setName(
+        std::format("{}_iter{}_minus", baseEngine_.getName(), perturbation->iteration));
 
     // Setup pair tournament configuration
     PairTournamentConfig ptc;
@@ -177,7 +188,6 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
             return;
         }
 
-        activePerturbations_[round] = nullptr;
     }
 
     // Update parameters based on results
