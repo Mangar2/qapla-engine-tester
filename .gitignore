@@ -27,6 +27,9 @@ cmake_install.cmake
 Makefile
 a.out
 
+# External dependencies
+/extern/
+
 # Mono auto generated files
 mono_crash.*
 

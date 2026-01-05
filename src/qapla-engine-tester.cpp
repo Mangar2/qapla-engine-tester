@@ -37,6 +37,7 @@
 #include "cli/qapla-settings.h"
 #include "epd-manager.h"
 #include "sprt-manager.h"
+#include "spsa-optimizer.h"
 #include "tournament.h"
 #include "timer.h"
 #include "time-control.h"
@@ -69,7 +70,10 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
     return code;
 }
 
-static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode code) {
+static auto runEpd(AppReturnCode code) {
+    const auto& epdConfig = CliSettings::QaplaSettings::instance().getEpdConfig();
+    if (!epdConfig) return code;
+
     uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
     setLoggerConfig({
         .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
@@ -79,34 +83,23 @@ static auto runEpd(const CliSettings::GroupInstances& epdList, AppReturnCode cod
     });
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
-	for (auto& epd : epdList) {
-        std::string file;
-        uint32_t maxTime = 10;
-        uint32_t minTime = 2;
-        uint32_t seenPlies = 3;
-		file = epd.get<std::string>("file");
-		maxTime = epd.get<unsigned int>("maxtime");
-		minTime = epd.get<unsigned int>("mintime");
-		seenPlies = epd.get<unsigned int>("seenplies");
 
-		for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-            std::string name = engine.getName();
-            std::string earlyStop = "Early stop - Seen plies: " + 
-                std::to_string(seenPlies) + " Min time: " + std::to_string(minTime) + "s";
-			Logger::reportLogger().log("Using engine: " + name 
-                + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(maxTime) + "s "
-                + earlyStop);
-            epdManager->initialize(file, maxTime, minTime, seenPlies);
-            epdManager->schedule(engine);
-            GameManagerPool::getInstance().waitForTask();
-			code = logChecklist(code, TraceLevel::info);
-			auto minSuccess = epd.get<int>("minsuccess");
-            if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
-                bool success = epdManager->getSuccessRate() >= minSuccess / 100.0;
-				code = success ? code : AppReturnCode::MissedTarget;
-            }
-		}
-	}
+    for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
+        std::string name = engine.getName();
+        std::string earlyStop = "Early stop - Seen plies: " + 
+            std::to_string(epdConfig->seenPlies) + " Min time: " + std::to_string(epdConfig->minTime) + "s";
+        Logger::reportLogger().log("Using engine: " + name 
+            + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(epdConfig->maxTime) + "s "
+            + earlyStop);
+        epdManager->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies);
+        epdManager->schedule(engine);
+        GameManagerPool::getInstance().waitForTask();
+        code = logChecklist(code, TraceLevel::info);
+        if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
+            bool success = epdManager->getSuccessRate() >= epdConfig->minSuccess / 100.0;
+            code = success ? code : AppReturnCode::MissedTarget;
+        }
+    }
     return code;
 }
 
@@ -164,7 +157,6 @@ static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCo
     }
     return code;
 }
-
 
 static void checkTimeControl() {
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -230,6 +222,64 @@ static auto runSprt(AppReturnCode code) {
     }
     catch (...) {
         Logger::reportLogger().log("Unknown exception during sprt run: ", TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+    return code;
+}
+
+static auto runSpsa(AppReturnCode code) {
+    const auto& spsaConfig = CliSettings::QaplaSettings::instance().getSPSAConfig();
+    if (!spsaConfig) return code;
+    const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
+
+    const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
+    
+    if (activeEngines.size() != 1) {
+        Logger::reportLogger().log("SPSA optimization requires exactly one engine. Please define one engine, see --help for more info.", TraceLevel::error);
+        return AppReturnCode::InvalidParameters;
+    }
+    
+    if (!CliSettings::QaplaSettings::instance().getOpenings()) {
+        Logger::reportLogger().log("No openings defined for SPSA optimization. Please define an opening, see --help for more info.", TraceLevel::error);
+        return AppReturnCode::InvalidParameters;
+    }
+    
+    checkTimeControl();
+    setLoggerConfig({
+        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
+        .reportLogBaseName = "spsa-report",
+        .engineLogBaseName = "engine",
+        .engineLogStrategy = LogFileStrategy::global
+    });
+    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    
+    try {
+        auto optimizer = std::make_shared<SPSAOptimizer>();
+        optimizer->createSPSA(activeEngines[0], *spsaConfig);
+        
+        GameManagerPool& pool = GameManagerPool::getInstance();
+        optimizer->scheduleSPSA(concurrency, pool);
+        pool.waitForTask();
+        
+        // Print final results
+        auto currentParams = optimizer->getCurrentParameters();
+        Logger::reportLogger().log("SPSA optimization completed", TraceLevel::result);
+        std::ostringstream oss;
+        oss << "\nFinal optimized parameters:\n";
+        for (size_t i = 0; i < spsaConfig->parameters.size(); ++i) {
+            oss << "  " << spsaConfig->parameters[i].name << ": " 
+                << currentParams[i] << "\n";
+        }
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+        
+        code = updateCode(code, EngineReport::logAll(TraceLevel::command));
+    }
+    catch (const std::exception& e) {
+        Logger::reportLogger().log("Exception during SPSA run: " + std::string(e.what()), TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+    catch (...) {
+        Logger::reportLogger().log("Unknown exception during SPSA run: ", TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     return code;
@@ -325,9 +375,8 @@ static AppReturnCode run() {
         returnCode = runTest(*test, returnCode);
     }
 
-    auto epdList = CliSettings::Manager::getGroupInstances("epd");
-    if (!epdList.empty()) {
-        returnCode = runEpd(epdList, returnCode);
+    if (CliSettings::QaplaSettings::instance().getEpdConfig()) {
+        returnCode = runEpd(returnCode);
     }
 
     if (CliSettings::QaplaSettings::instance().getTournamentConfig()) {
@@ -336,6 +385,10 @@ static AppReturnCode run() {
 
     if (CliSettings::QaplaSettings::instance().getSprtConfig()) {
         returnCode = runSprt(returnCode);
+    }
+
+    if (CliSettings::QaplaSettings::instance().getSPSAConfig()) {
+        returnCode = runSpsa(returnCode);
     }
     return returnCode;
 }

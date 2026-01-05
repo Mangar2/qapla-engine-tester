@@ -25,7 +25,9 @@
 #include "../openings.h"
 #include "../tournament.h"
 #include "../sprt-manager.h"
+#include "../epd-manager.h"
 #include "../engine-worker-factory.h"
+#include "../spsa-optimizer.h"
 
 namespace QaplaTester::CliSettings {
 
@@ -46,6 +48,8 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     readOpenings();
     readTournamentConfig();
     readSprtConfig();
+    readEpdConfig();
+    readSPSAConfig();
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {
@@ -193,10 +197,74 @@ void QaplaSettings::init() {
 
     // Resign adjudication group
     Manager::registerGroup("resign", "Resign adjudication settings", true, {
-        { "movecount", { "Required number of consecutive moves with score below threshold for resignation", true, 0, ValueType::UInt } },
-        { "score",     { "Centipawn score below zero that triggers resignation", true, 0, ValueType::Int } },
-        { "twosided",  { "If true, both sides must meet respective score conditions", false, false, ValueType::Bool } },
-        { "test",      { "If true, only reports what would be adjudicated without taking action", false, false, ValueType::Bool } }
+        { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "score",     { .description = "Centipawn score below zero that triggers resignation", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "twosided",  { .description = "If true, both sides must meet respective score conditions", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "test",      { .description = "If true, only reports what would be adjudicated without taking action", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    });
+
+    // SPSA optimization group
+    Manager::registerGroup("spsa", "SPSA parameter optimization configuration", false, {
+        { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
+                            .isRequired = false, 
+                            .defaultValue = 32, 
+                            .type = ValueType::UInt } },
+        { "learningrate",  { .description = "Global learning rate for parameter updates (r in SPSA algorithm)", 
+                            .isRequired = false, 
+                            .defaultValue = 0.002F, 
+                            .type = ValueType::Float } },
+        { "gamesperpair",  { .description = "Number of games per parameter perturbation pair", 
+                            .isRequired = false, 
+                            .defaultValue = 8, 
+                            .type = ValueType::UInt } },
+        { "iterations",    { .description = "Maximum number of optimization iterations", 
+                            .isRequired = false, 
+                            .defaultValue = 1000, 
+                            .type = ValueType::UInt } },
+        { "seed",          { .description = "Random seed for opening selection", 
+                            .isRequired = false, 
+                            .defaultValue = 0, 
+                            .type = ValueType::UInt } },
+        { "noswap",        { .description = "Disable automatic color swap between games", 
+                            .isRequired = false, 
+                            .defaultValue = false, 
+                            .type = ValueType::Bool } }
+    });
+
+    // SPSA parameter value group
+    Manager::registerGroup("spsavalue", "Defines a single parameter to optimize with SPSA", false, {
+        { "name",      { .description = "UCI parameter name to optimize", 
+                        .isRequired = true, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "default",   { .description = "Starting value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "min",       { .description = "Minimum allowed value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "max",       { .description = "Maximum allowed value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "step",      { .description = "Perturbation step size (c_i in SPSA algorithm)", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } }
     });
 }
 
@@ -432,6 +500,80 @@ std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
         return std::nullopt;
     }
     return *m_sprtConfig;
+}
+
+void QaplaSettings::readEpdConfig() {
+    auto epdGroup = Manager::getGroupInstance("epd");
+    if (!epdGroup) {
+        m_epdConfig = nullptr;
+        return;
+    }
+
+    m_epdConfig = std::make_unique<EpdConfig>(EpdConfig{
+        .file = epdGroup->get<std::string>("file"),
+        .maxTime = epdGroup->get<unsigned int>("maxtime"),
+        .minTime = epdGroup->get<unsigned int>("mintime"),
+        .seenPlies = epdGroup->get<unsigned int>("seenplies"),
+        .minSuccess = epdGroup->get<unsigned int>("minsuccess")
+    });
+}
+
+std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
+    if (!m_epdConfig) {
+        return std::nullopt;
+    }
+    return *m_epdConfig;
+}
+
+void QaplaSettings::readSPSAConfig() {
+    auto spsaGroup = Manager::getGroupInstance("spsa");
+    if (!spsaGroup) {
+        m_spsaConfig = nullptr;
+        return;
+    }
+
+    // SPSA needs openings
+    if (!m_openings) {
+        m_spsaConfig = nullptr;
+        return;
+    }
+
+    m_spsaConfig = std::make_unique<SPSAConfig>();
+    
+    // Read basic SPSA configuration
+    
+    m_spsaConfig->maxActivePairs = spsaGroup->get<unsigned int>("activepairs");
+    m_spsaConfig->learningRate = spsaGroup->get<double>("learningrate");
+    m_spsaConfig->gamesPerPair = spsaGroup->get<unsigned int>("gamesperpair");
+    m_spsaConfig->iterations = spsaGroup->get<unsigned int>("iterations");
+    m_spsaConfig->openingsSeed = spsaGroup->get<unsigned int>("seed");
+    m_spsaConfig->swapColors = !spsaGroup->get<bool>("noswap");
+    m_spsaConfig->openingsFile = m_openings->file;
+    
+    // Read all spsavalue groups to build parameter list
+    auto spsaValueGroups = Manager::getGroupInstances("spsavalue");
+    for (const auto& valueGroup : spsaValueGroups) {
+        SPSAParameterConfig param;
+        param.name = valueGroup.get<std::string>("name");
+        param.defaultValue = valueGroup.get<double>("default");
+        param.minValue = valueGroup.get<double>("min");
+        param.maxValue = valueGroup.get<double>("max");
+        param.c = valueGroup.get<double>("step");
+        
+        m_spsaConfig->parameters.push_back(param);
+    }
+
+    // Validate that at least one parameter is defined
+    if (m_spsaConfig->parameters.empty()) {
+        m_spsaConfig = nullptr;
+    }
+}
+
+std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
+    if (!m_spsaConfig) {
+        return std::nullopt;
+    }
+    return *m_spsaConfig;
 }
 
 } // namespace QaplaTester::CliSettings
