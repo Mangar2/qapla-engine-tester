@@ -21,6 +21,7 @@
 #include "spsa-test-helpers.h"
 #include "../../engine-config.h"
 #include "../../spsa-optimizer.h"
+#include "../../game-manager-pool.h"
 
 using namespace QaplaTester;
 using namespace QaplaTester::Test;
@@ -48,7 +49,7 @@ TEST_CASE("SPSA Optimizer initialization and configuration", "[spsa][optimizer]"
         
         SPSABuilder builder(engine, config);
         
-        REQUIRE(builder.perturbationCount() == 0);
+        REQUIRE(builder.perturbationCount() == 2);
         REQUIRE(builder.getCompletedIterations() == 0);
         
         auto params = builder.getCurrentParameters();
@@ -98,4 +99,88 @@ TEST_CASE("SPSA Optimizer initialization and configuration", "[spsa][optimizer]"
             CHECK(config.learningRate == lr);
         }
     }
+}
+
+TEST_CASE("SPSA PairTournament configuration is correct", "[spsa][config]") {
+    EngineConfig engine;
+    engine.setName("TestEngine");
+    
+    SPSAConfig config;
+    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.maxActivePairs = 2;
+    config.gamesPerPair = 8;
+    config.iterations = 3;
+    config.learningRate = 0.1;
+    config.swapColors = true;
+    config.openingsSeed = 42;
+    
+    SPSAParameterConfig param;
+    param.name = "Mobility";
+    param.defaultValue = 100.0;
+    param.minValue = 50.0;
+    param.maxValue = 150.0;
+    param.c = 10.0;
+    config.parameters.push_back(param);
+    
+    SPSABuilder builder(engine, config);
+    
+    REQUIRE(builder.perturbationCount() == 2);
+    
+    // Get the first pair tournament
+    auto pairOpt = builder.optimizer.getPairTournament(0);
+    REQUIRE(pairOpt.has_value());
+    
+    auto* pair = *pairOpt;
+    REQUIRE(pair != nullptr);
+    
+    // Check that swapColors is correctly set in the pair tournament config
+    auto pairConfig = pair->getConfig();
+    REQUIRE(pairConfig.swapColors == true);
+    REQUIRE(pairConfig.games == 8);
+}
+
+TEST_CASE("SPSA with balanced game results keeps parameters unchanged", "[spsa][games]") {
+    EngineConfig engine;
+    engine.setName("OptimizingEngine");
+    
+    SPSAConfig config;
+    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.maxActivePairs = 2;
+    config.gamesPerPair = 8;
+    config.iterations = 3;
+    config.learningRate = 0.1;
+    config.swapColors = true;  // With swapColors, WhiteWins leads to 4:4 split
+    config.openingsSeed = 42;
+    
+    SPSAParameterConfig param;
+    param.name = "Mobility";
+    param.defaultValue = 100.0;
+    param.minValue = 50.0;
+    param.maxValue = 150.0;
+    param.c = 10.0;
+    config.parameters.push_back(param);
+    
+    SPSABuilder builder(engine, config);
+    
+    // Get initial parameter values
+    auto initialParams = builder.getCurrentParameters();
+    REQUIRE(initialParams.size() == 1);
+    REQUIRE(initialParams[0] == 100.0);
+    
+    // createSPSA should have created perturbations
+    REQUIRE(builder.perturbationCount() == 2);
+    
+    // Play all games with WhiteWins result
+    // With swapColors=true: Engine A wins games 0,2,4,6 and Engine B wins games 1,3,5,7
+    // This leads to winsEngineA=4, winsEngineB=4, gradient=0
+    size_t gamesPlayed = builder.completePerturbationWithWins(0);
+    REQUIRE(gamesPlayed == config.gamesPerPair);
+    
+    // After completing games, check that one iteration is complete
+    REQUIRE(builder.getCompletedIterations() == 1);
+    
+    // Parameters should remain unchanged because gradient is 0 (balanced 4:4 result)
+    auto finalParams = builder.getCurrentParameters();
+    REQUIRE(finalParams.size() == 1);
+    REQUIRE(finalParams[0] == 100.0);
 }

@@ -131,14 +131,6 @@ public:
         return activePerturbations_.size();
     }
 
-    /**
-     * @brief Create a single perturbation for testing purposes
-     * @return Shared pointer to the created perturbation, or nullptr if iterations exhausted
-     */
-    std::shared_ptr<SPSAPerturbation> createPerturbationForTest() {
-        return createPairWithPerturbedParameters();
-    }
-
 private:
     /**
      * @brief Callback when a pair tournament finishes
