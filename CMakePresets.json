@@ -25,6 +25,14 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "unit",
+      "displayName": "Unit Tests (Clang + Ninja)",
+      "inherits": "default",
+      "cacheVariables": {
+        "BUILD_UNIT_TESTS": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -35,6 +43,10 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "unit",
+      "configurePreset": "unit"
     }
   ]
 }

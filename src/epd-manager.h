@@ -38,6 +38,17 @@ namespace QaplaTester {
 
 class GameManager;
 using TestResults = std::vector<EpdTestResult>;
+
+/**
+ * @brief Configuration parameters for EPD test execution.
+ */
+struct EpdConfig {
+    std::string file;           ///< Path to the EPD file
+    uint32_t maxTime = 20;      ///< Maximum allowed time in seconds per move
+    uint32_t minTime = 2;       ///< Minimum required time for early stop
+    uint32_t seenPlies = 0;     ///< Amount of plies one of the expected moves must be shown to stop early
+    uint32_t minSuccess = 0;    ///< Minimum percentage of best moves that must be found
+};
  
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.

@@ -31,6 +31,8 @@ namespace QaplaTester {
     struct Openings;
     struct TournamentConfig;
     struct SprtConfig;
+    struct EpdConfig;
+    struct SPSAConfig;
 }
 
 namespace QaplaTester::CliSettings {
@@ -106,6 +108,18 @@ public:
     [[nodiscard]] std::optional<SprtConfig> getSprtConfig() const;
 
     /**
+     * @brief Gets the EPD configuration
+     * @return Optional containing EPD config if configured, nullopt otherwise
+     */
+    [[nodiscard]] std::optional<EpdConfig> getEpdConfig() const;
+
+    /**
+     * @brief Gets the SPSA configuration
+     * @return Optional containing SPSA config if configured, nullopt otherwise
+     */
+    [[nodiscard]] std::optional<SPSAConfig> getSPSAConfig() const;
+
+    /**
      * @brief Gets the logging path
      * @return Logging path as a string
      */
@@ -164,6 +178,16 @@ private:
      */
     void readSprtConfig();
 
+    /**
+     * @brief Reads EPD configuration from CLI settings
+     */
+    void readEpdConfig();
+
+    /**
+     * @brief Reads SPSA configuration from CLI settings
+     */
+    void readSPSAConfig();
+
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::optional<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::optional<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
@@ -171,6 +195,8 @@ private:
     std::unique_ptr<Openings> m_openings; ///< Openings configuration
     std::unique_ptr<TournamentConfig> m_tournamentConfig; ///< Tournament configuration
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
+    std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
+    std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
 };
 
 } // namespace CliSettings
