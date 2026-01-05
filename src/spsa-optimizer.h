@@ -163,6 +163,12 @@ private:
      */
     std::vector<int> generatePerturbationDeltas();
 
+    /**
+     * @brief Log current parameter values
+     * @param stage Description of the current stage (e.g., "Initial", "After iteration 5")
+     */
+    void logParameters(const std::string& stage) const;
+
     EngineConfig baseEngine_;
     SPSAConfig config_;
     std::vector<double> currentParameters_;     // Current best parameters (θ)
