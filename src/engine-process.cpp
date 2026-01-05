@@ -18,6 +18,7 @@
  */
 
 #include "engine-process.h"
+#include "app-error.h"
 
 #include <stdexcept>
 #include <vector>
@@ -155,7 +156,15 @@ EngineProcess::EngineProcess(const EngineStartupParams& params)
 {
     if (!std::filesystem::exists(params.executablePath))
     {
-        throw std::runtime_error("Engine executable not found: " + params.executablePath.string());
+        std::string pathStr = params.executablePath.string();
+        std::string hint;
+        if ((pathStr.front() == '"' && pathStr.back() == '"') || 
+            (pathStr.front() == '\'' && pathStr.back() == '\''))
+        {
+            hint = "The path appears to have quotes at the beginning and end. Please remove them.";
+        }
+        throw AppError::makeInvalidParameters("Engine executable not found: " + pathStr + 
+            (hint.empty() ? "" : "\nHint: " + hint));
     }
     if (!std::filesystem::is_regular_file(params.executablePath))
     {
