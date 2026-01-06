@@ -272,7 +272,6 @@ static auto runSpsa(AppReturnCode code) {
         }
         Logger::reportLogger().log(oss.str(), TraceLevel::result);
         
-        code = updateCode(code, EngineReport::logAll(TraceLevel::command));
     }
     catch (const std::exception& e) {
         Logger::reportLogger().log("Exception during SPSA run: " + std::string(e.what()), TraceLevel::error);

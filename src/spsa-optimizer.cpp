@@ -29,6 +29,17 @@
 
 namespace QaplaTester {
 
+SPSAOptimizer::~SPSAOptimizer() {
+    // Signal worker to stop
+    stopWorker_ = true;
+    workerCondition_.notify_one();
+    
+    // Wait for worker thread to finish
+    if (workerThread_.joinable()) {
+        workerThread_.join();
+    }
+}
+
 void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& config) {
     if (config.parameters.empty()) {
         throw AppError::makeInvalidParameters("SPSA requires at least one parameter to optimize");
@@ -68,7 +79,8 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
     scheduled_ = false;
     completedIterations_ = 0;
     nextIteration_ = 0;
-    activePerturbations_.clear();
+    activePerturbationCount_ = 0;
+    perturbations_.clear();
 
     // Create initial batch of perturbations (the actual tournament pairs)
     for (uint32_t i = 0; i < config.maxActivePairs && nextIteration_ < config.iterations; ++i) {
@@ -80,7 +92,7 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
 
     Logger::reportLogger().log(
         std::format("SPSA initialized with {} parameters, {} initial pairs created",
-                   config.parameters.size(), activePerturbations_.size()),
+                   config.parameters.size(), perturbations_.size()),
         TraceLevel::info);
     
     // Log initial parameter values
@@ -101,15 +113,21 @@ void SPSAOptimizer::scheduleSPSA(uint32_t concurrency, GameManagerPool& pool) {
     pool.setConcurrency(concurrency, true);
 
     // Schedule all existing perturbations
-    for (const auto& perturbation : activePerturbations_) {
+    for (const auto& perturbation : perturbations_) {
         if (perturbation && perturbation->pairing) {
             perturbation->pairing->schedule(perturbation->pairing, pool);
         }
     }
 
     Logger::reportLogger().log(
-        std::format("SPSA scheduled {} pairs", activePerturbations_.size()),
+        std::format("SPSA scheduled {} pairs", perturbations_.size()),
         TraceLevel::info);
+    
+    // Start worker thread only if not already running
+    if (!workerThread_.joinable()) {
+        stopWorker_ = false;
+        workerThread_ = std::thread(&SPSAOptimizer::workerThreadFunction, this);
+    }
 }
 
 std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParameters() {
@@ -158,7 +176,13 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
         this->onPairFinished(sender);
     });
 
-    activePerturbations_.push_back(perturbation);
+    perturbations_.push_back(perturbation);
+    ++activePerturbationCount_;
+
+    Logger::reportLogger().log(
+        std::format("Created SPSA perturbation iteration {} (round {})",
+                    perturbation->iteration, ptc.round),
+        TraceLevel::info);
     
     return perturbation;
 }
@@ -176,14 +200,14 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
         std::scoped_lock lock(stateMutex_);
         
         // Find the finished perturbation by round number (direct indexing)
-        if (round >= activePerturbations_.size()) {
+        if (round >= perturbations_.size()) {
             Logger::reportLogger().log(
-                std::format("Warning: Invalid round number {} (size: {})", round, activePerturbations_.size()), 
+                std::format("Warning: Invalid round number {} (size: {})", round, perturbations_.size()), 
                 TraceLevel::warning);
             return;
         }
 
-        finishedPerturbation = activePerturbations_[round];
+        finishedPerturbation = perturbations_[round];
         if (!finishedPerturbation || finishedPerturbation->pairing.get() != sender) {
             Logger::reportLogger().log(
                 std::format("Warning: Round {} does not match expected pairing", round), 
@@ -195,6 +219,7 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
 
     // Update parameters based on results
     updateParameters(*finishedPerturbation);
+    --activePerturbationCount_;
 
     // Print status
     {
@@ -206,28 +231,15 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
         }
     }
 
-    // Schedule next perturbation if iterations remain
-    if (nextIteration_ < config_.iterations && pool_) {
-        auto newPerturbation = createPairWithPerturbedParameters();
-        if (newPerturbation) {
-            newPerturbation->pairing->schedule(newPerturbation->pairing, *pool_);
-            Logger::reportLogger().log(
-                std::format("Starting iteration {}/{}", 
-                           newPerturbation->iteration + 1, config_.iterations),
-                TraceLevel::info);
-        }
-    } else {
-        std::scoped_lock lock(stateMutex_);
-        // Check if all active perturbations are finished (all are nullptr)
-        bool allFinished = std::all_of(activePerturbations_.begin(), activePerturbations_.end(),
-            [](const auto& p) { return p == nullptr; });
-        
-        if (allFinished) {
-            Logger::reportLogger().log("SPSA optimization complete!", TraceLevel::info);
-            std::ostringstream oss;
-            printStatus(oss);
-            std::cout << oss.str() << std::endl;
-        }
+    // Notify worker thread to create new perturbations if needed
+    workerCondition_.notify_one();
+    
+    // Check if optimization is complete
+    if (activePerturbationCount_ == 0 && nextIteration_ >= config_.iterations) {
+        Logger::reportLogger().log("SPSA optimization complete!", TraceLevel::info);
+        std::ostringstream oss;
+        printStatus(oss);
+        std::cout << oss.str() << std::endl;
     }
 }
 
@@ -330,8 +342,43 @@ void SPSAOptimizer::logParameters(const std::string& stage) const {
     Logger::reportLogger().log(oss.str(), TraceLevel::error);
 }
 
+void SPSAOptimizer::workerThreadFunction() {
+    while (!stopWorker_) {
+        std::unique_lock lock(workerMutex_);
+        
+        // Wait for notification or stop signal
+        workerCondition_.wait(lock, [this] { 
+            return stopWorker_ || 
+                   (activePerturbationCount_ < config_.maxActivePairs && 
+                    nextIteration_ < config_.iterations);
+        });
+        
+        if (stopWorker_) {
+            break;
+        }
+        
+        lock.unlock();
+        
+        // Create new perturbations while there's room and iterations remain
+        while (activePerturbationCount_ < config_.maxActivePairs && 
+               nextIteration_ < config_.iterations && 
+               pool_) {
+            auto newPerturbation = createPairWithPerturbedParameters();
+            if (!newPerturbation) {
+                break;
+            }
+            
+            newPerturbation->pairing->schedule(newPerturbation->pairing, *pool_);
+            Logger::reportLogger().log(
+                std::format("Starting iteration {}/{}", 
+                           newPerturbation->iteration + 1, config_.iterations),
+                TraceLevel::info);
+        }
+    }
+}
+
 void SPSAOptimizer::printStatus(std::ostream& out) const {
-    size_t activeCount = std::count_if(activePerturbations_.begin(), activePerturbations_.end(),
+    size_t activeCount = std::count_if(perturbations_.begin(), perturbations_.end(),
         [](const auto& p) { return p != nullptr; });
     
     out << "\n=== SPSA Optimization Status ===\n";

@@ -78,7 +78,7 @@ struct SPSAPerturbation {
 class SPSAOptimizer {
 public:
     SPSAOptimizer() = default;
-    ~SPSAOptimizer() = default;
+    ~SPSAOptimizer();
 
     /**
      * @brief Create and initialize SPSA optimization
@@ -117,8 +117,8 @@ public:
      */
     std::optional<const PairTournament*> getPairTournament(size_t index) const {
         std::scoped_lock lock(stateMutex_);
-        if (index < activePerturbations_.size() && activePerturbations_[index]) {
-            return activePerturbations_[index]->pairing.get();
+        if (index < perturbations_.size() && perturbations_[index]) {
+            return perturbations_[index]->pairing.get();
         }
         return std::nullopt;
     }
@@ -128,7 +128,7 @@ public:
      */
     size_t perturbationCount() const {
         std::scoped_lock lock(stateMutex_);
-        return activePerturbations_.size();
+        return perturbations_.size();
     }
 
 private:
@@ -169,21 +169,33 @@ private:
      */
     void logParameters(const std::string& stage) const;
 
+    /**
+     * @brief Worker thread function that creates new perturbations when needed
+     */
+    void workerThreadFunction();
+
     EngineConfig baseEngine_;
     SPSAConfig config_;
     std::vector<double> currentParameters_;     // Current best parameters (θ)
     std::shared_ptr<StartPositions> startPositions_;
     GameManagerPool* pool_ = nullptr;           // Pool reference for scheduling
     
-    std::vector<std::shared_ptr<SPSAPerturbation>> activePerturbations_;
+    std::vector<std::shared_ptr<SPSAPerturbation>> perturbations_; // All perturbations
     size_t completedIterations_ = 0;
     size_t nextIteration_ = 0;
     uint32_t nextRound_ = 0;                    // Counter for unique round numbers
+    std::atomic<size_t> activePerturbationCount_ = 0;  // Count of perturbations that are not finished
     
     mutable std::mutex stateMutex_;
     std::mt19937 rng_;
     bool initialized_ = false;
     bool scheduled_ = false;
+    
+    // Worker thread for creating new perturbations
+    std::thread workerThread_;
+    std::condition_variable workerCondition_;
+    std::mutex workerMutex_;
+    std::atomic<bool> stopWorker_ = false;
 };
 
 } // namespace QaplaTester

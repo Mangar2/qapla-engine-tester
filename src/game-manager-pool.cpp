@@ -390,7 +390,7 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
     GameManager::ExtendedTask result;
 
     {
-        std::scoped_lock lock(taskMutex_);
+        std::unique_lock lock(taskMutex_);
         for (auto& assignment : taskAssignments_) {
             if (!assignment.engine1) {
                 continue;
@@ -398,14 +398,14 @@ std::optional<GameManager::ExtendedTask> GameManagerPool::tryAssignNewTask() {
             if (!assignment.provider) {
                 continue;
             }
-
-            auto taskOpt = assignment.provider->nextTask();
-            if (!taskOpt.has_value()) {
+            auto provider = assignment.provider;
+            auto taskOpt = provider->nextTask();
+            if (!taskOpt) {
                 continue;
             }
 
             result.task = std::move(taskOpt.value());
-            result.provider = assignment.provider;
+            result.provider = provider;
 
             if (!assignment.engine1) {
                 throw AppError::make("GameManagerPool::tryAssignNewTask; No engine configuration provided for task assignment");
