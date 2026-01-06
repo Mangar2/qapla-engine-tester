@@ -2,6 +2,10 @@
 
 ## General Guidelines
 
+### Commit to Git
+- Keep the commit information brief and relevant to the changes made.
+- use git commit -a -m to checkin.
+
 ### Problem-Solving Approach
 When encountering uncertainty or problems with implementation:
 - **Stop and ask** instead of proceeding with potentially incorrect solutions
