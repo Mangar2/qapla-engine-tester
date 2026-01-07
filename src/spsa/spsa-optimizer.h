@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "game-manager/pair-tournament.h"
+#include "../game-manager/pair-tournament.h"
 
-#include "engine-handling/engine-config.h"
+#include "../engine-handling/engine-config.h"
 
-#include "base-elements/game-start-position.h"
+#include "../base-elements/game-start-position.h"
 
 #include <vector>
 #include <string>
