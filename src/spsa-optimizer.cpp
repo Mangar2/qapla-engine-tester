@@ -18,10 +18,12 @@
  */
 
 #include "spsa-optimizer.h"
-#include "game-manager-pool.h"
-#include "base-elements/logger.h"
 #include "opening-parser.h"
+
+#include "game-manager/game-manager-pool.h"
+#include "base-elements/logger.h"
 #include "base-elements/app-error.h"
+
 #include <iostream>
 #include <iomanip>
 #include <format>

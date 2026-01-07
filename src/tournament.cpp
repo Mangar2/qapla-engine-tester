@@ -17,14 +17,17 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include "game-manager-pool.h"
-#include "base-elements/logger.h"
 #include "tournament.h"
 #include "opening-parser.h"
 #include "pgn-save.h"
 #include "engine-config-manager.h"
+
 #include "cli/input-handler.h"
-#include "adjudication-manager.h"
+
+#include "game-manager/game-manager-pool.h"
+#include "game-manager/adjudication-manager.h"
+
+#include "base-elements/logger.h"
 
 #include <sstream>
 #include <fstream>

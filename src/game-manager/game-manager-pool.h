@@ -19,9 +19,10 @@
 #pragma once
 
 #include "adjudication-manager.h"
-#include "engine-handling/engine-config.h"
-#include "game-manager/game-manager.h"
-#include "cli/input-handler.h"
+#include "game-manager.h"
+
+#include "../engine-handling/engine-config.h"
+#include "../cli/input-handler.h"
 
 #include <memory>
 #include <string>

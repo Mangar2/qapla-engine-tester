@@ -23,10 +23,11 @@
 #include "engine-report.h"
 #include "epd-test-manager.h"
 #include "compute-task.h"
-#include "game-manager/game-manager.h"
-#include "game-manager-pool.h"
 #include "engine-test-functions.h"
 #include "test-tournament.h"
+
+#include "game-manager/game-manager.h"
+#include "game-manager/game-manager-pool.h"
 
 #include "engine-tester/event-sink-recorder.h"
 

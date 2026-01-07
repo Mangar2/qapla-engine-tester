@@ -24,7 +24,7 @@
 #include "engine-handling/engine-config.h"
 #include "epd-test.h"
 #include "base-elements/time-control.h"
-#include "game-manager-pool.h"
+#include "game-manager/game-manager-pool.h"
 
 #include <memory>
 #include <string>

@@ -28,23 +28,26 @@
 #include <signal.h>
 #endif
 
-#include "base-elements/app-error.h"
 #include "engine-report.h"
 #include "engine-test-controller.h"
-#include "base-elements/logger.h"
 #include "engine-worker-factory.h"
-#include "cli/cli-settings-manager.h"
-#include "cli/qapla-settings.h"
 #include "epd-manager.h"
 #include "sprt-manager.h"
 #include "spsa-optimizer.h"
 #include "tournament.h"
+#include "pgn-save.h"
+
+#include "cli/input-handler.h"
+#include "cli/cli-settings-manager.h"
+#include "cli/qapla-settings.h"
+
+#include "game-manager/game-manager-pool.h"
+#include "game-manager/adjudication-manager.h"
+
+#include "base-elements/app-error.h"
 #include "base-elements/timer.h"
 #include "base-elements/time-control.h"
-#include "pgn-save.h"
-#include "cli/input-handler.h"
-#include "game-manager-pool.h"
-#include "adjudication-manager.h"
+#include "base-elements/logger.h"
 
 using namespace QaplaTester;
 using QaplaHelpers::Timer;

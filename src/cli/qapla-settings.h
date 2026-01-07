@@ -20,7 +20,7 @@
 #pragma once
 
 #include "../pgn-save.h"
-#include "../adjudication-manager.h"
+#include "../game-manager/adjudication-manager.h"
 
 #include <string>
 #include <vector>
