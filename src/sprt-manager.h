@@ -21,7 +21,7 @@
 
 
 #include "engine-handling/engine-config.h"
-#include "game-task.h"
+#include "game-manager/game-task.h"
 #include "openings.h"
 #include "pair-tournament.h"
 #include "cli/input-handler.h"

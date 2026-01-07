@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include "game-manager.h"
+#include "game-manager/game-manager.h"
 #include "game-manager-pool.h"
 #include "base-elements/app-error.h"
 #include "base-elements/string-helper.h"

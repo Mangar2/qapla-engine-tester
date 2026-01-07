@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "game-task.h"
+#include "game-manager/game-task.h"
 #include "epd-reader.h"
 #include "engine-handling/engine-config.h"
 #include "epd-test.h"

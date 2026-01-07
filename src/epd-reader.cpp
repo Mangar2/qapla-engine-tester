@@ -19,7 +19,7 @@
 
 #include "epd-reader.h"
 #include "base-elements/string-helper.h"
-#include "game-state.h"
+#include "game-manager/game-state.h"
 
 #include "qapla-engine/fenscanner.h"
 #include "qapla-engine/movegenerator.h"

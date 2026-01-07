@@ -27,7 +27,7 @@
 
 #include "pgn-io.h"
 #include "pgn-tokenizer.h"
-#include "game-state.h"
+#include "game-manager/game-state.h"
 
 namespace QaplaTester {
 

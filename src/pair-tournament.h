@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "game-task.h"
+#include "game-manager/game-task.h"
 #include "chess-game/game-record.h"
 #include "engine-handling/engine-config.h"
 #include "base-elements/time-control.h"
