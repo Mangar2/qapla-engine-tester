@@ -19,12 +19,12 @@
 
 #include "game-state.h"
 
-#include "qapla-engine/movegenerator.h"
-#include "qapla-engine/movescanner.h"
-#include "qapla-engine/fenscanner.h"
+#include "../qapla-engine/movegenerator.h"
+#include "../qapla-engine/movescanner.h"
+#include "../qapla-engine/fenscanner.h"
 
-#include "base-elements/game-start-position.h"  
-#include "base-elements/logger.h"
+#include "../base-elements/game-start-position.h"  
+#include "../base-elements/logger.h"
 
 #include <string>
 #include <vector>

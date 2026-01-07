@@ -17,12 +17,13 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
+ #include "player-context.h"
 
-#include "player-context.h"
-#include "engine-report.h"
-#include "base-elements/timer.h"
-#include "engine-worker-factory.h"
-#include "base-elements/app-error.h"
+#include "../engine-report.h"
+#include "../engine-worker-factory.h"
+
+#include "../base-elements/timer.h"
+#include "../base-elements/app-error.h"
 
 #include <format>
 #include <iostream>

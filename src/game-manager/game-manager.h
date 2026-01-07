@@ -18,16 +18,21 @@
  */
 #pragma once
 
-#include "engine-report.h"
-#include "engine-handling/engine-worker.h"
-#include "base-elements/timer.h"
+
 #include "game-task.h"
-#include "base-elements/time-control.h"
 #include "game-state.h"
-#include "chess-game/move-record.h"
-#include "chess-game/game-record.h"
 #include "player-context.h"
 #include "game-context.h"
+
+#include "../engine-report.h"
+
+#include "../engine-handling/engine-worker.h"
+
+#include "../chess-game/move-record.h"
+#include "../chess-game/game-record.h"
+
+#include "../base-elements/timer.h"
+#include "../base-elements/time-control.h"
 
 #include <memory>
 #include <future>

@@ -18,9 +18,10 @@
  */
 #pragma once
 
+#include "../chess-game/game-record.h"
+
 #include <optional>
 #include <string>
-#include "chess-game/game-record.h"
 
 namespace QaplaTester {
 

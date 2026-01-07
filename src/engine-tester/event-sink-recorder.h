@@ -24,7 +24,7 @@
 #include <optional>
 #include <algorithm>
 
-#include "chess-game/engine-event.h"
+#include "../chess-game/engine-event.h"
 
 namespace QaplaTester {
 

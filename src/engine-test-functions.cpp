@@ -20,16 +20,19 @@
 #include "engine-test-functions.h"
 #include "engine-worker-factory.h"
 #include "engine-report.h"
-#include "base-elements/logger.h"
-#include "base-elements/timer.h"
 #include "compute-task.h"
-#include "base-elements/time-control.h"
-#include "chess-game/game-record.h"
-#include "event-sink-recorder.h"
 #include "game-manager.h"
 #include "epd-test-manager.h"
 #include "test-tournament.h"
 #include "game-manager-pool.h"
+
+#include "engine-tester/event-sink-recorder.h"
+
+#include "chess-game/game-record.h"
+
+#include "base-elements/logger.h"
+#include "base-elements/timer.h"
+#include "base-elements/time-control.h"
 
 #include <memory>
 #include <sstream>
