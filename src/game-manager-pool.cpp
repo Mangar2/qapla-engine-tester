@@ -19,8 +19,8 @@
 
 #include "game-manager.h"
 #include "game-manager-pool.h"
-#include "../base-elements/app-error.h"
-#include "../base-elements/string-helper.h"
+#include "base-elements/app-error.h"
+#include "base-elements/string-helper.h"
 
 namespace QaplaTester {
 

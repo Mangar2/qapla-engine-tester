@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "../../spsa-optimizer.h"
-#include "../../pair-tournament.h"
-#include "../../game-result.h"
+#include "../spsa-optimizer.h"
+#include "../pair-tournament.h"
+#include "../game-result.h"
 #include <vector>
 #include <optional>
 

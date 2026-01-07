@@ -19,10 +19,10 @@
 #pragma once
 
 #include "player-context.h"
-#include "../base-elements/time-control.h"
-#include "../chess-game/game-result.h"
-#include "../chess-game/game-record.h"
-#include "../chess-game/engine-event.h"
+#include "base-elements/time-control.h"
+#include "chess-game/game-result.h"
+#include "chess-game/game-record.h"
+#include "chess-game/engine-event.h"
 #include "engine-record.h"
 
 #include <memory>

@@ -18,10 +18,10 @@
  */
 #pragma once
 #include <atomic>
-#include "../engine-handling/engine-worker.h"
-#include "../base-elements/time-control.h"
+#include "engine-handling/engine-worker.h"
+#include "base-elements/time-control.h"
 #include "game-state.h"
-#include "../chess-game/game-record.h"
+#include "chess-game/game-record.h"
 #include "engine-report.h"
 
 namespace QaplaTester {

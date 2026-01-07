@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "../engine-handling/engine-config.h"
+#include "engine-handling/engine-config.h"
 #include "pair-tournament.h"
-#include "../base-elements/game-start-position.h"
+#include "base-elements/game-start-position.h"
 #include <vector>
 #include <string>
 #include <memory>

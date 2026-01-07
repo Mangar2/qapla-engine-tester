@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "../../engine-handling\engine-config.h"
-#include "../../base-elements\time-control.h"
+#include "../engine-handling\engine-config.h"
+#include "../base-elements\time-control.h"
 #include <vector>
 #include <string>
 

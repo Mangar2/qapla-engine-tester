@@ -20,12 +20,12 @@
 #pragma once
 
 #include "game-task.h"
-#include "../chess-game/game-record.h"
-#include "../engine-handling/engine-config.h"
-#include "../base-elements/time-control.h"
+#include "chess-game/game-record.h"
+#include "engine-handling/engine-config.h"
+#include "base-elements/time-control.h"
 #include "openings.h"
 #include "tournament-result.h"
-#include "../base-elements/ini-file.h"
+#include "base-elements/ini-file.h"
 
 #include <vector>
 #include <memory>

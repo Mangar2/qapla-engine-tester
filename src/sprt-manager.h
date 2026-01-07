@@ -20,12 +20,12 @@
 #pragma once
 
 
-#include "../engine-handling/engine-config.h"
+#include "engine-handling/engine-config.h"
 #include "game-task.h"
 #include "openings.h"
 #include "pair-tournament.h"
 #include "cli/input-handler.h"
-#include "../base-elements/ini-file.h"
+#include "base-elements/ini-file.h"
 #include "sprt-calculation.h"
 
 #include <tuple>

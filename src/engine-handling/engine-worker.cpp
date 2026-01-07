@@ -22,8 +22,8 @@
 
 #include "engine-worker.h"
 #include "engine-adapter.h"  
-#include "../base-elements/logger.h"
-#include "../base-elements/timer.h"
+#include "base-elements/logger.h"
+#include "base-elements/timer.h"
 
 namespace QaplaTester {
 

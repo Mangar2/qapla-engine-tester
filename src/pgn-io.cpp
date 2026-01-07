@@ -20,12 +20,12 @@
 #include "pgn-io.h"
 
 #include "pgn-tokenizer.h"
-#include "../base-elements/time-control.h"
+#include "base-elements/time-control.h"
 #include "game-state.h"
-#include "../base-elements/string-helper.h"
+#include "base-elements/string-helper.h"
 #include "qapla-engine/movescanner.h"
 
-#include "../chess-game/game-result.h"
+#include "chess-game/game-result.h"
 
 #include <chrono>
 

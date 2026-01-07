@@ -20,14 +20,14 @@
 #include "qapla-settings.h"
 
 #include "cli-settings-manager.h"
-#include "../pgn-io.h"
-#include "../base-elements/app-error.h"
-#include "../openings.h"
-#include "../tournament.h"
-#include "../sprt-manager.h"
-#include "../epd-manager.h"
-#include "../engine-worker-factory.h"
-#include "../spsa-optimizer.h"
+#include "pgn-io.h"
+#include "base-elements/app-error.h"
+#include "openings.h"
+#include "tournament.h"
+#include "sprt-manager.h"
+#include "epd-manager.h"
+#include "engine-worker-factory.h"
+#include "spsa-optimizer.h"
 
 namespace QaplaTester::CliSettings {
 

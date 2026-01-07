@@ -19,8 +19,8 @@
 
 #include "pgn-save.h"
 
-#include "../base-elements/time-control.h"
-#include "../chess-game/game-result.h"
+#include "base-elements/time-control.h"
+#include "chess-game/game-result.h"
 
 #include <chrono>
 #include <ctime>

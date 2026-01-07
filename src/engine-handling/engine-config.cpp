@@ -23,8 +23,8 @@
 
 #include "engine-config.h"
 #include "engine-option.h"
-#include "../base-elements/app-error.h"
-#include "../base-elements/string-helper.h"
+#include "base-elements/app-error.h"
+#include "base-elements/string-helper.h"
 
 namespace QaplaTester {
 
