@@ -19,6 +19,7 @@
 
 #include "sprt-calculation.h"
 #include "fastchess-sprt.h"
+
 #include <cmath>
 #include <sstream>
 #include <iomanip>

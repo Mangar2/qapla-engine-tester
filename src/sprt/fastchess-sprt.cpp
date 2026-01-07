@@ -8,7 +8,7 @@
  */
 
 #include "fastchess-sprt.h"
-#include "base-elements/logger.h"
+#include "../base-elements/logger.h"
 
 #include <algorithm>
 #include <cassert>

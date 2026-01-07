@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "pair-tournament.h"
+#include "game-manager/pair-tournament.h"
 
 #include "engine-handling/engine-config.h"
 

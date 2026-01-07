@@ -18,11 +18,12 @@
  */
 
 #include "pair-tournament.h"
-#include "opening/pgn-save.h"
+#include "game-manager-pool.h"
 
-#include "chess-game/game-result.h"
-#include "game-manager/game-manager-pool.h"
-#include "base-elements/string-helper.h"
+#include "../opening/pgn-save.h"
+
+#include "../chess-game/game-result.h"
+#include "../base-elements/string-helper.h"
 
 #include <random>
 #include <iomanip>

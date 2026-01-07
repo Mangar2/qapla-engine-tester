@@ -19,14 +19,15 @@
 
 #pragma once
 
-
-#include "engine-handling/engine-config.h"
-#include "game-manager/game-task.h"
-#include "opening/openings.h"
-#include "pair-tournament.h"
-#include "cli/input-handler.h"
-#include "base-elements/ini-file.h"
 #include "sprt-calculation.h"
+
+#include "../game-manager/pair-tournament.h"
+#include "../game-manager/game-task.h"
+
+#include "../engine-handling/engine-config.h"
+#include "../opening/openings.h"
+#include "../cli/input-handler.h"
+#include "../base-elements/ini-file.h"
 
 #include <tuple>
 #include <thread>

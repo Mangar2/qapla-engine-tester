@@ -19,7 +19,7 @@
 #pragma once
 
 #include "opening/openings.h"
-#include "pair-tournament.h"
+#include "game-manager/pair-tournament.h"
 
 #include "game-manager/game-manager-pool.h"
 
