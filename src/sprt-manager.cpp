@@ -23,8 +23,8 @@
 #include <array>
 #include "sprt-manager.h"
 #include "sprt-calculation.h"
-#include "opening-parser.h"
-#include "pgn-save.h"
+#include "opening/opening-parser.h"
+#include "opening/pgn-save.h"
 #include "engine-handling/engine-config-manager.h"
 
 #include "game-manager/game-manager-pool.h"

@@ -18,7 +18,7 @@
  */
 
 #include "pair-tournament.h"
-#include "pgn-save.h"
+#include "opening/pgn-save.h"
 
 #include "chess-game/game-result.h"
 #include "game-manager/game-manager-pool.h"

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../pgn-save.h"
+#include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
 
 #include <string>

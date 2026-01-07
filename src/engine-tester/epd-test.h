@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "game-manager/game-task.h"
-#include "epd-reader.h"
-#include "engine-handling/engine-config.h"
+#include "../game-manager/game-task.h"
+#include "../opening/epd-reader.h"
+#include "../engine-handling/engine-config.h"
 
 #include <memory>
 #include <string>

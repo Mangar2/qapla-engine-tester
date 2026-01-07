@@ -18,10 +18,11 @@
  */
 
 #include "epd-test.h"
-#include "game-manager/game-manager.h"
-#include "game-manager/game-manager-pool.h"
-#include "game-manager/game-state.h"
-#include "base-elements/string-helper.h"
+
+#include "../game-manager/game-manager.h"
+#include "../game-manager/game-manager-pool.h"
+#include "../game-manager/game-state.h"
+#include "../base-elements/string-helper.h"
 
 namespace QaplaTester {
 

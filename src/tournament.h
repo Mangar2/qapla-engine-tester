@@ -18,7 +18,7 @@
  */
 #pragma once
 
-#include "openings.h"
+#include "opening/openings.h"
 #include "pair-tournament.h"
 
 #include "game-manager/game-manager-pool.h"

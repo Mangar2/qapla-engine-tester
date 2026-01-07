@@ -20,9 +20,9 @@
 #include "qapla-settings.h"
 
 #include "cli-settings-manager.h"
-#include "../pgn-io.h"
+#include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
-#include "../openings.h"
+#include "../opening/openings.h"
 #include "../tournament.h"
 #include "../sprt-manager.h"
 #include "../epd-manager.h"

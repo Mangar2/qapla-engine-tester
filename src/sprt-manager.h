@@ -22,7 +22,7 @@
 
 #include "engine-handling/engine-config.h"
 #include "game-manager/game-task.h"
-#include "openings.h"
+#include "opening/openings.h"
 #include "pair-tournament.h"
 #include "cli/input-handler.h"
 #include "base-elements/ini-file.h"

@@ -18,7 +18,7 @@
  */
 
 #include "spsa-optimizer.h"
-#include "opening-parser.h"
+#include "opening/opening-parser.h"
 
 #include "game-manager/game-manager-pool.h"
 #include "base-elements/logger.h"

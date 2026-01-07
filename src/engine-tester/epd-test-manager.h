@@ -18,10 +18,10 @@
  */
 #pragma once
 
-#include "game-manager/game-task.h"
-#include "chess-game/game-record.h"
-#include "base-elements/logger.h"
-#include "engine-report.h"
+#include "../game-manager/game-task.h"
+#include "../chess-game/game-record.h"
+#include "../base-elements/logger.h"
+#include "../engine-report.h"
 
 #include <vector>
 #include <optional>

@@ -23,7 +23,7 @@
 #include "chess-game/game-record.h"
 #include "engine-handling/engine-config.h"
 #include "base-elements/time-control.h"
-#include "openings.h"
+#include "opening/openings.h"
 #include "tournament-result.h"
 #include "base-elements/ini-file.h"
 

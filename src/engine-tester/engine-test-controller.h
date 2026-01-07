@@ -19,13 +19,16 @@
  
 #pragma once
 
+#include "../engine-handling/engine-config.h"
+#include "../engine-handling/engine-worker-factory.h"
+
+#include "../game-manager/game-manager.h"
+#include "../game-manager/compute-task.h"
+
 #include <iostream> 
 #include <string>
 #include <filesystem>
-#include "engine-handling/engine-config.h"
-#include "game-manager/game-manager.h"
-#include "compute-task.h"
-#include "engine-handling/engine-worker-factory.h"
+
 
 namespace QaplaTester {
 

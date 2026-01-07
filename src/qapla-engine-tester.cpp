@@ -29,13 +29,13 @@
 #endif
 
 #include "engine-report.h"
-#include "engine-test-controller.h"
+#include "engine-tester/engine-test-controller.h"
 #include "engine-handling/engine-worker-factory.h"
 #include "epd-manager.h"
 #include "sprt-manager.h"
 #include "spsa-optimizer.h"
 #include "tournament.h"
-#include "pgn-save.h"
+#include "opening/pgn-save.h"
 
 #include "cli/input-handler.h"
 #include "cli/cli-settings-manager.h"
