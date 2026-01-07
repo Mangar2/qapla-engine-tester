@@ -16,18 +16,18 @@
  * @author Volker BÃ¶hm
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
+#include <chrono>
 
-#include "pgn-io.h"
-
-#include "pgn-tokenizer.h"
-#include "base-elements/time-control.h"
-#include "game-state.h"
-#include "base-elements/string-helper.h"
 #include "qapla-engine/movescanner.h"
+
+#include "base-elements/time-control.h"
+#include "base-elements/string-helper.h"
 
 #include "chess-game/game-result.h"
 
-#include <chrono>
+#include "pgn-io.h"
+#include "pgn-tokenizer.h"
+#include "game-state.h"
 
 namespace QaplaTester {
 

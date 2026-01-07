@@ -17,15 +17,17 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include "pgn-save.h"
 
-#include "base-elements/time-control.h"
-#include "chess-game/game-result.h"
 
 #include <chrono>
 #include <ctime>
 #include <format>
 #include <iomanip>
+
+#include "pgn-save.h"
+
+#include "base-elements/time-control.h"
+#include "chess-game/game-result.h"
 
 namespace QaplaTester {
 
