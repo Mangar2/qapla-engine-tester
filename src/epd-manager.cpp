@@ -18,7 +18,7 @@
  */
 
 #include "epd-manager.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 
 #include "game-manager/game-manager.h"
 #include "game-manager/game-manager-pool.h"

@@ -25,7 +25,7 @@
 #include "engine-handling/engine-config.h"
 #include "game-manager/game-manager.h"
 #include "compute-task.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 
 namespace QaplaTester {
 

@@ -18,10 +18,11 @@
  */
 
 #include "engine-worker-factory.h"
-#include "engine-handling/uci-adapter.h"
-#include "engine-handling/winboard-adapter.h"
-#include "engine-report.h"
+#include "uci-adapter.h"
+#include "winboard-adapter.h"
 #include "engine-config-manager.h"
+
+#include "../engine-report.h"
 
 constexpr int DEFAULT_MAX_PARALLEL_STARTS = 2;    ///> Default max parallel engine starts
 constexpr int ENGINE_START_RETRY = 3;             ///> Number of retries for engine start

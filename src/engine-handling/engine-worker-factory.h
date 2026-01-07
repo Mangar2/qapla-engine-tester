@@ -25,9 +25,10 @@
 #include <unordered_map>
 #include <atomic>
 
-#include "engine-handling/engine-worker.h"
+#include "engine-worker.h"
 #include "engine-config-manager.h"
-#include "engine-report.h"
+
+#include "../engine-report.h"
 
 namespace QaplaTester {
 

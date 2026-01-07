@@ -25,7 +25,7 @@
 #include "sprt-calculation.h"
 #include "opening-parser.h"
 #include "pgn-save.h"
-#include "engine-config-manager.h"
+#include "engine-handling/engine-config-manager.h"
 
 #include "game-manager/game-manager-pool.h"
 

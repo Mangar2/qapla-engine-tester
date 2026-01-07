@@ -18,7 +18,7 @@
  */
 
 #include "game-context.h"
-#include "../engine-worker-factory.h"
+#include "../engine-handling/engine-worker-factory.h"
 
 namespace QaplaTester {
 

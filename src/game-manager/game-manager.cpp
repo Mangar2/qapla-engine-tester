@@ -37,7 +37,7 @@
 #include "adjudication-manager.h"
 
 #include "../engine-report.h"
-#include "../engine-worker-factory.h"
+#include "../engine-handling/engine-worker-factory.h"
 
 #include <iostream>
 #include <atomic>
