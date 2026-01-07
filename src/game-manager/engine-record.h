@@ -22,9 +22,9 @@
 #include <vector>
 #include <optional>
 
-#include "chess-game/move-record.h"
-#include "engine-handling/engine-config.h"
-#include "engine-handling/engine-option.h"
+#include "../chess-game/move-record.h"
+#include "../engine-handling/engine-config.h"
+#include "../engine-handling/engine-option.h"
 
 namespace QaplaTester {
 
