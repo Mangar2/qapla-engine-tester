@@ -27,9 +27,11 @@
 
 #include <string>
 #include <unordered_map>
-#include "base-elements/logger.h"
-#include "base-elements/app-error.h"
-#include "game-manager/tournament-result.h"
+
+#include "../game-manager/tournament-result.h"
+
+#include "../base-elements/logger.h"
+#include "../base-elements/app-error.h"
 
 namespace QaplaTester {
 

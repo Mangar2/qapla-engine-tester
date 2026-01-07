@@ -36,7 +36,7 @@
 #include "game-manager-pool.h"
 #include "adjudication-manager.h"
 
-#include "../engine-report.h"
+#include "../engine-tester/engine-report.h"
 #include "../engine-handling/engine-worker-factory.h"
 
 #include <iostream>

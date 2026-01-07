@@ -28,7 +28,7 @@
 #include <signal.h>
 #endif
 
-#include "engine-report.h"
+#include "engine-tester/engine-report.h"
 #include "engine-tester/engine-test-controller.h"
 #include "engine-handling/engine-worker-factory.h"
 #include "epd-manager.h"

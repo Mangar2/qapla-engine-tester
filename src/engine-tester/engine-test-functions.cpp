@@ -23,7 +23,7 @@
 #include "test-tournament.h"
 #include "event-sink-recorder.h"
 
-#include "../engine-report.h"
+#include "engine-report.h"
 
 #include "../engine-handling/engine-worker-factory.h"
 

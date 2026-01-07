@@ -28,7 +28,7 @@
 #include "engine-worker.h"
 #include "engine-config-manager.h"
 
-#include "../engine-report.h"
+#include "../engine-tester/engine-report.h"
 
 namespace QaplaTester {
 

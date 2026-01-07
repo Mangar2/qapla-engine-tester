@@ -20,7 +20,7 @@
 
 #include "game-state.h"
 
-#include "../engine-report.h"
+#include "../engine-tester/engine-report.h"
 
 #include "../engine-handling/engine-worker.h"
 #include "../chess-game/game-record.h"

@@ -19,7 +19,7 @@
 
  #include "player-context.h"
 
-#include "../engine-report.h"
+#include "../engine-tester/engine-report.h"
 #include "../engine-handling/engine-worker-factory.h"
 
 #include "../base-elements/timer.h"
