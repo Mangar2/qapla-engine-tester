@@ -18,13 +18,14 @@
  */
 #pragma once
 
+#include "../chess-game/game-record.h"
+#include "../chess-game/game-result.h"
+#include "../base-elements/logger.h"
+
 #include <optional>
 #include <iostream>
 #include <string>
 #include <vector>
-#include "chess-game/game-record.h"
-#include "chess-game/game-result.h"
-#include "base-elements/logger.h"
 
 namespace QaplaTester {
 
