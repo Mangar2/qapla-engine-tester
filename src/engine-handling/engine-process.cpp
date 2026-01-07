@@ -18,7 +18,7 @@
  */
 
 #include "engine-process.h"
-#include "base-elements/app-error.h"
+#include "../base-elements/app-error.h"
 
 #include <stdexcept>
 #include <vector>
@@ -54,8 +54,8 @@
 #endif
 #endif
 
-#include "base-elements/timer.h"
-#include "base-elements/logger.h"
+#include "../base-elements/timer.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 

@@ -21,7 +21,7 @@
 #include <vector>
 #include <cstdint>
 #include <tuple>
-#include "game-start-position.h"  
+#include "base-elements/game-start-position.h"  
 #include "qapla-engine/movegenerator.h"
 #include "qapla-engine/movescanner.h"
 #include "qapla-engine/fenscanner.h"

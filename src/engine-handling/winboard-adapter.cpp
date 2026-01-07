@@ -24,11 +24,11 @@
 #include <chrono>
 #include <limits>
 #include <unordered_set>
-#include "base-elements/timer.h"
-#include "base-elements/string-helper.h"
+#include "../base-elements/timer.h"
+#include "../base-elements/string-helper.h"
 #include "winboard-adapter.h"
 #include "engine-process.h"
-#include "base-elements/logger.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 
