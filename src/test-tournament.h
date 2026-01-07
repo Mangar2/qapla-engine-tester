@@ -27,7 +27,7 @@
 #include "chess-game/game-record.h"
 #include "chess-game/game-result.h"
 #include "engine-report.h"
-#include "game-task.h"
+#include "game-manager/game-task.h"
 
 namespace QaplaTester {
 

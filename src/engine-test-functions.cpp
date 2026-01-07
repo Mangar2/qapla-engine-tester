@@ -21,7 +21,7 @@
 #include "engine-worker-factory.h"
 #include "engine-report.h"
 #include "compute-task.h"
-#include "game-manager.h"
+#include "game-manager/game-manager.h"
 #include "epd-test-manager.h"
 #include "test-tournament.h"
 #include "game-manager-pool.h"

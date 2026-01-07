@@ -18,7 +18,7 @@
  */
 #pragma once
 
-#include "game-task.h"
+#include "game-manager/game-task.h"
 #include "chess-game/game-record.h"
 #include "base-elements/logger.h"
 #include "engine-report.h"

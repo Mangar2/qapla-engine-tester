@@ -23,7 +23,7 @@
 #include <string>
 #include <filesystem>
 #include "engine-handling/engine-config.h"
-#include "game-manager.h"
+#include "game-manager/game-manager.h"
 #include "compute-task.h"
 #include "engine-worker-factory.h"
 

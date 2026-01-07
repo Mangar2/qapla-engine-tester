@@ -20,7 +20,7 @@
 
 #include "engine-handling/engine-worker.h"
 #include "chess-game/engine-event.h"
-#include "game-context.h"
+#include "game-manager/game-context.h"
 
 #include <memory>
 #include <string>
