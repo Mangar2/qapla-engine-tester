@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,18 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "engine-test-functions.h"
 #include "engine-worker-factory.h"
 #include "engine-report.h"
-#include "logger.h"
-#include "timer.h"
+#include "base-elements/logger.h"
+#include "base-elements/timer.h"
 #include "compute-task.h"
-#include "time-control.h"
-#include "game-record.h"
+#include "base-elements/time-control.h"
+#include "chess-game/game-record.h"
 #include "event-sink-recorder.h"
 #include "game-manager.h"
 #include "epd-test-manager.h"
@@ -299,7 +299,7 @@ std::vector<std::string> generateComboValues(const EngineOption& opt) {
 std::vector<std::string> generateStringValues() {
     return {
         "",
-        "öäüß",               
+        "Ã¶Ã¤Ã¼ÃŸ",               
         "C:\\invalid\\path",
         std::string(1024, 'A'), 
         "\x01\x02\x03\xFF"      

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "spsa-optimizer.h"
 #include "game-manager-pool.h"
-#include "logger.h"
+#include "../base-elements/logger.h"
 #include "opening-parser.h"
-#include "app-error.h"
+#include "../base-elements/app-error.h"
 #include <iostream>
 #include <iomanip>
 #include <format>
@@ -248,7 +248,7 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
     auto result = perturbation.pairing->getResult();
     
     // Calculate gradient signal: wins - losses
-    // In the normalized space, gradient g_φ_i ≈ (wins - losses) * Δ_i
+    // In the normalized space, gradient g_Ï†_i â‰ˆ (wins - losses) * Î”_i
     int wins = result.winsEngineA;
     int losses = result.winsEngineB;
     double gradient_signal = static_cast<double>(wins - losses);
@@ -256,7 +256,7 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
     std::scoped_lock lock(stateMutex_);
 
     // Update each parameter using SPSA update rule
-    // Δθ_i = r_i * c_i * g_φ_i, where g_φ_i = gradient_signal * Δ_i
+    // Î”Î¸_i = r_i * c_i * g_Ï†_i, where g_Ï†_i = gradient_signal * Î”_i
     for (size_t i = 0; i < currentParameters_.size(); ++i) {
         double delta_i = static_cast<double>(perturbation.deltas[i]);
         double c_i = config_.parameters[i].c;
@@ -265,7 +265,7 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
         // SPSA gradient approximation in normalized space
         double g_phi_i = gradient_signal * delta_i;
         
-        // Update in original parameter space: Δθ = r * c * g_φ
+        // Update in original parameter space: Î”Î¸ = r * c * g_Ï†
         double update = r_i * c_i * g_phi_i;
         currentParameters_[i] += update;
         
@@ -295,7 +295,7 @@ EngineConfig SPSAOptimizer::createPerturbedEngineConfig(
         const auto& paramConfig = config_.parameters[i];
         double baseValue = currentParameters_[i];
         
-        // Apply perturbation: θ_i + c_i * Δ_i
+        // Apply perturbation: Î¸_i + c_i * Î”_i
         double perturbedValue = baseValue + paramConfig.c * deltas[i];
         perturbedValue = std::clamp(perturbedValue, paramConfig.minValue, paramConfig.maxValue);
         
@@ -318,7 +318,7 @@ std::vector<int> SPSAOptimizer::generatePerturbationDeltas() {
     std::uniform_int_distribution<int> dist(0, 1);
     
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        // Generate ±1 randomly
+        // Generate Â±1 randomly
         deltas.push_back(dist(rng_) == 0 ? -1 : 1);
     }
     

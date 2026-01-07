@@ -15,6 +15,7 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX "src/test-system/unit/.*\\.cpp$")
 add_executable(qapla-engine-tester ${SOURCES})
 target_compile_definitions(qapla-engine-tester PRIVATE _REENTRANT)
+target_include_directories(qapla-engine-tester PRIVATE .)
 
 if(APPLE)
     # macOS: pthread

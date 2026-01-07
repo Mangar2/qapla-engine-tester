@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2021 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2021 Volker BÃ¶hm
  * @Overview
  */
 
@@ -28,7 +28,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
-#include "engine-config.h"
+#include "engine-handling/engine-config.h"
 
 #include "cli/cli-settings-manager.h"
 

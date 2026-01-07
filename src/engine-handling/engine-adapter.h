@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 #pragma once
 
@@ -27,14 +27,14 @@
 #include <atomic>
 #include <mutex>
 
-#include "time-control.h"
+#include "../base-elements/time-control.h"
 #include "engine-process.h"
-#include "game-start-position.h"
-#include "game-record.h"
-#include "engine-event.h"
-#include "logger.h"
+#include "../base-elements/game-start-position.h"
+#include "../chess-game/game-record.h"
+#include "../chess-game/engine-event.h"
+#include "../base-elements/logger.h"
 #include "engine-option.h"
-#include "string-helper.h"
+#include "../base-elements/string-helper.h"
 
 namespace QaplaTester {
 
@@ -177,8 +177,8 @@ public:
      * to complete the startup handshake.
      *
      * For example:
-     * - UCI requires a "uciok" response → must return true.
-     * - Winboard may omit "feature done=1" → must return false.
+     * - UCI requires a "uciok" response â†’ must return true.
+     * - Winboard may omit "feature done=1" â†’ must return false.
      *
      * The EngineWorker uses this to decide whether a missing ProtocolOk
      * should be treated as a fatal error or as a valid timeout-based completion.

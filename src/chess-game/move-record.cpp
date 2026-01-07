@@ -17,15 +17,14 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "move-record.h"
-
-#include "engine-event.h"
-
 #include <string>
 #include <optional>
 #include <cassert>
 #include <sstream>
 #include <iomanip>
+
+#include "move-record.h"
+#include "engine-event.h"
 
 namespace QaplaTester {
 

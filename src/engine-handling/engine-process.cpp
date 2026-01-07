@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,12 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #include "engine-process.h"
-#include "app-error.h"
+#include "../base-elements/app-error.h"
 
 #include <stdexcept>
 #include <vector>
@@ -54,8 +54,8 @@
 #endif
 #endif
 
-#include "timer.h"
-#include "logger.h"
+#include "../base-elements/timer.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 
@@ -67,10 +67,10 @@ namespace {
 /**
  * @brief Splits a command-line argument string into individual arguments.
  * Supports:
- * - Double quotes: "hello world" → hello world
- * - Single quotes: 'hello world' → hello world
- * - Escaped quotes: "hello \"world\"" → hello "world"
- * - Backslash escaping: hello\ world → hello world
+ * - Double quotes: "hello world" â†’ hello world
+ * - Single quotes: 'hello world' â†’ hello world
+ * - Escaped quotes: "hello \"world\"" â†’ hello "world"
+ * - Backslash escaping: hello\ world â†’ hello world
  * - Mixed quoting and escaping
  * @param argumentString The command-line argument string to split.
  * @return Vector of individual arguments.
@@ -516,7 +516,7 @@ std::size_t EngineProcess::getMemoryUsage() const
     if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
     {
         pclose(pipe);
-        return std::stoul(buffer) * 1024; // KB → Bytes
+        return std::stoul(buffer) * 1024; // KB â†’ Bytes
     }
     pclose(pipe);
     return 0;

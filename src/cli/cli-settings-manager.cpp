@@ -19,8 +19,8 @@
 
 #include "cli-settings-manager.h"
 
-#include "../app-error.h"
-#include "../string-helper.h"
+#include "../base-elements/app-error.h"
+#include "../base-elements/string-helper.h"
 
 #include <cstring>
 #include <iostream>

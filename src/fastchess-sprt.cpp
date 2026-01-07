@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastchess-sprt.cpp
  * @author FastChess Developers
  * @brief 
@@ -8,7 +8,7 @@
  */
 
 #include "fastchess-sprt.h"
-#include "logger.h"
+#include "base-elements/logger.h"
 
 #include <algorithm>
 #include <cassert>
