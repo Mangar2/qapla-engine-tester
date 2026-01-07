@@ -17,16 +17,20 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
+#include "game-state.h"
+
+#include "qapla-engine/movegenerator.h"
+#include "qapla-engine/movescanner.h"
+#include "qapla-engine/fenscanner.h"
+
+#include "base-elements/game-start-position.h"  
+#include "base-elements/logger.h"
+
 #include <string>
 #include <vector>
 #include <cstdint>
 #include <tuple>
-#include "base-elements/game-start-position.h"  
-#include "qapla-engine/movegenerator.h"
-#include "qapla-engine/movescanner.h"
-#include "qapla-engine/fenscanner.h"
-#include "game-state.h"
-#include "base-elements/logger.h"
+
 
 namespace QaplaTester {
 
