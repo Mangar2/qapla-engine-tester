@@ -18,7 +18,7 @@
  */
 
 #include "tournament-result.h"
-#include "../base-elements/elo-helper.h"
+#include "base-elements/elo-helper.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>

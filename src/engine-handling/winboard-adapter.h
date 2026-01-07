@@ -31,7 +31,7 @@
 
 #include "engine-adapter.h"
 #include "uci-option.h"
-#include "../chess-game/game-record.h"
+#include "chess-game/game-record.h"
 
 
 namespace QaplaTester {

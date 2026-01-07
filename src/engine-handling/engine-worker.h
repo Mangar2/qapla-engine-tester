@@ -26,7 +26,7 @@
 #include <functional>
 #include <optional>
 #include <future>
-#include "../chess-game/game-record.h"
+#include "chess-game/game-record.h"
 #include "engine-adapter.h"
 #include "engine-config.h"
 

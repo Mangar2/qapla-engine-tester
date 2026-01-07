@@ -29,11 +29,11 @@
 #include <variant>
 #include <set>
 
-#include "../base-elements/ini-file.h"
-#include "../base-elements/string-helper.h"
-#include "../base-elements/time-control.h"
+#include "base-elements/ini-file.h"
+#include "base-elements/string-helper.h"
+#include "base-elements/time-control.h"
 #include "engine-option.h"
-#include "../base-elements/logger.h"
+#include "base-elements/logger.h"
 
 namespace QaplaTester {
 

@@ -23,8 +23,8 @@
 #include <vector>
 #include <cstdint>
 #include "qapla-engine/movegenerator.h"
-#include "../chess-game/game-result.h"
-#include "../chess-game/game-record.h"
+#include "chess-game/game-result.h"
+#include "chess-game/game-record.h"
 
 namespace QaplaTester {
 

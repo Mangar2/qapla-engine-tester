@@ -18,7 +18,7 @@
  */
 
 #include "game-manager-pool.h"
-#include "../base-elements/logger.h"
+#include "base-elements/logger.h"
 #include "tournament.h"
 #include "opening-parser.h"
 #include "pgn-save.h"

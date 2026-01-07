@@ -28,10 +28,10 @@
 #include <signal.h>
 #endif
 
-#include "../base-elements/app-error.h"
+#include "base-elements/app-error.h"
 #include "engine-report.h"
 #include "engine-test-controller.h"
-#include "../base-elements/logger.h"
+#include "base-elements/logger.h"
 #include "engine-worker-factory.h"
 #include "cli/cli-settings-manager.h"
 #include "cli/qapla-settings.h"
@@ -39,8 +39,8 @@
 #include "sprt-manager.h"
 #include "spsa-optimizer.h"
 #include "tournament.h"
-#include "../base-elements/timer.h"
-#include "../base-elements/time-control.h"
+#include "base-elements/timer.h"
+#include "base-elements/time-control.h"
 #include "pgn-save.h"
 #include "cli/input-handler.h"
 #include "game-manager-pool.h"

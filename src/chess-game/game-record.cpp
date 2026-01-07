@@ -18,7 +18,7 @@
  */
 
 #include "game-record.h"
-#include "../qapla-engine/qapla-engine\move.h"
+#include "qapla-engine/qapla-engine\move.h"
 
 namespace QaplaTester {
 

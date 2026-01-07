@@ -20,9 +20,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "spsa-test-helpers.h"
-#include "../../engine-config.h"
-#include "../../spsa-optimizer.h"
-#include "../../game-manager-pool.h"
+#include "../engine-config.h"
+#include "../spsa-optimizer.h"
+#include "../game-manager-pool.h"
 
 using namespace QaplaTester;
 using namespace QaplaTester::Test;

@@ -17,11 +17,11 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include "../chess-game/game-result.h"
+#include "chess-game/game-result.h"
 #include "pair-tournament.h"
 #include "game-manager-pool.h"
 #include "pgn-save.h"
-#include "../base-elements/string-helper.h"
+#include "base-elements/string-helper.h"
 
 #include <random>
 #include <iomanip>

@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "../chess-game/move-record.h"
-#include "../chess-game/game-record.h"
+#include "chess-game/move-record.h"
+#include "chess-game/game-record.h"
 
 #include <string>
 #include <mutex>

@@ -20,12 +20,12 @@
 
 #include "openings.h"
 #include "pair-tournament.h"
-#include "../engine-handling/engine-config.h"
-#include "../base-elements/time-control.h"
+#include "engine-handling/engine-config.h"
+#include "base-elements/time-control.h"
 #include "cli/input-handler.h"
-#include "../base-elements/ini-file.h"
+#include "base-elements/ini-file.h"
 #include "game-manager-pool.h"
-#include "../base-elements/change-tracker.h"
+#include "base-elements/change-tracker.h"
 
 #include <vector>
 #include <memory>

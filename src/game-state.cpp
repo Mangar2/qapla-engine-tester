@@ -26,7 +26,7 @@
 #include "qapla-engine/movescanner.h"
 #include "qapla-engine/fenscanner.h"
 #include "game-state.h"
-#include "../base-elements/logger.h"
+#include "base-elements/logger.h"
 
 namespace QaplaTester {
 

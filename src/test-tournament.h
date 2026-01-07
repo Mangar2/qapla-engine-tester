@@ -23,9 +23,9 @@
 #include <mutex>
 #include <utility>
 
-#include "../base-elements/time-control.h"
-#include "../chess-game/game-record.h"
-#include "../chess-game/game-result.h"
+#include "base-elements/time-control.h"
+#include "chess-game/game-record.h"
+#include "chess-game/game-result.h"
 #include "engine-report.h"
 #include "game-task.h"
 
