@@ -18,6 +18,7 @@
  */
 
 #include "test-tournament.h"
+
 #include <sstream>
 #include <iomanip>
 #include <algorithm>

@@ -18,11 +18,12 @@
  */
 
 #include "epd-reader.h"
-#include "base-elements/string-helper.h"
-#include "game-manager/game-state.h"
 
-#include "qapla-engine/fenscanner.h"
-#include "qapla-engine/movegenerator.h"
+#include "../base-elements/string-helper.h"
+#include "../game-manager/game-state.h"
+
+#include "../qapla-engine/fenscanner.h"
+#include "../qapla-engine/movegenerator.h"
 
 #include <array>
 #include <sstream>

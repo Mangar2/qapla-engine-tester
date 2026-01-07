@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "chess-game/game-record.h"
+#include "../chess-game/game-record.h"
 
 #include <string>
 #include <vector>

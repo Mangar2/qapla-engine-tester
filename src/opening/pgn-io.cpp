@@ -18,16 +18,17 @@
  */
 #include <chrono>
 
-#include "qapla-engine/movescanner.h"
-
-#include "base-elements/time-control.h"
-#include "base-elements/string-helper.h"
-
-#include "chess-game/game-result.h"
-
 #include "pgn-io.h"
 #include "pgn-tokenizer.h"
-#include "game-manager/game-state.h"
+
+#include "../qapla-engine/movescanner.h"
+
+#include "../base-elements/time-control.h"
+#include "../base-elements/string-helper.h"
+
+#include "../chess-game/game-result.h"
+
+#include "../game-manager/game-state.h"
 
 namespace QaplaTester {
 

@@ -18,22 +18,24 @@
  */
 
 #include "engine-test-functions.h"
-#include "engine-handling/engine-worker-factory.h"
-#include "engine-report.h"
-#include "compute-task.h"
+
 #include "epd-test-manager.h"
 #include "test-tournament.h"
+#include "event-sink-recorder.h"
 
-#include "game-manager/game-manager.h"
-#include "game-manager/game-manager-pool.h"
+#include "../engine-report.h"
 
-#include "engine-tester/event-sink-recorder.h"
+#include "../engine-handling/engine-worker-factory.h"
 
-#include "chess-game/game-record.h"
+#include "../game-manager/compute-task.h"
+#include "../game-manager/game-manager.h"
+#include "../game-manager/game-manager-pool.h"
 
-#include "base-elements/logger.h"
-#include "base-elements/timer.h"
-#include "base-elements/time-control.h"
+#include "../chess-game/game-record.h"
+
+#include "../base-elements/logger.h"
+#include "../base-elements/timer.h"
+#include "../base-elements/time-control.h"
 
 #include <memory>
 #include <sstream>

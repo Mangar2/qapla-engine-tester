@@ -19,10 +19,11 @@
 
 #pragma once
 
+#include "opening/epd-reader.h"
+
 #include "game-manager/game-task.h"
-#include "epd-reader.h"
 #include "engine-handling/engine-config.h"
-#include "epd-test.h"
+#include "engine-tester/epd-test.h"
 #include "base-elements/time-control.h"
 #include "game-manager/game-manager-pool.h"
 
