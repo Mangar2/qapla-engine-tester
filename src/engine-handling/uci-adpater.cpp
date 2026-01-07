@@ -25,10 +25,10 @@
 #include <limits>
 #include <unordered_set>
 
-#include "base-elements/timer.h"
+#include "../base-elements/timer.h"
 #include "uci-adapter.h"
 #include "engine-process.h"
-#include "base-elements/logger.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 

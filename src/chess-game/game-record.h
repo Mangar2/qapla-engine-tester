@@ -29,11 +29,11 @@
 #include <iostream>
 
 #include "move-record.h"
-#include "base-elements/time-control.h"
+#include "../base-elements/time-control.h"
 #include "game-result.h"
-#include "base-elements/change-tracker.h"
+#include "../base-elements/change-tracker.h"
 
-#include "qapla-engine/move.h"
+#include "../qapla-engine/move.h"
 
 namespace QaplaTester {
 
