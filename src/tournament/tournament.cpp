@@ -18,16 +18,16 @@
  */
 
 #include "tournament.h"
-#include "opening/opening-parser.h"
-#include "opening/pgn-save.h"
-#include "engine-handling/engine-config-manager.h"
+#include "../opening/opening-parser.h"
+#include "../opening/pgn-save.h"
+#include "../engine-handling/engine-config-manager.h"
 
-#include "cli/input-handler.h"
+#include "../cli/input-handler.h"
 
-#include "game-manager/game-manager-pool.h"
-#include "game-manager/adjudication-manager.h"
+#include "../game-manager/game-manager-pool.h"
+#include "../game-manager/adjudication-manager.h"
 
-#include "base-elements/logger.h"
+#include "../base-elements/logger.h"
 
 #include <sstream>
 #include <fstream>

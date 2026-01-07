@@ -31,10 +31,10 @@
 #include "engine-tester/engine-report.h"
 #include "engine-tester/engine-test-controller.h"
 #include "engine-handling/engine-worker-factory.h"
-#include "epd-manager.h"
+#include "epd/epd-manager.h"
 #include "sprt/sprt-manager.h"
-#include "spsa-optimizer.h"
-#include "tournament.h"
+#include "spsa/spsa-optimizer.h"
+#include "tournament/tournament.h"
 #include "opening/pgn-save.h"
 
 #include "cli/input-handler.h"

@@ -23,11 +23,11 @@
 #include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
 #include "../opening/openings.h"
-#include "../tournament.h"
+#include "../tournament/tournament.h"
 #include "../sprt/sprt-manager.h"
-#include "../epd-manager.h"
+#include "../epd/epd-manager.h"
 #include "../engine-handling/engine-worker-factory.h"
-#include "../spsa-optimizer.h"
+#include "../spsa/spsa-optimizer.h"
 
 namespace QaplaTester::CliSettings {
 

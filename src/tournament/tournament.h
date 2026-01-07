@@ -18,17 +18,17 @@
  */
 #pragma once
 
-#include "opening/openings.h"
-#include "game-manager/pair-tournament.h"
+#include "../opening/openings.h"
+#include "../game-manager/pair-tournament.h"
 
-#include "game-manager/game-manager-pool.h"
+#include "../game-manager/game-manager-pool.h"
 
-#include "cli/input-handler.h"
+#include "../cli/input-handler.h"
 
-#include "engine-handling/engine-config.h"
-#include "base-elements/time-control.h"
-#include "base-elements/ini-file.h"
-#include "base-elements/change-tracker.h"
+#include "../engine-handling/engine-config.h"
+#include "../base-elements/time-control.h"
+#include "../base-elements/ini-file.h"
+#include "../base-elements/change-tracker.h"
 
 #include <vector>
 #include <memory>
