@@ -26,7 +26,7 @@
 #include "../tournament.h"
 #include "../sprt-manager.h"
 #include "../epd-manager.h"
-#include "../engine-worker-factory.h"
+#include "../engine-handling/engine-worker-factory.h"
 #include "../spsa-optimizer.h"
 
 namespace QaplaTester::CliSettings {

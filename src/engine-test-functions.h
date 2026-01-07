@@ -23,7 +23,7 @@
 #include <string>
 #include <functional>
 #include "engine-handling/engine-config.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 
 namespace QaplaTester {
 

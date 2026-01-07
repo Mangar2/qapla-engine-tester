@@ -20,7 +20,7 @@
 #include "tournament.h"
 #include "opening-parser.h"
 #include "pgn-save.h"
-#include "engine-config-manager.h"
+#include "engine-handling/engine-config-manager.h"
 
 #include "cli/input-handler.h"
 

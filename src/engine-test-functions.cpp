@@ -18,7 +18,7 @@
  */
 
 #include "engine-test-functions.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 #include "engine-report.h"
 #include "compute-task.h"
 #include "epd-test-manager.h"

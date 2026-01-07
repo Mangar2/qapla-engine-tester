@@ -30,7 +30,7 @@
 
 #include "engine-report.h"
 #include "engine-test-controller.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 #include "epd-manager.h"
 #include "sprt-manager.h"
 #include "spsa-optimizer.h"

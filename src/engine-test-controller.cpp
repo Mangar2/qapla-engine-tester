@@ -19,7 +19,7 @@
 
 
 #include "engine-test-controller.h"
-#include "engine-worker-factory.h"
+#include "engine-handling/engine-worker-factory.h"
 #include "engine-report.h"
 #include "epd-test-manager.h"
 #include "compute-task.h"

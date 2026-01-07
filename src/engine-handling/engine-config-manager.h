@@ -28,9 +28,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
-#include "engine-handling/engine-config.h"
 
-#include "cli/cli-settings-manager.h"
+#include "engine-config.h"
+#include "../cli/cli-settings-manager.h"
 
 namespace QaplaTester {
 

@@ -19,7 +19,7 @@
 
 #include "engine-config-manager.h"
 
-#include "base-elements/string-helper.h"
+#include "../base-elements/string-helper.h"
 
 namespace QaplaTester {
 

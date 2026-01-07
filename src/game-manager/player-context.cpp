@@ -20,7 +20,7 @@
  #include "player-context.h"
 
 #include "../engine-report.h"
-#include "../engine-worker-factory.h"
+#include "../engine-handling/engine-worker-factory.h"
 
 #include "../base-elements/timer.h"
 #include "../base-elements/app-error.h"
