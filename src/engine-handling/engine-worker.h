@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 #pragma once
 
@@ -26,7 +26,7 @@
 #include <functional>
 #include <optional>
 #include <future>
-#include "game-record.h"
+#include "../chess-game/game-record.h"
 #include "engine-adapter.h"
 #include "engine-config.h"
 
@@ -75,9 +75,9 @@ public:
 	void stop(bool wait = true);
 
 	/**
-	 * @brief Führt isready/readyok durch. 
+	 * @brief FÃ¼hrt isready/readyok durch. 
 	 * @param timeout Zeitspanne, die maximal gewartet werden soll.
-	 * @return true, wenn readyok empfangen wurde, andernfalls false (z. B. bei Hänger).
+	 * @return true, wenn readyok empfangen wurde, andernfalls false (z.â€¯B. bei HÃ¤nger).
 	 */
 	bool requestReady(std::chrono::milliseconds timeout = ReadyTimeoutNormal);
 

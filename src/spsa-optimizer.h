@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #pragma once
 
-#include "engine-config.h"
+#include "../engine-handling/engine-config.h"
 #include "pair-tournament.h"
-#include "game-start-position.h"
+#include "../base-elements/game-start-position.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -63,7 +63,7 @@ struct SPSAConfig {
  * @brief Perturbation direction and associated tournament
  */
 struct SPSAPerturbation {
-    std::vector<int> deltas;                    // ±1 for each parameter
+    std::vector<int> deltas;                    // Â±1 for each parameter
     std::vector<double> perturbedValues;        // Actual parameter values used
     std::shared_ptr<PairTournament> pairing;    // Associated tournament
     size_t iteration;                           // Iteration number
@@ -152,14 +152,14 @@ private:
 
     /**
      * @brief Apply perturbations to create modified engine config
-     * @param deltas Vector of ±1 perturbation directions
+     * @param deltas Vector of Â±1 perturbation directions
      * @return Modified engine configuration
      */
     EngineConfig createPerturbedEngineConfig(const std::vector<int>& deltas, 
                                               std::vector<double>& perturbedValues);
 
     /**
-     * @brief Generate random perturbation deltas (±1)
+     * @brief Generate random perturbation deltas (Â±1)
      */
     std::vector<int> generatePerturbationDeltas();
 
@@ -176,7 +176,7 @@ private:
 
     EngineConfig baseEngine_;
     SPSAConfig config_;
-    std::vector<double> currentParameters_;     // Current best parameters (θ)
+    std::vector<double> currentParameters_;     // Current best parameters (Î¸)
     std::shared_ptr<StartPositions> startPositions_;
     GameManagerPool* pool_ = nullptr;           // Pool reference for scheduling
     

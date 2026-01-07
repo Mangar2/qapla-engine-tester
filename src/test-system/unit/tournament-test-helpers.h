@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,15 +13,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
 #pragma once
 
-#include "tournament.h"
-#include "pair-tournament.h"
-#include "game-result.h"
+#include "../../src\tournament.h"
+#include "../../src\pair-tournament.h"
+#include "../../chess-game\game-result.h"
 #include <vector>
 #include <optional>
 

@@ -22,7 +22,7 @@
 #include "engine-event.h"
 #include "game-result.h"
 
-#include "qapla-engine/move.h"
+#include "../qapla-engine/move.h"
 
 #include <string>
 #include <optional>

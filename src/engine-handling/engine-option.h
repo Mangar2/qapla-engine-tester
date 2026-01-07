@@ -18,13 +18,13 @@
  */
 #pragma once
 
-#include "app-error.h"
-#include "string-helper.h"
-
 #include <string>
 #include <vector>
 #include <optional>
 #include <cassert>
+
+#include "../base-elements/app-error.h"
+#include "../base-elements/string-helper.h"
 
 namespace QaplaTester {
 

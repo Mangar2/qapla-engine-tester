@@ -21,7 +21,7 @@
 
 #include "cli-settings-manager.h"
 #include "../pgn-io.h"
-#include "../app-error.h"
+#include "../base-elements/app-error.h"
 #include "../openings.h"
 #include "../tournament.h"
 #include "../sprt-manager.h"

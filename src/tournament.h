@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @license
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -13,19 +13,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker Böhm
- * @copyright Copyright (c) 2025 Volker Böhm
+ * @author Volker BÃ¶hm
+ * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 #pragma once
 
 #include "openings.h"
 #include "pair-tournament.h"
-#include "engine-config.h"
-#include "time-control.h"
+#include "../engine-handling/engine-config.h"
+#include "../base-elements/time-control.h"
 #include "cli/input-handler.h"
-#include "ini-file.h"
+#include "../base-elements/ini-file.h"
 #include "game-manager-pool.h"
-#include "change-tracker.h"
+#include "../base-elements/change-tracker.h"
 
 #include <vector>
 #include <memory>

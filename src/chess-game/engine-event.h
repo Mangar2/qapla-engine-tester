@@ -23,7 +23,7 @@
 #include <ostream>
 
 #include "game-result.h"
-#include "logger.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 
