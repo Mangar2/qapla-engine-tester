@@ -29,8 +29,8 @@
 #include <array>
 #include <sstream>
 
-#include "chess-game/game-result.h"
-#include "chess-game/game-record.h"
+#include "../chess-game/game-result.h"
+#include "../chess-game/game-record.h"
 
 namespace QaplaTester {
 

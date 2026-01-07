@@ -32,7 +32,7 @@
 #include "engine-tester/engine-test-controller.h"
 #include "engine-handling/engine-worker-factory.h"
 #include "epd-manager.h"
-#include "sprt-manager.h"
+#include "sprt/sprt-manager.h"
 #include "spsa-optimizer.h"
 #include "tournament.h"
 #include "opening/pgn-save.h"

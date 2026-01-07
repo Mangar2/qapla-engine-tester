@@ -17,19 +17,21 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
+#include "sprt-manager.h"
+#include "sprt-calculation.h"
+
+#include "../opening/opening-parser.h"
+#include "../opening/pgn-save.h"
+#include "../engine-handling/engine-config-manager.h"
+
+#include "../game-manager/game-manager-pool.h"
+
+#include "../base-elements/logger.h"
+
 #include <sstream>
 #include <iomanip>
 #include <ctime>
 #include <array>
-#include "sprt-manager.h"
-#include "sprt-calculation.h"
-#include "opening/opening-parser.h"
-#include "opening/pgn-save.h"
-#include "engine-handling/engine-config-manager.h"
-
-#include "game-manager/game-manager-pool.h"
-
-#include "base-elements/logger.h"
 
 namespace QaplaTester {
 
