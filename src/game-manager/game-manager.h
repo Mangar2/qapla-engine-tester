@@ -24,7 +24,7 @@
 #include "player-context.h"
 #include "game-context.h"
 
-#include "../engine-report.h"
+#include "../engine-tester/engine-report.h"
 
 #include "../engine-handling/engine-worker.h"
 

@@ -26,6 +26,7 @@
 #include <map>
 #include <array>
 #include <algorithm>
+
 #include "engine-report.h"
 
 namespace QaplaTester {

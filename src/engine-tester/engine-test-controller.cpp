@@ -22,7 +22,7 @@
 #include "engine-test-functions.h"
 #include "engine-test-controller.h"
 
-#include "../engine-report.h"
+#include "engine-report.h"
 
 #include "../engine-handling/engine-worker-factory.h"
 
