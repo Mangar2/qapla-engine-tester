@@ -170,6 +170,7 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
     // Create the pair tournament
     perturbation->pairing = std::make_shared<PairTournament>();
     perturbation->pairing->initialize(enginePlus, engineMinus, ptc, startPositions_);
+    perturbation->pairing->setVerbose(false);
     
     // Register callback
     perturbation->pairing->setGameFinishedCallback([this](PairTournament* sender) {

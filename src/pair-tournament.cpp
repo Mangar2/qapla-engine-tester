@@ -410,7 +410,10 @@ void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) 
 
 std::string PairTournament::getTournamentInfo() const {
     std::ostringstream oss;
-    oss << "\nEncounter " << engineA_.getName() << " vs " << engineB_.getName()
+    if (verbose_) {
+        oss << "\n";
+    }
+    oss << "Encounter " << engineA_.getName() << " vs " << engineB_.getName()
         << " round " << (config_.round + 1)
         << " games " << config_.games
         << " repeat " << config_.repeat
