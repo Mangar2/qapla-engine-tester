@@ -33,8 +33,10 @@
 #include "engine-handling/engine-worker-factory.h"
 #include "epd/epd-manager.h"
 #include "sprt/sprt-manager.h"
+#include "sprt/sprt-tournament-file.h"
 #include "spsa/spsa-optimizer.h"
 #include "tournament/tournament.h"
+#include "tournament/tournament-file.h"
 #include "opening/pgn-save.h"
 
 #include "cli/input-handler.h"
@@ -197,8 +199,23 @@ static auto runSprt(AppReturnCode code) {
             manager->runMonteCarloTest(*sprtConfig);
         }
         else {
-            auto filename = CliSettings::Manager::getGroupInstance("sprt")->get<std::string>("resultfile");
+            auto sprtGroup = CliSettings::Manager::getGroupInstance("sprt");
+            auto filename = sprtGroup->get<std::string>("resultfile");
+            auto sprtfile = sprtGroup->get<std::string>("sprtfile");
+            
             manager->createTournament(activeEngines, *sprtConfig);
+            
+            // Load tournament state if sprtfile is specified
+            if (!sprtfile.empty()) {
+                QaplaHelpers::ConfigData configData;
+                if (SprtTournamentFile::loadIntoManager(sprtfile, configData, *manager, "sprt-tournament")) {
+                    Logger::reportLogger().log("Loaded SPRT tournament state from: " + sprtfile, TraceLevel::result);
+                } else {
+                    Logger::reportLogger().log("Failed to load SPRT tournament from file: " + sprtfile, TraceLevel::error);
+                    return AppReturnCode::GeneralError;
+                }
+            }
+            
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
@@ -316,7 +333,18 @@ static AppReturnCode runTournament(AppReturnCode code) {
 
         Tournament tournament;
         
-        tournament.createTournament(activeEngines, *tournamentConfig);
+        
+        // Load tournament state if tournamentfile is specified
+        if (!tournamentConfig->tournamentFilename.empty()) {
+            QaplaHelpers::ConfigData configData;
+            if (TournamentFile::loadIntoTournament(tournamentConfig->tournamentFilename, configData, tournament, "tournament")) {
+                Logger::reportLogger().log("Loaded tournament state from: " + tournamentConfig->tournamentFilename, TraceLevel::result);
+            } else {
+                Logger::reportLogger().log("Failed to load tournament from file: " + tournamentConfig->tournamentFilename, TraceLevel::error);
+                return AppReturnCode::GeneralError;
+            }
+        }
+        namentConfig);
 		tournament.load(tournamentConfig->tournamentFilename);
         tournament.scheduleAll(concurrency);
         // tournament.wait();
