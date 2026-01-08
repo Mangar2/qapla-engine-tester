@@ -344,7 +344,6 @@ static AppReturnCode runTournament(AppReturnCode code) {
                 return AppReturnCode::GeneralError;
             }
         }
-        namentConfig);
 		tournament.load(tournamentConfig->tournamentFilename);
         tournament.scheduleAll(concurrency);
         // tournament.wait();
