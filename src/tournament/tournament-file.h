@@ -58,6 +58,38 @@ public:
                     const std::string& id = "tournament");
 
     /**
+     * @brief Helper method to load tournament state into a Tournament.
+     * 
+     * This is a convenience method that loads the tournament file and
+     * applies the "round" sections to the tournament's internal state.
+     * 
+     * @param filename The file path to load from.
+     * @param configData The configuration data to populate.
+     * @param tournament The Tournament to load state into.
+     * @param id The identifier for the tournament (default: "tournament").
+     * @return true if state was loaded successfully, false otherwise.
+     */
+    static bool loadIntoTournament(const std::string& filename,
+                                  QaplaHelpers::ConfigData& configData,
+                                  class Tournament& tournament,
+                                  const std::string& id = "tournament");
+
+    /**
+     * @brief Helper method to load tournament state from ConfigData into a Tournament.
+     * 
+     * This is a convenience method that uses existing ConfigData and
+     * applies the "round" sections to the tournament's internal state.
+     * 
+     * @param configData The configuration data containing tournament state.
+     * @param tournament The Tournament to load state into.
+     * @param id The identifier for the tournament (default: "tournament").
+     * @return true if state was loaded successfully, false otherwise.
+     */
+    static bool loadIntoTournamentFromConfigData(const QaplaHelpers::ConfigData& configData,
+                                                class Tournament& tournament,
+                                                const std::string& id = "tournament");
+
+    /**
      * @brief List of all section names used in tournament files.
      * 
      * These sections include:

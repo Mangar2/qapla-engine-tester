@@ -18,6 +18,7 @@
  */
 
 #include "sprt-tournament-file.h"
+#include "sprt-manager.h"
 #include <fstream>
 #include <stdexcept>
 
@@ -77,6 +78,38 @@ void SprtTournamentFile::load(const std::string& filename,
             configData.setSectionList(sectionName, id, *sections);
         }
     }
+}
+
+bool SprtTournamentFile::loadIntoManager(const std::string& filename,
+                                        QaplaHelpers::ConfigData& configData,
+                                        SprtManager& manager,
+                                        const std::string& id) {
+    if (filename.empty()) {
+        return false;
+    }
+
+    try {
+        load(filename, configData, id);
+        return loadIntoManagerFromConfigData(configData, manager, id);
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool SprtTournamentFile::loadIntoManagerFromConfigData(const QaplaHelpers::ConfigData& configData,
+                                                      SprtManager& manager,
+                                                      const std::string& id) {
+    try {
+        auto sections = configData.getSectionList("round", id);
+        if (sections && !sections->empty()) {
+            manager.loadFromSection((*sections)[0]);
+            return true;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+    
+    return false;
 }
 
 } // namespace QaplaTester

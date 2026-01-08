@@ -125,7 +125,7 @@ void QaplaSettings::init() {
 
     // SPRT group
     Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
-        { "resultfile", { "File to save tournament outcome", false, "", ValueType::PathParentExists } },
+        { "sprtfile", { "File to load/save tournament outcome", false, "", ValueType::PathParentExists } },
         { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, ValueType::Int } },
         { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, ValueType::Int } },
         { "alpha", { "Type I error threshold", false, 0.05f, ValueType::Float } },
@@ -174,7 +174,7 @@ void QaplaSettings::init() {
     // Tournament group
     Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
         { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", ValueType::String } },
-        { "resultfile", { "File to save tournament state", false, "", ValueType::PathParentExists } },
+        { "tournamentfile", { "File to save tournament state", false, "", ValueType::PathParentExists } },
         { "saveinterval", { "Interval in games to save tournament state", false, 10, ValueType::UInt } },
         { "append", { "Append to result file instead of overwriting it", false, false, ValueType::Bool } },
         { "event", { "Optional event name for PGN or logging", false, "", ValueType::String } },

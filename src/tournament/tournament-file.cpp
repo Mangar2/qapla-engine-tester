@@ -18,6 +18,7 @@
  */
 
 #include "tournament-file.h"
+#include "tournament.h"
 #include <fstream>
 #include <stdexcept>
 
@@ -77,6 +78,38 @@ void TournamentFile::load(const std::string& filename,
             configData.setSectionList(sectionName, id, *sections);
         }
     }
+}
+
+bool TournamentFile::loadIntoTournament(const std::string& filename,
+                                       QaplaHelpers::ConfigData& configData,
+                                       Tournament& tournament,
+                                       const std::string& id) {
+    if (filename.empty()) {
+        return false;
+    }
+
+    try {
+        load(filename, configData, id);
+        return loadIntoTournamentFromConfigData(configData, tournament, id);
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool TournamentFile::loadIntoTournamentFromConfigData(const QaplaHelpers::ConfigData& configData,
+                                                     Tournament& tournament,
+                                                     const std::string& id) {
+    try {
+        auto sections = configData.getSectionList("round", id);
+        if (sections && !sections->empty()) {
+            tournament.load(*sections);
+            return true;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+    
+    return false;
 }
 
 } // namespace QaplaTester
