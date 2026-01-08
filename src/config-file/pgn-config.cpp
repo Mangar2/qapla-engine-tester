@@ -1,0 +1,108 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ */
+
+#include "pgn-config.h"
+
+namespace QaplaTester {
+
+std::vector<QaplaHelpers::IniFile::Section> PgnConfig::getSections(
+    const PgnSave::Options& options, const std::string& id) {
+    
+    QaplaHelpers::IniFile::KeyValueMap entries{
+        {"id", id},
+        {"file", options.file},
+        {"append", options.append ? "true" : "false"},
+        {"onlyFinishedGames", options.onlyFinishedGames ? "true" : "false"},
+        {"minimalTags", options.minimalTags ? "true" : "false"},
+        {"saveAfterMove", options.saveAfterMove ? "true" : "false"},
+        {"includeClock", options.includeClock ? "true" : "false"},
+        {"includeEval", options.includeEval ? "true" : "false"},
+        {"includePv", options.includePv ? "true" : "false"},
+        {"includeDepth", options.includeDepth ? "true" : "false"}
+    };
+
+    return {{
+        .name = "pgnoutput",
+        .entries = entries
+    }};
+}
+
+void PgnConfig::loadFromSections(
+    const std::vector<QaplaHelpers::IniFile::Section>& sections, 
+    PgnSave::Options& options) {
+    
+    if (sections.empty()) {
+        return;
+    }
+
+    for (const auto& [key, value] : sections[0].entries) {
+        if (key == "file") {
+            options.file = value;
+        }
+        else if (key == "append") {
+            options.append = (value == "true");
+        }
+        else if (key == "onlyFinishedGames") {
+            options.onlyFinishedGames = (value == "true");
+        }
+        else if (key == "minimalTags") {
+            options.minimalTags = (value == "true");
+        }
+        else if (key == "saveAfterMove") {
+            options.saveAfterMove = (value == "true");
+        }
+        else if (key == "includeClock") {
+            options.includeClock = (value == "true");
+        }
+        else if (key == "includeEval") {
+            options.includeEval = (value == "true");
+        }
+        else if (key == "includePv") {
+            options.includePv = (value == "true");
+        }
+        else if (key == "includeDepth") {
+            options.includeDepth = (value == "true");
+        }
+    }
+}
+
+void PgnConfig::saveToConfigData(
+    QaplaHelpers::ConfigData& configData, 
+    const PgnSave::Options& options, 
+    const std::string& id) {
+    
+    auto sections = getSections(options, id);
+    configData.setSectionList("pgnoutput", id, sections);
+}
+
+bool PgnConfig::loadFromConfigData(
+    const QaplaHelpers::ConfigData& configData, 
+    PgnSave::Options& options, 
+    const std::string& id) {
+    
+    auto sections = configData.getSectionList("pgnoutput", id);
+    if (!sections || sections->empty()) {
+        return false;
+    }
+
+    loadFromSections(*sections, options);
+    return true;
+}
+
+} // namespace QaplaTester
