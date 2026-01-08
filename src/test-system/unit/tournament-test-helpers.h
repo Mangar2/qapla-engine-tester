@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include "../src\tournament.h"
-#include "../src\pair-tournament.h"
-#include "../chess-game\game-result.h"
+#include "../../tournament/tournament.h"
+#include "../../game-manager/pair-tournament.h"
+#include "../../chess-game/game-result.h"
 #include <vector>
 #include <optional>
 
