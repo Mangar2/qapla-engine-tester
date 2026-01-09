@@ -38,6 +38,7 @@ namespace QaplaTester::CliSettings {
         bool isRequired;
         std::optional<Value> defaultValue;
         ValueType type;
+        bool exclusive = false;
     };
     struct GroupDefinition {
         std::string description;

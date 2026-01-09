@@ -25,9 +25,16 @@
 #include "../opening/openings.h"
 #include "../tournament/tournament.h"
 #include "../sprt/sprt-manager.h"
+#include "../sprt/sprt-tournament-file.h"
+#include "../sprt/sprt-config-file.h"
+#include "../config-file/opening-config.h"
+#include "../config-file/pgn-config.h"
+#include "../config-file/adjudication-config.h"
 #include "../epd/epd-manager.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../spsa/spsa-optimizer.h"
+
+#include <format>
 
 namespace QaplaTester::CliSettings {
 
@@ -125,7 +132,11 @@ void QaplaSettings::init() {
 
     // SPRT group
     Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
-        { "sprtfile", { "File to load/save tournament outcome", false, "", ValueType::PathParentExists } },
+        { "file", { .description = "File to load/save tournament outcome", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathExists,
+                    .exclusive = true } },
         { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, ValueType::Int } },
         { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, ValueType::Int } },
         { "alpha", { "Type I error threshold", false, 0.05f, ValueType::Float } },
@@ -174,7 +185,7 @@ void QaplaSettings::init() {
     // Tournament group
     Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
         { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", ValueType::String } },
-        { "tournamentfile", { "File to save tournament state", false, "", ValueType::PathParentExists } },
+        { "file", { "File to save tournament state", false, "", ValueType::PathParentExists } },
         { "saveinterval", { "Interval in games to save tournament state", false, 10, ValueType::UInt } },
         { "append", { "Append to result file instead of overwriting it", false, false, ValueType::Bool } },
         { "event", { "Optional event name for PGN or logging", false, "", ValueType::String } },
@@ -476,23 +487,49 @@ void QaplaSettings::readSprtConfig() {
         return;
     }
 
+    auto sprtFile = sprt->get<std::string>("file");
+
     // SPRT needs openings (unless montecarlo)
     auto isMontecarlo = sprt->get<bool>("montecarlo");
-    if (!m_openings && !isMontecarlo) {
+    if (!m_openings && !isMontecarlo && sprtFile.empty()) {
         m_sprtConfig = nullptr;
         return;
     }
 
-    m_sprtConfig = std::make_unique<SprtConfig>(SprtConfig{
-        .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
-        .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
-        .alpha = sprt->get<double>("alpha"),
-        .beta = sprt->get<double>("beta"),
-        .maxGames = sprt->get<unsigned int>("maxgames"),
-        .model = sprt->get<std::string>("model"),
-        .pentanomial = sprt->get<bool>("pentanomial"),
-        .openings = m_openings ? *m_openings : Openings{}
-    });
+    // Load from file if specified
+    if (!sprtFile.empty()) {
+        QaplaHelpers::ConfigData configData;
+        SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
+
+        auto fileSprtConfig = SprtConfig{};
+        if (!SprtConfigFile::loadFromConfigData(configData, fileSprtConfig, "sprt-tournament")) {
+            throw AppError::makeInvalidParameters(std::format(
+                "File '{}' is not a valid SPRT tournament file, sprt configuration is not found.",
+                sprtFile));
+        }
+        
+        auto fileOpenings = Openings{};
+        if (!OpeningConfig::loadFromConfigData(configData, fileOpenings, "sprt-tournament")) {
+            throw AppError::makeInvalidParameters(std::format(
+                "File '{}' is not a valid SPRT tournament file, opening configuration is not found.",
+                sprtFile));
+        }
+        fileSprtConfig.openings = fileOpenings;
+        m_sprtConfig = std::make_unique<SprtConfig>(fileSprtConfig);
+
+    } else {
+        m_sprtConfig = std::make_unique<SprtConfig>(SprtConfig{
+            .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
+            .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
+            .alpha = sprt->get<double>("alpha"),
+            .beta = sprt->get<double>("beta"),
+            .maxGames = sprt->get<unsigned int>("maxgames"),
+            .model = sprt->get<std::string>("model"),
+            .pentanomial = sprt->get<bool>("pentanomial"),
+            .openings = m_openings ? *m_openings : Openings{}
+        });
+    }
+
 }
 
 std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
@@ -576,4 +613,45 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
     return *m_spsaConfig;
 }
 
+void QaplaSettings::setFromSprtFile(const std::string& filename) {
+    QaplaHelpers::ConfigData configData;
+    SprtTournamentFile::load(filename, configData, "sprt-tournament");
+    setFromConfigData(configData, "sprt-tournament");
+}
+
+void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
+    // Load SPRT configuration
+    SprtConfig sprtConfig;
+    if (SprtConfigFile::loadFromConfigData(configData, sprtConfig, id)) {
+        m_sprtConfig = std::make_unique<SprtConfig>(sprtConfig);
+    }
+
+    // Load Openings configuration
+    Openings openings;
+    if (OpeningConfig::loadFromConfigData(configData, openings, id)) {
+        m_openings = std::make_unique<Openings>(openings);
+        if (m_sprtConfig) {
+            m_sprtConfig->openings = openings;
+        }
+    }
+
+    // Load PGN configuration
+    PgnSave::Options pgnOptions;
+    if (PgnConfig::loadFromConfigData(configData, pgnOptions, id)) {
+        m_pgnOptions = pgnOptions;
+    }
+
+    // Load Adjudication configurations
+    AdjudicationManager::DrawAdjudicationConfig drawConfig;
+    AdjudicationManager::ResignAdjudicationConfig resignConfig;
+    if (AdjudicationConfig::loadFromConfigData(configData, drawConfig, resignConfig, id)) {
+        m_drawConfig = drawConfig;
+        m_resignConfig = resignConfig;
+    }
+
+    // Load Engines (to be implemented)
+    // loadEnginesFromConfigData(configData, id);
+}
+
 } // namespace QaplaTester::CliSettings
+
