@@ -34,10 +34,14 @@
 #include "epd/epd-manager.h"
 #include "sprt/sprt-manager.h"
 #include "sprt/sprt-tournament-file.h"
+#include "sprt/sprt-config-file.h"
 #include "spsa/spsa-optimizer.h"
 #include "tournament/tournament.h"
 #include "tournament/tournament-file.h"
 #include "opening/pgn-save.h"
+#include "config-file/opening-config.h"
+#include "config-file/pgn-config.h"
+#include "config-file/adjudication-config.h"
 
 #include "cli/input-handler.h"
 #include "cli/cli-settings-manager.h"
@@ -170,22 +174,26 @@ static void checkTimeControl() {
                 + "'. Please specify a time control using 'tc' option.");
         }
     }
-} 
+}
 
 static auto runSprt(AppReturnCode code) {
+    // Get SPRT config (already loaded from file or CLI by readSprtConfig)
     const auto& sprtConfig = CliSettings::QaplaSettings::instance().getSprtConfig();
     if (!sprtConfig) return code;
-    const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
-
-    const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
-    auto isMontecarlo = CliSettings::Manager::getGroupInstance("sprt")->get<bool>("montecarlo");
     
+    auto sprtGroup = CliSettings::Manager::getGroupInstance("sprt");
+    auto sprtfile = sprtGroup->get<std::string>("file");
+    auto isMontecarlo = sprtGroup->get<bool>("montecarlo");
+    
+    // Validate openings (already loaded from file or CLI)
     if (!isMontecarlo && !CliSettings::QaplaSettings::instance().getOpenings()) {
         Logger::reportLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     
+    // Validate time control (for engines loaded from file or CLI)
     checkTimeControl();
+    
     setLoggerConfig({
         .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
         .reportLogBaseName = "sprt-report",
@@ -193,46 +201,42 @@ static auto runSprt(AppReturnCode code) {
         .engineLogStrategy = LogFileStrategy::global
     });
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    
     try {
         auto manager = std::make_shared<SprtManager>();
+        
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
-        }
-        else {
-            auto sprtGroup = CliSettings::Manager::getGroupInstance("sprt");
-            auto filename = sprtGroup->get<std::string>("resultfile");
-            auto sprtfile = sprtGroup->get<std::string>("sprtfile");
-            
+        } else {
+            const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
             manager->createTournament(activeEngines, *sprtConfig);
             
-            // Load tournament state if sprtfile is specified
+            // Load tournament state if file was specified
             if (!sprtfile.empty()) {
                 QaplaHelpers::ConfigData configData;
                 if (SprtTournamentFile::loadIntoManager(sprtfile, configData, *manager, "sprt-tournament")) {
                     Logger::reportLogger().log("Loaded SPRT tournament state from: " + sprtfile, TraceLevel::result);
-                } else {
-                    Logger::reportLogger().log("Failed to load SPRT tournament from file: " + sprtfile, TraceLevel::error);
-                    return AppReturnCode::GeneralError;
                 }
             }
             
+            const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
-            if (!filename.empty()) {
-                manager->save(filename);
-            }
-			code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
-			Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
+            
+            auto filename = sprtGroup->get<std::string>("resultfile");
+            if (!filename.empty()) manager->save(filename);
+            
+            code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
+            Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
-                std::optional<bool> decision;
                 auto sprtResults = manager->getSprtResults();
                 if (!sprtResults.empty() && !sprtResults.front().empty()) {
-                    decision = sprtResults.front().front().decision;
+                    auto decision = sprtResults.front().front().decision;
+                    code = !decision ? AppReturnCode::UndefinedResult : 
+                           (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
                 }
-				code = !decision ? AppReturnCode::UndefinedResult : 
-                    (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
             }
         }
     }

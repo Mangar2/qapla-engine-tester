@@ -484,6 +484,16 @@ namespace QaplaTester::CliSettings
             ++index;
         }
 
+        // Check for exclusive keys: if an exclusive key is set, no other keys should be present
+        for (const auto &[key, def] : groupDefinition.keys)
+        {
+            if (def.exclusive && group.contains(key) && group.size() > 1) {
+                throw AppError::makeInvalidParameters(
+                    "Parameter \"" + key + "\" in section \"" + groupArg.name + 
+                    "\" cannot be combined with other parameters");
+            }
+        }
+
         for (const auto &[key, def] : groupDefinition.keys)
         {
             if (key.ends_with(".[name]")) {

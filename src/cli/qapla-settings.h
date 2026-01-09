@@ -188,6 +188,27 @@ private:
      */
     void readSPSAConfig();
 
+    /**
+     * @brief Loads all configuration from an SPRT tournament file
+     * @param filename Path to the SPRT tournament file
+     */
+    void setFromSprtFile(const std::string& filename);
+
+    /**
+     * @brief Applies all configurations found in ConfigData
+     * @param configData The configuration data to apply
+     * @param id Identifier for the configuration sections
+     */
+    void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
+
+private:
+    /**
+     * @brief Loads engines from ConfigData and adds them to EngineWorkerFactory
+     * @param configData The configuration data containing engine sections
+     * @param id The identifier for the sections
+     */
+    void loadEnginesFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
+
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::optional<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::optional<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config

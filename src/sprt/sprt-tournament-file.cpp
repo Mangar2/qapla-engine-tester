@@ -74,9 +74,11 @@ void SprtTournamentFile::load(const std::string& filename,
     // Transfer sections with the specified id to the target ConfigData
     for (const auto& sectionName : sectionNames) {
         auto sections = tempConfigData.getSectionList(sectionName, id);
-        if (sections && !sections->empty()) {
-            configData.setSectionList(sectionName, id, *sections);
+        if (!sections || sections->empty()) {
+            throw std::runtime_error("Missing required section '" + std::string(sectionName) + 
+                                   "' in SPRT tournament file: " + filename);
         }
+        configData.setSectionList(sectionName, id, *sections);
     }
 }
 
