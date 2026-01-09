@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "cli-settings-manager.h"
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
 
@@ -208,6 +209,14 @@ private:
      * @param id The identifier for the sections
      */
     void loadEnginesFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
+
+    /**
+     * @brief Merges global engine options with individual engine options and creates EngineConfig
+     * @param globalOptions Global engine settings to merge (from "each" or "eachengine")
+     * @param engineOptions Individual engine settings
+     */
+    static void mergeAndAddEngine(const QaplaTester::CliSettings::ValueMap& globalOptions, 
+                                   const QaplaTester::CliSettings::ValueMap& engineOptions);
 
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::optional<PgnSave::Options> m_pgnOptions; ///< PGN output options
