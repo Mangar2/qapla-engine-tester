@@ -619,6 +619,23 @@ void QaplaSettings::setFromSprtFile(const std::string& filename) {
     setFromConfigData(configData, "sprt-tournament");
 }
 
+/*
+    void TournamentData::loadGlobalSettingsConfig() {
+        auto& config = QaplaConfiguration::Configuration::instance();
+        
+        // Load global engine settings
+        auto globalSections = config.getConfigData().getSectionList("eachengine", "tournament")
+            .value_or(std::vector<QaplaHelpers::IniFile::Section>{});
+        globalSettings_->setId("tournament");
+        globalSettings_->setGlobalConfiguration(globalSections);
+        
+        // Load time control settings
+        auto timeControlSections = config.getConfigData().getSectionList("timecontroloptions", "tournament")
+            .value_or(std::vector<QaplaHelpers::IniFile::Section>{});
+        globalSettings_->setTimeControlConfiguration(timeControlSections);
+    }
+*/
+
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
     // Load SPRT configuration
     SprtConfig sprtConfig;
@@ -649,8 +666,15 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
         m_resignConfig = resignConfig;
     }
 
-    // Load Engines (to be implemented)
-    // loadEnginesFromConfigData(configData, id);
+    // Load engine selection
+    const auto engineSections = configData.getSectionList("engineselection", id);
+    EngineWorkerFactory::getActiveEnginesMutable().clear();
+
+    for (const auto& section : *engineSections) {
+        EngineConfig engineConfig;
+        engineConfig.setValues(section.getUnorderedMap());
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(engineConfig);
+    }
 }
 
 } // namespace QaplaTester::CliSettings
