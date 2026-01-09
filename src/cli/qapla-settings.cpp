@@ -291,36 +291,9 @@ void QaplaSettings::readEngineOptions() {
 	if (eachSetting) {
 		eachOptions = eachSetting->getValues();
 	}
-    EngineConfig config;
 
     for (const auto& engine : engineSettings) {
-        std::string cmd = engine.get<std::string>("cmd");
-        std::string conf = engine.get<std::string>("conf");
-        std::string name = engine.get<std::string>("name");
-
-        CliSettings::ValueMap options = engine.getValues();
-        options.insert(eachOptions.begin(), eachOptions.end());
-
-        if (!cmd.empty()) {
-            config = EngineConfig::createFromValueMap(options);
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-		}
-		else if (!conf.empty()) {
-			auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
-			if (!engineConfig) {
-				throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
-			}
-            config = *engineConfig;
-			config.setCommandLineOptions(options, true);
-            name = config.getName();
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-		}
-		else {
-            std::string engineName = name.empty() ? "" : " (for " + name + ")";
-            throw AppError::makeInvalidParameters("No engine command or configuration provided"
-                + engineName + ".Please specify either 'cmd' or 'conf'.");
-		}
-
+        mergeAndAddEngine(eachOptions, engine.getValues());
     }
     // Ensure that all active engines have different names
     EngineWorkerFactory::assignUniqueDisplayNames();
@@ -619,31 +592,14 @@ void QaplaSettings::setFromSprtFile(const std::string& filename) {
     setFromConfigData(configData, "sprt-tournament");
 }
 
-/*
-    void TournamentData::loadGlobalSettingsConfig() {
-        auto& config = QaplaConfiguration::Configuration::instance();
-        
-        // Load global engine settings
-        auto globalSections = config.getConfigData().getSectionList("eachengine", "tournament")
-            .value_or(std::vector<QaplaHelpers::IniFile::Section>{});
-        globalSettings_->setId("tournament");
-        globalSettings_->setGlobalConfiguration(globalSections);
-        
-        // Load time control settings
-        auto timeControlSections = config.getConfigData().getSectionList("timecontroloptions", "tournament")
-            .value_or(std::vector<QaplaHelpers::IniFile::Section>{});
-        globalSettings_->setTimeControlConfiguration(timeControlSections);
-    }
-*/
-
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
-    // Load SPRT configuration
+    // Apply SPRT configuration
     SprtConfig sprtConfig;
     if (SprtConfigFile::loadFromConfigData(configData, sprtConfig, id)) {
         m_sprtConfig = std::make_unique<SprtConfig>(sprtConfig);
     }
 
-    // Load Openings configuration
+    // Apply Openings configuration
     Openings openings;
     if (OpeningConfig::loadFromConfigData(configData, openings, id)) {
         m_openings = std::make_unique<Openings>(openings);
@@ -652,13 +608,13 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
         }
     }
 
-    // Load PGN configuration
+    // Apply PGN configuration
     PgnSave::Options pgnOptions;
     if (PgnConfig::loadFromConfigData(configData, pgnOptions, id)) {
         m_pgnOptions = pgnOptions;
     }
 
-    // Load Adjudication configurations
+    // Apply Adjudication configurations
     AdjudicationManager::DrawAdjudicationConfig drawConfig;
     AdjudicationManager::ResignAdjudicationConfig resignConfig;
     if (AdjudicationConfig::loadFromConfigData(configData, drawConfig, resignConfig, id)) {
@@ -666,16 +622,83 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
         m_resignConfig = resignConfig;
     }
 
-    // Load engine selection
-    const auto engineSections = configData.getSectionList("engineselection", id);
-    EngineWorkerFactory::getActiveEnginesMutable().clear();
 
-    for (const auto& section : *engineSections) {
-        EngineConfig engineConfig;
-        engineConfig.setValues(section.getUnorderedMap());
-        EngineWorkerFactory::getActiveEnginesMutable().push_back(engineConfig);
+    CliSettings::ValueMap globalEngineOptions;
+    // Apply global engine settings
+    const auto eachEngineSections = configData.getSectionList("eachengine", id);
+    if (eachEngineSections && !eachEngineSections->empty()) {
+        // Convert from std::unordered_map<std::string, std::string> to ValueMap
+        const auto& stringMap = (*eachEngineSections)[0].getUnorderedMap();
+        for (const auto& [key, value] : stringMap) {
+            globalEngineOptions[key] = value;
+        }
+    }
+
+    // Apply time control settings
+    const auto timeControlSections = configData.getSectionList("timecontroloptions", id);
+    if (timeControlSections && !timeControlSections->empty()) {
+        const auto& tcMap = (*timeControlSections)[0].getUnorderedMap();
+        const auto timeControl = tcMap.find("timeControl"); 
+        globalEngineOptions["tc"] = (timeControl != tcMap.end()) ? timeControl->second : "";
+    }
+
+    // Apply engine selection
+    const auto engineSections = configData.getSectionList("engineselection", id);
+    if (engineSections) {
+        EngineWorkerFactory::getActiveEnginesMutable().clear();
+        for (const auto& section : *engineSections) {
+            // Convert from std::unordered_map<std::string, std::string> to ValueMap
+            CliSettings::ValueMap engineOptions;
+            const auto& stringMap = section.getUnorderedMap();
+            for (const auto& [key, value] : stringMap) {
+                engineOptions[key] = value;
+            }
+            mergeAndAddEngine(globalEngineOptions, engineOptions);
+        }
+        EngineWorkerFactory::assignUniqueDisplayNames();
+    }
+}
+
+void QaplaSettings::mergeAndAddEngine(const CliSettings::ValueMap& globalOptions, 
+                                       const CliSettings::ValueMap& engineOptions) {
+    // Merge global options with engine-specific options (engine options take precedence)
+    CliSettings::ValueMap mergedOptions = engineOptions;
+    mergedOptions.insert(globalOptions.begin(), globalOptions.end());
+
+    // Check if cmd or conf is specified
+    auto cmdIt = mergedOptions.find("cmd");
+    auto confIt = mergedOptions.find("conf");
+    auto nameIt = mergedOptions.find("name");
+    
+    std::string cmd = (cmdIt != mergedOptions.end() && std::holds_alternative<std::string>(cmdIt->second)) 
+        ? std::get<std::string>(cmdIt->second) : "";
+    std::string conf = (confIt != mergedOptions.end() && std::holds_alternative<std::string>(confIt->second))
+        ? std::get<std::string>(confIt->second) : "";
+    std::string name = (nameIt != mergedOptions.end() && std::holds_alternative<std::string>(nameIt->second))
+        ? std::get<std::string>(nameIt->second) : "";
+
+    EngineConfig config;
+
+    if (!cmd.empty()) {
+        config = EngineConfig::createFromValueMap(mergedOptions);
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+    }
+    else if (!conf.empty()) {
+        auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+        if (!engineConfig) {
+            throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
+        }
+        config = *engineConfig;
+        config.setCommandLineOptions(mergedOptions, true);
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+    }
+    else {
+        std::string engineName = name.empty() ? "" : " (for " + name + ")";
+        throw AppError::makeInvalidParameters("No engine command or configuration provided"
+            + engineName + ". Please specify either 'cmd' or 'conf'.");
     }
 }
 
 } // namespace QaplaTester::CliSettings
+
 
