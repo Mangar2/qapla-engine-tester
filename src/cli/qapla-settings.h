@@ -190,12 +190,6 @@ private:
     void readSPSAConfig();
 
     /**
-     * @brief Loads all configuration from an SPRT tournament file
-     * @param filename Path to the SPRT tournament file
-     */
-    void setFromSprtFile(const std::string& filename);
-
-    /**
      * @brief Applies all configurations found in ConfigData
      * @param configData The configuration data to apply
      * @param id Identifier for the configuration sections

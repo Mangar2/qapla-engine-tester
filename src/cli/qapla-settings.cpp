@@ -461,6 +461,12 @@ void QaplaSettings::readSprtConfig() {
     }
 
     auto sprtFile = sprt->get<std::string>("file");
+    if (!sprtFile.empty()) {
+        QaplaHelpers::ConfigData configData;
+        SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
+        setFromConfigData(configData, "sprt-tournament");
+        return;
+    }
 
     // SPRT needs openings (unless montecarlo)
     auto isMontecarlo = sprt->get<bool>("montecarlo");
@@ -469,39 +475,16 @@ void QaplaSettings::readSprtConfig() {
         return;
     }
 
-    // Load from file if specified
-    if (!sprtFile.empty()) {
-        QaplaHelpers::ConfigData configData;
-        SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
-
-        auto fileSprtConfig = SprtConfig{};
-        if (!SprtConfigFile::loadFromConfigData(configData, fileSprtConfig, "sprt-tournament")) {
-            throw AppError::makeInvalidParameters(std::format(
-                "File '{}' is not a valid SPRT tournament file, sprt configuration is not found.",
-                sprtFile));
-        }
-        
-        auto fileOpenings = Openings{};
-        if (!OpeningConfig::loadFromConfigData(configData, fileOpenings, "sprt-tournament")) {
-            throw AppError::makeInvalidParameters(std::format(
-                "File '{}' is not a valid SPRT tournament file, opening configuration is not found.",
-                sprtFile));
-        }
-        fileSprtConfig.openings = fileOpenings;
-        m_sprtConfig = std::make_unique<SprtConfig>(fileSprtConfig);
-
-    } else {
-        m_sprtConfig = std::make_unique<SprtConfig>(SprtConfig{
-            .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
-            .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
-            .alpha = sprt->get<double>("alpha"),
-            .beta = sprt->get<double>("beta"),
-            .maxGames = sprt->get<unsigned int>("maxgames"),
-            .model = sprt->get<std::string>("model"),
-            .pentanomial = sprt->get<bool>("pentanomial"),
-            .openings = m_openings ? *m_openings : Openings{}
-        });
-    }
+    m_sprtConfig = std::make_unique<SprtConfig>(SprtConfig{
+        .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
+        .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
+        .alpha = sprt->get<double>("alpha"),
+        .beta = sprt->get<double>("beta"),
+        .maxGames = sprt->get<unsigned int>("maxgames"),
+        .model = sprt->get<std::string>("model"),
+        .pentanomial = sprt->get<bool>("pentanomial"),
+        .openings = m_openings ? *m_openings : Openings{}
+    });
 
 }
 
@@ -586,11 +569,6 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
     return *m_spsaConfig;
 }
 
-void QaplaSettings::setFromSprtFile(const std::string& filename) {
-    QaplaHelpers::ConfigData configData;
-    SprtTournamentFile::load(filename, configData, "sprt-tournament");
-    setFromConfigData(configData, "sprt-tournament");
-}
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
     // Apply SPRT configuration
@@ -651,6 +629,9 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
             CliSettings::ValueMap engineOptions;
             const auto& stringMap = section.getUnorderedMap();
             for (const auto& [key, value] : stringMap) {
+                if (key == "id") {
+                    continue; 
+                }
                 engineOptions[key] = value;
             }
             mergeAndAddEngine(globalEngineOptions, engineOptions);
