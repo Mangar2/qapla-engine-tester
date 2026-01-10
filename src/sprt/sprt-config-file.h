@@ -43,7 +43,7 @@ public:
      * @param sections The sections containing SPRT configuration.
      * @return SprtConfig populated from sections.
      */
-    static SprtConfig loadFromSections(
+    static SprtConfig fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -52,7 +52,7 @@ public:
      * @param id The identifier for the configuration.
      * @return SprtConfig if found, std::nullopt otherwise.
      */
-    static std::optional<SprtConfig> loadFromConfigData(
+    static std::optional<SprtConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

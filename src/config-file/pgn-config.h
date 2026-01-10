@@ -43,7 +43,7 @@ public:
      * @param sections The sections containing PGN configuration.
      * @return PgnSave::Options populated from sections.
      */
-    static PgnSave::Options loadFromSections(
+    static PgnSave::Options fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -52,7 +52,7 @@ public:
      * @param id The identifier for the configuration.
      * @return PgnSave::Options if found, std::nullopt otherwise.
      */
-    static std::optional<PgnSave::Options> loadFromConfigData(
+    static std::optional<PgnSave::Options> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

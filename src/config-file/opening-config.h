@@ -46,7 +46,7 @@ public:
      * @param sections The sections containing opening configuration.
      * @return Openings structure populated from sections.
      */
-    static Openings loadFromSections(
+    static Openings fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -55,7 +55,7 @@ public:
      * @param id The identifier for the configuration.
      * @return Openings structure if found, std::nullopt otherwise.
      */
-    static std::optional<Openings> loadFromConfigData(
+    static std::optional<Openings> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

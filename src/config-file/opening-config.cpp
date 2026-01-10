@@ -44,7 +44,7 @@ std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::getSections(
     }};
 }
 
-Openings OpeningConfig::loadFromSections(
+Openings OpeningConfig::fromSections(
     const std::vector<QaplaHelpers::IniFile::Section>& sections) {
     
     Openings openings;
@@ -77,7 +77,7 @@ Openings OpeningConfig::loadFromSections(
     return openings;
 }
 
-std::optional<Openings> OpeningConfig::loadFromConfigData(
+std::optional<Openings> OpeningConfig::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
@@ -86,7 +86,7 @@ std::optional<Openings> OpeningConfig::loadFromConfigData(
         return std::nullopt;
     }
 
-    return loadFromSections(*sections);
+    return fromSections(*sections);
 }
 
 } // namespace QaplaTester
