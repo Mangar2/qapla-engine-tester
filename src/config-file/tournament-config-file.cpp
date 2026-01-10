@@ -40,7 +40,7 @@ std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::getSections(
     return { QaplaHelpers::IniFile::Section{ .name = "tournament", .entries = entries } };
 }
 
-TournamentConfig TournamentConfigFile::loadFromSections(
+TournamentConfig TournamentConfigFile::fromSections(
     const std::vector<QaplaHelpers::IniFile::Section>& sections) {
     
     TournamentConfig config;
@@ -79,7 +79,7 @@ TournamentConfig TournamentConfigFile::loadFromSections(
     return config;
 }
 
-std::optional<TournamentConfig> TournamentConfigFile::loadFromConfigData(
+std::optional<TournamentConfig> TournamentConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
@@ -88,7 +88,7 @@ std::optional<TournamentConfig> TournamentConfigFile::loadFromConfigData(
         return std::nullopt;
     }
 
-    return loadFromSections(*sections);
+    return fromSections(*sections);
 }
 
 } // namespace QaplaTester

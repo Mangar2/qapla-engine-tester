@@ -43,7 +43,7 @@ public:
      * @param sections The sections containing tournament configuration.
      * @return TournamentConfig populated from sections.
      */
-    static TournamentConfig loadFromSections(
+    static TournamentConfig fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -52,7 +52,7 @@ public:
      * @param id The identifier for the configuration.
      * @return TournamentConfig if found, std::nullopt otherwise.
      */
-    static std::optional<TournamentConfig> loadFromConfigData(
+    static std::optional<TournamentConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

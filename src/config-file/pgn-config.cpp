@@ -43,7 +43,7 @@ std::vector<QaplaHelpers::IniFile::Section> PgnConfig::getSections(
     }};
 }
 
-PgnSave::Options PgnConfig::loadFromSections(
+PgnSave::Options PgnConfig::fromSections(
     const std::vector<QaplaHelpers::IniFile::Section>& sections) {
     
     PgnSave::Options options;
@@ -85,7 +85,7 @@ PgnSave::Options PgnConfig::loadFromSections(
     return options;
 }
 
-std::optional<PgnSave::Options> PgnConfig::loadFromConfigData(
+std::optional<PgnSave::Options> PgnConfig::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
@@ -94,7 +94,7 @@ std::optional<PgnSave::Options> PgnConfig::loadFromConfigData(
         return std::nullopt;
     }
 
-    return loadFromSections(*sections);
+    return fromSections(*sections);
 }
 
 } // namespace QaplaTester

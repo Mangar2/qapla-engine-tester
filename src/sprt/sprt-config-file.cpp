@@ -40,7 +40,7 @@ std::vector<QaplaHelpers::IniFile::Section> SprtConfigFile::getSections(
     return { QaplaHelpers::IniFile::Section{ .name = "sprtconfig", .entries = entries } };
 }
 
-SprtConfig SprtConfigFile::loadFromSections(
+SprtConfig SprtConfigFile::fromSections(
     const std::vector<QaplaHelpers::IniFile::Section>& sections) {
     
     SprtConfig config;
@@ -83,16 +83,16 @@ SprtConfig SprtConfigFile::loadFromSections(
     return config;
 }
 
-std::optional<SprtConfig> SprtConfigFile::loadFromConfigData(
+std::optional<SprtConfig> SprtConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList("sprtconfig", id);
+    auto sections = configData.getSectionList("sprt", id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }
 
-    return loadFromSections(*sections);
+    return fromSections(*sections);
 }
 
 } // namespace QaplaTester

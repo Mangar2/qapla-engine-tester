@@ -572,13 +572,13 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
     // Apply SPRT configuration
-    auto sprtConfig = SprtConfigFile::loadFromConfigData(configData, id);
+    auto sprtConfig = SprtConfigFile::fromConfigData(configData, id);
     if (sprtConfig) {
         m_sprtConfig = std::make_unique<SprtConfig>(*sprtConfig);
     }
 
     // Apply Openings configuration
-    auto openings = OpeningConfig::loadFromConfigData(configData, id);
+    auto openings = OpeningConfig::fromConfigData(configData, id);
     if (openings) {
         m_openings = std::make_unique<Openings>(*openings);
         if (m_sprtConfig) {
@@ -587,7 +587,7 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     }
 
     // Apply PGN configuration
-    auto pgnOptions = PgnConfig::loadFromConfigData(configData, id);
+    auto pgnOptions = PgnConfig::fromConfigData(configData, id);
     if (pgnOptions) {
         m_pgnOptions = *pgnOptions;
     }
