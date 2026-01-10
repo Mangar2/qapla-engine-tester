@@ -85,7 +85,7 @@ void EngineConfig::setTraceLevel(const std::string& level) {
     else
     {
         AppError::throwOnInvalidOption({ "none", "all", "command" }, level, 
-            "Invalid trace level for engine " + getName() + ". Supported levels are: none, all, command.");
+            "Invalid trace level for engine " + getName());
     }
 }
 
@@ -122,8 +122,7 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
             AppError::throwOnInvalidOption(
                 { "name", "cmd", "dir", "args", "tc", "ponder", "gauntlet", "whitepov", "trace", "restart", "proto", "option."},
                 key, 
-				"Invalid engine option key: " + key + 
-                ". Supported keys are: name, cmd, dir, args, tc, ponder, gauntlet, whitepov, trace, restart, proto, option.[name] ."
+				"Invalid engine option key" 
             );
         }
     }

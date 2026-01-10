@@ -145,10 +145,11 @@ public:
         }
 
         std::string hint = "\nValid options: ";
+        std::string spacer = "";
         for (const auto& opt : allowedOptions) {
-            hint += opt + ", ";
+            hint += spacer + opt;
+            spacer = ", ";
         }
-        hint.pop_back(); hint.pop_back(); // remove trailing comma and space
 
         if (!suggestion.empty()) {
             hint += ".\nDid you mean '" + suggestion + "'?";
