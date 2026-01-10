@@ -25,63 +25,45 @@
 namespace QaplaTester {
 
 /**
- * @brief Handles loading and saving of adjudication configurations from/to INI file sections.
- * 
- * This includes both draw and resign adjudication configurations.
+ * @brief Transforms adjudication configurations between internal structs and INI file sections.
  */
 class AdjudicationConfig {
 public:
     /**
-     * @brief Creates INI file sections from adjudication configurations.
-     * @param drawConfig The draw adjudication configuration.
-     * @param resignConfig The resign adjudication configuration.
+     * @brief Creates draw adjudication section from configuration.
+     * @param config The draw adjudication configuration.
      * @param id The identifier for the configuration.
-     * @return Vector containing two sections: drawadjudication and resignadjudication.
+     * @return INI file section containing draw adjudication configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
-        const AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-        const AdjudicationManager::ResignAdjudicationConfig& resignConfig,
+    static QaplaHelpers::IniFile::Section toDrawSection(
+        const AdjudicationManager::DrawAdjudicationConfig& config,
         const std::string& id);
 
     /**
-     * @brief Loads adjudication configurations from INI file sections.
-     * @param drawSections The sections containing draw adjudication configuration.
-     * @param resignSections The sections containing resign adjudication configuration.
-     * @param drawConfig Reference to DrawAdjudicationConfig to populate.
-     * @param resignConfig Reference to ResignAdjudicationConfig to populate.
-     */
-    static void loadFromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& drawSections,
-        const std::vector<QaplaHelpers::IniFile::Section>& resignSections,
-        AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-        AdjudicationManager::ResignAdjudicationConfig& resignConfig);
-
-    /**
-     * @brief Saves adjudication configuration sections to ConfigData.
-     * @param configData The configuration data to save to.
-     * @param drawConfig The draw adjudication configuration.
-     * @param resignConfig The resign adjudication configuration.
+     * @brief Creates resign adjudication section from configuration.
+     * @param config The resign adjudication configuration.
      * @param id The identifier for the configuration.
+     * @return INI file section containing resign adjudication configuration.
      */
-    static void saveToConfigData(
-        QaplaHelpers::ConfigData& configData,
-        const AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-        const AdjudicationManager::ResignAdjudicationConfig& resignConfig,
+    static QaplaHelpers::IniFile::Section toResignSection(
+        const AdjudicationManager::ResignAdjudicationConfig& config,
         const std::string& id);
 
     /**
-     * @brief Loads adjudication configurations from ConfigData.
-     * @param configData The configuration data to load from.
-     * @param drawConfig Reference to DrawAdjudicationConfig to populate.
-     * @param resignConfig Reference to ResignAdjudicationConfig to populate.
-     * @param id The identifier for the configuration.
-     * @return true if at least one configuration was loaded, false if not found.
+     * @brief Creates draw adjudication configuration from section.
+     * @param section The INI file section containing draw adjudication configuration.
+     * @return Draw adjudication configuration.
      */
-    static bool loadFromConfigData(
-        const QaplaHelpers::ConfigData& configData,
-        AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-        AdjudicationManager::ResignAdjudicationConfig& resignConfig,
-        const std::string& id);
+    static AdjudicationManager::DrawAdjudicationConfig fromDrawSection(
+        const QaplaHelpers::IniFile::Section& section);
+
+    /**
+     * @brief Creates resign adjudication configuration from section.
+     * @param section The INI file section containing resign adjudication configuration.
+     * @return Resign adjudication configuration.
+     */
+    static AdjudicationManager::ResignAdjudicationConfig fromResignSection(
+        const QaplaHelpers::IniFile::Section& section);
 };
 
 } // namespace QaplaTester

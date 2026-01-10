@@ -41,33 +41,19 @@ public:
     /**
      * @brief Loads SPRT configuration from INI file sections.
      * @param sections The sections containing SPRT configuration.
-     * @param config Reference to SprtConfig to populate.
+     * @return SprtConfig populated from sections.
      */
-    static void loadFromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-        SprtConfig& config);
-
-    /**
-     * @brief Saves SPRT configuration sections to ConfigData.
-     * @param configData The configuration data to save to.
-     * @param config The SPRT configuration to save.
-     * @param id The identifier for the configuration.
-     */
-    static void saveToConfigData(
-        QaplaHelpers::ConfigData& configData, 
-        const SprtConfig& config, 
-        const std::string& id);
+    static SprtConfig loadFromSections(
+        const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
      * @brief Loads SPRT configuration from ConfigData.
      * @param configData The configuration data to load from.
-     * @param config Reference to SprtConfig to populate.
      * @param id The identifier for the configuration.
-     * @return true if configuration was loaded, false if not found.
+     * @return SprtConfig if found, std::nullopt otherwise.
      */
-    static bool loadFromConfigData(
+    static std::optional<SprtConfig> loadFromConfigData(
         const QaplaHelpers::ConfigData& configData, 
-        SprtConfig& config, 
         const std::string& id);
 };
 

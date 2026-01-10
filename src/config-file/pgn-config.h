@@ -41,33 +41,19 @@ public:
     /**
      * @brief Loads PGN configuration from INI file sections.
      * @param sections The sections containing PGN configuration.
-     * @param options Reference to PgnSave::Options to populate.
+     * @return PgnSave::Options populated from sections.
      */
-    static void loadFromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-        PgnSave::Options& options);
-
-    /**
-     * @brief Saves PGN configuration sections to ConfigData.
-     * @param configData The configuration data to save to.
-     * @param options The PGN options to save.
-     * @param id The identifier for the configuration.
-     */
-    static void saveToConfigData(
-        QaplaHelpers::ConfigData& configData, 
-        const PgnSave::Options& options, 
-        const std::string& id);
+    static PgnSave::Options loadFromSections(
+        const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
      * @brief Loads PGN configuration from ConfigData.
      * @param configData The configuration data to load from.
-     * @param options Reference to PgnSave::Options to populate.
      * @param id The identifier for the configuration.
-     * @return true if configuration was loaded, false if not found.
+     * @return PgnSave::Options if found, std::nullopt otherwise.
      */
-    static bool loadFromConfigData(
+    static std::optional<PgnSave::Options> loadFromConfigData(
         const QaplaHelpers::ConfigData& configData, 
-        PgnSave::Options& options, 
         const std::string& id);
 };
 

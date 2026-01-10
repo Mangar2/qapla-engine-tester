@@ -43,12 +43,13 @@ std::vector<QaplaHelpers::IniFile::Section> PgnConfig::getSections(
     }};
 }
 
-void PgnConfig::loadFromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-    PgnSave::Options& options) {
+PgnSave::Options PgnConfig::loadFromSections(
+    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
+    
+    PgnSave::Options options;
     
     if (sections.empty()) {
-        return;
+        return options;
     }
 
     for (const auto& [key, value] : sections[0].entries) {
@@ -80,29 +81,20 @@ void PgnConfig::loadFromSections(
             options.includeDepth = (value == "true");
         }
     }
-}
-
-void PgnConfig::saveToConfigData(
-    QaplaHelpers::ConfigData& configData, 
-    const PgnSave::Options& options, 
-    const std::string& id) {
     
-    auto sections = getSections(options, id);
-    configData.setSectionList("pgnoutput", id, sections);
+    return options;
 }
 
-bool PgnConfig::loadFromConfigData(
+std::optional<PgnSave::Options> PgnConfig::loadFromConfigData(
     const QaplaHelpers::ConfigData& configData, 
-    PgnSave::Options& options, 
     const std::string& id) {
     
     auto sections = configData.getSectionList("pgnoutput", id);
     if (!sections || sections->empty()) {
-        return false;
+        return std::nullopt;
     }
 
-    loadFromSections(*sections, options);
-    return true;
+    return loadFromSections(*sections);
 }
 
 } // namespace QaplaTester

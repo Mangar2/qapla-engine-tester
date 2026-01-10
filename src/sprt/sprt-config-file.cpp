@@ -40,12 +40,13 @@ std::vector<QaplaHelpers::IniFile::Section> SprtConfigFile::getSections(
     return { QaplaHelpers::IniFile::Section{ .name = "sprtconfig", .entries = entries } };
 }
 
-void SprtConfigFile::loadFromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-    SprtConfig& config) {
+SprtConfig SprtConfigFile::loadFromSections(
+    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
+    
+    SprtConfig config;
     
     if (sections.empty()) {
-        return;
+        return config;
     }
 
     for (const auto& [key, value] : sections[0].entries) {
@@ -78,29 +79,20 @@ void SprtConfigFile::loadFromSections(
             config.pentanomial = (value == "true" || value == "1");
         }
     }
-}
-
-void SprtConfigFile::saveToConfigData(
-    QaplaHelpers::ConfigData& configData, 
-    const SprtConfig& config, 
-    const std::string& id) {
     
-    auto sections = getSections(config, id);
-    configData.setSectionList("sprtconfig", id, sections);
+    return config;
 }
 
-bool SprtConfigFile::loadFromConfigData(
+std::optional<SprtConfig> SprtConfigFile::loadFromConfigData(
     const QaplaHelpers::ConfigData& configData, 
-    SprtConfig& config, 
     const std::string& id) {
     
     auto sections = configData.getSectionList("sprtconfig", id);
     if (!sections || sections->empty()) {
-        return false;
+        return std::nullopt;
     }
 
-    loadFromSections(*sections, config);
-    return true;
+    return loadFromSections(*sections);
 }
 
 } // namespace QaplaTester

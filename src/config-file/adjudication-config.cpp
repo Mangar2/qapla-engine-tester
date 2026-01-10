@@ -22,125 +22,94 @@
 
 namespace QaplaTester {
 
-std::vector<QaplaHelpers::IniFile::Section> AdjudicationConfig::getSections(
-    const AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-    const AdjudicationManager::ResignAdjudicationConfig& resignConfig,
+QaplaHelpers::IniFile::Section AdjudicationConfig::toDrawSection(
+    const AdjudicationManager::DrawAdjudicationConfig& config,
     const std::string& id) {
     
-    std::vector<QaplaHelpers::IniFile::Section> sections;
-
-    // Draw adjudication section
-    QaplaHelpers::IniFile::KeyValueMap drawEntries{
+    QaplaHelpers::IniFile::KeyValueMap entries{
         {"id", id},
-        {"active", drawConfig.active ? "true" : "false"},
-        {"minFullMoves", std::to_string(drawConfig.minFullMoves)},
-        {"requiredConsecutiveMoves", std::to_string(drawConfig.requiredConsecutiveMoves)},
-        {"centipawnThreshold", std::to_string(drawConfig.centipawnThreshold)},
-        {"testOnly", drawConfig.testOnly ? "true" : "false"}
+        {"active", config.active ? "true" : "false"},
+        {"minFullMoves", std::to_string(config.minFullMoves)},
+        {"requiredConsecutiveMoves", std::to_string(config.requiredConsecutiveMoves)},
+        {"centipawnThreshold", std::to_string(config.centipawnThreshold)},
+        {"testOnly", config.testOnly ? "true" : "false"}
     };
-    sections.push_back({
+    
+    return {
         .name = "drawadjudication",
-        .entries = drawEntries
-    });
-
-    // Resign adjudication section
-    QaplaHelpers::IniFile::KeyValueMap resignEntries{
-        {"id", id},
-        {"active", resignConfig.active ? "true" : "false"},
-        {"requiredConsecutiveMoves", std::to_string(resignConfig.requiredConsecutiveMoves)},
-        {"centipawnThreshold", std::to_string(resignConfig.centipawnThreshold)},
-        {"twoSided", resignConfig.twoSided ? "true" : "false"},
-        {"testOnly", resignConfig.testOnly ? "true" : "false"}
+        .entries = entries
     };
-    sections.push_back({
+}
+
+QaplaHelpers::IniFile::Section AdjudicationConfig::toResignSection(
+    const AdjudicationManager::ResignAdjudicationConfig& config,
+    const std::string& id) {
+    
+    QaplaHelpers::IniFile::KeyValueMap entries{
+        {"id", id},
+        {"active", config.active ? "true" : "false"},
+        {"requiredConsecutiveMoves", std::to_string(config.requiredConsecutiveMoves)},
+        {"centipawnThreshold", std::to_string(config.centipawnThreshold)},
+        {"twoSided", config.twoSided ? "true" : "false"},
+        {"testOnly", config.testOnly ? "true" : "false"}
+    };
+    
+    return {
         .name = "resignadjudication",
-        .entries = resignEntries
-    });
-
-    return sections;
+        .entries = entries
+    };
 }
 
-void AdjudicationConfig::loadFromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& drawSections,
-    const std::vector<QaplaHelpers::IniFile::Section>& resignSections,
-    AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-    AdjudicationManager::ResignAdjudicationConfig& resignConfig) {
+AdjudicationManager::DrawAdjudicationConfig AdjudicationConfig::fromDrawSection(
+    const QaplaHelpers::IniFile::Section& section) {
     
-    // Load draw adjudication configuration
-    if (!drawSections.empty()) {
-        for (const auto& [key, value] : drawSections[0].entries) {
-            if (key == "active") {
-                drawConfig.active = (value == "true");
-            }
-            else if (key == "minFullMoves") {
-                drawConfig.minFullMoves = QaplaHelpers::to_uint32(value).value_or(0);
-            }
-            else if (key == "requiredConsecutiveMoves") {
-                drawConfig.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
-            }
-            else if (key == "centipawnThreshold") {
-                drawConfig.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
-            }
-            else if (key == "testOnly") {
-                drawConfig.testOnly = (value == "true");
-            }
+    AdjudicationManager::DrawAdjudicationConfig config;
+    
+    for (const auto& [key, value] : section.entries) {
+        if (key == "active") {
+            config.active = (value == "true");
+        }
+        else if (key == "minFullMoves") {
+            config.minFullMoves = QaplaHelpers::to_uint32(value).value_or(0);
+        }
+        else if (key == "requiredConsecutiveMoves") {
+            config.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
+        }
+        else if (key == "centipawnThreshold") {
+            config.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
+        }
+        else if (key == "testOnly") {
+            config.testOnly = (value == "true");
         }
     }
+    
+    return config;
+}
 
-    // Load resign adjudication configuration
-    if (!resignSections.empty()) {
-        for (const auto& [key, value] : resignSections[0].entries) {
-            if (key == "active") {
-                resignConfig.active = (value == "true");
-            }
-            else if (key == "requiredConsecutiveMoves") {
-                resignConfig.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
-            }
-            else if (key == "centipawnThreshold") {
-                resignConfig.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
-            }
-            else if (key == "twoSided") {
-                resignConfig.twoSided = (value == "true");
-            }
-            else if (key == "testOnly") {
-                resignConfig.testOnly = (value == "true");
-            }
+AdjudicationManager::ResignAdjudicationConfig AdjudicationConfig::fromResignSection(
+    const QaplaHelpers::IniFile::Section& section) {
+    
+    AdjudicationManager::ResignAdjudicationConfig config;
+    
+    for (const auto& [key, value] : section.entries) {
+        if (key == "active") {
+            config.active = (value == "true");
+        }
+        else if (key == "requiredConsecutiveMoves") {
+            config.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
+        }
+        else if (key == "centipawnThreshold") {
+            config.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
+        }
+        else if (key == "twoSided") {
+            config.twoSided = (value == "true");
+        }
+        else if (key == "testOnly") {
+            config.testOnly = (value == "true");
         }
     }
-}
-
-void AdjudicationConfig::saveToConfigData(
-    QaplaHelpers::ConfigData& configData,
-    const AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-    const AdjudicationManager::ResignAdjudicationConfig& resignConfig,
-    const std::string& id) {
     
-    auto sections = getSections(drawConfig, resignConfig, id);
-    configData.setSectionList("drawadjudication", id, { sections[0] });
-    configData.setSectionList("resignadjudication", id, { sections[1] });
-}
-
-bool AdjudicationConfig::loadFromConfigData(
-    const QaplaHelpers::ConfigData& configData,
-    AdjudicationManager::DrawAdjudicationConfig& drawConfig,
-    AdjudicationManager::ResignAdjudicationConfig& resignConfig,
-    const std::string& id) {
-    
-    auto drawSections = configData.getSectionList("drawadjudication", id);
-    auto resignSections = configData.getSectionList("resignadjudication", id);
-    
-    if ((!drawSections || drawSections->empty()) && 
-        (!resignSections || resignSections->empty())) {
-        return false;
-    }
-
-    loadFromSections(
-        drawSections.value_or(std::vector<QaplaHelpers::IniFile::Section>{}),
-        resignSections.value_or(std::vector<QaplaHelpers::IniFile::Section>{}),
-        drawConfig,
-        resignConfig);
-    
-    return true;
+    return config;
 }
 
 } // namespace QaplaTester

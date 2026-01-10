@@ -41,33 +41,19 @@ public:
     /**
      * @brief Loads tournament configuration from INI file sections.
      * @param sections The sections containing tournament configuration.
-     * @param config Reference to TournamentConfig to populate.
+     * @return TournamentConfig populated from sections.
      */
-    static void loadFromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-        TournamentConfig& config);
-
-    /**
-     * @brief Saves tournament configuration sections to ConfigData.
-     * @param configData The configuration data to save to.
-     * @param config The tournament configuration to save.
-     * @param id The identifier for the configuration.
-     */
-    static void saveToConfigData(
-        QaplaHelpers::ConfigData& configData, 
-        const TournamentConfig& config, 
-        const std::string& id);
+    static TournamentConfig loadFromSections(
+        const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
      * @brief Loads tournament configuration from ConfigData.
      * @param configData The configuration data to load from.
-     * @param config Reference to TournamentConfig to populate.
      * @param id The identifier for the configuration.
-     * @return true if configuration was loaded, false if not found.
+     * @return TournamentConfig if found, std::nullopt otherwise.
      */
-    static bool loadFromConfigData(
+    static std::optional<TournamentConfig> loadFromConfigData(
         const QaplaHelpers::ConfigData& configData, 
-        TournamentConfig& config, 
         const std::string& id);
 };
 

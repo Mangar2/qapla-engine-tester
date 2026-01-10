@@ -44,11 +44,13 @@ std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::getSections(
     }};
 }
 
-void OpeningConfig::loadFromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections, Openings& openings) {
+Openings OpeningConfig::loadFromSections(
+    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
+    
+    Openings openings;
     
     if (sections.empty()) {
-        return;
+        return openings;
     }
 
     for (const auto& [key, value] : sections[0].entries) {
@@ -71,29 +73,20 @@ void OpeningConfig::loadFromSections(
             openings.policy = value;
         }
     }
-}
-
-void OpeningConfig::saveToConfigData(
-    QaplaHelpers::ConfigData& configData, 
-    const Openings& openings, 
-    const std::string& id) {
     
-    auto sections = getSections(openings, id);
-    configData.setSectionList("opening", id, sections);
+    return openings;
 }
 
-bool OpeningConfig::loadFromConfigData(
+std::optional<Openings> OpeningConfig::loadFromConfigData(
     const QaplaHelpers::ConfigData& configData, 
-    Openings& openings, 
     const std::string& id) {
     
     auto sections = configData.getSectionList("opening", id);
     if (!sections || sections->empty()) {
-        return false;
+        return std::nullopt;
     }
 
-    loadFromSections(*sections, openings);
-    return true;
+    return loadFromSections(*sections);
 }
 
 } // namespace QaplaTester
