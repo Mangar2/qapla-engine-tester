@@ -572,32 +572,35 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
     // Apply SPRT configuration
-    SprtConfig sprtConfig;
-    if (SprtConfigFile::loadFromConfigData(configData, sprtConfig, id)) {
-        m_sprtConfig = std::make_unique<SprtConfig>(sprtConfig);
+    auto sprtConfig = SprtConfigFile::loadFromConfigData(configData, id);
+    if (sprtConfig) {
+        m_sprtConfig = std::make_unique<SprtConfig>(*sprtConfig);
     }
 
     // Apply Openings configuration
-    Openings openings;
-    if (OpeningConfig::loadFromConfigData(configData, openings, id)) {
-        m_openings = std::make_unique<Openings>(openings);
+    auto openings = OpeningConfig::loadFromConfigData(configData, id);
+    if (openings) {
+        m_openings = std::make_unique<Openings>(*openings);
         if (m_sprtConfig) {
-            m_sprtConfig->openings = openings;
+            m_sprtConfig->openings = *openings;
         }
     }
 
     // Apply PGN configuration
-    PgnSave::Options pgnOptions;
-    if (PgnConfig::loadFromConfigData(configData, pgnOptions, id)) {
-        m_pgnOptions = pgnOptions;
+    auto pgnOptions = PgnConfig::loadFromConfigData(configData, id);
+    if (pgnOptions) {
+        m_pgnOptions = *pgnOptions;
     }
 
     // Apply Adjudication configurations
-    AdjudicationManager::DrawAdjudicationConfig drawConfig;
-    AdjudicationManager::ResignAdjudicationConfig resignConfig;
-    if (AdjudicationConfig::loadFromConfigData(configData, drawConfig, resignConfig, id)) {
-        m_drawConfig = drawConfig;
-        m_resignConfig = resignConfig;
+    auto drawSections = configData.getSectionList("drawadjudication", id);
+    auto resignSections = configData.getSectionList("resignadjudication", id);
+    
+    if (drawSections && !drawSections->empty()) {
+        m_drawConfig = AdjudicationConfig::fromDrawSection((*drawSections)[0]);
+    }
+    if (resignSections && !resignSections->empty()) {
+        m_resignConfig = AdjudicationConfig::fromResignSection((*resignSections)[0]);
     }
 
 

@@ -44,32 +44,19 @@ public:
     /**
      * @brief Loads opening configuration from INI file sections.
      * @param sections The sections containing opening configuration.
-     * @param openings Reference to Openings structure to populate.
+     * @return Openings structure populated from sections.
      */
-    static void loadFromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections, Openings& openings);
-
-    /**
-     * @brief Saves opening configuration sections to ConfigData.
-     * @param configData The configuration data to save to.
-     * @param openings The openings configuration to save.
-     * @param id The identifier for the configuration.
-     */
-    static void saveToConfigData(
-        QaplaHelpers::ConfigData& configData, 
-        const Openings& openings, 
-        const std::string& id);
+    static Openings loadFromSections(
+        const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
      * @brief Loads opening configuration from ConfigData.
      * @param configData The configuration data to load from.
-     * @param openings Reference to Openings structure to populate.
      * @param id The identifier for the configuration.
-     * @return true if configuration was loaded, false if not found.
+     * @return Openings structure if found, std::nullopt otherwise.
      */
-    static bool loadFromConfigData(
+    static std::optional<Openings> loadFromConfigData(
         const QaplaHelpers::ConfigData& configData, 
-        Openings& openings, 
         const std::string& id);
 };
 

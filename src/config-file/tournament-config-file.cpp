@@ -40,12 +40,13 @@ std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::getSections(
     return { QaplaHelpers::IniFile::Section{ .name = "tournament", .entries = entries } };
 }
 
-void TournamentConfigFile::loadFromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections, 
-    TournamentConfig& config) {
+TournamentConfig TournamentConfigFile::loadFromSections(
+    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
+    
+    TournamentConfig config;
     
     if (sections.empty()) {
-        return;
+        return config;
     }
 
     for (const auto& [key, value] : sections[0].entries) {
@@ -74,29 +75,20 @@ void TournamentConfigFile::loadFromSections(
             config.saveInterval = QaplaHelpers::to_uint32(value).value_or(10);
         }
     }
-}
-
-void TournamentConfigFile::saveToConfigData(
-    QaplaHelpers::ConfigData& configData, 
-    const TournamentConfig& config, 
-    const std::string& id) {
     
-    auto sections = getSections(config, id);
-    configData.setSectionList("tournament", id, sections);
+    return config;
 }
 
-bool TournamentConfigFile::loadFromConfigData(
+std::optional<TournamentConfig> TournamentConfigFile::loadFromConfigData(
     const QaplaHelpers::ConfigData& configData, 
-    TournamentConfig& config, 
     const std::string& id) {
     
     auto sections = configData.getSectionList("tournament", id);
     if (!sections || sections->empty()) {
-        return false;
+        return std::nullopt;
     }
 
-    loadFromSections(*sections, config);
-    return true;
+    return loadFromSections(*sections);
 }
 
 } // namespace QaplaTester
