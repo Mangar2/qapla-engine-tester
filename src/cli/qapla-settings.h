@@ -34,6 +34,11 @@ namespace QaplaTester {
     struct SprtConfig;
     struct EpdConfig;
     struct SPSAConfig;
+
+}
+
+namespace QaplaHelpers {
+    class ConfigData;
 }
 
 namespace QaplaTester::CliSettings {
@@ -197,25 +202,10 @@ private:
     void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
 private:
-    /**
-     * @brief Loads engines from ConfigData and adds them to EngineWorkerFactory
-     * @param configData The configuration data containing engine sections
-     * @param id The identifier for the sections
-     */
-    void loadEnginesFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
-
-    /**
-     * @brief Merges global engine options with individual engine options and creates EngineConfig
-     * @param globalOptions Global engine settings to merge (from "each" or "eachengine")
-     * @param engineOptions Individual engine settings
-     */
-    static void mergeAndAddEngine(const QaplaTester::CliSettings::ValueMap& globalOptions, 
-                                   const QaplaTester::CliSettings::ValueMap& engineOptions);
-
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
-    std::optional<PgnSave::Options> m_pgnOptions; ///< PGN output options
-    std::optional<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
-    std::optional<AdjudicationManager::ResignAdjudicationConfig> m_resignConfig; ///< Resign adjudication config
+    std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options
+    std::unique_ptr<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
+    std::unique_ptr<AdjudicationManager::ResignAdjudicationConfig> m_resignConfig; ///< Resign adjudication config
     std::unique_ptr<Openings> m_openings; ///< Openings configuration
     std::unique_ptr<TournamentConfig> m_tournamentConfig; ///< Tournament configuration
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
