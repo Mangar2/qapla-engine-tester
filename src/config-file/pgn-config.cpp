@@ -21,6 +21,8 @@
 
 namespace QaplaTester {
 
+constexpr const char* PGN_OUTPUT_SECTION_NAME = "pgnoutput";
+
 std::vector<QaplaHelpers::IniFile::Section> PgnConfig::getSections(
     const PgnSave::Options& options, const std::string& id) {
     
@@ -38,7 +40,7 @@ std::vector<QaplaHelpers::IniFile::Section> PgnConfig::getSections(
     };
 
     return {{
-        .name = "pgnoutput",
+        .name = PGN_OUTPUT_SECTION_NAME,
         .entries = entries
     }};
 }
@@ -89,7 +91,7 @@ std::optional<PgnSave::Options> PgnConfig::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList("pgnoutput", id);
+    auto sections = configData.getSectionList(PGN_OUTPUT_SECTION_NAME, id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }
