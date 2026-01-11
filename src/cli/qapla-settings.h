@@ -23,6 +23,7 @@
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
 #include "../config-file/engine-config-file.h"
+#include "../config-file/engine-global-config.h"
 
 #include <string>
 #include <vector>
@@ -162,6 +163,11 @@ private:
     static void readEngineOptions();
 
     /**
+     * @brief Reads global engine configuration from CLI settings
+     */
+    void readEngineGlobalConfig();
+
+    /**
      * @brief Reads PGN options from CLI settings
      */
     void readPgnOptions();
@@ -225,6 +231,7 @@ private:
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
+    std::unique_ptr<EngineGlobalConfig> m_engineGlobalConfig; ///< Global engine configuration
     std::vector<EngineConfiguration> m_allEngineConfigurations; ///< All engine configurations (selected and non-selected)
 };
 

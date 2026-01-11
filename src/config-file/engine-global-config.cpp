@@ -92,14 +92,18 @@ EngineGlobalConfig EngineGlobalConfigFile::fromSection(
     return config;
 }
 
-std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::toSections(
+std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::toEngineConfigSections(
     const EngineGlobalConfig& config, 
     const std::string& id) {
     
-    return { 
-        toSection(config, id),
-        createTimeControlSection(config, id)
-    };
+    return { toSection(config, id) };
+}
+
+std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::toTimeControlSections(
+    const EngineGlobalConfig& config, 
+    const std::string& id) {
+    
+    return { createTimeControlSection(config, id) };
 }
 
 EngineGlobalConfig EngineGlobalConfigFile::fromSections(

@@ -51,6 +51,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
 
     // Read options after all settings are registered and read.
     readEngineOptions();
+    readEngineGlobalConfig();
     readPgnOptions();
     readDrawAdjudicationConfig();
     readResignAdjudicationConfig();
@@ -338,6 +339,29 @@ void QaplaSettings::readEngineOptions() {
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
+void QaplaSettings::readEngineGlobalConfig() {
+    auto eachSetting = Manager::getGroupInstance("each");
+    if (!eachSetting) {
+        m_engineGlobalConfig = nullptr;
+        return;
+    }
+
+    const auto& each = *eachSetting;
+    auto hashStr = each.get<std::string>("option.Hash");
+    auto hashValue = QaplaHelpers::to_unsigned_int<uint32_t>(hashStr).value_or(0);
+
+    m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(EngineGlobalConfig{
+        .useGlobalHash = each.isKeyProvided("option.Hash"),
+        .hashSizeMB = hashValue,
+        .useGlobalPonder = each.isKeyProvided("ponder"),
+        .ponder = each.get<bool>("ponder"),
+        .useGlobalTrace = each.isKeyProvided("trace"),
+        .traceLevel = each.get<std::string>("trace"),
+        .useGlobalRestart = each.isKeyProvided("restart"),
+        .restart = each.get<std::string>("restart"),
+        .timeControl = each.get<std::string>("tc")
+    });
+}
 
 void QaplaSettings::readPgnOptions() {
     auto pgnOptionInstance = Manager::getGroupInstance("pgnoutput");
@@ -665,6 +689,9 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
 
     // Load global engine configuration
     auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
+    if (globalConfig) {
+        m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(*globalConfig);
+    }
     
     // Load engine-specific configurations
     auto engineConfigs = EngineConfigFile::fromConfigData(configData, id);
@@ -701,6 +728,15 @@ const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfiguration
 QaplaHelpers::ConfigData QaplaSettings::getConfigData(const std::string& id) const {
     QaplaHelpers::ConfigData configData;
 
+    // Convert Engine Global configuration back to sections
+    if (m_engineGlobalConfig) {
+        auto engineSections = EngineGlobalConfigFile::toEngineConfigSections(*m_engineGlobalConfig, id);
+        configData.setSectionList("eachengine", id, engineSections);
+        
+        auto timeControlSections = EngineGlobalConfigFile::toTimeControlSections(*m_engineGlobalConfig, id);
+        configData.setSectionList("timecontroloptions", id, timeControlSections);
+    }
+
     if (m_openings) {
         auto sections = OpeningConfig::toSections(*m_openings, id);
         configData.setSectionList(OpeningConfig::getSectionName(), id, sections);
@@ -726,10 +762,6 @@ QaplaHelpers::ConfigData QaplaSettings::getConfigData(const std::string& id) con
         configData.setSectionList(AdjudicationConfig::getResignSectionName(), id, sections);
     }
 
-    // TODO: Convert Engine Global configuration back to sections
-    // Problem: EngineGlobalConfig is not stored as a member variable in QaplaSettings
-    // It's only loaded temporarily in setFromConfigData and applied to engines
-    // Solution: Either store it as a member, or reconstruct it from active engines (complex)
 
     if (!m_allEngineConfigurations.empty()) {
         auto sections = EngineConfigFile::toSections(m_allEngineConfigurations, id);

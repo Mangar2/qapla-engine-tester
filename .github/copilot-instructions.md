@@ -25,3 +25,6 @@ If I ask you to checkin:
 - **Read implementation first**: Before writing tests, read the `.cpp` file to identify which logic is owned vs. delegated - only test owned logic
 - **Minimal test coverage**: Design the smallest set of tests that covers all code paths and edge cases
 - **Test ordering**: Basic functionality tests first, edge cases and special scenarios last
+
+## Ask if things do not fit
+Sometimes function return parameters don´t fit to the format or form we need. Sometimes we may change the the function sometimes we dont´t. So ask what should be done before implementing complex transformation.

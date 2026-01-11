@@ -82,12 +82,22 @@ public:
         const QaplaHelpers::IniFile::Section& section);
 
     /**
-     * @brief Creates INI file sections from EngineGlobalConfig.
+     * @brief Creates INI file sections for engine configuration from EngineGlobalConfig.
      * @param config The global engine configuration to convert.
      * @param id The identifier for the configuration.
-     * @return Vector containing one section with global engine configuration.
+     * @return Vector containing the "eachengine" section.
      */
-    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toEngineConfigSections(
+        const EngineGlobalConfig& config, 
+        const std::string& id);
+
+    /**
+     * @brief Creates INI file sections for time control options from EngineGlobalConfig.
+     * @param config The global engine configuration to convert.
+     * @param id The identifier for the configuration.
+     * @return Vector containing the "timecontroloptions" section.
+     */
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toTimeControlSections(
         const EngineGlobalConfig& config, 
         const std::string& id);
 
