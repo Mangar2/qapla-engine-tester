@@ -43,11 +43,11 @@ struct EngineConfiguration {
 class EngineConfigFile {
 public:
     /**
-     * @brief Creates INI file section from EngineConfig.
+     * @brief Creates INI file section from EngineConfiguration.
      * @param config The engine configuration to convert.
      * @return INI file section containing engine configuration.
      */
-    static QaplaHelpers::IniFile::Section toSection(const EngineConfig& config);
+    static QaplaHelpers::IniFile::Section toSection(const EngineConfiguration& config);
 
     /**
      * @brief Loads engine configuration from INI file section.
@@ -57,28 +57,28 @@ public:
     static EngineConfiguration fromSection(const QaplaHelpers::IniFile::Section& section);
 
     /**
-     * @brief Creates INI file sections from multiple EngineConfigs.
+     * @brief Creates INI file sections from multiple EngineConfigurations.
      * @param configs Vector of engine configurations to convert.
      * @return Vector of INI file sections containing engine configurations.
      */
     static std::vector<QaplaHelpers::IniFile::Section> getSections(
-        const std::vector<EngineConfig>& configs);
+        const std::vector<EngineConfiguration>& configs);
 
     /**
      * @brief Loads multiple engine configurations from INI file sections.
      * @param sections The sections containing engine configurations.
-     * @return Vector of EngineConfig objects populated from sections.
+     * @return Vector of EngineConfiguration objects populated from sections.
      */
-    static std::vector<EngineConfig> fromSections(
+    static std::vector<EngineConfiguration> fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
      * @brief Loads engine configurations from ConfigData.
      * @param configData The configuration data to load from.
      * @param id The identifier for the configuration.
-     * @return Vector of EngineConfig if found, std::nullopt otherwise.
+     * @return Vector of EngineConfiguration if found, std::nullopt otherwise.
      */
-    static std::optional<std::vector<EngineConfig>> fromConfigData(
+    static std::optional<std::vector<EngineConfiguration>> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };
