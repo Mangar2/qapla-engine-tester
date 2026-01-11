@@ -71,14 +71,17 @@ QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfig& c
     };
 }
 
-EngineConfig EngineConfigFile::fromSection(const QaplaHelpers::IniFile::Section& section) {
-    EngineConfig config;
+EngineConfiguration EngineConfigFile::fromSection(const QaplaHelpers::IniFile::Section& section) {
+    EngineConfiguration result;
     
     for (const auto& [key, value] : section.entries) {
-        config.setValue(key, value);
+        result.config.setValue(key, value);
     }
     
-    return config;
+    result.originalName = section.getValue("originalName").value_or(result.config.getName());
+    result.selected = section.getValue("selected").value_or("false") == "true";
+    
+    return result;
 }
 
 std::vector<QaplaHelpers::IniFile::Section> EngineConfigFile::getSections(
@@ -102,7 +105,7 @@ std::vector<EngineConfig> EngineConfigFile::fromSections(
     
     for (const auto& section : sections) {
         if (section.name == ENGINE_SECTION_NAME) {
-            configs.push_back(fromSection(section));
+            configs.push_back(fromSection(section).config);
         }
     }
     
