@@ -22,8 +22,6 @@
 
 namespace QaplaTester {
 
-constexpr const char* GLOBAL_ENGINE_SECTION_NAME = "eachengine";
-
 QaplaHelpers::IniFile::Section EngineGlobalConfigFile::toSection(
     const EngineGlobalConfig& config,
     const std::string& id) {
@@ -53,7 +51,7 @@ QaplaHelpers::IniFile::Section EngineGlobalConfigFile::toSection(
     }
     
     return {
-        .name = GLOBAL_ENGINE_SECTION_NAME,
+        .name = getSectionName(),
         .entries = entries
     };
 }
@@ -94,7 +92,7 @@ EngineGlobalConfig EngineGlobalConfigFile::fromSection(
     return config;
 }
 
-std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::getSections(
+std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::toSections(
     const EngineGlobalConfig& config, 
     const std::string& id) {
     
@@ -120,7 +118,7 @@ std::optional<EngineGlobalConfig> EngineGlobalConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList(GLOBAL_ENGINE_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

@@ -208,6 +208,13 @@ private:
      */
     void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
+    /**
+     * @brief Collects all current configurations into ConfigData
+     * @param id Identifier for the configuration sections
+     * @return ConfigData containing all current settings
+     */
+    QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
+
 private:
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options

@@ -22,9 +22,7 @@
 
 namespace QaplaTester {
 
-constexpr const char* TOURNAMENT_SECTION_NAME = "tournament";
-
-std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::getSections(
+std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::toSections(
     const TournamentConfig& config, const std::string& id) {
     
     QaplaHelpers::IniFile::KeyValueMap entries{
@@ -39,7 +37,7 @@ std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::getSections(
         {"saveInterval", std::to_string(config.saveInterval)}
     };
 
-    return { QaplaHelpers::IniFile::Section{ .name = TOURNAMENT_SECTION_NAME, .entries = entries } };
+    return { QaplaHelpers::IniFile::Section{ .name = getSectionName(), .entries = entries } };
 }
 
 TournamentConfig TournamentConfigFile::fromSections(
@@ -85,7 +83,7 @@ std::optional<TournamentConfig> TournamentConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList(TOURNAMENT_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

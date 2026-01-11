@@ -30,12 +30,18 @@ namespace QaplaTester {
 class TournamentConfigFile {
 public:
     /**
+     * @brief Gets the section name for tournament configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getSectionName() { return "tournament"; }
+
+    /**
      * @brief Creates INI file sections from TournamentConfig.
      * @param config The tournament configuration to convert.
      * @param id The identifier for the configuration.
      * @return Vector containing one section with tournament configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
         const TournamentConfig& config, const std::string& id);
 
     /**
@@ -43,7 +49,7 @@ public:
      * @param sections The sections containing tournament configuration.
      * @return TournamentConfig populated from sections.
      */
-    static TournamentConfig fromSections(
+    [[nodiscard]] static TournamentConfig fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -52,7 +58,7 @@ public:
      * @param id The identifier for the configuration.
      * @return TournamentConfig if found, std::nullopt otherwise.
      */
-    static std::optional<TournamentConfig> fromConfigData(
+    [[nodiscard]] static std::optional<TournamentConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

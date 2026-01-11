@@ -30,22 +30,34 @@ namespace QaplaTester {
 class AdjudicationConfig {
 public:
     /**
-     * @brief Creates draw adjudication section from configuration.
+     * @brief Gets the section name for draw adjudication configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getDrawSectionName() { return "drawadjudication"; }
+
+    /**
+     * @brief Gets the section name for resign adjudication configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getResignSectionName() { return "resignadjudication"; }
+
+    /**
+     * @brief Creates draw adjudication sections from configuration.
      * @param config The draw adjudication configuration.
      * @param id The identifier for the configuration.
-     * @return INI file section containing draw adjudication configuration.
+     * @return Vector containing draw adjudication section.
      */
-    static QaplaHelpers::IniFile::Section toDrawSection(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toDrawSections(
         const AdjudicationManager::DrawAdjudicationConfig& config,
         const std::string& id);
 
     /**
-     * @brief Creates resign adjudication section from configuration.
+     * @brief Creates resign adjudication sections from configuration.
      * @param config The resign adjudication configuration.
      * @param id The identifier for the configuration.
-     * @return INI file section containing resign adjudication configuration.
+     * @return Vector containing resign adjudication section.
      */
-    static QaplaHelpers::IniFile::Section toResignSection(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toResignSections(
         const AdjudicationManager::ResignAdjudicationConfig& config,
         const std::string& id);
 
@@ -55,7 +67,7 @@ public:
      * @param id The identifier for the configuration.
      * @return Draw adjudication configuration if found, std::nullopt otherwise.
      */
-    static std::optional<AdjudicationManager::DrawAdjudicationConfig> fromDrawConfigData(
+    [[nodiscard]] static std::optional<AdjudicationManager::DrawAdjudicationConfig> fromDrawConfigData(
         const QaplaHelpers::ConfigData& configData,
         const std::string& id);
 
@@ -65,7 +77,7 @@ public:
      * @param id The identifier for the configuration.
      * @return Resign adjudication configuration if found, std::nullopt otherwise.
      */
-    static std::optional<AdjudicationManager::ResignAdjudicationConfig> fromResignConfigData(
+    [[nodiscard]] static std::optional<AdjudicationManager::ResignAdjudicationConfig> fromResignConfigData(
         const QaplaHelpers::ConfigData& configData,
         const std::string& id);
 };
