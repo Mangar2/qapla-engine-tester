@@ -139,6 +139,13 @@ public:
      */
     [[nodiscard]] std::string getLogPath() const;
 
+    /**
+     * @brief Collects all current configurations into ConfigData
+     * @param id Identifier for the configuration sections
+     * @return ConfigData containing all current settings
+     */
+    QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
+
     // Delete copy constructor and assignment operator
     QaplaSettings(const QaplaSettings&) = delete;
     QaplaSettings& operator=(const QaplaSettings&) = delete;
@@ -213,13 +220,6 @@ private:
      * @param id Identifier for the configuration sections
      */
     void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
-
-    /**
-     * @brief Collects all current configurations into ConfigData
-     * @param id Identifier for the configuration sections
-     * @return ConfigData containing all current settings
-     */
-    QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
 
 private:
     std::vector<std::string> m_arguments; ///< Stored command-line arguments

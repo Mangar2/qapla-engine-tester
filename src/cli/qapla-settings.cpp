@@ -537,17 +537,6 @@ void QaplaSettings::readSprtConfig() {
         QaplaHelpers::ConfigData configData;
         SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
         setFromConfigData(configData, "sprt-tournament");
-        
-        // Test: Save to test.qsprt to verify save/load functionality
-        // This time, we reconstruct the ConfigData from the member variables
-        try {
-            QaplaHelpers::ConfigData reconstructedData = getConfigData("sprt-tournament");
-            SprtTournamentFile::save("./test/tournaments/test.qsprt", reconstructedData, "sprt-tournament");
-        } catch (const std::exception& e) {
-            // Log error but continue
-            std::cerr << "Error saving test file: " << e.what() << std::endl;
-        }
-        
         return;
     }
 
