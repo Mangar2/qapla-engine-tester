@@ -224,8 +224,10 @@ static auto runSprt(AppReturnCode code) {
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
             
-            auto filename = sprtGroup->get<std::string>("resultfile");
-            if (!filename.empty()) manager->save(filename);
+            auto filename = sprtGroup->get<std::string>("file");
+            QaplaHelpers::ConfigData configData = CliSettings::QaplaSettings::instance().
+                getConfigData("sprt-tournament");
+            SprtTournamentFile::save(filename, configData, "sprt-tournament");
             
             code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
             Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
