@@ -22,11 +22,12 @@
 
 namespace QaplaTester {
 
-constexpr const char* ENGINE_SECTION_NAME = "engineselection";
-
-QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfiguration& config) {
+QaplaHelpers::IniFile::Section EngineConfigFile::toSection(
+    const EngineConfiguration& config, const std::string& id) {
+    
     QaplaHelpers::IniFile::KeyValueMap entries;
     
+    entries.emplace_back("id", id);
     entries.emplace_back("name", config.config.getName());
     entries.emplace_back("originalName", config.originalName);
     entries.emplace_back("selected", config.selected ? "true" : "false");
@@ -68,7 +69,7 @@ QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfigura
     }
     
     return {
-        .name = ENGINE_SECTION_NAME,
+        .name = getSectionName(),
         .entries = entries
     };
 }
@@ -86,14 +87,14 @@ EngineConfiguration EngineConfigFile::fromSection(const QaplaHelpers::IniFile::S
     return result;
 }
 
-std::vector<QaplaHelpers::IniFile::Section> EngineConfigFile::getSections(
-    const std::vector<EngineConfiguration>& configs) {
+std::vector<QaplaHelpers::IniFile::Section> EngineConfigFile::toSections(
+    const std::vector<EngineConfiguration>& configs, const std::string& id) {
     
     std::vector<QaplaHelpers::IniFile::Section> sections;
     sections.reserve(configs.size());
     
     for (const auto& config : configs) {
-        sections.push_back(toSection(config));
+        sections.push_back(toSection(config, id));
     }
     
     return sections;
@@ -106,7 +107,7 @@ std::vector<EngineConfiguration> EngineConfigFile::fromSections(
     configs.reserve(sections.size());
     
     for (const auto& section : sections) {
-        if (section.name == ENGINE_SECTION_NAME) {
+        if (section.name == getSectionName()) {
             configs.push_back(fromSection(section));
         }
     }
@@ -118,7 +119,7 @@ std::optional<std::vector<EngineConfiguration>> EngineConfigFile::fromConfigData
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList(ENGINE_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

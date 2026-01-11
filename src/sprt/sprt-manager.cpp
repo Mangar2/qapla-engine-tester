@@ -134,11 +134,15 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
             result.printOutcome(std::cout);
         });
 	auto duel = tournament_->getResult();
-    std::cout << "sprt engines " << duel.getEngineA() << " vs " << duel.getEngineB()
+    std::cout << "sprt engines " 
+        << duel.getEngineA() << " (" << engine0_.getTimeControl().toPgnTimeControlString() << ")"
+        << " vs " 
+        << duel.getEngineB() << " (" << engine1_.getTimeControl().toPgnTimeControlString() << ")"
         << " elo [" << config_.eloLower << ", " << config_.eloUpper << "]"
         << " alpha " << config_.alpha << " beta " << config_.beta
         << " maxgames " << config_.maxGames
-        << " concurrency " << concurrency << "\n" << std::flush;
+        << " concurrency " << concurrency 
+        << "\n" << std::flush;
 
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, tournament_->getEngineA(), tournament_->getEngineB());

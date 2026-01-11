@@ -58,21 +58,27 @@ struct EngineGlobalConfig {
 class EngineGlobalConfigFile {
 public:
     /**
+     * @brief Gets the section name for global engine configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getSectionName() { return "eachengine"; }
+
+    /**
      * @brief Creates INI file section from EngineGlobalConfig.
      * @param config The global engine configuration to convert.
      * @param id The identifier for the configuration.
      * @return INI file section containing global engine configuration.
      */
-    static QaplaHelpers::IniFile::Section toSection(
+    [[nodiscard]] static QaplaHelpers::IniFile::Section toSection(
         const EngineGlobalConfig& config,
         const std::string& id);
 
     /**
-     * @brief Loads global engine configuration from INI file section.
+     * @brief Creates global engine configuration from INI file section.
      * @param section The section containing global engine configuration.
      * @return EngineGlobalConfig populated from section.
      */
-    static EngineGlobalConfig fromSection(
+    [[nodiscard]] static EngineGlobalConfig fromSection(
         const QaplaHelpers::IniFile::Section& section);
 
     /**
@@ -81,7 +87,7 @@ public:
      * @param id The identifier for the configuration.
      * @return Vector containing one section with global engine configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
         const EngineGlobalConfig& config, 
         const std::string& id);
 
@@ -90,7 +96,7 @@ public:
      * @param sections The sections containing global engine configuration.
      * @return EngineGlobalConfig populated from sections.
      */
-    static EngineGlobalConfig fromSections(
+    [[nodiscard]] static EngineGlobalConfig fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -99,7 +105,7 @@ public:
      * @param id The identifier for the configuration.
      * @return EngineGlobalConfig if found, std::nullopt otherwise.
      */
-    static std::optional<EngineGlobalConfig> fromConfigData(
+    [[nodiscard]] static std::optional<EngineGlobalConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 

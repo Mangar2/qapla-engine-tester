@@ -33,29 +33,35 @@ namespace QaplaTester {
 class OpeningConfig {
 public:
     /**
+     * @brief Gets the section name for opening configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getSectionName() { return "opening"; }
+
+    /**
      * @brief Creates INI file sections from Openings data.
      * @param openings The openings configuration to convert.
      * @param id The identifier for the configuration (e.g., "tournament", "sprt-tournament").
      * @return Vector containing one section with opening configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
         const Openings& openings, const std::string& id);
 
     /**
-     * @brief Loads opening configuration from INI file sections.
+     * @brief Creates opening configuration from INI file sections.
      * @param sections The sections containing opening configuration.
      * @return Openings structure populated from sections.
      */
-    static Openings fromSections(
+    [[nodiscard]] static Openings fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
-     * @brief Loads opening configuration from ConfigData.
+     * @brief Creates opening configuration from ConfigData.
      * @param configData The configuration data to load from.
      * @param id The identifier for the configuration.
      * @return Openings structure if found, std::nullopt otherwise.
      */
-    static std::optional<Openings> fromConfigData(
+    [[nodiscard]] static std::optional<Openings> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

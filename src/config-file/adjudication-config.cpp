@@ -22,10 +22,7 @@
 
 namespace QaplaTester {
 
-constexpr const char* DRAW_ADJUDICATION_SECTION_NAME = "drawadjudication";
-constexpr const char* RESIGN_ADJUDICATION_SECTION_NAME = "resignadjudication";
-
-QaplaHelpers::IniFile::Section AdjudicationConfig::toDrawSection(
+std::vector<QaplaHelpers::IniFile::Section> AdjudicationConfig::toDrawSections(
     const AdjudicationManager::DrawAdjudicationConfig& config,
     const std::string& id) {
     
@@ -38,13 +35,13 @@ QaplaHelpers::IniFile::Section AdjudicationConfig::toDrawSection(
         {"testOnly", config.testOnly ? "true" : "false"}
     };
     
-    return {
-        .name = DRAW_ADJUDICATION_SECTION_NAME,
+    return {{
+        .name = getDrawSectionName(),
         .entries = entries
-    };
+    }};
 }
 
-QaplaHelpers::IniFile::Section AdjudicationConfig::toResignSection(
+std::vector<QaplaHelpers::IniFile::Section> AdjudicationConfig::toResignSections(
     const AdjudicationManager::ResignAdjudicationConfig& config,
     const std::string& id) {
     
@@ -57,17 +54,17 @@ QaplaHelpers::IniFile::Section AdjudicationConfig::toResignSection(
         {"testOnly", config.testOnly ? "true" : "false"}
     };
     
-    return {
-        .name = RESIGN_ADJUDICATION_SECTION_NAME,
+    return {{
+        .name = getResignSectionName(),
         .entries = entries
-    };
+    }};
 }
 
 std::optional<AdjudicationManager::DrawAdjudicationConfig> AdjudicationConfig::fromDrawConfigData(
     const QaplaHelpers::ConfigData& configData,
     const std::string& id) {
     
-    auto sections = configData.getSectionList(DRAW_ADJUDICATION_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getDrawSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }
@@ -100,7 +97,7 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> AdjudicationConfig:
     const QaplaHelpers::ConfigData& configData,
     const std::string& id) {
     
-    auto sections = configData.getSectionList(RESIGN_ADJUDICATION_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getResignSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

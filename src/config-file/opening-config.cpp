@@ -22,9 +22,7 @@
 
 namespace QaplaTester {
 
-constexpr const char* OPENING_SECTION_NAME = "opening";
-
-std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::getSections(
+std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::toSections(
     const Openings& openings, const std::string& id) {
     
     QaplaHelpers::IniFile::KeyValueMap entries{
@@ -41,7 +39,7 @@ std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::getSections(
     }
 
     return {{
-        .name = OPENING_SECTION_NAME,
+        .name = getSectionName(),
         .entries = entries
     }};
 }
@@ -83,7 +81,7 @@ std::optional<Openings> OpeningConfig::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList(OPENING_SECTION_NAME, id);
+    auto sections = configData.getSectionList(getSectionName(), id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

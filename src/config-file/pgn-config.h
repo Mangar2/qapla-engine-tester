@@ -30,29 +30,35 @@ namespace QaplaTester {
 class PgnConfig {
 public:
     /**
+     * @brief Gets the section name for PGN configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getSectionName() { return "pgnoutput"; }
+
+    /**
      * @brief Creates INI file sections from PgnSave::Options.
      * @param options The PGN options to convert.
      * @param id The identifier for the configuration.
      * @return Vector containing one section with PGN configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
         const PgnSave::Options& options, const std::string& id);
 
     /**
-     * @brief Loads PGN configuration from INI file sections.
+     * @brief Creates PGN configuration from INI file sections.
      * @param sections The sections containing PGN configuration.
      * @return PgnSave::Options populated from sections.
      */
-    static PgnSave::Options fromSections(
+    [[nodiscard]] static PgnSave::Options fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
-     * @brief Loads PGN configuration from ConfigData.
+     * @brief Creates PGN configuration from ConfigData.
      * @param configData The configuration data to load from.
      * @param id The identifier for the configuration.
      * @return PgnSave::Options if found, std::nullopt otherwise.
      */
-    static std::optional<PgnSave::Options> fromConfigData(
+    [[nodiscard]] static std::optional<PgnSave::Options> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };

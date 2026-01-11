@@ -139,6 +139,8 @@ void QaplaSettings::init() {
                     .defaultValue = "", 
                     .type = ValueType::PathExists,
                     .exclusive = true } },
+        { "saveinterval", { .description = "Interval in games to save tournament state", 
+                            .isRequired = false, .defaultValue = 100, .type = ValueType::UInt } },
         { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, ValueType::Int } },
         { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, ValueType::Int } },
         { "alpha", { "Type I error threshold", false, 0.05f, ValueType::Float } },
@@ -511,6 +513,17 @@ void QaplaSettings::readSprtConfig() {
         QaplaHelpers::ConfigData configData;
         SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
         setFromConfigData(configData, "sprt-tournament");
+        
+        // Test: Save to test.qsprt to verify save/load functionality
+        // This time, we reconstruct the ConfigData from the member variables
+        try {
+            QaplaHelpers::ConfigData reconstructedData = getConfigData("sprt-tournament");
+            SprtTournamentFile::save("./test/tournaments/test.qsprt", reconstructedData, "sprt-tournament");
+        } catch (const std::exception& e) {
+            // Log error but continue
+            std::cerr << "Error saving test file: " << e.what() << std::endl;
+        }
+        
         return;
     }
 
@@ -683,6 +696,47 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
 
 const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {
     return m_allEngineConfigurations;
+}
+
+QaplaHelpers::ConfigData QaplaSettings::getConfigData(const std::string& id) const {
+    QaplaHelpers::ConfigData configData;
+
+    if (m_openings) {
+        auto sections = OpeningConfig::toSections(*m_openings, id);
+        configData.setSectionList(OpeningConfig::getSectionName(), id, sections);
+    }
+
+    if (m_sprtConfig) {
+        auto sections = SprtConfigFile::toSections(*m_sprtConfig, id);
+        configData.setSectionList(SprtConfigFile::getSectionName(), id, sections);
+    }
+
+    if (m_pgnOptions) {
+        auto sections = PgnConfig::toSections(*m_pgnOptions, id);
+        configData.setSectionList(PgnConfig::getSectionName(), id, sections);
+    }
+
+    if (m_drawConfig) {
+        auto sections = AdjudicationConfig::toDrawSections(*m_drawConfig, id);
+        configData.setSectionList(AdjudicationConfig::getDrawSectionName(), id, sections);
+    }
+
+    if (m_resignConfig) {
+        auto sections = AdjudicationConfig::toResignSections(*m_resignConfig, id);
+        configData.setSectionList(AdjudicationConfig::getResignSectionName(), id, sections);
+    }
+
+    // TODO: Convert Engine Global configuration back to sections
+    // Problem: EngineGlobalConfig is not stored as a member variable in QaplaSettings
+    // It's only loaded temporarily in setFromConfigData and applied to engines
+    // Solution: Either store it as a member, or reconstruct it from active engines (complex)
+
+    if (!m_allEngineConfigurations.empty()) {
+        auto sections = EngineConfigFile::toSections(m_allEngineConfigurations, id);
+        configData.setSectionList(EngineConfigFile::getSectionName(), id, sections);
+    }
+
+    return configData;
 }
 
 } // namespace QaplaTester::CliSettings

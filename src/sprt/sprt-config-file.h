@@ -30,12 +30,18 @@ namespace QaplaTester {
 class SprtConfigFile {
 public:
     /**
+     * @brief Gets the section name for SPRT configuration.
+     * @return The section name used in INI files.
+     */
+    [[nodiscard]] static constexpr const char* getSectionName() { return "sprtconfig"; }
+
+    /**
      * @brief Creates INI file sections from SprtConfig.
      * @param config The SPRT configuration to convert.
      * @param id The identifier for the configuration.
      * @return Vector containing one section with SPRT configuration.
      */
-    static std::vector<QaplaHelpers::IniFile::Section> getSections(
+    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
         const SprtConfig& config, const std::string& id);
 
     /**
@@ -43,7 +49,7 @@ public:
      * @param sections The sections containing SPRT configuration.
      * @return SprtConfig populated from sections.
      */
-    static SprtConfig fromSections(
+    [[nodiscard]] static SprtConfig fromSections(
         const std::vector<QaplaHelpers::IniFile::Section>& sections);
 
     /**
@@ -52,7 +58,7 @@ public:
      * @param id The identifier for the configuration.
      * @return SprtConfig if found, std::nullopt otherwise.
      */
-    static std::optional<SprtConfig> fromConfigData(
+    [[nodiscard]] static std::optional<SprtConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
 };
