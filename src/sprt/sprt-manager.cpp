@@ -205,21 +205,16 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
 
-    finishTournament();
-}
-
-void SprtManager::save(const std::string& filename) const {
-    std::ofstream out(filename);
-    if (!out) {
-        throw std::runtime_error("Failed to open SPRT result file for saving: " + filename);
+    if (gameFinishedCallback_) {
+        try {
+            gameFinishedCallback_();
+        } catch (const std::exception& ex) {
+            Logger::reportLogger().log("Error in game finished callback: " + 
+                std::string(ex.what()), TraceLevel::error);
+        }
     }
 
-    out << tournament_->getEngineA() << "\n";
-    out << tournament_->getEngineB() << "\n";
-    auto section = tournament_->getSectionIfNotEmpty("sprt-tournament");
-    if (section) {
-        QaplaHelpers::IniFile::saveSection(out, *section);
-    }   
+    finishTournament();
 }
 
 std::optional<QaplaHelpers::IniFile::Section> SprtManager::getSection() const {

@@ -176,6 +176,44 @@ static void checkTimeControl() {
     }
 }
 
+static auto sprtFileIO(const std::string filename, uint32_t saveInterval, 
+    const std::shared_ptr<SprtManager>& manager) {
+    if (!filename.empty()) {
+        QaplaHelpers::ConfigData configData;
+        if (SprtTournamentFile::loadIntoManager(filename, configData, *manager, "sprt-tournament")) {
+            Logger::reportLogger().log("Loaded SPRT tournament state from: " + filename, TraceLevel::result);
+        }
+    }
+    
+    // Setup autosave callback if file and interval are specified
+    if (!filename.empty() && saveInterval > 0) {
+        QaplaHelpers::ConfigData configData = 
+            CliSettings::QaplaSettings::instance().getConfigData("sprt-tournament");
+        
+        manager->setGameFinishedCallback(
+            [filename = filename,
+             configData = std::move(configData),
+             saveInterval,
+             saveTrigger = 0u,
+             manager = manager.get()]() mutable 
+            {
+                ++saveTrigger;
+                if (saveTrigger >= saveInterval) {
+                    saveTrigger = 0;
+                    
+                    auto section = manager->getSection();
+                    if (section) {
+                        auto saveData = configData;
+                        saveData.setSectionList("round", "sprt-tournament", {*section});
+                        SprtTournamentFile::save(filename, saveData, "sprt-tournament");
+                        Logger::reportLogger().log("Auto-saved SPRT state to: " + filename, TraceLevel::info);
+                    }
+                }
+            }
+        );
+    }
+}
+
 static auto runSprt(AppReturnCode code) {
     // Get SPRT config (already loaded from file or CLI by readSprtConfig)
     const auto& sprtConfig = CliSettings::QaplaSettings::instance().getSprtConfig();
@@ -204,6 +242,7 @@ static auto runSprt(AppReturnCode code) {
     
     try {
         auto manager = std::make_shared<SprtManager>();
+        sprtFileIO(sprtfile, sprtGroup->get<unsigned int>("saveinterval"), manager);
         
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
@@ -211,23 +250,21 @@ static auto runSprt(AppReturnCode code) {
             const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
             manager->createTournament(activeEngines, *sprtConfig);
             
-            // Load tournament state if file was specified
-            if (!sprtfile.empty()) {
-                QaplaHelpers::ConfigData configData;
-                if (SprtTournamentFile::loadIntoManager(sprtfile, configData, *manager, "sprt-tournament")) {
-                    Logger::reportLogger().log("Loaded SPRT tournament state from: " + sprtfile, TraceLevel::result);
-                }
-            }
-            
             const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
             
             auto filename = sprtGroup->get<std::string>("file");
-            QaplaHelpers::ConfigData configData = CliSettings::QaplaSettings::instance().
-                getConfigData("sprt-tournament");
-            SprtTournamentFile::save(filename, configData, "sprt-tournament");
+            if (!filename.empty()) {
+                auto section = manager->getSection();
+                QaplaHelpers::ConfigData configData = CliSettings::QaplaSettings::instance().
+                    getConfigData("sprt-tournament");
+                if (section) {
+                    configData.addSection(*section);
+                }
+                SprtTournamentFile::save(filename, configData, "sprt-tournament");
+            }
             
             code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
             Logger::reportLogger().log("sprt all games completed", TraceLevel::result);

@@ -142,6 +142,14 @@ public:
     void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     /**
+     * @brief Sets a callback to be invoked after each game is recorded.
+     * @param callback Function to call after game record processing.
+     */
+    void setGameFinishedCallback(std::function<void()> callback) {
+        gameFinishedCallback_ = std::move(callback);
+    }
+
+    /**
      * @brief Runs a Monte Carlo simulation to estimate the SPRT decision boundaries in a background thread.
      * @param config The configuration parameters for the SPRT test.
      * @return true if test was started, false if a test is already running.
@@ -171,12 +179,6 @@ public:
      * @param callback Function to call with const reference to results.
      */
     void withMonteCarloResult(const std::function<void(const MonteCarloResult&)>& callback);
-
-    /**
-	 * @brief Saves the current SPRT test state to a stream.
-	 * @param filename The file to save the state to.
-     */
-    void save(const std::string& filename) const;
 
     /**
      * @brief Returns the SPRT tournament state as a section if it is not empty.
@@ -304,6 +306,7 @@ private:
 
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
+    std::function<void()> gameFinishedCallback_;
 
     // Monte Carlo test thread management
     std::thread monteCarloThread_;
