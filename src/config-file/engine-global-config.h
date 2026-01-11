@@ -115,6 +115,27 @@ public:
     static void applyGlobalConfig(
         EngineConfig& engine,
         const EngineGlobalConfig& globalConfig);
+
+private:
+    /**
+     * @brief Loads time control from timecontroloptions section.
+     * @param configData The configuration data to load from.
+     * @param id The identifier for the configuration.
+     * @return Time control string if found, std::nullopt otherwise.
+     */
+    static std::optional<std::string> loadTimeControl(
+        const QaplaHelpers::ConfigData& configData,
+        const std::string& id);
+
+    /**
+     * @brief Creates timecontroloptions section from time control.
+     * @param config The configuration containing time control.
+     * @param id The identifier for the configuration.
+     * @return Section containing time control options.
+     */
+    static QaplaHelpers::IniFile::Section createTimeControlSection(
+        const EngineGlobalConfig& config,
+        const std::string& id);
 };
 
 } // namespace QaplaTester

@@ -24,44 +24,46 @@ namespace QaplaTester {
 
 constexpr const char* ENGINE_SECTION_NAME = "engineselection";
 
-QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfig& config) {
+QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfiguration& config) {
     QaplaHelpers::IniFile::KeyValueMap entries;
     
-    entries.emplace_back("name", config.getName());
+    entries.emplace_back("name", config.config.getName());
+    entries.emplace_back("originalName", config.originalName);
+    entries.emplace_back("selected", config.selected ? "true" : "false");
     
-    if (!config.getAuthor().empty()) {
-        entries.emplace_back("author", config.getAuthor());
+    if (!config.config.getAuthor().empty()) {
+        entries.emplace_back("author", config.config.getAuthor());
     }
     
-    entries.emplace_back("cmd", config.getCmd());
-    entries.emplace_back("dir", config.getDir());
+    entries.emplace_back("cmd", config.config.getCmd());
+    entries.emplace_back("dir", config.config.getDir());
     
-    if (!config.getArgs().empty()) {
-        entries.emplace_back("args", config.getArgs());
+    if (!config.config.getArgs().empty()) {
+        entries.emplace_back("args", config.config.getArgs());
     }
     
-    entries.emplace_back("proto", to_string(config.getProtocol()));
-    entries.emplace_back("trace", to_string(config.getTraceLevel()));
-    entries.emplace_back("restart", to_string(config.getRestartOption()));
+    entries.emplace_back("proto", to_string(config.config.getProtocol()));
+    entries.emplace_back("trace", to_string(config.config.getTraceLevel()));
+    entries.emplace_back("restart", to_string(config.config.getRestartOption()));
     
-    const auto timeControl = config.getTimeControl().toPgnTimeControlString();
+    const auto timeControl = config.config.getTimeControl().toPgnTimeControlString();
     if (!timeControl.empty()) {
         entries.emplace_back("tc", timeControl);
     }
     
-    if (config.isPonderEnabled()) {
+    if (config.config.isPonderEnabled()) {
         entries.emplace_back("ponder", "true");
     }
     
-    if (config.isScoreFromWhitePov()) {
+    if (config.config.isScoreFromWhitePov()) {
         entries.emplace_back("whitepov", "true");
     }
     
-    if (config.isGauntlet()) {
+    if (config.config.isGauntlet()) {
         entries.emplace_back("gauntlet", "true");
     }
     
-    for (const auto& [name, value] : config.getOptionValues()) {
+    for (const auto& [name, value] : config.config.getOptionValues()) {
         entries.emplace_back(name, value);
     }
     
@@ -85,7 +87,7 @@ EngineConfiguration EngineConfigFile::fromSection(const QaplaHelpers::IniFile::S
 }
 
 std::vector<QaplaHelpers::IniFile::Section> EngineConfigFile::getSections(
-    const std::vector<EngineConfig>& configs) {
+    const std::vector<EngineConfiguration>& configs) {
     
     std::vector<QaplaHelpers::IniFile::Section> sections;
     sections.reserve(configs.size());
@@ -97,22 +99,22 @@ std::vector<QaplaHelpers::IniFile::Section> EngineConfigFile::getSections(
     return sections;
 }
 
-std::vector<EngineConfig> EngineConfigFile::fromSections(
+std::vector<EngineConfiguration> EngineConfigFile::fromSections(
     const std::vector<QaplaHelpers::IniFile::Section>& sections) {
     
-    std::vector<EngineConfig> configs;
+    std::vector<EngineConfiguration> configs;
     configs.reserve(sections.size());
     
     for (const auto& section : sections) {
         if (section.name == ENGINE_SECTION_NAME) {
-            configs.push_back(fromSection(section).config);
+            configs.push_back(fromSection(section));
         }
     }
     
     return configs;
 }
 
-std::optional<std::vector<EngineConfig>> EngineConfigFile::fromConfigData(
+std::optional<std::vector<EngineConfiguration>> EngineConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     

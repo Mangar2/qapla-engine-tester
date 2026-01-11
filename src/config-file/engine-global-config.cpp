@@ -29,22 +29,25 @@ QaplaHelpers::IniFile::Section EngineGlobalConfigFile::toSection(
     const std::string& id) {
     
     QaplaHelpers::IniFile::KeyValueMap entries{
-        {"id", id},
-        {"timeControl", config.timeControl}
+        {"id", id}
     };
     
+    entries.emplace_back("usehash", config.useGlobalHash ? "true" : "false");
     if (config.useGlobalHash) {
-        entries.emplace_back("Hash", std::to_string(config.hashSizeMB));
+        entries.emplace_back("hash", std::to_string(config.hashSizeMB));
     }
     
+    entries.emplace_back("useponder", config.useGlobalPonder ? "true" : "false");
     if (config.useGlobalPonder) {
         entries.emplace_back("ponder", config.ponder ? "true" : "false");
     }
     
+    entries.emplace_back("usetrace", config.useGlobalTrace ? "true" : "false");
     if (config.useGlobalTrace) {
         entries.emplace_back("trace", config.traceLevel);
     }
     
+    entries.emplace_back("userestart", config.useGlobalRestart ? "true" : "false");
     if (config.useGlobalRestart) {
         entries.emplace_back("restart", config.restart);
     }
@@ -61,20 +64,26 @@ EngineGlobalConfig EngineGlobalConfigFile::fromSection(
     EngineGlobalConfig config;
     
     for (const auto& [key, value] : section.entries) {
-        if (key == "timeControl" || key == "tc") {
-            config.timeControl = value;
+        if (key == "usehash") {
+            config.useGlobalHash = (value == "true" || value == "1");
         }
-        else if (key == "Hash") {
-            config.useGlobalHash = true;
+        else if (key == "hash") {
             config.hashSizeMB = QaplaHelpers::to_uint32(value).value_or(32);
         }
+        else if (key == "useponder") {
+            config.useGlobalPonder = (value == "true" || value == "1");
+        }
         else if (key == "ponder") {
-            config.useGlobalPonder = true;
             config.ponder = (value == "true" || value == "1");
         }
+        else if (key == "usetrace") {
+            config.useGlobalTrace = (value == "true" || value == "1");
+        }
         else if (key == "trace") {
-            config.useGlobalTrace = true;
             config.traceLevel = value;
+        }
+        else if (key == "userestart") {
+            config.useGlobalRestart = (value == "true" || value == "1");
         }
         else if (key == "restart") {
             config.useGlobalRestart = true;
@@ -89,7 +98,10 @@ std::vector<QaplaHelpers::IniFile::Section> EngineGlobalConfigFile::getSections(
     const EngineGlobalConfig& config, 
     const std::string& id) {
     
-    return { toSection(config, id) };
+    return { 
+        toSection(config, id),
+        createTimeControlSection(config, id)
+    };
 }
 
 EngineGlobalConfig EngineGlobalConfigFile::fromSections(
@@ -113,7 +125,14 @@ std::optional<EngineGlobalConfig> EngineGlobalConfigFile::fromConfigData(
         return std::nullopt;
     }
     
-    return fromSections(*sections);
+    auto config = fromSections(*sections);
+    
+    auto timeControl = loadTimeControl(configData, id);
+    if (timeControl) {
+        config.timeControl = *timeControl;
+    }
+    
+    return config;
 }
 
 void EngineGlobalConfigFile::applyGlobalConfig(
@@ -123,8 +142,6 @@ void EngineGlobalConfigFile::applyGlobalConfig(
     if (globalConfig.useGlobalPonder) {
         engine.setPonder(globalConfig.ponder);
     }
-    
-    engine.setTimeControl(globalConfig.timeControl);
     
     if (globalConfig.useGlobalRestart) {
         engine.setRestartOption(parseRestartOption(globalConfig.restart));
@@ -137,6 +154,34 @@ void EngineGlobalConfigFile::applyGlobalConfig(
     if (globalConfig.useGlobalHash) {
         engine.setOptionValue("Hash", std::to_string(globalConfig.hashSizeMB));
     }
+    
+    engine.setTimeControl(globalConfig.timeControl);
+}
+
+std::optional<std::string> EngineGlobalConfigFile::loadTimeControl(
+    const QaplaHelpers::ConfigData& configData,
+    const std::string& id) {
+    
+    auto sections = configData.getSectionList("timecontroloptions", id);
+    if (sections && !sections->empty()) {
+        return sections->front().getValue("timeControl");
+    }
+    return std::nullopt;
+}
+
+QaplaHelpers::IniFile::Section EngineGlobalConfigFile::createTimeControlSection(
+    const EngineGlobalConfig& config,
+    const std::string& id) {
+    
+    QaplaHelpers::IniFile::KeyValueMap entries{
+        {"id", id},
+        {"timeControl", config.timeControl}
+    };
+    
+    return {
+        .name = "timecontroloptions",
+        .entries = entries
+    };
 }
 
 } // namespace QaplaTester

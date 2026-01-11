@@ -657,20 +657,32 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     auto engineConfigs = EngineConfigFile::fromConfigData(configData, id);
     
     if (engineConfigs && !engineConfigs->empty()) {
+        // Store ALL engine configurations (selected and non-selected)
+        m_allEngineConfigurations = *engineConfigs;
+        
         // Clear existing engines and add new ones
         EngineWorkerFactory::getActiveEnginesMutable().clear();
         
-        for (auto& engineConfig : *engineConfigs) {
-            // Apply global configuration to each engine if available
-            if (globalConfig) {
-                EngineGlobalConfigFile::applyGlobalConfig(engineConfig, *globalConfig);
+        for (auto& engineConfiguration : *engineConfigs) {
+            // Only add engines that are selected for the tournament
+            if (!engineConfiguration.selected) {
+                continue;
             }
             
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(engineConfig);
+            // Apply global configuration to each engine if available
+            if (globalConfig) {
+                EngineGlobalConfigFile::applyGlobalConfig(engineConfiguration.config, *globalConfig);
+            }
+            
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(engineConfiguration.config);
         }
         
         EngineWorkerFactory::assignUniqueDisplayNames();
     }
+}
+
+const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {
+    return m_allEngineConfigurations;
 }
 
 } // namespace QaplaTester::CliSettings
