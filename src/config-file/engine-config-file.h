@@ -26,6 +26,15 @@
 namespace QaplaTester {
 
 /**
+ * @brief Engine configuration with metadata for GUI purposes.
+ */
+struct EngineConfiguration {
+    EngineConfig config;
+    std::string originalName;
+    bool selected = false;
+};
+
+/**
  * @brief Handles loading and saving of engine-specific configuration from/to INI file sections.
  * 
  * This class manages engine-specific settings that override or extend global engine settings.
@@ -43,9 +52,9 @@ public:
     /**
      * @brief Loads engine configuration from INI file section.
      * @param section The section containing engine configuration.
-     * @return EngineConfig populated from section.
+     * @return EngineConfiguration populated from section.
      */
-    static EngineConfig fromSection(const QaplaHelpers::IniFile::Section& section);
+    static EngineConfiguration fromSection(const QaplaHelpers::IniFile::Section& section);
 
     /**
      * @brief Creates INI file sections from multiple EngineConfigs.
