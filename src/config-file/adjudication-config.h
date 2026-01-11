@@ -50,20 +50,24 @@ public:
         const std::string& id);
 
     /**
-     * @brief Creates draw adjudication configuration from section.
-     * @param section The INI file section containing draw adjudication configuration.
-     * @return Draw adjudication configuration.
+     * @brief Loads draw adjudication configuration from ConfigData.
+     * @param configData The configuration data to load from.
+     * @param id The identifier for the configuration.
+     * @return Draw adjudication configuration if found, std::nullopt otherwise.
      */
-    static AdjudicationManager::DrawAdjudicationConfig fromDrawSection(
-        const QaplaHelpers::IniFile::Section& section);
+    static std::optional<AdjudicationManager::DrawAdjudicationConfig> fromDrawConfigData(
+        const QaplaHelpers::ConfigData& configData,
+        const std::string& id);
 
     /**
-     * @brief Creates resign adjudication configuration from section.
-     * @param section The INI file section containing resign adjudication configuration.
-     * @return Resign adjudication configuration.
+     * @brief Loads resign adjudication configuration from ConfigData.
+     * @param configData The configuration data to load from.
+     * @param id The identifier for the configuration.
+     * @return Resign adjudication configuration if found, std::nullopt otherwise.
      */
-    static AdjudicationManager::ResignAdjudicationConfig fromResignSection(
-        const QaplaHelpers::IniFile::Section& section);
+    static std::optional<AdjudicationManager::ResignAdjudicationConfig> fromResignConfigData(
+        const QaplaHelpers::ConfigData& configData,
+        const std::string& id);
 };
 
 } // namespace QaplaTester

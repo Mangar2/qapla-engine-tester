@@ -22,6 +22,9 @@
 
 namespace QaplaTester {
 
+constexpr const char* DRAW_ADJUDICATION_SECTION_NAME = "drawadjudication";
+constexpr const char* RESIGN_ADJUDICATION_SECTION_NAME = "resignadjudication";
+
 QaplaHelpers::IniFile::Section AdjudicationConfig::toDrawSection(
     const AdjudicationManager::DrawAdjudicationConfig& config,
     const std::string& id) {
@@ -36,7 +39,7 @@ QaplaHelpers::IniFile::Section AdjudicationConfig::toDrawSection(
     };
     
     return {
-        .name = "drawadjudication",
+        .name = DRAW_ADJUDICATION_SECTION_NAME,
         .entries = entries
     };
 }
@@ -55,14 +58,21 @@ QaplaHelpers::IniFile::Section AdjudicationConfig::toResignSection(
     };
     
     return {
-        .name = "resignadjudication",
+        .name = RESIGN_ADJUDICATION_SECTION_NAME,
         .entries = entries
     };
 }
 
-AdjudicationManager::DrawAdjudicationConfig AdjudicationConfig::fromDrawSection(
-    const QaplaHelpers::IniFile::Section& section) {
+std::optional<AdjudicationManager::DrawAdjudicationConfig> AdjudicationConfig::fromDrawConfigData(
+    const QaplaHelpers::ConfigData& configData,
+    const std::string& id) {
     
+    auto sections = configData.getSectionList(DRAW_ADJUDICATION_SECTION_NAME, id);
+    if (!sections || sections->empty()) {
+        return std::nullopt;
+    }
+    
+    const auto& section = (*sections)[0];
     AdjudicationManager::DrawAdjudicationConfig config;
     
     for (const auto& [key, value] : section.entries) {
@@ -86,9 +96,16 @@ AdjudicationManager::DrawAdjudicationConfig AdjudicationConfig::fromDrawSection(
     return config;
 }
 
-AdjudicationManager::ResignAdjudicationConfig AdjudicationConfig::fromResignSection(
-    const QaplaHelpers::IniFile::Section& section) {
+std::optional<AdjudicationManager::ResignAdjudicationConfig> AdjudicationConfig::fromResignConfigData(
+    const QaplaHelpers::ConfigData& configData,
+    const std::string& id) {
     
+    auto sections = configData.getSectionList(RESIGN_ADJUDICATION_SECTION_NAME, id);
+    if (!sections || sections->empty()) {
+        return std::nullopt;
+    }
+    
+    const auto& section = (*sections)[0];
     AdjudicationManager::ResignAdjudicationConfig config;
     
     for (const auto& [key, value] : section.entries) {

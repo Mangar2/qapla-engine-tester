@@ -22,6 +22,8 @@
 
 namespace QaplaTester {
 
+constexpr const char* ENGINE_SECTION_NAME = "engineselection";
+
 QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfig& config) {
     QaplaHelpers::IniFile::KeyValueMap entries;
     
@@ -64,7 +66,7 @@ QaplaHelpers::IniFile::Section EngineConfigFile::toSection(const EngineConfig& c
     }
     
     return {
-        .name = "engine",
+        .name = ENGINE_SECTION_NAME,
         .entries = entries
     };
 }
@@ -99,7 +101,7 @@ std::vector<EngineConfig> EngineConfigFile::fromSections(
     configs.reserve(sections.size());
     
     for (const auto& section : sections) {
-        if (section.name == "engine") {
+        if (section.name == ENGINE_SECTION_NAME) {
             configs.push_back(fromSection(section));
         }
     }
@@ -111,7 +113,7 @@ std::optional<std::vector<EngineConfig>> EngineConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList("engine", id);
+    auto sections = configData.getSectionList(ENGINE_SECTION_NAME, id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }

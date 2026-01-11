@@ -638,15 +638,16 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
         m_pgnOptions = std::make_unique<PgnSave::Options>(*pgnOptions);
     }
 
-    // Apply Adjudication configurations
-    auto drawSections = configData.getSectionList("drawadjudication", id);
-    auto resignSections = configData.getSectionList("resignadjudication", id);
-    
-    if (drawSections && !drawSections->empty()) {
-        m_drawConfig = std::make_unique<AdjudicationManager::DrawAdjudicationConfig>(AdjudicationConfig::fromDrawSection((*drawSections)[0]));
+    // Apply Draw Adjudication configuration
+    auto drawConfig = AdjudicationConfig::fromDrawConfigData(configData, id);
+    if (drawConfig) {
+        m_drawConfig = std::make_unique<AdjudicationManager::DrawAdjudicationConfig>(*drawConfig);
     }
-    if (resignSections && !resignSections->empty()) {
-        m_resignConfig = std::make_unique<AdjudicationManager::ResignAdjudicationConfig>(AdjudicationConfig::fromResignSection((*resignSections)[0]));
+
+    // Apply Resign Adjudication configuration
+    auto resignConfig = AdjudicationConfig::fromResignConfigData(configData, id);
+    if (resignConfig) {
+        m_resignConfig = std::make_unique<AdjudicationManager::ResignAdjudicationConfig>(*resignConfig);
     }
 
     // Load global engine configuration

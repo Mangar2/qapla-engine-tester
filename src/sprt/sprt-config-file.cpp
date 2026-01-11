@@ -23,6 +23,8 @@
 
 namespace QaplaTester {
 
+constexpr const char* SPRT_CONFIG_SECTION_NAME = "sprtconfig";
+
 std::vector<QaplaHelpers::IniFile::Section> SprtConfigFile::getSections(
     const SprtConfig& config, const std::string& id) {
     
@@ -37,7 +39,7 @@ std::vector<QaplaHelpers::IniFile::Section> SprtConfigFile::getSections(
         {"pentanomial", config.pentanomial ? "true" : "false"}
     };
 
-    return { QaplaHelpers::IniFile::Section{ .name = "sprtconfig", .entries = entries } };
+    return { QaplaHelpers::IniFile::Section{ .name = SPRT_CONFIG_SECTION_NAME, .entries = entries } };
 }
 
 SprtConfig SprtConfigFile::fromSections(
@@ -87,7 +89,7 @@ std::optional<SprtConfig> SprtConfigFile::fromConfigData(
     const QaplaHelpers::ConfigData& configData, 
     const std::string& id) {
     
-    auto sections = configData.getSectionList("sprt", id);
+    auto sections = configData.getSectionList(SPRT_CONFIG_SECTION_NAME, id);
     if (!sections || sections->empty()) {
         return std::nullopt;
     }
