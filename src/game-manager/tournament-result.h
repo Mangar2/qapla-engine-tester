@@ -171,7 +171,7 @@ public:
     {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(2)
-            << " ( " << engineARate() << " ) "
+            << " ( " << (engineARate() * 100.0) << "% ) "
             << " W:" << winsEngineA << " D:" << draws << " L:" << winsEngineB;
         return oss.str();
     }
