@@ -187,10 +187,10 @@ public:
     std::optional<QaplaHelpers::IniFile::Section> getSection() const;
 
     /**
-     * @brief Loads tournament results from a configuration section.
-     * @param section The section containing tournament results to load.
+     * @brief Sets tournament results from a configuration section.
+     * @param sections The section containing tournament results to set.   
      */
-    void loadFromSection(const QaplaHelpers::IniFile::Section& section);
+    void setGameResults(const QaplaHelpers::IniFile::SectionList& sections);
 
     /**
      * @brief Returns the result of the tournament as a TournamentResult object.
@@ -199,7 +199,7 @@ public:
      */
     TournamentResult getResult() const {
         TournamentResult t;
-		t.add(tournament_->getResult());
+		t.add(pairing_->getResult());
         return t;
     }
 
@@ -209,7 +209,7 @@ public:
      * @return EngineDuelResult containing wins, draws, and losses.
      */
     EngineDuelResult getDuelResult() const {
-        return tournament_->getResult();
+        return pairing_->getResult();
     }
 
     /**
@@ -217,7 +217,7 @@ public:
      * @return true if at least one game has been played, false otherwise.
      */
     bool hasResults() const {
-        return tournament_->getResult().total() > 0;
+        return pairing_->getResult().total() > 0;
     }
 
     /**
@@ -260,7 +260,7 @@ public:
     }
 
 private:
-    std::unique_ptr<PairTournament> tournament_ = std::make_unique<PairTournament>();
+    std::unique_ptr<PairTournament> pairing_ = std::make_unique<PairTournament>();
     std::shared_ptr<StartPositions> startPositions_;
     EngineConfig engine0_;
     EngineConfig engine1_;

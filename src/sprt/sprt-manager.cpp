@@ -110,21 +110,21 @@ void SprtManager::createTournament(
     tournamentConfig_.openings = config.openings;
 
     // Re-initialize tournament, preserving previous results if engines match
-    auto savedTournament = std::move(tournament_);
-    tournament_ = std::make_unique<PairTournament>();
-    tournament_->initialize(engine0_, engine1_, tournamentConfig_, startPositions_);
-    if (tournament_->matches(*savedTournament)) {
-        tournament_->copyResultsFrom(*savedTournament);
+    auto savedTournament = std::move(pairing_);
+    pairing_ = std::make_unique<PairTournament>();
+    pairing_->initialize(engine0_, engine1_, tournamentConfig_, startPositions_);
+    if (pairing_->matches(*savedTournament)) {
+        pairing_->copyResultsFrom(*savedTournament);
     }
-    tournament_->setVerbose(false);
-    tournament_->setPositionName("SPRT");
+    pairing_->setVerbose(false);
+    pairing_->setPositionName("SPRT");
 
 }
 
 void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency, GameManagerPool& pool) {
     
 	// Initialize PGN output - at this point all tournament data is loaded
-	bool isResumingTournament = tournament_ && tournament_->hasResults();
+	bool isResumingTournament = pairing_ && pairing_->hasResults();
 	PgnSave::tournament().initialize("Sprt", isResumingTournament);
 	
     sprtCallback_ = InputHandler::getInstance().registerCommandCallback(
@@ -133,7 +133,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
             auto result = getResult();
             result.printOutcome(std::cout);
         });
-	auto duel = tournament_->getResult();
+	auto duel = pairing_->getResult();
     std::cout << "sprt engines " 
         << duel.getEngineA() << " (" << engine0_.getTimeControl().toPgnTimeControlString() << ")"
         << " vs " 
@@ -145,21 +145,21 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
         << "\n" << std::flush;
 
     pool.setConcurrency(concurrency, true);
-    pool.addTaskProvider(self, tournament_->getEngineA(), tournament_->getEngineB());
+    pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
     pool.startManagers();
 }
 
 std::optional<GameTask> SprtManager::nextTask() {
-    return tournament_->nextTask();
+    return pairing_->nextTask();
 }
 
 
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
-	bool engine1IsWhite = tournament_->getEngineA().getName() == record.getWhiteEngineName();
-    tournament_->setGameRecord(taskId, record);
+	bool engine1IsWhite = pairing_->getEngineA().getName() == record.getWhiteEngineName();
+    pairing_->setGameRecord(taskId, record);
 
     auto [cause, result] = record.getGameResult();
-    auto duel = tournament_->getResult();
+    auto duel = pairing_->getResult();
 
     uint32_t resultIndex = record.getRound() - 1;
 
@@ -218,19 +218,40 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 }
 
 std::optional<QaplaHelpers::IniFile::Section> SprtManager::getSection() const {
-    return tournament_->getSectionIfNotEmpty("sprt-tournament");
+    return pairing_->getSectionIfNotEmpty("sprt-tournament");
 }
 
-void SprtManager::loadFromSection(const QaplaHelpers::IniFile::Section& section) {
+void SprtManager::setGameResults(const QaplaHelpers::IniFile::SectionList& sections) {
+    if (sections.empty()) {
+        return;
+    }
+    const auto& section = sections[0];
+    std::string engineA;
+    std::string engineB;
+    uint32_t round = 0;
+    std::string games;
     try {
-        tournament_->fromSection(section);
+         for (const auto& [key, value]: section.entries) {
+            if (key == "engineA") {
+                engineA = value;
+            } else if (key == "engineB") {
+                engineB = value;
+            } else if (key == "round") {
+                round = std::stoul(value) - 1;
+            } else if (key == "games") {
+                games = value;
+            }
+        }
+        if (!games.empty() && pairing_->matches(round, engineA, engineB)) {
+            pairing_->fromSection(section);
+        }
     } catch (const std::exception& ex) {
         Logger::reportLogger().log("Failed to load SPRT tournament from section: " + std::string(ex.what()), TraceLevel::error);
     }
 }
 
 SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optional<bool> usePentanomial) const {
-    auto duel = tournament_->getResult();
+    auto duel = pairing_->getResult();
     
     SprtParameters params {
         .winsA = duel.winsEngineA,
@@ -270,7 +291,7 @@ void SprtManager::finishTournament() {
     }
     
     if (anyHasDecision) {
-        tournament_->stop();
+        pairing_->stop();
     }
     
     if (allHaveDecisions) {

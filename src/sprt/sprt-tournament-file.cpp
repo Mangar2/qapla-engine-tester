@@ -82,9 +82,8 @@ void SprtTournamentFile::load(const std::string& filename,
     }
 }
 
-bool SprtTournamentFile::loadIntoManager(const std::string& filename,
+bool SprtTournamentFile::loadSprtSettings(const std::string& filename,
                                         QaplaHelpers::ConfigData& configData,
-                                        SprtManager& manager,
                                         const std::string& id) {
     if (filename.empty()) {
         return false;
@@ -92,10 +91,10 @@ bool SprtTournamentFile::loadIntoManager(const std::string& filename,
 
     try {
         load(filename, configData, id);
-        return loadIntoManagerFromConfigData(configData, manager, id);
     } catch (const std::exception&) {
         return false;
     }
+    return true;
 }
 
 bool SprtTournamentFile::loadIntoManagerFromConfigData(const QaplaHelpers::ConfigData& configData,
@@ -104,7 +103,7 @@ bool SprtTournamentFile::loadIntoManagerFromConfigData(const QaplaHelpers::Confi
     try {
         auto sections = configData.getSectionList("round", id);
         if (sections && !sections->empty()) {
-            manager.loadFromSection((*sections)[0]);
+            manager.setGameResults(*sections);
             return true;
         }
     } catch (const std::exception&) {

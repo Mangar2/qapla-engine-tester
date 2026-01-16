@@ -58,20 +58,18 @@ public:
                     const std::string& id = "sprt-tournament");
 
     /**
-     * @brief Helper method to load tournament state into a SprtManager.
+     * @brief Helper method to load tournament settings form an sprt-tournament-file.
      * 
-     * This is a convenience method that loads the tournament file and
-     * applies the "round" section to the manager's internal state.
+     * This is that loads the tournament file and changes all the settings based 
+     * on its contents.
      * 
      * @param filename The file path to load from.
      * @param configData The configuration data to populate.
-     * @param manager The SprtManager to load state into.
      * @param id The identifier for the tournament (default: "sprt-tournament").
      * @return true if state was loaded successfully, false otherwise.
      */
-    static bool loadIntoManager(const std::string& filename,
+    static bool loadSprtSettings(const std::string& filename,
                                QaplaHelpers::ConfigData& configData,
-                               class SprtManager& manager,
                                const std::string& id = "sprt-tournament");
 
     /**
