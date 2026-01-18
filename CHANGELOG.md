@@ -9,9 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Per-instance engine logging**: New `--each logmode=one|each` CLI option
-  - `logmode=one` (default): All engines log to a single file
-  - `logmode=each`: Each engine instance creates separate log files
+- **Per-instance engine logging**: New `[logging]` configuration group
+  - `logging.path`: Path to the logging directory
+  - `logging.mode=one|each`: Engine log file strategy
+    - `one` (default): All engines log to a single file
+    - `each`: Each engine instance creates separate log files
+  - `logging.engine`: Enable/disable engine logging
+
+- **Integration test framework**: New modular PowerShell-based testing framework
+  - Test runner with filtering and listing capabilities
+  - Validator plugin system (exit codes, file counts, content validation)
+  - Organized test definitions in subdirectories
+  - Automatic cleanup and logging verification
 
 - **SPRT decision modes**: Support for 5 SPRT decision calculation modes
   - Trinomial statistics: normalized, logistic, bayesian models

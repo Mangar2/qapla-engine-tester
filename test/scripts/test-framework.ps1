@@ -82,6 +82,8 @@ function Invoke-Test {
     
     Write-Host ""
     
+    $allPassed = $true
+    
     if ($Test.Validators) {
         foreach ($validator in $Test.Validators) {
             $result = $false
