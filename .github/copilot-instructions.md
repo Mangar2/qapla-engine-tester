@@ -7,7 +7,7 @@ If I ask you to checkin:
 - use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
 
 ## Project Overview
-**Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. 
+**Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
 
 ## C++ Code Style
 - C++20 - use ranges, format, nodiscard
