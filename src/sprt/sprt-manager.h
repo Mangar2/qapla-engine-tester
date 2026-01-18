@@ -259,6 +259,12 @@ public:
         return sprtResults_;
     }
 
+    /**
+     * @brief Logs the final SPRT result to the report logger.
+     * @details Logs decision, LLR, and game statistics.
+     */
+    void logFinalResult() const;
+
 private:
     std::unique_ptr<PairTournament> pairing_ = std::make_unique<PairTournament>();
     std::shared_ptr<StartPositions> startPositions_;

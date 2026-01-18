@@ -564,4 +564,25 @@ void SprtManager::withMonteCarloResult(const std::function<void(const MonteCarlo
     callback(monteCarloResult_);
 }
 
+void SprtManager::logFinalResult() const {
+    if (sprtResults_.empty() || sprtResults_.front().empty()) {
+        return;
+    }
+    
+    const auto& finalResult = sprtResults_.front().front();
+    
+    std::ostringstream oss;
+    oss << "SPRT final result: " << finalResult.info;
+    if (finalResult.decision.has_value()) {
+        oss << " | decision: " << (*finalResult.decision ? "H1 Accepted" : "H0 Accepted");
+    } else {
+        oss << " | decision: Inconclusive";
+    }
+    oss << " | LLR: " << std::fixed << std::setprecision(2) << finalResult.llr
+        << " | games: " << (finalResult.winsA + finalResult.draws + finalResult.winsB)
+        << " (W:" << finalResult.winsA << " D:" << finalResult.draws << " L:" << finalResult.winsB << ")";
+    
+    Logger::reportLogger().log(oss.str(), TraceLevel::result);
+}
+
 } // namespace QaplaTester
