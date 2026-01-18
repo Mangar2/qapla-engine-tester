@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <variant>
 #include <set>
+#include <filesystem>
 
 #include "../base-elements/ini-file.h"
 #include "../base-elements/string-helper.h"
@@ -87,10 +88,20 @@ public:
 
     /**
      * @brief Sets the path to the engine executable.
-     * @param path The executable path.
+     * Converts relative paths to absolute paths based on current working directory.
+     * @param path The executable path (relative or absolute).
      */
     void setCmd(const std::string& path) { 
-        cmd_ = path; 
+        if (path.empty()) {
+            cmd_ = path;
+            return;
+        }
+        std::filesystem::path fsPath(path);
+        if (fsPath.is_relative()) {
+            cmd_ = std::filesystem::absolute(fsPath).string();
+        } else {
+            cmd_ = path;
+        }
     }
 
     /**
