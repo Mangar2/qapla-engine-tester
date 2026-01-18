@@ -4,11 +4,11 @@ param(
     [switch]$ListTests
 )
 
-. "./test/scripts/test-framework.ps1"
-. "./test/scripts/test-helpers.ps1"
+. "./test/integration/test-framework.ps1"
+. "./test/integration/test-helpers.ps1"
 
 # Lade alle Test-Gruppen aus test-definitions/*/
-$testDirs = Get-ChildItem -Path "./test/scripts/test-definitions" -Directory
+$testDirs = Get-ChildItem -Path "./test/integration" -Directory
 foreach ($dir in $testDirs) {
     $testFile = Join-Path $dir.FullName "$($dir.Name)-tests.ps1"
     if (Test-Path $testFile) {
