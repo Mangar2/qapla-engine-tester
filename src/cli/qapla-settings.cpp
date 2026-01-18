@@ -73,18 +73,18 @@ const LoggerConfig* QaplaSettings::getLoggerConfig() const {
 }
 
 void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) const {
-    if (m_loggerConfig) {
-        LoggerConfig config = *m_loggerConfig;
-        config.reportLogBaseName = reportLogBaseName;
-        setLoggerConfig(config);
-    } else {
-        setLoggerConfig({
-            .logPath = "./log",
-            .reportLogBaseName = reportLogBaseName,
-            .engineLogBaseName = "engine",
-            .engineLogStrategy = LogFileStrategy::global
-        });
+    if (!m_loggerConfig) {
+        throw AppError::make("Logger configuration not initialized.");
     }
+    LoggerConfig config = *m_loggerConfig;
+    config.reportLogBaseName = reportLogBaseName;
+    setLoggerConfig(config);
+
+    auto loggingSetting = CliSettings::Manager::getGroupInstance("logging");
+    if (loggingSetting->get<bool>("engine")) {
+        EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+    }
+    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 }
 
 std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) {
@@ -393,18 +393,24 @@ void QaplaSettings::readEngineOptions() {
 }
 
 void QaplaSettings::readEngineGlobalConfig() {
+    constexpr uint32_t defaultHashSizeMB = 32;
     auto eachSetting = Manager::getGroupInstance("each");
     if (!eachSetting) {
         m_engineGlobalConfig = nullptr;
         return;
     }
 
+    auto eachSettings = CliSettings::Manager::getGroupInstances("each");
     const auto& each = *eachSetting;
-    auto hashStr = each.get<std::string>("option.Hash");
-    auto hashValue = QaplaHelpers::to_unsigned_int<uint32_t>(hashStr).value_or(0);
+    auto hashProvided = each.isKeyProvided("option.Hash");
+    uint32_t hashValue = defaultHashSizeMB;
+    if (hashProvided) {
+        auto hashStr = each.get<std::string>("option.Hash");
+        hashValue = QaplaHelpers::to_unsigned_int<uint32_t>(hashStr).value_or(defaultHashSizeMB);
+    }
 
     m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(EngineGlobalConfig{
-        .useGlobalHash = each.isKeyProvided("option.Hash"),
+        .useGlobalHash = hashProvided,
         .hashSizeMB = hashValue,
         .useGlobalPonder = each.isKeyProvided("ponder"),
         .ponder = each.get<bool>("ponder"),

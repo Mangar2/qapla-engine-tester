@@ -85,7 +85,6 @@ static auto runEpd(AppReturnCode code) {
 
     uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
     CliSettings::QaplaSettings::instance().applyLoggerConfig("epd-report");
-    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -104,15 +103,6 @@ static auto runEpd(AppReturnCode code) {
             code = success ? code : AppReturnCode::MissedTarget;
         }
     }
-    return code;
-}
-
-static AppReturnCode handleGlobalOptions(AppReturnCode code) {
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("report");
-    if (CliSettings::Manager::get<bool>("enginelog")) {
-        EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
-    }
-
     return code;
 }
 
@@ -215,7 +205,6 @@ static auto runSprt(AppReturnCode code) {
     checkTimeControl();
     
     CliSettings::QaplaSettings::instance().applyLoggerConfig("sprt-report");
-    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     
     try {
         auto manager = std::make_shared<SprtManager>();
@@ -290,7 +279,6 @@ static auto runSpsa(AppReturnCode code) {
     
     checkTimeControl();
     CliSettings::QaplaSettings::instance().applyLoggerConfig("spsa-report");
-    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     
     try {
         auto optimizer = std::make_shared<SPSAOptimizer>();
@@ -339,8 +327,6 @@ static AppReturnCode runTournament(AppReturnCode code) {
     checkTimeControl();
 
     CliSettings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
-    
-    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 
     try {
         uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
@@ -410,7 +396,6 @@ static AppReturnCode run() {
         CliSettings::QaplaSettings::instance().getArguments().size() == 1 
         || CliSettings::Manager::get<bool>("interactive"));
 
-    handleGlobalOptions(returnCode);
     setPgnOptions();
     setAdjudicationOptions();
 
