@@ -14,7 +14,6 @@
 *.raw
 *.DS_Store
 *.qsprt
-*.ini
 /.vscode/
 
 
