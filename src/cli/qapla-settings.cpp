@@ -22,6 +22,7 @@
 #include "cli-settings-manager.h"
 #include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
+#include "../base-elements/logger.h"
 #include "../opening/openings.h"
 #include "../tournament/tournament.h"
 #include "../sprt/sprt-manager.h"
@@ -50,6 +51,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::parseCommandLine(m_arguments);
 
     // Read options after all settings are registered and read.
+    readLoggerConfig();
     readEngineOptions();
     readEngineGlobalConfig();
     readPgnOptions();
@@ -66,8 +68,23 @@ const std::vector<std::string>& QaplaSettings::getArguments() const {
     return m_arguments;
 }
 
-std::string QaplaSettings::getLogPath() const {
-    return Manager::get<std::string>("logpath");
+const LoggerConfig* QaplaSettings::getLoggerConfig() const {
+    return m_loggerConfig.get();
+}
+
+void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) const {
+    if (m_loggerConfig) {
+        LoggerConfig config = *m_loggerConfig;
+        config.reportLogBaseName = reportLogBaseName;
+        setLoggerConfig(config);
+    } else {
+        setLoggerConfig({
+            .logPath = "./log",
+            .reportLogBaseName = reportLogBaseName,
+            .engineLogBaseName = "engine",
+            .engineLogStrategy = LogFileStrategy::global
+        });
+    }
 }
 
 std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) {
@@ -121,6 +138,8 @@ void QaplaSettings::init() {
             false, "command", ValueType::String}},
         { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)", 
             false, "auto", ValueType::String }},
+        { "logmode",   { "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
+            false, "one", ValueType::String }},
         { "option.[name]",  { "UCI engine option", false, "", ValueType::String } }
     });
 
@@ -281,6 +300,24 @@ void QaplaSettings::init() {
                         .isRequired = true, 
                         .defaultValue = 0.0F, 
                         .type = ValueType::Float } }
+    });
+}
+
+void QaplaSettings::readLoggerConfig() {
+    auto eachSetting = Manager::getGroupInstance("each");
+    if (!eachSetting) {
+        m_loggerConfig = std::make_unique<LoggerConfig>();
+        return;
+    }
+
+    std::string logModeStr = eachSetting->get<std::string>("logmode");
+    LogFileStrategy logMode = (logModeStr == "each") ? LogFileStrategy::perEngine : LogFileStrategy::global;
+
+    m_loggerConfig = std::make_unique<LoggerConfig>(LoggerConfig{
+        .logPath = Manager::get<std::string>("logpath"),
+        .reportLogBaseName = "report",
+        .engineLogBaseName = "engine",
+        .engineLogStrategy = logMode
     });
 }
 

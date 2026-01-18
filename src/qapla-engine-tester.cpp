@@ -84,12 +84,7 @@ static auto runEpd(AppReturnCode code) {
     if (!epdConfig) return code;
 
     uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "epd-report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("epd-report");
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     auto epdManager = std::make_shared<EpdManager>();
 
@@ -113,12 +108,7 @@ static auto runEpd(AppReturnCode code) {
 }
 
 static AppReturnCode handleGlobalOptions(AppReturnCode code) {
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("report");
     if (CliSettings::Manager::get<bool>("enginelog")) {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     }
@@ -127,14 +117,7 @@ static AppReturnCode handleGlobalOptions(AppReturnCode code) {
 }
 
 static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
-    
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
-    Logger::reportLogger().setTraceLevel(TraceLevel::warning);
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("report");
     if (!EngineLogger::engineLogger().getFilename().empty()) {
         Logger::reportLogger().logAligned("Engine communication log: ", 
             EngineLogger::engineLogger().getFilename());
@@ -231,12 +214,7 @@ static auto runSprt(AppReturnCode code) {
     // Validate time control (for engines loaded from file or CLI)
     checkTimeControl();
     
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "sprt-report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("sprt-report");
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     
     try {
@@ -273,6 +251,8 @@ static auto runSprt(AppReturnCode code) {
             if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
                 auto sprtResults = manager->getSprtResults();
                 if (!sprtResults.empty() && !sprtResults.front().empty()) {
+                    manager->logFinalResult();
+                    
                     auto decision = sprtResults.front().front().decision;
                     code = !decision ? AppReturnCode::UndefinedResult : 
                            (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
@@ -309,12 +289,7 @@ static auto runSpsa(AppReturnCode code) {
     }
     
     checkTimeControl();
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "spsa-report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("spsa-report");
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
     
     try {
@@ -363,12 +338,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
     }
     checkTimeControl();
 
-    setLoggerConfig({
-        .logPath = CliSettings::QaplaSettings::instance().getLogPath(),
-        .reportLogBaseName = "tournament-report",
-        .engineLogBaseName = "engine",
-        .engineLogStrategy = LogFileStrategy::global
-    });
+    CliSettings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
     
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 

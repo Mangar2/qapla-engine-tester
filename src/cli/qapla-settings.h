@@ -24,6 +24,7 @@
 #include "../game-manager/adjudication-manager.h"
 #include "../config-file/engine-config-file.h"
 #include "../config-file/engine-global-config.h"
+#include "../base-elements/logger.h"
 
 #include <string>
 #include <vector>
@@ -134,10 +135,16 @@ public:
     [[nodiscard]] const std::vector<EngineConfiguration>& getAllEngineConfigurations() const;
 
     /**
-     * @brief Gets the logging path
-     * @return Logging path as a string
+     * @brief Applies logger configuration with specified report base name
+     * @param reportLogBaseName Base name for report log files
      */
-    [[nodiscard]] std::string getLogPath() const;
+    void applyLoggerConfig(const std::string& reportLogBaseName) const;
+
+    /**
+     * @brief Gets the logger configuration
+     * @return Pointer to logger config if configured, nullptr otherwise
+     */
+    [[nodiscard]] const LoggerConfig* getLoggerConfig() const;
 
     /**
      * @brief Collects all current configurations into ConfigData
@@ -165,9 +172,14 @@ private:
     [[nodiscard]] static std::vector<std::string> argvToVector(int argc, char* argv[]);
 
     /**
+     * @brief Reads logger configuration from CLI settings
+     */
+    void readLoggerConfig();
+
+    /**
      * @brief Reads engine options from CLI settings
      */
-    static void readEngineOptions();
+    void readEngineOptions();
 
     /**
      * @brief Reads global engine configuration from CLI settings
@@ -232,6 +244,7 @@ private:
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
     std::unique_ptr<EngineGlobalConfig> m_engineGlobalConfig; ///< Global engine configuration
+    std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration
     std::vector<EngineConfiguration> m_allEngineConfigurations; ///< All engine configurations (selected and non-selected)
 };
 
