@@ -1,0 +1,26 @@
+# Logging Tests - Validiert globales vs. per-Engine Logging
+
+$loggingTests = @(
+    @{
+        Name = "logging-global-single-file"
+        Description = "SPRT mit globalem Logging - genau eine Log-Datei für alle Engines"
+        Args = "--settingsfile=test/scripts/test-definitions/logging/test-logging-global.ini"
+        LogPath = "test/scripts/log/logging-global"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 0 }
+            @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 1; Content = "(bestmove|info depth)" }
+        )
+        Cleanup = "Remove-Item -Path 'test/scripts/log/logging-global' -Recurse -Force -ErrorAction SilentlyContinue"
+    },
+    @{
+        Name = "logging-per-engine-multiple-files"
+        Description = "SPRT mit per-Engine Logging - separate Log-Datei pro Engine"
+        Args = "--settingsfile=test/scripts/test-definitions/logging/test-logging-per-engine.ini"
+        LogPath = "test/scripts/log/logging-per-engine"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 0 }
+            @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 2; Content = "(bestmove|info depth)" }
+        )
+        Cleanup = "Remove-Item -Path 'test/scripts/log/logging-per-engine' -Recurse -Force -ErrorAction SilentlyContinue"
+    }
+)

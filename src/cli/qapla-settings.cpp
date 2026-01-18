@@ -104,10 +104,6 @@ void QaplaSettings::init() {
         false, false, ValueType::Bool);
     Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
         ValueType::PathExists);
-    Manager::registerSetting("enginelog", "Enable engine logging", false, false,
-        ValueType::Bool);
-    Manager::registerSetting("logpath", "Path to the logging directory", false, std::string(""), 
-        ValueType::PathExists);
     Manager::registerSetting("settingsfile", "Path to a settings file in INI-style format", false, std::string(""),
         ValueType::PathExists);
 
@@ -128,6 +124,25 @@ void QaplaSettings::init() {
         { "option.[name]",  { "UCI engine option", false, "", ValueType::String } }
     });
 
+    // Logging group
+    Manager::registerGroup("logging", "Logger configuration", true, {
+        { "engine", { 
+            .description = "If true, engine logging is enabled", 
+            .isRequired = false, 
+            .defaultValue = true, 
+            .type = ValueType::Bool }},
+        { "path",   { 
+            .description = "Path to the logging directory", 
+            .isRequired = false,
+            .defaultValue = std::string(""), 
+            .type = ValueType::String }},
+        { "mode",   { 
+            .description = "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
+            .isRequired = false, 
+            .defaultValue = std::string("one"), 
+            .type = ValueType::String }},
+    });
+
     // Each group
     Manager::registerGroup("each", "Defines configuration options for all engines", false, {
         { "dir",       { "Working directory", false, ".", ValueType::PathExists } },
@@ -138,8 +153,6 @@ void QaplaSettings::init() {
             false, "command", ValueType::String}},
         { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)", 
             false, "auto", ValueType::String }},
-        { "logmode",   { "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
-            false, "one", ValueType::String }},
         { "option.[name]",  { "UCI engine option", false, "", ValueType::String } }
     });
 
@@ -304,17 +317,20 @@ void QaplaSettings::init() {
 }
 
 void QaplaSettings::readLoggerConfig() {
-    auto eachSetting = Manager::getGroupInstance("each");
-    if (!eachSetting) {
-        m_loggerConfig = std::make_unique<LoggerConfig>();
-        return;
+    auto loggingSetting = Manager::getGroupInstance("logging");
+    
+    std::string logPath = "./log";
+    std::string logModeStr = "one";
+    
+    if (loggingSetting) {
+        logPath = loggingSetting->get<std::string>("path");
+        logModeStr = loggingSetting->get<std::string>("mode");
     }
-
-    std::string logModeStr = eachSetting->get<std::string>("logmode");
+    
     LogFileStrategy logMode = (logModeStr == "each") ? LogFileStrategy::perEngine : LogFileStrategy::global;
 
     m_loggerConfig = std::make_unique<LoggerConfig>(LoggerConfig{
-        .logPath = Manager::get<std::string>("logpath"),
+        .logPath = logPath,
         .reportLogBaseName = "report",
         .engineLogBaseName = "engine",
         .engineLogStrategy = logMode
