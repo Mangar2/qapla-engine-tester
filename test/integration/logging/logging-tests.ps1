@@ -22,5 +22,16 @@ $loggingTests = @(
             @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 2; Content = "(bestmove|info depth)" }
         )
         Cleanup = "Remove-Item -Path 'test/integration/log/logging-per-engine' -Recurse -Force -ErrorAction SilentlyContinue"
+    },
+    @{
+        Name = "logging-disabled-no-files"
+        Description = "SPRT mit deaktiviertem Engine-Logging - keine Engine-Logdateien"
+        Args = "--settingsfile=test/integration/logging/test-logging-disabled.ini"
+        LogPath = "test/integration/log/logging-disabled"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 16 }
+            @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 0 }
+        )
+        Cleanup = "Remove-Item -Path 'test/integration/log/logging-disabled' -Recurse -Force -ErrorAction SilentlyContinue"
     }
 )

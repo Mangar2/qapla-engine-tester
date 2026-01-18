@@ -233,6 +233,12 @@ private:
      */
     void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
+    /**
+     * @brief Applies engine logging settings from [logging] section to global engine config
+     * If engine logging is disabled, sets all engines to TraceLevel::none
+     */
+    void applyEngineLoggingToGlobalConfig();
+
 private:
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options
