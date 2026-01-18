@@ -1,8 +1,12 @@
-param(
+﻿param(
     [string]$Filter = "*",
     [string]$TestName,
     [switch]$ListTests
 )
+
+# Set console encoding to UTF-8 for Unicode character support
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 . "./test/integration/test-framework.ps1"
 . "./test/integration/test-helpers.ps1"
@@ -65,28 +69,32 @@ foreach ($test in $testsToRun) {
     
     if ($result) {
         $passed++
-        $results += @{ Name = $test.Name; Passed = $true }
+        $resultText = "✔ $($test.Name) - PASSED"
+        $results += @{ Name = $test.Name; Passed = $true; Text = $resultText }
     } else {
         $failed++
-        $results += @{ Name = $test.Name; Passed = $false }
+        $resultText = "✘ $($test.Name) - FAILED"
+        $results += @{ Name = $test.Name; Passed = $false; Text = $resultText }
     }
 }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Test Summary" -ForegroundColor Cyan
+Write-Host "  Test Results Summary" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
+
+foreach ($result in $results) {
+    if ($result.Passed) {
+        Write-Host $result.Text -ForegroundColor Green
+    } else {
+        Write-Host $result.Text -ForegroundColor Red
+    }
+}
+
+Write-Host ""
+Write-Host "----------------------------------------" -ForegroundColor Cyan
 Write-Host "Total: $($results.Count) | Passed: $passed | Failed: $failed" -ForegroundColor Yellow
-
-if ($failed -gt 0) {
-    Write-Host ""
-    Write-Host "Failed tests:" -ForegroundColor Red
-    foreach ($result in $results | Where-Object { -not $_.Passed }) {
-        Write-Host "  - $($result.Name)" -ForegroundColor Red
-    }
-}
-
 Write-Host ""
 
 if ($failed -eq 0) {

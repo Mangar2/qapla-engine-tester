@@ -79,10 +79,11 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     LoggerConfig config = *m_loggerConfig;
     config.reportLogBaseName = reportLogBaseName;
     setLoggerConfig(config);
-
     auto loggingSetting = CliSettings::Manager::getGroupInstance("logging");
     if (loggingSetting->get<bool>("engine")) {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+    } else {
+        EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none);
     }
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 }
@@ -345,6 +346,8 @@ void QaplaSettings::readEngineOptions() {
     }
     auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
 	auto eachSetting = CliSettings::Manager::getGroupInstance("each");
+    auto loggingSetting = Manager::getGroupInstance("logging");
+        
 	CliSettings::ValueMap eachOptions;
 	if (eachSetting) {
 		eachOptions = eachSetting->getValues();
@@ -366,6 +369,10 @@ void QaplaSettings::readEngineOptions() {
             ? std::get<std::string>(confIt->second) : "";
         std::string name = (nameIt != mergedOptions.end() && std::holds_alternative<std::string>(nameIt->second))
             ? std::get<std::string>(nameIt->second) : "";
+
+        if (loggingSetting && !loggingSetting->get<bool>("engine")) {
+            mergedOptions["trace"] = std::string("none");
+        }
 
         EngineConfig config;
 
@@ -393,6 +400,10 @@ void QaplaSettings::readEngineOptions() {
 }
 
 void QaplaSettings::readEngineGlobalConfig() {
+    // This function creates m_engineGlobalConfig from [each] settings for GUI compatibility.
+    // It is NOT used when loading engines from CLI parameters in readEngineOptions().
+    // m_engineGlobalConfig is only applied when loading GUI-based tournament files via
+    // setFromConfigData(), where it overrides individual engine settings.
     constexpr uint32_t defaultHashSizeMB = 32;
     auto eachSetting = Manager::getGroupInstance("each");
     if (!eachSetting) {
@@ -420,6 +431,8 @@ void QaplaSettings::readEngineGlobalConfig() {
         .restart = each.get<std::string>("restart"),
         .timeControl = each.get<std::string>("tc")
     });
+    
+    applyEngineLoggingToGlobalConfig();
 }
 
 void QaplaSettings::readPgnOptions() {
@@ -700,6 +713,17 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
     return *m_spsaConfig;
 }
 
+void QaplaSettings::applyEngineLoggingToGlobalConfig() {
+    if (!m_engineGlobalConfig) {
+        return;
+    }
+    
+    auto loggingSetting = Manager::getGroupInstance("logging");
+    if (loggingSetting && !loggingSetting->get<bool>("engine")) {
+        m_engineGlobalConfig->useGlobalTrace = true;
+        m_engineGlobalConfig->traceLevel = "none";
+    }
+}
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
     // Apply SPRT configuration
@@ -740,6 +764,8 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     if (globalConfig) {
         m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(*globalConfig);
     }
+    
+    applyEngineLoggingToGlobalConfig();
     
     // Load engine-specific configurations
     auto engineConfigs = EngineConfigFile::fromConfigData(configData, id);

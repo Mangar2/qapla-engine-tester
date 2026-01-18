@@ -93,7 +93,12 @@ function Invoke-Test {
                     $result = Validate-ExitCode -ActualCode $exitCode -ExpectedCode $validator.Expected -TestName $Test.Name
                 }
                 "logFiles" {
-                    $result = Validate-LogFiles -Path "$logPath/$($validator.Path)" -Pattern $validator.Pattern -ExpectedCount $validator.Count -ContentPattern $validator.Content -TestName $Test.Name
+                    $fullPath = if ($validator.Path) {
+                        Join-Path $logPath $validator.Path
+                    } else {
+                        $logPath
+                    }
+                    $result = Validate-LogFiles -Path $fullPath -Pattern $validator.Pattern -ExpectedCount $validator.Count -ContentPattern $validator.Content -TestName $Test.Name
                 }
                 "fileExists" {
                     $result = Validate-FileExists -Path $validator.Path -TestName $Test.Name
