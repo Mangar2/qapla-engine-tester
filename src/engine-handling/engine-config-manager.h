@@ -30,7 +30,7 @@
 #include <iostream>
 
 #include "engine-config.h"
-#include "../cli/cli-settings-manager.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -145,7 +145,7 @@ public:
 	 * @param instances A collection of GroupInstances, each containing a map of configuration values.
      * @throws std::runtime_error if any EngineConfig is invalid.
      */
-    void addOrReplaceConfig(const CliSettings::GroupInstances& instances) {
+    void addOrReplaceConfig(const Settings::GroupInstances& instances) {
         for (const auto& instance : instances) {
 			const auto& map = instance.getValues();
             EngineConfig config = EngineConfig::createFromValueMap(map);
@@ -157,7 +157,7 @@ public:
 	 * @brief Add or replaces a single EngineConfig instance from a GroupInstance.
 	 * @param valueMap The values for the configuration.
 	 */
-    void addOrReplaceConfig(const CliSettings::ValueMap& valueMap) {
+    void addOrReplaceConfig(const Settings::ValueMap& valueMap) {
 		EngineConfig config = EngineConfig::createFromValueMap(valueMap);
 		addOrReplaceConfig(config);
 	}

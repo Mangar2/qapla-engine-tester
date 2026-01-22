@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "cli-settings-manager.h"
+#include "settings-manager.h"
 
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
@@ -34,7 +34,7 @@
 #include <cassert>
 
 
-namespace QaplaTester::CliSettings
+namespace QaplaTester::Settings
 {
 
     Value Manager::parseBool(const ParsedParameter& arg)

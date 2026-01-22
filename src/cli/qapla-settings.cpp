@@ -19,7 +19,7 @@
 
 #include "qapla-settings.h"
 
-#include "cli-settings-manager.h"
+#include "settings-manager.h"
 #include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
@@ -41,7 +41,7 @@
 #include <format>
 #include <fstream>
 
-namespace QaplaTester::CliSettings {
+namespace QaplaTester::Settings {
 
 QaplaSettings& QaplaSettings::instance() {
     static QaplaSettings instance;
@@ -109,7 +109,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     LoggerConfig config = *m_loggerConfig;
     config.reportLogBaseName = reportLogBaseName;
     setLoggerConfig(config);
-    auto loggingSetting = CliSettings::Manager::getGroupInstance("logging");
+    auto loggingSetting = Settings::Manager::getGroupInstance("logging");
     if (loggingSetting->get<bool>("engine")) {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     } else {
@@ -140,19 +140,50 @@ void QaplaSettings::init() {
 
     // Engine group
     Manager::registerGroup("engine", "Defines an engine configuration", false, {
-        { "conf",      { "Name of an engine from the configuration file", false, "", ValueType::String } },
-        { "name",      { "Name of the engine", false, "", ValueType::String } },
-        { "cmd",       { "Path to executable", false, "", ValueType::PathExists } },
-        { "dir",       { "Working directory", false, std::nullopt, ValueType::PathExists}},
-        { "proto",     { "Protocol (uci/xboard)", false, std::nullopt, ValueType::String } },
-        { "tc",        { "Time control in format moves/time+inc or 'inf'", false, std::nullopt, ValueType::String } },
-        { "ponder",    { "Enable pondering, if the engine supports it", false, std::nullopt, ValueType::Bool } },
-        { "gauntlet",  { "Set if engine is part of the gauntlet group.", false, false, ValueType::Bool } },
-        { "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
-            false, std::nullopt, ValueType::String}},
-        { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)",
-            false, std::nullopt, ValueType::String }},
-        { "option.[name]",  { "UCI engine option", false, "", ValueType::String } }
+        { "conf",      { .description = "Name of an engine from the configuration file", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "name",      { .description = "Name of the engine", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "cmd",       { .description = "Path to executable", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::PathExists } },
+        { "dir",       { .description = "Working directory", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::PathExists}},
+        { "proto",     { .description = "Protocol (uci/xboard)", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String } },
+        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String } },
+        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::Bool } },
+        { "gauntlet",  { .description = "Set if engine is part of the gauntlet group.", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String}},
+        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String }},
+        { "option.[name]",  { .description = "UCI engine option", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } }
     });
 
     // Logging group
@@ -176,24 +207,58 @@ void QaplaSettings::init() {
 
     // Each group
     Manager::registerGroup("each", "Defines configuration options for all engines", false, {
-        { "dir",       { "Working directory", false, ".", ValueType::PathExists } },
-        { "proto",     { "Protocol (uci/xboard)", false, "uci", ValueType::String } },
-        { "tc",        { "Time control in format moves/time+inc or 'inf'", false, "", ValueType::String } },
-        { "ponder",    { "Enable pondering, if the engine supports it", false, false, ValueType::Bool}},
-        { "trace",     { "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
-            false, "command", ValueType::String}},
-        { "restart", { "Engine restart mode: auto (engine decides), on (always), or off (never)", 
-            false, "auto", ValueType::String }},
-        { "option.[name]",  { "UCI engine option", false, "", ValueType::String } }
+        { "dir",       { .description = "Working directory", 
+                        .isRequired = false, 
+                        .defaultValue = ".", 
+                        .type = ValueType::PathExists } },
+        { "proto",     { .description = "Protocol (uci/xboard)", 
+                        .isRequired = false, 
+                        .defaultValue = "uci", 
+                        .type = ValueType::String } },
+        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool}},
+        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
+                        .isRequired = false, 
+                        .defaultValue = "command", 
+                        .type = ValueType::String}},
+        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)", 
+                        .isRequired = false, 
+                        .defaultValue = "auto", 
+                        .type = ValueType::String }},
+        { "option.[name]",  { .description = "UCI engine option", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } }
     });
 
     // EPD group
     Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
-        { "file",      { "Path and file name to the epd file", true, "", ValueType::PathExists } },
-        { "maxtime",   { "Maximum allowed time in seconds per move during EPD analysis.", false, 20, ValueType::UInt } },
-        { "mintime",   { "Minimum required time for an early stop, when a correct move is found", false, 2, ValueType::UInt } },
-        { "seenplies", { "Amount of plies one of the expected moves must be shown to stop early (0 = off)", false, 0, ValueType::UInt } },
-        { "minsuccess", { "Minimum percentage of best moves that must be found", false, 0, ValueType::UInt} }
+        { "file",      { .description = "Path and file name to the epd file", 
+                        .isRequired = true, 
+                        .defaultValue = "", 
+                        .type = ValueType::PathExists } },
+        { "maxtime",   { .description = "Maximum allowed time in seconds per move during EPD analysis.", 
+                        .isRequired = false, 
+                        .defaultValue = 20, 
+                        .type = ValueType::UInt } },
+        { "mintime",   { .description = "Minimum required time for an early stop, when a correct move is found", 
+                        .isRequired = false, 
+                        .defaultValue = 2, 
+                        .type = ValueType::UInt } },
+        { "seenplies", { .description = "Amount of plies one of the expected moves must be shown to stop early (0 = off)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "minsuccess", { .description = "Minimum percentage of best moves that must be found", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt} }
     });
 
     // SPRT group
@@ -204,74 +269,217 @@ void QaplaSettings::init() {
                     .type = ValueType::PathExists,
                     .exclusive = true } },
         { "saveinterval", { .description = "Interval in games to save tournament state", 
-                            .isRequired = false, .defaultValue = 100, .type = ValueType::UInt } },
-        { "elolower",  { "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", false, 0, ValueType::Int } },
-        { "eloupper",  { "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", false, 10, ValueType::Int } },
-        { "alpha", { "Type I error threshold", false, 0.05f, ValueType::Float } },
-        { "beta",  { "Type II error threshold", false, 0.05f, ValueType::Float } },
-        { "maxgames", { "Maximum number of games before forced stop (0 = unlimited)", false, 0, ValueType::UInt } },
-        { "model", { "Model used for SPRT calculations normalized, logistic, bayesian", false, "normalized", ValueType::String } },
-        { "pentanomial", { "Use pentanomial model for SPRT calculations", false, true, ValueType::Bool } },
-        { "montecarlo", { "Run Monte Carlo test instead of SPRT", false, false, ValueType::Bool } }
+                            .isRequired = false, 
+                            .defaultValue = 100, 
+                            .type = ValueType::UInt } },
+        { "elolower",  { .description = "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "eloupper",  { .description = "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", 
+                        .isRequired = false, 
+                        .defaultValue = 10, 
+                        .type = ValueType::Int } },
+        { "alpha", { .description = "Type I error threshold", 
+                    .isRequired = false, 
+                    .defaultValue = 0.05f, 
+                    .type = ValueType::Float } },
+        { "beta",  { .description = "Type II error threshold", 
+                    .isRequired = false, 
+                    .defaultValue = 0.05f, 
+                    .type = ValueType::Float } },
+        { "maxgames", { .description = "Maximum number of games before forced stop (0 = unlimited)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "model", { .description = "Model used for SPRT calculations normalized, logistic, bayesian", 
+                    .isRequired = false, 
+                    .defaultValue = "normalized", 
+                    .type = ValueType::String } },
+        { "pentanomial", { .description = "Use pentanomial model for SPRT calculations", 
+                        .isRequired = false, 
+                        .defaultValue = true, 
+                        .type = ValueType::Bool } },
+        { "montecarlo", { .description = "Run Monte Carlo test instead of SPRT", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
     });
 
     // Openings group
     Manager::registerGroup("openings", "Defines how start positions are selected", true, {
-        { "file",  { "Path to file with opening positions", true, "", ValueType::PathExists } },
-        { "order", { "Order of position selection: random, sequential", false, "sequential", ValueType::String } },
-        { "srand", { "Seed for random opening selection", false, 5489, ValueType::UInt } },
-        { "plies", { "Max number of plies per opening (all = unlimited)", false, "all", ValueType::String}},
-        { "start", { "Index of first opening (1-based)", false, 1, ValueType::UInt } },
-        { "policy", { "Opening switch policy: default, encounter, round", false, "default", ValueType::String } }
+        { "file",  { .description = "Path to file with opening positions", 
+                    .isRequired = true, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathExists } },
+        { "order", { .description = "Order of position selection: random, sequential", 
+                    .isRequired = false, 
+                    .defaultValue = "sequential", 
+                    .type = ValueType::String } },
+        { "srand", { .description = "Seed for random opening selection", 
+                    .isRequired = false, 
+                    .defaultValue = 5489, 
+                    .type = ValueType::UInt } },
+        { "plies", { .description = "Max number of plies per opening (all = unlimited)", 
+                    .isRequired = false, 
+                    .defaultValue = "all", 
+                    .type = ValueType::String}},
+        { "start", { .description = "Index of first opening (1-based)", 
+                    .isRequired = false, 
+                    .defaultValue = 1, 
+                    .type = ValueType::UInt } },
+        { "policy", { .description = "Opening switch policy: default, encounter, round", 
+                    .isRequired = false, 
+                    .defaultValue = "default", 
+                    .type = ValueType::String } }
     });
 
     // Test group
     Manager::registerGroup("test", "Test the engine", true, {
-        { "underrun",   { "Check for movetime underruns", false, false, ValueType::Bool } },
-        { "timeusage",  { "Check time usage in test games", false, false, ValueType::Bool } },
-        { "numgames",   { "Number of test games to run", false, 20, ValueType::UInt } },
-        { "noponder",   { "Skip pondering test", false, false, ValueType::Bool } },
-        { "noepd",      { "Skip EPD bestmove test", false, false, ValueType::Bool } },
-        { "nomemory",   { "Skip hash table memory usage test", false, false, ValueType::Bool } },
-        { "nooption",   { "Skip option crash tests", false, false, ValueType::Bool } },
-        { "nostop",     { "Skip immediate stop response test", false, false, ValueType::Bool } },
-        { "nowait",     { "Skip check that infinite search never returns", false, false, ValueType::Bool } }
+        { "underrun",   { .description = "Check for movetime underruns", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "timeusage",  { .description = "Check time usage in test games", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "numgames",   { .description = "Number of test games to run", 
+                        .isRequired = false, 
+                        .defaultValue = 20, 
+                        .type = ValueType::UInt } },
+        { "noponder",   { .description = "Skip pondering test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "noepd",      { .description = "Skip EPD bestmove test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nomemory",   { .description = "Skip hash table memory usage test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nooption",   { .description = "Skip option crash tests", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nostop",     { .description = "Skip immediate stop response test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nowait",     { .description = "Skip check that infinite search never returns", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
     });
 
     // PGN output group
     Manager::registerGroup("pgnoutput", "PGN output settings", true, {
-        { "file", { "Path to the output PGN file", true, "", ValueType::String } },
-        { "append", { "Append to existing file instead of overwriting it", false, false, ValueType::Bool } },
-        { "fi", { "Only save finished games", false, true, ValueType::Bool } },
-        { "min", { "Only save minimal tag information in the PGN output", false, false, ValueType::Bool } },
-        { "clock", { "Include clock information in the PGN output", false, true, ValueType::Bool } },
-        { "eval", { "Include evaluation values in the PGN output", false, true, ValueType::Bool } },
-        { "depth", { "Include search depth in the PGN output", false, true, ValueType::Bool } },
-        { "pv", { "Include principal variation in the PGN output", false, false, ValueType::Bool } }
+        { "file", { .description = "Path to the output PGN file", 
+                    .isRequired = true, 
+                    .defaultValue = "", 
+                    .type = ValueType::String } },
+        { "append", { .description = "Append to existing file instead of overwriting it", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "fi", { .description = "Only save finished games", 
+                .isRequired = false, 
+                .defaultValue = true, 
+                .type = ValueType::Bool } },
+        { "min", { .description = "Only save minimal tag information in the PGN output", 
+                .isRequired = false, 
+                .defaultValue = false, 
+                .type = ValueType::Bool } },
+        { "clock", { .description = "Include clock information in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "eval", { .description = "Include evaluation values in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "depth", { .description = "Include search depth in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "pv", { .description = "Include principal variation in the PGN output", 
+                .isRequired = false, 
+                .defaultValue = false, 
+                .type = ValueType::Bool } }
     });
 
     // Tournament group
     Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
-        { "type", { "Tournament type: gauntlet/round-robin", true, "gauntlet", ValueType::String } },
-        { "file", { "File to save tournament state", false, "", ValueType::PathParentExists } },
-        { "saveinterval", { "Interval in games to save tournament state", false, 10, ValueType::UInt } },
-        { "append", { "Append to result file instead of overwriting it", false, false, ValueType::Bool } },
-        { "event", { "Optional event name for PGN or logging", false, "", ValueType::String } },
-        { "games", { "Number of games per pairing (total games = games * rounds)", false, 2, ValueType::UInt } },
-        { "rounds", { "Repeat all pairings this many times", false, 1, ValueType::UInt } },
-        { "repeat", { "Number of consecutive games using same opening (e.g. 2 with swapping colors)", false, 2, ValueType::UInt } },
-        { "noswap", { "Disable automatic color swap after each game", false, false, ValueType::Bool } },
-        { "ratinginterval", { "Interval (in games) for printing rating table", false, 100, ValueType::UInt } },
-        { "averageelo", { "Set average Elo level for scaling rating output", false, 2600, ValueType::Int } },
-        { "outcomeinterval", { "Interval (in games) for printing outcome table", false, 0, ValueType::UInt } }
+        { "type", { .description = "Tournament type: gauntlet/round-robin", 
+                    .isRequired = true, 
+                    .defaultValue = "gauntlet", 
+                    .type = ValueType::String } },
+        { "file", { .description = "File to save tournament state", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathParentExists } },
+        { "saveinterval", { .description = "Interval in games to save tournament state", 
+                            .isRequired = false, 
+                            .defaultValue = 10, 
+                            .type = ValueType::UInt } },
+        { "append", { .description = "Append to result file instead of overwriting it", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "event", { .description = "Optional event name for PGN or logging", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String } },
+        { "games", { .description = "Number of games per pairing (total games = games * rounds)", 
+                    .isRequired = false, 
+                    .defaultValue = 2, 
+                    .type = ValueType::UInt } },
+        { "rounds", { .description = "Repeat all pairings this many times", 
+                    .isRequired = false, 
+                    .defaultValue = 1, 
+                    .type = ValueType::UInt } },
+        { "repeat", { .description = "Number of consecutive games using same opening (e.g. 2 with swapping colors)", 
+                    .isRequired = false, 
+                    .defaultValue = 2, 
+                    .type = ValueType::UInt } },
+        { "noswap", { .description = "Disable automatic color swap after each game", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "ratinginterval", { .description = "Interval (in games) for printing rating table", 
+                            .isRequired = false, 
+                            .defaultValue = 100, 
+                            .type = ValueType::UInt } },
+        { "averageelo", { .description = "Set average Elo level for scaling rating output", 
+                        .isRequired = false, 
+                        .defaultValue = 2600, 
+                        .type = ValueType::Int } },
+        { "outcomeinterval", { .description = "Interval (in games) for printing outcome table", 
+                            .isRequired = false, 
+                            .defaultValue = 0, 
+                            .type = ValueType::UInt } }
     });
 
     // Draw adjudication group
     Manager::registerGroup("draw", "Draw adjudication settings", true, {
-        { "movenumber", { "Minimum number of full moves before draw adjudication can occur", true, 0, ValueType::UInt } },
-        { "movecount",  { "Required number of consecutive moves with evaluation in range", true, 0, ValueType::UInt } },
-        { "score",      { "Centipawn score range (+/-) around zero for draw adjudication", true, 0, ValueType::Int } },
-        { "test",       { "If true, only reports what would be adjudicated without taking action", false, false, ValueType::Bool } }
+        { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "movecount",  { .description = "Required number of consecutive moves with evaluation in range", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "score",      { .description = "Centipawn score range (+/-) around zero for draw adjudication", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "test",       { .description = "If true, only reports what would be adjudicated without taking action", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
     });
 
     // Resign adjudication group
@@ -369,23 +577,23 @@ void QaplaSettings::readLoggerConfig() {
 }
 
 void QaplaSettings::readEngineOptions() {
-	EngineWorkerFactory::setSuppressInfoLines(CliSettings::Manager::get<bool>("rapid"));
-    std::string enginesFile = CliSettings::Manager::get<std::string>("enginesfile");
+	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::get<bool>("rapid"));
+    std::string enginesFile = Settings::Manager::get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
-    auto engineSettings = CliSettings::Manager::getGroupInstances("engine");
-	auto eachSetting = CliSettings::Manager::getGroupInstance("each");
+    auto engineSettings = Settings::Manager::getGroupInstances("engine");
+	auto eachSetting = Settings::Manager::getGroupInstance("each");
     auto loggingSetting = Manager::getGroupInstance("logging");
         
-	CliSettings::ValueMap eachOptions;
+	Settings::ValueMap eachOptions;
 	if (eachSetting) {
 		eachOptions = eachSetting->getValues();
 	}
 
     for (const auto& engine : engineSettings) {
         // Merge global options with engine-specific options (engine options take precedence)
-        CliSettings::ValueMap mergedOptions = engine.getValues();
+        Settings::ValueMap mergedOptions = engine.getValues();
         mergedOptions.insert(eachOptions.begin(), eachOptions.end());
 
         // Check if cmd or conf is specified
@@ -441,7 +649,7 @@ void QaplaSettings::readEngineGlobalConfig() {
         return;
     }
 
-    auto eachSettings = CliSettings::Manager::getGroupInstances("each");
+    auto eachSettings = Settings::Manager::getGroupInstances("each");
     const auto& each = *eachSetting;
     auto hashProvided = each.isKeyProvided("option.Hash");
     uint32_t hashValue = defaultHashSizeMB;

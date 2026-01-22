@@ -44,7 +44,7 @@
 #include "config-file/adjudication-config.h"
 
 #include "cli/input-handler.h"
-#include "cli/cli-settings-manager.h"
+#include "cli/settings-manager.h"
 #include "cli/qapla-settings.h"
 
 #include "game-manager/game-manager-pool.h"
@@ -80,11 +80,11 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 }
 
 static auto runEpd(AppReturnCode code) {
-    const auto& epdConfig = CliSettings::QaplaSettings::instance().getEpdConfig();
+    const auto& epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
     if (!epdConfig) return code;
 
-    uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("epd-report");
+    uint32_t concurrency = Settings::Manager::get<unsigned int>("concurrency");
+    Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
     auto epdManager = std::make_shared<EpdManager>();
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -106,8 +106,8 @@ static auto runEpd(AppReturnCode code) {
     return code;
 }
 
-static AppReturnCode runTest(const CliSettings::GroupInstance& test, AppReturnCode code) {
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("report");
+static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code) {
+    Settings::QaplaSettings::instance().applyLoggerConfig("report");
     if (!EngineLogger::engineLogger().getFilename().empty()) {
         Logger::reportLogger().logAligned("Engine communication log: ", 
             EngineLogger::engineLogger().getFilename());
@@ -163,7 +163,7 @@ static auto sprtFileIO(const std::string filename, uint32_t saveInterval,
         
         manager->setGameFinishedCallback(
             [filename,
-             configData = CliSettings::QaplaSettings::instance().getConfigData("sprt-tournament"),
+             configData = Settings::QaplaSettings::instance().getConfigData("sprt-tournament"),
              saveInterval,
              saveTrigger = 0u,
              manager = manager.get()]() mutable 
@@ -188,15 +188,15 @@ static auto sprtFileIO(const std::string filename, uint32_t saveInterval,
 
 static auto runSprt(AppReturnCode code) {
     // Get SPRT config (already loaded from file or CLI by readSprtConfig)
-    const auto& sprtConfig = CliSettings::QaplaSettings::instance().getSprtConfig();
+    const auto& sprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
     if (!sprtConfig) return code;
     
-    auto sprtGroup = CliSettings::Manager::getGroupInstance("sprt");
+    auto sprtGroup = Settings::Manager::getGroupInstance("sprt");
     auto sprtfile = sprtGroup->get<std::string>("file");
     auto isMontecarlo = sprtGroup->get<bool>("montecarlo");
     
     // Validate openings (already loaded from file or CLI)
-    if (!isMontecarlo && !CliSettings::QaplaSettings::instance().getOpenings()) {
+    if (!isMontecarlo && !Settings::QaplaSettings::instance().getOpenings()) {
         Logger::reportLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
@@ -204,7 +204,7 @@ static auto runSprt(AppReturnCode code) {
     // Validate time control (for engines loaded from file or CLI)
     checkTimeControl();
     
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("sprt-report");
+    Settings::QaplaSettings::instance().applyLoggerConfig("sprt-report");
     
     try {
         auto manager = std::make_shared<SprtManager>();
@@ -212,21 +212,21 @@ static auto runSprt(AppReturnCode code) {
             manager->runMonteCarloTest(*sprtConfig);
         } else {
             auto sections = sprtFileIO(sprtfile, sprtGroup->get<unsigned int>("saveinterval"), manager);
-            const auto& updatedSprtConfig = CliSettings::QaplaSettings::instance().getSprtConfig();
+            const auto& updatedSprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
             const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
 
             manager->createTournament(activeEngines, *updatedSprtConfig);
             if (sections) {
                 manager->setGameResults(*sections);
             }
-            const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
+            const auto concurrency = Settings::Manager::get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
             
             if (!sprtfile.empty()) {
                 auto section = manager->getSection();
-                QaplaHelpers::ConfigData configData = CliSettings::QaplaSettings::instance().
+                QaplaHelpers::ConfigData configData = Settings::QaplaSettings::instance().
                     getConfigData("sprt-tournament");
                 if (section) {
                     configData.addSection(*section);
@@ -261,9 +261,9 @@ static auto runSprt(AppReturnCode code) {
 }
 
 static auto runSpsa(AppReturnCode code) {
-    const auto& spsaConfig = CliSettings::QaplaSettings::instance().getSPSAConfig();
+    const auto& spsaConfig = Settings::QaplaSettings::instance().getSPSAConfig();
     if (!spsaConfig) return code;
-    const auto concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
+    const auto concurrency = Settings::Manager::get<unsigned int>("concurrency");
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     
@@ -272,13 +272,13 @@ static auto runSpsa(AppReturnCode code) {
         return AppReturnCode::InvalidParameters;
     }
     
-    if (!CliSettings::QaplaSettings::instance().getOpenings()) {
+    if (!Settings::QaplaSettings::instance().getOpenings()) {
         Logger::reportLogger().log("No openings defined for SPSA optimization. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     
     checkTimeControl();
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("spsa-report");
+    Settings::QaplaSettings::instance().applyLoggerConfig("spsa-report");
     
     try {
         auto optimizer = std::make_shared<SPSAOptimizer>();
@@ -312,7 +312,7 @@ static auto runSpsa(AppReturnCode code) {
 }
 
 static AppReturnCode runTournament(AppReturnCode code) {
-    const auto& tournamentConfig = CliSettings::QaplaSettings::instance().getTournamentConfig();
+    const auto& tournamentConfig = Settings::QaplaSettings::instance().getTournamentConfig();
     if (!tournamentConfig) return code;
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
@@ -320,16 +320,16 @@ static AppReturnCode runTournament(AppReturnCode code) {
         Logger::reportLogger().log("At least two engines must be defined. Please define more engines, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
-    if (!CliSettings::QaplaSettings::instance().getOpenings()) {
+    if (!Settings::QaplaSettings::instance().getOpenings()) {
         Logger::reportLogger().log("No openings defined. Please define an opening, see --help for more info.", TraceLevel::error);
         return AppReturnCode::InvalidParameters;
     }
     checkTimeControl();
 
-    CliSettings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
+    Settings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
 
     try {
-        uint32_t concurrency = CliSettings::Manager::get<unsigned int>("concurrency");
+        uint32_t concurrency = Settings::Manager::get<unsigned int>("concurrency");
 
         Tournament tournament;
         
@@ -370,19 +370,19 @@ static AppReturnCode runTournament(AppReturnCode code) {
 }
 
 static void setAdjudicationOptions() {
-    const auto& drawConfig = CliSettings::QaplaSettings::instance().getDrawAdjudicationConfig();
+    const auto& drawConfig = Settings::QaplaSettings::instance().getDrawAdjudicationConfig();
     if (drawConfig) {
         GameManagerPool::getInstance().getAdjudicationManager().setDrawAdjudicationConfig(*drawConfig);
     }
 
-    const auto& resignConfig = CliSettings::QaplaSettings::instance().getResignAdjudicationConfig();
+    const auto& resignConfig = Settings::QaplaSettings::instance().getResignAdjudicationConfig();
     if (resignConfig) {
         GameManagerPool::getInstance().getAdjudicationManager().setResignAdjudicationConfig(*resignConfig);
     }
 }
 
 static void setPgnOptions() {
-    const auto& pgnOptions = CliSettings::QaplaSettings::instance().getPgnOptions();
+    const auto& pgnOptions = Settings::QaplaSettings::instance().getPgnOptions();
     if (!pgnOptions) return;
 
     PgnSave::tournament().setOptions(*pgnOptions);
@@ -393,29 +393,29 @@ static AppReturnCode run() {
     AppReturnCode returnCode = AppReturnCode::NoError;
 
     InputHandler::inputLoop(
-        CliSettings::QaplaSettings::instance().getArguments().size() == 1 
-        || CliSettings::Manager::get<bool>("interactive"));
+        Settings::QaplaSettings::instance().getArguments().size() == 1 
+        || Settings::Manager::get<bool>("interactive"));
 
     setPgnOptions();
     setAdjudicationOptions();
 
-    if (auto test = CliSettings::Manager::getGroupInstance("test")) {
+    if (auto test = Settings::Manager::getGroupInstance("test")) {
         returnCode = runTest(*test, returnCode);
     }
 
-    if (CliSettings::QaplaSettings::instance().getEpdConfig()) {
+    if (Settings::QaplaSettings::instance().getEpdConfig()) {
         returnCode = runEpd(returnCode);
     }
 
-    if (CliSettings::QaplaSettings::instance().getTournamentConfig()) {
+    if (Settings::QaplaSettings::instance().getTournamentConfig()) {
         returnCode = runTournament(returnCode);
     }
 
-    if (CliSettings::QaplaSettings::instance().getSprtConfig()) {
+    if (Settings::QaplaSettings::instance().getSprtConfig()) {
         returnCode = runSprt(returnCode);
     }
 
-    if (CliSettings::QaplaSettings::instance().getSPSAConfig()) {
+    if (Settings::QaplaSettings::instance().getSPSAConfig()) {
         returnCode = runSpsa(returnCode);
     }
     return returnCode;
@@ -435,14 +435,14 @@ int main(int argc, char** argv) {
         Logger::reportLogger().log("Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n");
 
         // Initialize settings
-        CliSettings::QaplaSettings::instance().init();
+        Settings::QaplaSettings::instance().init();
         
         // Convert and store arguments
         std::vector<std::string> args;
         for (int i = 0; i < argc; ++i) {
             args.emplace_back(argv[i]);
         }
-        CliSettings::QaplaSettings::instance().applyArguments(args);
+        Settings::QaplaSettings::instance().applyArguments(args);
 
         returnCode = run();
 			

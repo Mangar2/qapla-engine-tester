@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "cli-settings-manager.h"
+#include "settings-manager.h"
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
 #include "../config-file/engine-config-file.h"
@@ -44,7 +44,7 @@ namespace QaplaHelpers {
     class ConfigData;
 }
 
-namespace QaplaTester::CliSettings {
+namespace QaplaTester::Settings {
 
 /**
  * @brief Settings management class for Qapla Engine Tester
