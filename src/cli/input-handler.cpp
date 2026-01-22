@@ -142,7 +142,7 @@ void InputHandler::handleSetCommand(const std::vector<std::string>& args) {
     const std::string& key = args[0];
     const std::string& value = args[1];
 
-    auto result = Settings::Manager::setGlobalValue(key, value);
+    auto result = Settings::Manager::instance().setGlobalValue(key, value);
     if (result.status != Settings::SetResult::Status::Success) {
         std::cout << "Error: " << result.errorMessage << "\n";
     }

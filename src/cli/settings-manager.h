@@ -158,6 +158,14 @@ namespace QaplaTester::Settings {
     public:
 
         /**
+         * @brief Returns the singleton instance of Manager.
+         */
+        [[nodiscard]] static Manager& instance() {
+            static Manager inst;
+            return inst;
+        }
+
+        /**
          * @brief Registers a setting with its metadata.
          * @param name Parameter name, case-insensitive.
          * @param description Help text for this parameter.
@@ -165,7 +173,7 @@ namespace QaplaTester::Settings {
          * @param defaultValue Default value if not required.
          * @param type Expected value type and validation mode.
          */
-        static void registerSetting(const std::string& name,
+        void registerSetting(const std::string& name,
             const std::string& description,
             bool isRequired,
             std::optional<Value> defaultValue,
@@ -178,7 +186,7 @@ namespace QaplaTester::Settings {
 		 * @param unique True if only one instance of this group is allowed.
          * @param keys Map of key names and their descriptions.
          */
-        static void registerGroup(const std::string& groupName,
+        void registerGroup(const std::string& groupName,
             const std::string& groupDescription,
             bool unique,
             const std::unordered_map<std::string, Definition>& keys);
@@ -187,7 +195,7 @@ namespace QaplaTester::Settings {
          * @brief Parses configuration data from ConfigData structure.
 		 * @param configData ConfigData instance containing configuration sections and parameters.
          */
-        static void parseCommandLine(const QaplaHelpers::ConfigData& configData);
+        void parseInput(const QaplaHelpers::ConfigData& configData);
 
         /**
          * @brief Retrieves the typed value of a setting.
@@ -196,7 +204,7 @@ namespace QaplaTester::Settings {
          * @return Typed value of the parameter.
          */
         template<typename T>
-        static T get(const std::string& name) {
+        T get(const std::string& name) {
             std::string key = QaplaHelpers::to_lowercase(name);
             auto it = values_.find(key);
             if (it == values_.end()) {
@@ -216,15 +224,15 @@ namespace QaplaTester::Settings {
          * @return List of instances for this group
          * @throws std::runtime_error if the group is unknown.
          */
-        [[nodiscard]] static GroupInstances getGroupInstances(const std::string& groupName);
+        [[nodiscard]] GroupInstances getGroupInstances(const std::string& groupName);
 
 
-        static std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
+        [[nodiscard]] std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
 
         /**
 		 * @brief Displays help information for all registered settings and groups.
          */
-        static void showHelp();
+        void showHelp();
 
         /**
          * @brief Sets a global CLI setting programmatically (e.g., from interactive input).
@@ -232,9 +240,9 @@ namespace QaplaTester::Settings {
          * @param value The value to assign, in string form.
          * @return SetResult indicating success or error type.
          */
-        static SetResult setGlobalValue(const std::string& name, const std::string& value);
+        SetResult setGlobalValue(const std::string& name, const std::string& value);
 
-        static void clearValues() {
+        void clearValues() {
             values_.clear();
             groupInstances_.clear();
         }
@@ -248,13 +256,13 @@ namespace QaplaTester::Settings {
             std::optional<std::string> value;   // optional value part
         };
 
-        static Value parseBool(const ParsedParameter& arg);
-        static Value parseInt(const ParsedParameter& arg);
-        static Value parseUInt(const ParsedParameter& arg);
-        static Value parseFloat(const ParsedParameter& arg);
-        static Value parseString(const ParsedParameter& arg);
-        static Value parsePathExists(const ParsedParameter& arg);
-        static Value parsePathParentExists(const ParsedParameter& arg);
+        Value parseBool(const ParsedParameter& arg);
+        Value parseInt(const ParsedParameter& arg);
+        Value parseUInt(const ParsedParameter& arg);
+        Value parseFloat(const ParsedParameter& arg);
+        Value parseString(const ParsedParameter& arg);
+        Value parsePathExists(const ParsedParameter& arg);
+        Value parsePathParentExists(const ParsedParameter& arg);
 
         /**
          * @brief Splits a raw command line argument into syntactic parts.
@@ -262,20 +270,20 @@ namespace QaplaTester::Settings {
          * @param raw The raw argument string, e.g. "--foo=bar" or "baz".
          * @return ParsedParameter with decomposed components.
          */
-        static ParsedParameter parseParameter(const std::string& raw);
+        ParsedParameter parseParameter(const std::string& raw);
 
         /**
          * @brief Parses a single global parameter from a section entry.
          * @param key Parameter key.
          * @param value Parameter value.
          */
-        static void parseGlobalParameter(const std::string& key, const std::string& value);
+        void parseGlobalParameter(const std::string& key, const std::string& value);
 
         /**
          * @brief Parses an entire grouped parameter section.
          * @param section The section to parse.
          */
-        static void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section);
+        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
@@ -283,7 +291,7 @@ namespace QaplaTester::Settings {
          * @param name The key to resolve (e.g. option.Hash).
          * @return Pointer to matching definition, or nullptr if not found.
          */
-        static const Definition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
+        const Definition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
 
         /** 
          * @brief Validates that the given default value matches the expected ValueType.
@@ -292,13 +300,13 @@ namespace QaplaTester::Settings {
          * @param value The value to validate.
          * @param type The expected type.
          */
-        static void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
+        void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
 
         /**
          * @brief Validates and finalizes all global parameters after parsing.
          * Throws if required values are missing.
          */
-        static void finalizeGlobalParameters();
+        void finalizeGlobalParameters();
 
 		/**
 		 * @brief Parses a single value from a command line argument.
@@ -306,20 +314,20 @@ namespace QaplaTester::Settings {
 		 * @param def The definition of the expected parameter.
 		 * @return The parsed Value, or throws if invalid.
 		 */
-        static Value parseValue(const ParsedParameter& arg, const Definition& def);
+        Value parseValue(const ParsedParameter& arg, const Definition& def);
 
 
-		// Static storage for definitions and group definitions
-        static inline std::unordered_map<std::string, Definition> definitions_;
-        static inline std::unordered_map<std::string, GroupDefinition> groupDefs_;
+		// Storage for definitions and group definitions
+        std::unordered_map<std::string, Definition> definitions_;
+        std::unordered_map<std::string, GroupDefinition> groupDefs_;
 
-		// Static storage for parsed values and group instances
-        static inline ValueMap values_;
+		// Storage for parsed values and group instances
+        ValueMap values_;
         /**
          * @brief Stores grouped CLI values, organized by group name and ordered appearance.
          *        Each group name maps to a list of key-value maps (i.e., multiple blocks per group).
          */
-        static inline GroupInstancesMap groupInstances_;
+        GroupInstancesMap groupInstances_;
 
         
     };

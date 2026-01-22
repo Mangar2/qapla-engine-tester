@@ -83,7 +83,7 @@ static auto runEpd(AppReturnCode code) {
     const auto& epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
     if (!epdConfig) return code;
 
-    uint32_t concurrency = Settings::Manager::get<unsigned int>("concurrency");
+    uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
     Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
     auto epdManager = std::make_shared<EpdManager>();
 
@@ -191,7 +191,7 @@ static auto runSprt(AppReturnCode code) {
     const auto& sprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
     if (!sprtConfig) return code;
     
-    auto sprtGroup = Settings::Manager::getGroupInstance("sprt");
+    auto sprtGroup = Settings::Manager::instance().getGroupInstance("sprt");
     auto sprtfile = sprtGroup->get<std::string>("file");
     auto isMontecarlo = sprtGroup->get<bool>("montecarlo");
     
@@ -219,7 +219,7 @@ static auto runSprt(AppReturnCode code) {
             if (sections) {
                 manager->setGameResults(*sections);
             }
-            const auto concurrency = Settings::Manager::get<unsigned int>("concurrency");
+            const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
@@ -263,7 +263,7 @@ static auto runSprt(AppReturnCode code) {
 static auto runSpsa(AppReturnCode code) {
     const auto& spsaConfig = Settings::QaplaSettings::instance().getSPSAConfig();
     if (!spsaConfig) return code;
-    const auto concurrency = Settings::Manager::get<unsigned int>("concurrency");
+    const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     
@@ -329,7 +329,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
 
     try {
-        uint32_t concurrency = Settings::Manager::get<unsigned int>("concurrency");
+        uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
 
         Tournament tournament;
         
@@ -394,12 +394,12 @@ static AppReturnCode run() {
 
     InputHandler::inputLoop(
         Settings::QaplaSettings::instance().getArguments().size() == 1 
-        || Settings::Manager::get<bool>("interactive"));
+        || Settings::Manager::instance().get<bool>("interactive"));
 
     setPgnOptions();
     setAdjudicationOptions();
 
-    if (auto test = Settings::Manager::getGroupInstance("test")) {
+    if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
         returnCode = runTest(*test, returnCode);
     }
 

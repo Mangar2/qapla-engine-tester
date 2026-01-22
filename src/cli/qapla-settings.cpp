@@ -20,6 +20,7 @@
 #include "qapla-settings.h"
 
 #include "settings-manager.h"
+#include "settings-definitions.h"
 #include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
@@ -78,7 +79,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     }
     
     // Parse the merged configuration
-    Manager::parseCommandLine(mergedData);
+    Manager::instance().parseInput(mergedData);
 
     // Read options after all settings are registered and read.
     readLoggerConfig();
@@ -109,7 +110,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     LoggerConfig config = *m_loggerConfig;
     config.reportLogBaseName = reportLogBaseName;
     setLoggerConfig(config);
-    auto loggingSetting = Settings::Manager::getGroupInstance("logging");
+    auto loggingSetting = Settings::Manager::instance().getGroupInstance("logging");
     if (loggingSetting->get<bool>("engine")) {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     } else {
@@ -128,435 +129,56 @@ std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) {
 
 void QaplaSettings::init() {
     // Global settings
-    Manager::registerSetting("interactive", "Enables interactive mode", false, false, ValueType::Bool);
-    Manager::registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
+    Manager::instance().registerSetting("interactive", "Enables interactive mode", false, false, ValueType::Bool);
+    Manager::instance().registerSetting("concurrency", "Maximal number of in parallel running engines", true, 10,
         ValueType::UInt);
-    Manager::registerSetting("rapid", "Ignores engine info output. Speeds up games with <10s total compute time",
+    Manager::instance().registerSetting("rapid", "Ignores engine info output. Speeds up games with <10s total compute time",
         false, false, ValueType::Bool);
-    Manager::registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
+    Manager::instance().registerSetting("enginesfile", "Path to an ini file with engine configurations", false, "",
         ValueType::PathExists);
-    Manager::registerSetting("settingsfile", "Path to a settings file in INI-style format", false, std::string(""),
+    Manager::instance().registerSetting("settingsfile", "Path to a settings file in INI-style format", false, std::string(""),
         ValueType::PathExists);
 
     // Engine group
-    Manager::registerGroup("engine", "Defines an engine configuration", false, {
-        { "conf",      { .description = "Name of an engine from the configuration file", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } },
-        { "name",      { .description = "Name of the engine", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } },
-        { "cmd",       { .description = "Path to executable", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::PathExists } },
-        { "dir",       { .description = "Working directory", 
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::PathExists}},
-        { "proto",     { .description = "Protocol (uci/xboard)", 
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::String } },
-        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::String } },
-        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::Bool } },
-        { "gauntlet",  { .description = "Set if engine is part of the gauntlet group.", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::String}},
-        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::String }},
-        { "option.[name]",  { .description = "UCI engine option", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } }
-    });
+    Manager::instance().registerGroup("engine", "Defines an engine configuration", false, Settings::getEngineKeys());
 
     // Logging group
-    Manager::registerGroup("logging", "Logger configuration", true, {
-        { "engine", { 
-            .description = "If true, engine logging is enabled", 
-            .isRequired = false, 
-            .defaultValue = true, 
-            .type = ValueType::Bool }},
-        { "path",   { 
-            .description = "Path to the logging directory", 
-            .isRequired = false,
-            .defaultValue = std::string(""), 
-            .type = ValueType::String }},
-        { "mode",   { 
-            .description = "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
-            .isRequired = false, 
-            .defaultValue = std::string("one"), 
-            .type = ValueType::String }},
-    });
+    Manager::instance().registerGroup("logging", "Logger configuration", true, Settings::getLoggingKeys());
 
     // Each group
-    Manager::registerGroup("each", "Defines configuration options for all engines", false, {
-        { "dir",       { .description = "Working directory", 
-                        .isRequired = false, 
-                        .defaultValue = ".", 
-                        .type = ValueType::PathExists } },
-        { "proto",     { .description = "Protocol (uci/xboard)", 
-                        .isRequired = false, 
-                        .defaultValue = "uci", 
-                        .type = ValueType::String } },
-        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } },
-        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool}},
-        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
-                        .isRequired = false, 
-                        .defaultValue = "command", 
-                        .type = ValueType::String}},
-        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)", 
-                        .isRequired = false, 
-                        .defaultValue = "auto", 
-                        .type = ValueType::String }},
-        { "option.[name]",  { .description = "UCI engine option", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } }
-    });
+    Manager::instance().registerGroup("each", "Defines configuration options for all engines", false, Settings::getEachKeys());
 
     // EPD group
-    Manager::registerGroup("epd", "Configuration to run an epd testset against engines", false, {
-        { "file",      { .description = "Path and file name to the epd file", 
-                        .isRequired = true, 
-                        .defaultValue = "", 
-                        .type = ValueType::PathExists } },
-        { "maxtime",   { .description = "Maximum allowed time in seconds per move during EPD analysis.", 
-                        .isRequired = false, 
-                        .defaultValue = 20, 
-                        .type = ValueType::UInt } },
-        { "mintime",   { .description = "Minimum required time for an early stop, when a correct move is found", 
-                        .isRequired = false, 
-                        .defaultValue = 2, 
-                        .type = ValueType::UInt } },
-        { "seenplies", { .description = "Amount of plies one of the expected moves must be shown to stop early (0 = off)", 
-                        .isRequired = false, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "minsuccess", { .description = "Minimum percentage of best moves that must be found", 
-                        .isRequired = false, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt} }
-    });
+    Manager::instance().registerGroup("epd", "Configuration to run an epd testset against engines", false, Settings::getEpdKeys());
 
     // SPRT group
-    Manager::registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, {
-        { "file", { .description = "File to load/save tournament outcome", 
-                    .isRequired = false, 
-                    .defaultValue = "", 
-                    .type = ValueType::PathExists,
-                    .exclusive = true } },
-        { "saveinterval", { .description = "Interval in games to save tournament state", 
-                            .isRequired = false, 
-                            .defaultValue = 100, 
-                            .type = ValueType::UInt } },
-        { "elolower",  { .description = "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", 
-                        .isRequired = false, 
-                        .defaultValue = 0, 
-                        .type = ValueType::Int } },
-        { "eloupper",  { .description = "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", 
-                        .isRequired = false, 
-                        .defaultValue = 10, 
-                        .type = ValueType::Int } },
-        { "alpha", { .description = "Type I error threshold", 
-                    .isRequired = false, 
-                    .defaultValue = 0.05f, 
-                    .type = ValueType::Float } },
-        { "beta",  { .description = "Type II error threshold", 
-                    .isRequired = false, 
-                    .defaultValue = 0.05f, 
-                    .type = ValueType::Float } },
-        { "maxgames", { .description = "Maximum number of games before forced stop (0 = unlimited)", 
-                        .isRequired = false, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "model", { .description = "Model used for SPRT calculations normalized, logistic, bayesian", 
-                    .isRequired = false, 
-                    .defaultValue = "normalized", 
-                    .type = ValueType::String } },
-        { "pentanomial", { .description = "Use pentanomial model for SPRT calculations", 
-                        .isRequired = false, 
-                        .defaultValue = true, 
-                        .type = ValueType::Bool } },
-        { "montecarlo", { .description = "Run Monte Carlo test instead of SPRT", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
-    });
-
+    Manager::instance().registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, Settings::getSprtKeys());
     // Openings group
-    Manager::registerGroup("openings", "Defines how start positions are selected", true, {
-        { "file",  { .description = "Path to file with opening positions", 
-                    .isRequired = true, 
-                    .defaultValue = "", 
-                    .type = ValueType::PathExists } },
-        { "order", { .description = "Order of position selection: random, sequential", 
-                    .isRequired = false, 
-                    .defaultValue = "sequential", 
-                    .type = ValueType::String } },
-        { "srand", { .description = "Seed for random opening selection", 
-                    .isRequired = false, 
-                    .defaultValue = 5489, 
-                    .type = ValueType::UInt } },
-        { "plies", { .description = "Max number of plies per opening (all = unlimited)", 
-                    .isRequired = false, 
-                    .defaultValue = "all", 
-                    .type = ValueType::String}},
-        { "start", { .description = "Index of first opening (1-based)", 
-                    .isRequired = false, 
-                    .defaultValue = 1, 
-                    .type = ValueType::UInt } },
-        { "policy", { .description = "Opening switch policy: default, encounter, round", 
-                    .isRequired = false, 
-                    .defaultValue = "default", 
-                    .type = ValueType::String } }
-    });
+    Manager::instance().registerGroup("openings", "Defines how start positions are selected", true, Settings::getOpeningsKeys());
 
     // Test group
-    Manager::registerGroup("test", "Test the engine", true, {
-        { "underrun",   { .description = "Check for movetime underruns", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "timeusage",  { .description = "Check time usage in test games", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "numgames",   { .description = "Number of test games to run", 
-                        .isRequired = false, 
-                        .defaultValue = 20, 
-                        .type = ValueType::UInt } },
-        { "noponder",   { .description = "Skip pondering test", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "noepd",      { .description = "Skip EPD bestmove test", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "nomemory",   { .description = "Skip hash table memory usage test", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "nooption",   { .description = "Skip option crash tests", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "nostop",     { .description = "Skip immediate stop response test", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "nowait",     { .description = "Skip check that infinite search never returns", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
-    });
+    Manager::instance().registerGroup("test", "Test the engine", true, Settings::getTestKeys());
 
     // PGN output group
-    Manager::registerGroup("pgnoutput", "PGN output settings", true, {
-        { "file", { .description = "Path to the output PGN file", 
-                    .isRequired = true, 
-                    .defaultValue = "", 
-                    .type = ValueType::String } },
-        { "append", { .description = "Append to existing file instead of overwriting it", 
-                    .isRequired = false, 
-                    .defaultValue = false, 
-                    .type = ValueType::Bool } },
-        { "fi", { .description = "Only save finished games", 
-                .isRequired = false, 
-                .defaultValue = true, 
-                .type = ValueType::Bool } },
-        { "min", { .description = "Only save minimal tag information in the PGN output", 
-                .isRequired = false, 
-                .defaultValue = false, 
-                .type = ValueType::Bool } },
-        { "clock", { .description = "Include clock information in the PGN output", 
-                    .isRequired = false, 
-                    .defaultValue = true, 
-                    .type = ValueType::Bool } },
-        { "eval", { .description = "Include evaluation values in the PGN output", 
-                    .isRequired = false, 
-                    .defaultValue = true, 
-                    .type = ValueType::Bool } },
-        { "depth", { .description = "Include search depth in the PGN output", 
-                    .isRequired = false, 
-                    .defaultValue = true, 
-                    .type = ValueType::Bool } },
-        { "pv", { .description = "Include principal variation in the PGN output", 
-                .isRequired = false, 
-                .defaultValue = false, 
-                .type = ValueType::Bool } }
-    });
+    Manager::instance().registerGroup("pgnoutput", "PGN output settings", true, Settings::getPgnOutputKeys());
 
     // Tournament group
-    Manager::registerGroup("tournament", "Tournament setup and general parameters", true, {
-        { "type", { .description = "Tournament type: gauntlet/round-robin", 
-                    .isRequired = true, 
-                    .defaultValue = "gauntlet", 
-                    .type = ValueType::String } },
-        { "file", { .description = "File to save tournament state", 
-                    .isRequired = false, 
-                    .defaultValue = "", 
-                    .type = ValueType::PathParentExists } },
-        { "saveinterval", { .description = "Interval in games to save tournament state", 
-                            .isRequired = false, 
-                            .defaultValue = 10, 
-                            .type = ValueType::UInt } },
-        { "append", { .description = "Append to result file instead of overwriting it", 
-                    .isRequired = false, 
-                    .defaultValue = false, 
-                    .type = ValueType::Bool } },
-        { "event", { .description = "Optional event name for PGN or logging", 
-                    .isRequired = false, 
-                    .defaultValue = "", 
-                    .type = ValueType::String } },
-        { "games", { .description = "Number of games per pairing (total games = games * rounds)", 
-                    .isRequired = false, 
-                    .defaultValue = 2, 
-                    .type = ValueType::UInt } },
-        { "rounds", { .description = "Repeat all pairings this many times", 
-                    .isRequired = false, 
-                    .defaultValue = 1, 
-                    .type = ValueType::UInt } },
-        { "repeat", { .description = "Number of consecutive games using same opening (e.g. 2 with swapping colors)", 
-                    .isRequired = false, 
-                    .defaultValue = 2, 
-                    .type = ValueType::UInt } },
-        { "noswap", { .description = "Disable automatic color swap after each game", 
-                    .isRequired = false, 
-                    .defaultValue = false, 
-                    .type = ValueType::Bool } },
-        { "ratinginterval", { .description = "Interval (in games) for printing rating table", 
-                            .isRequired = false, 
-                            .defaultValue = 100, 
-                            .type = ValueType::UInt } },
-        { "averageelo", { .description = "Set average Elo level for scaling rating output", 
-                        .isRequired = false, 
-                        .defaultValue = 2600, 
-                        .type = ValueType::Int } },
-        { "outcomeinterval", { .description = "Interval (in games) for printing outcome table", 
-                            .isRequired = false, 
-                            .defaultValue = 0, 
-                            .type = ValueType::UInt } }
-    });
+    Manager::instance().registerGroup("tournament", "Tournament setup and general parameters", true, Settings::getTournamentKeys());
 
     // Draw adjudication group
-    Manager::registerGroup("draw", "Draw adjudication settings", true, {
-        { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "movecount",  { .description = "Required number of consecutive moves with evaluation in range", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "score",      { .description = "Centipawn score range (+/-) around zero for draw adjudication", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::Int } },
-        { "test",       { .description = "If true, only reports what would be adjudicated without taking action", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
-    });
+    Manager::instance().registerGroup("draw", "Draw adjudication settings", true, Settings::getDrawAdjudicationKeys());
 
     // Resign adjudication group
-    Manager::registerGroup("resign", "Resign adjudication settings", true, {
-        { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "score",     { .description = "Centipawn score below zero that triggers resignation", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::Int } },
-        { "twosided",  { .description = "If true, both sides must meet respective score conditions", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "test",      { .description = "If true, only reports what would be adjudicated without taking action", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
-    });
-
+    Manager::instance().registerGroup("resign", "Resign adjudication settings", true, Settings::getResignAdjudicationKeys());
     // SPSA optimization group
-    Manager::registerGroup("spsa", "SPSA parameter optimization configuration", true, {
-        { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
-                            .isRequired = false, 
-                            .defaultValue = 32, 
-                            .type = ValueType::UInt } },
-        { "learningrate",  { .description = "Global learning rate for parameter updates (r in SPSA algorithm)", 
-                            .isRequired = false, 
-                            .defaultValue = 0.002F, 
-                            .type = ValueType::Float } },
-        { "gamesperpair",  { .description = "Number of games per parameter perturbation pair", 
-                            .isRequired = false, 
-                            .defaultValue = 8, 
-                            .type = ValueType::UInt } },
-        { "iterations",    { .description = "Maximum number of optimization iterations", 
-                            .isRequired = false, 
-                            .defaultValue = 1000, 
-                            .type = ValueType::UInt } },
-        { "seed",          { .description = "Random seed for opening selection", 
-                            .isRequired = false, 
-                            .defaultValue = 0, 
-                            .type = ValueType::UInt } },
-        { "noswap",        { .description = "Disable automatic color swap between games", 
-                            .isRequired = false, 
-                            .defaultValue = false, 
-                            .type = ValueType::Bool } }
-    });
+    Manager::instance().registerGroup("spsa", "SPSA parameter optimization configuration", true, Settings::getSpsaKeys());
 
     // SPSA parameter value group
-    Manager::registerGroup("spsavalue", "Defines a single parameter to optimize with SPSA", false, {
-        { "name",      { .description = "UCI parameter name to optimize", 
-                        .isRequired = true, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } },
-        { "default",   { .description = "Starting value for the parameter", 
-                        .isRequired = true, 
-                        .defaultValue = 0.0F, 
-                        .type = ValueType::Float } },
-        { "min",       { .description = "Minimum allowed value for the parameter", 
-                        .isRequired = true, 
-                        .defaultValue = 0.0F, 
-                        .type = ValueType::Float } },
-        { "max",       { .description = "Maximum allowed value for the parameter", 
-                        .isRequired = true, 
-                        .defaultValue = 0.0F, 
-                        .type = ValueType::Float } },
-        { "step",      { .description = "Perturbation step size (c_i in SPSA algorithm)", 
-                        .isRequired = true, 
-                        .defaultValue = 0.0F, 
-                        .type = ValueType::Float } }
-    });
+    Manager::instance().registerGroup("spsavalue", "Defines a single parameter to optimize with SPSA", false, Settings::getSpsaValueKeys());
 }
 
 void QaplaSettings::readLoggerConfig() {
-    auto loggingSetting = Manager::getGroupInstance("logging");
+    auto loggingSetting = Manager::instance().getGroupInstance("logging");
     
     std::string logPath = "./log";
     std::string logModeStr = "one";
@@ -577,14 +199,14 @@ void QaplaSettings::readLoggerConfig() {
 }
 
 void QaplaSettings::readEngineOptions() {
-	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::get<bool>("rapid"));
-    std::string enginesFile = Settings::Manager::get<std::string>("enginesfile");
+	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::instance().get<bool>("rapid"));
+    std::string enginesFile = Settings::Manager::instance().get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
-    auto engineSettings = Settings::Manager::getGroupInstances("engine");
-	auto eachSetting = Settings::Manager::getGroupInstance("each");
-    auto loggingSetting = Manager::getGroupInstance("logging");
+    auto engineSettings = Settings::Manager::instance().getGroupInstances("engine");
+	auto eachSetting = Settings::Manager::instance().getGroupInstance("each");
+    auto loggingSetting = Manager::instance().getGroupInstance("logging");
         
 	Settings::ValueMap eachOptions;
 	if (eachSetting) {
@@ -643,13 +265,13 @@ void QaplaSettings::readEngineGlobalConfig() {
     // m_engineGlobalConfig is only applied when loading GUI-based tournament files via
     // setFromConfigData(), where it overrides individual engine settings.
     constexpr uint32_t defaultHashSizeMB = 32;
-    auto eachSetting = Manager::getGroupInstance("each");
+    auto eachSetting = Manager::instance().getGroupInstance("each");
     if (!eachSetting) {
         m_engineGlobalConfig = nullptr;
         return;
     }
 
-    auto eachSettings = Settings::Manager::getGroupInstances("each");
+    auto eachSettings = Settings::Manager::instance().getGroupInstances("each");
     const auto& each = *eachSetting;
     auto hashProvided = each.isKeyProvided("option.Hash");
     uint32_t hashValue = defaultHashSizeMB;
@@ -674,7 +296,7 @@ void QaplaSettings::readEngineGlobalConfig() {
 }
 
 void QaplaSettings::readPgnOptions() {
-    auto pgnOptionInstance = Manager::getGroupInstance("pgnoutput");
+    auto pgnOptionInstance = Manager::instance().getGroupInstance("pgnoutput");
     if (!pgnOptionInstance) {
         m_pgnOptions = nullptr;
         return;
@@ -701,7 +323,7 @@ std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
 }
 
 void QaplaSettings::readDrawAdjudicationConfig() {
-    auto draw = Manager::getGroupInstance("draw");
+    auto draw = Manager::instance().getGroupInstance("draw");
     if (!draw) {
         m_drawConfig = nullptr;
         return;
@@ -723,7 +345,7 @@ std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDra
 }
 
 void QaplaSettings::readResignAdjudicationConfig() {
-    auto resign = Manager::getGroupInstance("resign");
+    auto resign = Manager::instance().getGroupInstance("resign");
     if (!resign) {
         m_resignConfig = nullptr;
         return;
@@ -744,7 +366,7 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getR
 }
 
 void QaplaSettings::readOpenings() {
-    auto opening = Manager::getGroupInstance("openings");
+    auto opening = Manager::instance().getGroupInstance("openings");
     if (!opening) {
         m_openings = nullptr;
         return;
@@ -800,7 +422,7 @@ std::optional<Openings> QaplaSettings::getOpenings() const {
 }
 
 void QaplaSettings::readTournamentConfig() {
-    auto tournamentGroup = Manager::getGroupInstance("tournament");
+    auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
     if (!tournamentGroup) {
         m_tournamentConfig = nullptr;
         return;
@@ -836,7 +458,7 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
 }
 
 void QaplaSettings::readSprtConfig() {
-    auto sprt = Manager::getGroupInstance("sprt");
+    auto sprt = Manager::instance().getGroupInstance("sprt");
     if (!sprt) {
         m_sprtConfig = nullptr;
         return;
@@ -878,7 +500,7 @@ std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
 }
 
 void QaplaSettings::readEpdConfig() {
-    auto epdGroup = Manager::getGroupInstance("epd");
+    auto epdGroup = Manager::instance().getGroupInstance("epd");
     if (!epdGroup) {
         m_epdConfig = nullptr;
         return;
@@ -901,7 +523,7 @@ std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
 }
 
 void QaplaSettings::readSPSAConfig() {
-    auto spsaGroup = Manager::getGroupInstance("spsa");
+    auto spsaGroup = Manager::instance().getGroupInstance("spsa");
     if (!spsaGroup) {
         m_spsaConfig = nullptr;
         return;
@@ -926,7 +548,7 @@ void QaplaSettings::readSPSAConfig() {
     m_spsaConfig->openingsFile = m_openings->file;
     
     // Read all spsavalue groups to build parameter list
-    auto spsaValueGroups = Manager::getGroupInstances("spsavalue");
+    auto spsaValueGroups = Manager::instance().getGroupInstances("spsavalue");
     for (const auto& valueGroup : spsaValueGroups) {
         SPSAParameterConfig param;
         param.name = valueGroup.get<std::string>("name");
@@ -956,7 +578,7 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
         return;
     }
     
-    auto loggingSetting = Manager::getGroupInstance("logging");
+    auto loggingSetting = Manager::instance().getGroupInstance("logging");
     if (loggingSetting && !loggingSetting->get<bool>("engine")) {
         m_engineGlobalConfig->useGlobalTrace = true;
         m_engineGlobalConfig->traceLevel = "none";

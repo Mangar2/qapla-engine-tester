@@ -97,7 +97,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
     engineConfig_ = engine;
 	checklist_ = EngineReport::getChecklist(engineConfig_.getName());
     try {
-        const Settings::GroupInstance testSettings = *Settings::Manager::getGroupInstance("test");
+        const Settings::GroupInstance testSettings = *Settings::Manager::instance().getGroupInstance("test");
         numGames_ = numGames;
         createGameManager();
         runStartStopTest();
