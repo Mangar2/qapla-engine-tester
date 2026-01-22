@@ -174,57 +174,57 @@ private:
     /**
      * @brief Reads logger configuration from CLI settings
      */
-    void readLoggerConfig();
+    void setLoggerConfiguration();
 
     /**
      * @brief Reads engine options from CLI settings
      */
-    void readEngineOptions();
+    void setEngineOptions();
 
     /**
      * @brief Reads global engine configuration from CLI settings
      */
-    void readEngineGlobalConfig();
+    void setEngineGlobalConfig();
 
     /**
      * @brief Reads PGN options from CLI settings
      */
-    void readPgnOptions();
+    void setPgnConfig();
 
     /**
      * @brief Reads draw adjudication options from CLI settings
      */
-    void readDrawAdjudicationConfig();
+    void setDrawAdjudicationConfig();
 
     /**
      * @brief Reads resign adjudication options from CLI settings
      */
-    void readResignAdjudicationConfig();
+    void setResignAdjudicationConfig();
 
     /**
      * @brief Reads openings configuration from CLI settings
      */
-    void readOpenings();
+    void setOpenings();
 
     /**
      * @brief Reads tournament configuration from CLI settings
      */
-    void readTournamentConfig();
+    void setTournamentConfig();
 
     /**
      * @brief Reads SPRT configuration from CLI settings
      */
-    void readSprtConfig();
+    void setSprtConfig();
 
     /**
      * @brief Reads EPD configuration from CLI settings
      */
-    void readEpdConfig();
+    void setEpdConfig();
 
     /**
      * @brief Reads SPSA configuration from CLI settings
      */
-    void readSPSAConfig();
+    void setSPSAConfig();
 
     /**
      * @brief Applies all configurations found in ConfigData

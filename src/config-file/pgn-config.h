@@ -21,6 +21,7 @@
 
 #include "../opening/pgn-save.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -61,6 +62,16 @@ public:
     [[nodiscard]] static std::optional<PgnSave::Options> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
+
+    /**
+     * @brief Creates PGN configuration from Settings::Manager.
+     * @param manager The settings manager to read from.
+     * @param groupName The group instance name.
+     * @return PgnSave::Options populated from manager.
+     */
+    [[nodiscard]] static PgnSave::Options fromManager(
+        Settings::Manager& manager,
+        const std::string& groupName);
 };
 
 } // namespace QaplaTester

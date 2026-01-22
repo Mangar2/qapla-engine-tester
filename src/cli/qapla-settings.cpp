@@ -82,17 +82,17 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::instance().parseInput(mergedData);
 
     // Read options after all settings are registered and read.
-    readLoggerConfig();
-    readEngineOptions();
-    readEngineGlobalConfig();
-    readPgnOptions();
-    readDrawAdjudicationConfig();
-    readResignAdjudicationConfig();
-    readOpenings();
-    readTournamentConfig();
-    readSprtConfig();
-    readEpdConfig();
-    readSPSAConfig();
+    setLoggerConfiguration();
+    setEngineOptions();
+    setEngineGlobalConfig();
+    setPgnConfig();
+    setDrawAdjudicationConfig();
+    setResignAdjudicationConfig();
+    setOpenings();
+    setTournamentConfig();
+    setSprtConfig();
+    setEpdConfig();
+    setSPSAConfig();
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {
@@ -177,7 +177,7 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup("spsavalue", "Defines a single parameter to optimize with SPSA", false, Settings::getSpsaValueKeys());
 }
 
-void QaplaSettings::readLoggerConfig() {
+void QaplaSettings::setLoggerConfiguration() {
     auto loggingSetting = Manager::instance().getGroupInstance("logging");
     
     std::string logPath = "./log";
@@ -198,7 +198,7 @@ void QaplaSettings::readLoggerConfig() {
     });
 }
 
-void QaplaSettings::readEngineOptions() {
+void QaplaSettings::setEngineOptions() {
 	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::instance().get<bool>("rapid"));
     std::string enginesFile = Settings::Manager::instance().get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
@@ -259,7 +259,7 @@ void QaplaSettings::readEngineOptions() {
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
-void QaplaSettings::readEngineGlobalConfig() {
+void QaplaSettings::setEngineGlobalConfig() {
     // This function creates m_engineGlobalConfig from [each] settings for GUI compatibility.
     // It is NOT used when loading engines from CLI parameters in readEngineOptions().
     // m_engineGlobalConfig is only applied when loading GUI-based tournament files via
@@ -295,24 +295,15 @@ void QaplaSettings::readEngineGlobalConfig() {
     applyEngineLoggingToGlobalConfig();
 }
 
-void QaplaSettings::readPgnOptions() {
+void QaplaSettings::setPgnConfig() {
     auto pgnOptionInstance = Manager::instance().getGroupInstance("pgnoutput");
     if (!pgnOptionInstance) {
         m_pgnOptions = nullptr;
         return;
     }
 
-    const auto& pgn = *pgnOptionInstance;
-    m_pgnOptions = std::make_unique<PgnSave::Options>(PgnSave::Options{
-        .file = pgn.get<std::string>("file"),
-        .append = pgn.get<bool>("append"),
-        .onlyFinishedGames = pgn.get<bool>("fi"),
-        .minimalTags = pgn.get<bool>("min"),
-        .includeClock = pgn.get<bool>("clock"),
-        .includeEval = pgn.get<bool>("eval"),
-        .includePv = pgn.get<bool>("pv"),
-        .includeDepth = pgn.get<bool>("depth")
-    });
+    m_pgnOptions = std::make_unique<PgnSave::Options>(
+        PgnConfig::fromManager(Manager::instance(), "pgnoutput"));
 }
 
 std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
@@ -322,7 +313,7 @@ std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
     return std::nullopt;
 }
 
-void QaplaSettings::readDrawAdjudicationConfig() {
+void QaplaSettings::setDrawAdjudicationConfig() {
     auto draw = Manager::instance().getGroupInstance("draw");
     if (!draw) {
         m_drawConfig = nullptr;
@@ -344,7 +335,7 @@ std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDra
     return std::nullopt;
 }
 
-void QaplaSettings::readResignAdjudicationConfig() {
+void QaplaSettings::setResignAdjudicationConfig() {
     auto resign = Manager::instance().getGroupInstance("resign");
     if (!resign) {
         m_resignConfig = nullptr;
@@ -365,7 +356,7 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getR
     return std::nullopt;
 }
 
-void QaplaSettings::readOpenings() {
+void QaplaSettings::setOpenings() {
     auto opening = Manager::instance().getGroupInstance("openings");
     if (!opening) {
         m_openings = nullptr;
@@ -421,7 +412,7 @@ std::optional<Openings> QaplaSettings::getOpenings() const {
     return *m_openings;
 }
 
-void QaplaSettings::readTournamentConfig() {
+void QaplaSettings::setTournamentConfig() {
     auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
     if (!tournamentGroup) {
         m_tournamentConfig = nullptr;
@@ -457,7 +448,7 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
     return *m_tournamentConfig;
 }
 
-void QaplaSettings::readSprtConfig() {
+void QaplaSettings::setSprtConfig() {
     auto sprt = Manager::instance().getGroupInstance("sprt");
     if (!sprt) {
         m_sprtConfig = nullptr;
@@ -498,7 +489,7 @@ std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
     return *m_sprtConfig;
 }
 
-void QaplaSettings::readEpdConfig() {
+void QaplaSettings::setEpdConfig() {
     auto epdGroup = Manager::instance().getGroupInstance("epd");
     if (!epdGroup) {
         m_epdConfig = nullptr;
@@ -521,7 +512,7 @@ std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
     return *m_epdConfig;
 }
 
-void QaplaSettings::readSPSAConfig() {
+void QaplaSettings::setSPSAConfig() {
     auto spsaGroup = Manager::instance().getGroupInstance("spsa");
     if (!spsaGroup) {
         m_spsaConfig = nullptr;
