@@ -284,7 +284,7 @@ namespace QaplaTester::Settings
         return it->second[0];
     }
 
-    void Manager::parseCommandLine(const QaplaHelpers::ConfigData& configData)
+    void Manager::parseInput(const QaplaHelpers::ConfigData& configData)
     {
         // Check for help in cliglobal section first
         auto cliglobalSections = configData.getSectionList("cliglobal", "default");
