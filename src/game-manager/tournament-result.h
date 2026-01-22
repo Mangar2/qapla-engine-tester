@@ -258,7 +258,7 @@ public:
         }
     };
 
-    const std::vector<EngineDuelResult>& results() const
+    [[nodiscard]] const std::vector<EngineDuelResult>& results() const
     {
         return results_;
     }

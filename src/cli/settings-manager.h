@@ -121,7 +121,7 @@ namespace QaplaTester::Settings {
 
         [[nodiscard]] bool isKeyProvided(const std::string& name) const {
             std::string key = QaplaHelpers::to_lowercase(name);
-            return values_.find(key) != values_.end();
+            return values_.contains(key);
         }
 
         [[nodiscard]] const GroupDefinition& getDefinition() const {

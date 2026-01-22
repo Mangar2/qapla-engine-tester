@@ -23,6 +23,10 @@
 #include <string>
 #include <array>
 
+namespace QaplaTester::Settings {
+    class Manager;
+}
+
 namespace QaplaTester {
 
 /**
@@ -48,29 +52,37 @@ public:
                     const std::string& id = "sprt-tournament");
 
     /**
-     * @brief Loads all SPRT tournament sections from a file into ConfigData.
+     * @brief Loads all SPRT tournament sections from a file.
      * @param filename The file path to load from.
-     * @param configData The configuration data to populate.
      * @param id The identifier for the tournament (default: "sprt-tournament").
      */
     static void load(const std::string& filename, 
-                    QaplaHelpers::ConfigData& configData,
                     const std::string& id = "sprt-tournament");
 
     /**
-     * @brief Helper method to load tournament settings form an sprt-tournament-file.
+     * @brief Helper method to load tournament settings from an sprt-tournament-file.
      * 
-     * This is that loads the tournament file and changes all the settings based 
+     * This loads the tournament file and changes all the settings based 
      * on its contents.
      * 
      * @param filename The file path to load from.
-     * @param configData The configuration data to populate.
      * @param id The identifier for the tournament (default: "sprt-tournament").
      * @return true if state was loaded successfully, false otherwise.
      */
     static bool loadSprtSettings(const std::string& filename,
-                               QaplaHelpers::ConfigData& configData,
                                const std::string& id = "sprt-tournament");
+
+    /**
+     * @brief Gets the loaded ConfigData.
+     * @return Reference to the loaded ConfigData.
+     */
+    static QaplaHelpers::ConfigData& getConfigData();
+
+    /**
+     * @brief Gets the loaded Settings Manager.
+     * @return Reference to the loaded Settings::Manager.
+     */
+    static Settings::Manager& getManager();
 
     /**
      * @brief Helper method to load tournament state from ConfigData into a SprtManager.
@@ -87,6 +99,17 @@ public:
                                              class SprtManager& manager,
                                              const std::string& id = "sprt-tournament");
 
+private:
+    /**
+     * @brief Creates and registers all settings groups for SPRT tournament file.
+     * @return Settings::Manager instance with registered groups.
+     */
+    static Settings::Manager registerSettingsGroups();
+
+    static QaplaHelpers::ConfigData configData_;
+    static Settings::Manager manager_;
+
+public:
     /**
      * @brief List of all section names used in SPRT tournament files.
      * 

@@ -151,12 +151,12 @@ static void checkTimeControl() {
 
 static auto sprtFileIO(const std::string filename, uint32_t saveInterval, 
     const std::shared_ptr<SprtManager>& manager) {
-    QaplaHelpers::ConfigData configData;
     if (!filename.empty()) {
-        if (SprtTournamentFile::loadSprtSettings(filename, configData)) {
+        if (SprtTournamentFile::loadSprtSettings(filename)) {
             Logger::reportLogger().log("Loaded SPRT tournament state from: " + filename, TraceLevel::result);
         }
     }
+    auto& configData = SprtTournamentFile::getConfigData();
     
     // Setup autosave callback if file and interval are specified
     if (!filename.empty() && saveInterval > 0) {
