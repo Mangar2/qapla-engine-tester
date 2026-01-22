@@ -187,9 +187,11 @@ private:
     void setEngineGlobalConfig();
 
     /**
-     * @brief Reads PGN options from CLI settings
+     * @brief Reads PGN options from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    void setPgnConfig();
+    void setPgnConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads draw adjudication options from CLI settings
