@@ -97,4 +97,26 @@ std::optional<PgnSave::Options> PgnConfig::fromConfigData(
     return fromSections(*sections);
 }
 
+PgnSave::Options PgnConfig::fromManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto pgnInstance = manager.getGroupInstance(groupName);
+    if (!pgnInstance) {
+        return PgnSave::Options{};
+    }
+
+    const auto& pgn = *pgnInstance;
+    return PgnSave::Options{
+        .file = pgn.get<std::string>("file"),
+        .append = pgn.get<bool>("append"),
+        .onlyFinishedGames = pgn.get<bool>("fi"),
+        .minimalTags = pgn.get<bool>("min"),
+        .includeClock = pgn.get<bool>("clock"),
+        .includeEval = pgn.get<bool>("eval"),
+        .includePv = pgn.get<bool>("pv"),
+        .includeDepth = pgn.get<bool>("depth")
+    };
+}
+
 } // namespace QaplaTester

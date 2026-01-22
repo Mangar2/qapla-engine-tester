@@ -67,7 +67,7 @@ public:
         return buffer_[(head_ + index) % MAX_ENGINE_LOG_LINES];
     }
     
-    size_t size() const { return count_; }
+    [[nodiscard]] size_t size() const { return count_; }
     
     void clear() {
         head_ = 0;
@@ -75,7 +75,7 @@ public:
         changeTracker_.trackModification();
     }
 
-    const ChangeTracker& getChangeTracker() const {
+    [[nodiscard]] const ChangeTracker& getChangeTracker() const {
         return changeTracker_;
     }
     
@@ -154,7 +154,7 @@ public:
      * @brief Returns the base name for log files.
      * @return The static logBaseName_ for report logs.
      */
-    std::string getBaseName() const override {
+    [[nodiscard]] std::string getBaseName() const override {
         return logBaseName_;
     }
 
@@ -252,7 +252,7 @@ public:
      * @brief Returns the base name for log files.
      * @return The static logBaseName_ for engine logs.
      */
-    std::string getBaseName() const override {
+    [[nodiscard]] std::string getBaseName() const override {
         // For perEngine strategy, append the engineId to the base name
         if (id_.engineId.has_value()) {
             return logBaseName_ + "-" + *id_.engineId;

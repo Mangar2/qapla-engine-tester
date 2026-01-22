@@ -381,7 +381,7 @@ static void setAdjudicationOptions() {
     }
 }
 
-static void setPgnOptions() {
+static void setPgnConfig() {
     const auto& pgnOptions = Settings::QaplaSettings::instance().getPgnOptions();
     if (!pgnOptions) return;
 
@@ -396,7 +396,7 @@ static AppReturnCode run() {
         Settings::QaplaSettings::instance().getArguments().size() == 1 
         || Settings::Manager::instance().get<bool>("interactive"));
 
-    setPgnOptions();
+    setPgnConfig();
     setAdjudicationOptions();
 
     if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
