@@ -85,7 +85,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setLoggerConfiguration();
     setEngineOptions();
     setEngineGlobalConfig();
-    setPgnConfig();
+    setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig();
     setResignAdjudicationConfig();
     setOpenings();
@@ -295,15 +295,15 @@ void QaplaSettings::setEngineGlobalConfig() {
     applyEngineLoggingToGlobalConfig();
 }
 
-void QaplaSettings::setPgnConfig() {
-    auto pgnOptionInstance = Manager::instance().getGroupInstance("pgnoutput");
+void QaplaSettings::setPgnConfig(Settings::Manager& manager, const std::string& groupName) {
+    auto pgnOptionInstance = manager.getGroupInstance(groupName);
     if (!pgnOptionInstance) {
         m_pgnOptions = nullptr;
         return;
     }
 
     m_pgnOptions = std::make_unique<PgnSave::Options>(
-        PgnConfig::fromManager(Manager::instance(), "pgnoutput"));
+        PgnConfig::fromManager(manager, groupName));
 }
 
 std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
@@ -592,10 +592,7 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     }
 
     // Apply PGN configuration
-    auto pgnOptions = PgnConfig::fromConfigData(configData, id);
-    if (pgnOptions) {
-        m_pgnOptions = std::make_unique<PgnSave::Options>(*pgnOptions);
-    }
+    setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");
 
     // Apply Draw Adjudication configuration
     auto drawConfig = AdjudicationConfig::fromDrawConfigData(configData, id);
