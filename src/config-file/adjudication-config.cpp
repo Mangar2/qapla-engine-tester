@@ -126,4 +126,37 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> AdjudicationConfig:
     return config;
 }
 
+AdjudicationManager::DrawAdjudicationConfig AdjudicationConfig::fromDrawManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto draw = manager.getGroupInstance(groupName);
+    if (!draw) {
+        return AdjudicationManager::DrawAdjudicationConfig{};
+    }
+
+    return AdjudicationManager::DrawAdjudicationConfig{
+        .minFullMoves = draw->get<unsigned int>("movenumber"),
+        .requiredConsecutiveMoves = draw->get<unsigned int>("movecount"),
+        .centipawnThreshold = draw->get<int>("score"),
+        .testOnly = draw->get<bool>("test")
+    };
+}
+
+AdjudicationManager::ResignAdjudicationConfig AdjudicationConfig::fromResignManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto resign = manager.getGroupInstance(groupName);
+    if (!resign) {
+        return AdjudicationManager::ResignAdjudicationConfig{};
+    }
+
+    return AdjudicationManager::ResignAdjudicationConfig{
+        .requiredConsecutiveMoves = resign->get<unsigned int>("movecount"),
+        .centipawnThreshold = resign->get<int>("score"),
+        .testOnly = resign->get<bool>("test")
+    };
+}
+
 } // namespace QaplaTester

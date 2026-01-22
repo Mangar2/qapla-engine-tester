@@ -19,6 +19,7 @@
 
 #include "opening-config.h"
 #include "../base-elements/string-helper.h"
+#include "../base-elements/app-error.h"
 
 namespace QaplaTester {
 
@@ -87,6 +88,57 @@ std::optional<Openings> OpeningConfig::fromConfigData(
     }
 
     return fromSections(*sections);
+}
+
+Openings OpeningConfig::fromManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto opening = manager.getGroupInstance(groupName);
+    if (!opening) {
+        return Openings{};
+    }
+
+    const auto pliesStr = opening->get<std::string>("plies");
+    std::optional<int> plies;
+
+    if (pliesStr != "all") {
+        try {
+            int val = std::stoi(pliesStr);
+            if (val < 0) {
+                throw AppError::makeInvalidParameters("Openings: Ply count must be at least 0, but got " + pliesStr);
+            }
+            plies = val - 1;
+        }
+        catch (const std::exception&) {
+            throw AppError::makeInvalidParameters(
+                "Openings: Ply count must be a non-negative integer or \"all\", but got: \"" + pliesStr + "\"");
+        }
+    }
+
+    Openings openings{
+        .file = opening->get<std::string>("file"),
+        .order = opening->get<std::string>("order"),
+        .plies = plies,
+        .start = opening->get<unsigned int>("start"),
+        .seed = opening->get<unsigned int>("srand"),
+        .policy = opening->get<std::string>("policy")
+    };
+
+    if (openings.start < 1) {
+        throw AppError::makeInvalidParameters("Openings: Start index must be at least 1, but got " +
+            std::to_string(openings.start));
+    }
+    openings.start--;
+
+    if (openings.order != "sequential" && openings.order != "random") {
+        throw AppError::makeInvalidParameters("Unsupported openings order: " + openings.order);
+    }
+    if (openings.policy != "default" && openings.policy != "encounter" && openings.policy != "round") {
+        throw AppError::makeInvalidParameters("Unsupported openings policy: " + openings.policy);
+    }
+
+    return openings;
 }
 
 } // namespace QaplaTester

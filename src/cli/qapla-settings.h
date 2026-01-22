@@ -194,19 +194,25 @@ private:
     void setPgnConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
-     * @brief Reads draw adjudication options from CLI settings
+     * @brief Reads draw adjudication options from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    void setDrawAdjudicationConfig();
+    void setDrawAdjudicationConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
-     * @brief Reads resign adjudication options from CLI settings
+     * @brief Reads resign adjudication options from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    void setResignAdjudicationConfig();
+    void setResignAdjudicationConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
-     * @brief Reads openings configuration from CLI settings
+     * @brief Reads openings configuration from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    void setOpenings();
+    void setOpenings(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads tournament configuration from CLI settings

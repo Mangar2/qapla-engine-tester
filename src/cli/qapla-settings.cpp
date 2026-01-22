@@ -86,9 +86,9 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setEngineOptions();
     setEngineGlobalConfig();
     setPgnConfig(Manager::instance(), "pgnoutput");
-    setDrawAdjudicationConfig();
-    setResignAdjudicationConfig();
-    setOpenings();
+    setDrawAdjudicationConfig(Manager::instance(), "draw");
+    setResignAdjudicationConfig(Manager::instance(), "resign");
+    setOpenings(Manager::instance(), "openings");
     setTournamentConfig();
     setSprtConfig();
     setEpdConfig();
@@ -313,19 +313,15 @@ std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
     return std::nullopt;
 }
 
-void QaplaSettings::setDrawAdjudicationConfig() {
-    auto draw = Manager::instance().getGroupInstance("draw");
+void QaplaSettings::setDrawAdjudicationConfig(Settings::Manager& manager, const std::string& groupName) {
+    auto draw = manager.getGroupInstance(groupName);
     if (!draw) {
         m_drawConfig = nullptr;
         return;
     }
 
-    m_drawConfig = std::make_unique<AdjudicationManager::DrawAdjudicationConfig>(AdjudicationManager::DrawAdjudicationConfig{
-        .minFullMoves = draw->get<unsigned int>("movenumber"),
-        .requiredConsecutiveMoves = draw->get<unsigned int>("movecount"),
-        .centipawnThreshold = draw->get<int>("score"),
-        .testOnly = draw->get<bool>("test")
-    });
+    m_drawConfig = std::make_unique<AdjudicationManager::DrawAdjudicationConfig>(
+        AdjudicationConfig::fromDrawManager(manager, groupName));
 }
 
 std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDrawAdjudicationConfig() const {
@@ -335,18 +331,15 @@ std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDra
     return std::nullopt;
 }
 
-void QaplaSettings::setResignAdjudicationConfig() {
-    auto resign = Manager::instance().getGroupInstance("resign");
+void QaplaSettings::setResignAdjudicationConfig(Settings::Manager& manager, const std::string& groupName) {
+    auto resign = manager.getGroupInstance(groupName);
     if (!resign) {
         m_resignConfig = nullptr;
         return;
     }
 
-    m_resignConfig = std::make_unique<AdjudicationManager::ResignAdjudicationConfig>(AdjudicationManager::ResignAdjudicationConfig{
-        .requiredConsecutiveMoves = resign->get<unsigned int>("movecount"),
-        .centipawnThreshold = resign->get<int>("score"),
-        .testOnly = resign->get<bool>("test")
-    });
+    m_resignConfig = std::make_unique<AdjudicationManager::ResignAdjudicationConfig>(
+        AdjudicationConfig::fromResignManager(manager, groupName));
 }
 
 std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getResignAdjudicationConfig() const {
@@ -356,53 +349,15 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getR
     return std::nullopt;
 }
 
-void QaplaSettings::setOpenings() {
-    auto opening = Manager::instance().getGroupInstance("openings");
+void QaplaSettings::setOpenings(Settings::Manager& manager, const std::string& groupName) {
+    auto opening = manager.getGroupInstance(groupName);
     if (!opening) {
         m_openings = nullptr;
         return;
     }
 
-    const auto pliesStr = opening->get<std::string>("plies");
-    std::optional<int> plies;
-
-    if (pliesStr != "all") {
-        try {
-            int val = std::stoi(pliesStr);
-            if (val < 0) {
-                throw AppError::makeInvalidParameters("Openings: Ply count must be at least 0, but got " + pliesStr);
-            }
-            plies = val - 1; // intern 0-basiert
-        }
-        catch (const std::exception&) {
-            throw AppError::makeInvalidParameters(
-                "Openings: Ply count must be a non-negative integer or \"all\", but got: \"" + pliesStr + "\"");
-        }
-    }
-
-    auto openings = std::make_unique<Openings>(Openings{
-        .file = opening->get<std::string>("file"),
-        .order = opening->get<std::string>("order"),
-        .plies = plies,
-        .start = opening->get<unsigned int>("start"),
-        .seed = opening->get<unsigned int>("srand"),
-        .policy = opening->get<std::string>("policy")
-    });
-
-    if (openings->start < 1) {
-        throw AppError::makeInvalidParameters("Openings: Start index must be at least 1, but got " +
-            std::to_string(openings->start));
-    }
-    openings->start--; // 0-based
-
-    if (openings->order != "sequential" && openings->order != "random") {
-        throw AppError::makeInvalidParameters("Unsupported openings order: " + openings->order);
-    }
-    if (openings->policy != "default" && openings->policy != "encounter" && openings->policy != "round") {
-        throw AppError::makeInvalidParameters("Unsupported openings policy: " + openings->policy);
-    }
-
-    m_openings = std::move(openings);
+    m_openings = std::make_unique<Openings>(
+        OpeningConfig::fromManager(manager, groupName));
 }
 
 std::optional<Openings> QaplaSettings::getOpenings() const {
@@ -583,28 +538,19 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     }
 
     // Apply Openings configuration
-    auto openings = OpeningConfig::fromConfigData(configData, id);
-    if (openings) {
-        m_openings = std::make_unique<Openings>(*openings);
-        if (m_sprtConfig) {
-            m_sprtConfig->openings = *openings;
-        }
+    setOpenings(SprtTournamentFile::getManager(), "opening");
+    if (m_openings && m_sprtConfig) {
+        m_sprtConfig->openings = *m_openings;
     }
 
     // Apply PGN configuration
     setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");
 
     // Apply Draw Adjudication configuration
-    auto drawConfig = AdjudicationConfig::fromDrawConfigData(configData, id);
-    if (drawConfig) {
-        m_drawConfig = std::make_unique<AdjudicationManager::DrawAdjudicationConfig>(*drawConfig);
-    }
+    setDrawAdjudicationConfig(SprtTournamentFile::getManager(), "drawadjudication");
 
     // Apply Resign Adjudication configuration
-    auto resignConfig = AdjudicationConfig::fromResignConfigData(configData, id);
-    if (resignConfig) {
-        m_resignConfig = std::make_unique<AdjudicationManager::ResignAdjudicationConfig>(*resignConfig);
-    }
+    setResignAdjudicationConfig(SprtTournamentFile::getManager(), "resignadjudication");
 
     // Load global engine configuration
     auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
