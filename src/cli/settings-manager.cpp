@@ -284,7 +284,7 @@ namespace QaplaTester::Settings
         return it->second[0];
     }
 
-    void Manager::parseInput(const QaplaHelpers::ConfigData& configData)
+    void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool strict)
     {
         // Check for help in cliglobal section first
         auto cliglobalSections = configData.getSectionList("cliglobal", "default");
@@ -310,15 +310,15 @@ namespace QaplaTester::Settings
                     if (section.name == "cliglobal") {
                         // Process global parameters
                         for (const auto& [key, value] : section.entries) {
-                            parseGlobalParameter(key, value);
+                            parseGlobalParameter(key, value, strict);
                         }
                     } else if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
                         // Process grouped parameters
-                        parseGroupedParameter(section);
+                        parseGroupedParameter(section, strict);
                     } else {
                         // Unknown section - treat entries as global parameters
                         for (const auto& [key, value] : section.entries) {
-                            parseGlobalParameter(key, value);
+                            parseGlobalParameter(key, value, strict);
                         }
                     }
                 }
@@ -328,7 +328,7 @@ namespace QaplaTester::Settings
         finalizeGlobalParameters();
     }
 
-    void Manager::parseGlobalParameter(const std::string& key, const std::string& value)
+    void Manager::parseGlobalParameter(const std::string& key, const std::string& value, bool strict)
     {
         std::string lowerKey = QaplaHelpers::to_lowercase(key);
         
@@ -338,13 +338,16 @@ namespace QaplaTester::Settings
 
         auto it = definitions_.find(lowerKey);
         if (it == definitions_.end()) {
+            if (!strict) {
+                return;
+            }
             throw AppError::makeInvalidParameters("\"" + key + "\" is not a valid global parameter");
         }
 
         values_[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, it->second);
     }
 
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section)
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool strict)
     {
         std::string groupName = QaplaHelpers::to_lowercase(section.name);
         
@@ -372,6 +375,9 @@ namespace QaplaTester::Settings
 
             const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
             if (def == nullptr) {
+                if (!strict) {
+                    continue;
+                }
                 AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
                     "Unknown parameter in section \"" + section.name + "\"");
             }
