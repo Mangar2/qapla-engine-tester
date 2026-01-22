@@ -23,6 +23,7 @@
 #include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
+#include "../base-elements/ini-file.h"
 #include "../opening/openings.h"
 #include "../tournament/tournament.h"
 #include "../sprt/sprt-manager.h"
@@ -38,6 +39,7 @@
 #include "../spsa/spsa-optimizer.h"
 
 #include <format>
+#include <fstream>
 
 namespace QaplaTester::CliSettings {
 
@@ -47,8 +49,36 @@ QaplaSettings& QaplaSettings::instance() {
 }
 
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
-    m_arguments = Manager::mergeWithSettingsFile(args);
-    Manager::parseCommandLine(m_arguments);
+    // Convert CLI arguments to ConfigData
+    auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
+    
+    // Check for settingsfile in cliglobal section
+    auto cliglobalSections = cliData.getSectionList("cliglobal", "default");
+    std::string settingsFile;
+    if (cliglobalSections) {
+        for (const auto& section : *cliglobalSections) {
+            auto fileValue = section.getValue("settingsfile");
+            if (fileValue) {
+                settingsFile = *fileValue;
+                break;
+            }
+        }
+    }
+    
+    // If settings file specified, load and merge
+    QaplaHelpers::ConfigData mergedData = cliData;
+    if (!settingsFile.empty()) {
+        std::ifstream file(settingsFile);
+        if (!file.is_open()) {
+            throw AppError::makeInvalidParameters("Failed to open settings file: " + settingsFile);
+        }
+        QaplaHelpers::ConfigData fileData;
+        fileData.load(file);
+        mergedData = fileData.merge(cliData);
+    }
+    
+    // Parse the merged configuration
+    Manager::parseCommandLine(mergedData);
 
     // Read options after all settings are registered and read.
     readLoggerConfig();

@@ -21,6 +21,7 @@
 
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
+#include "../base-elements/ini-file.h"
 
 #include <cstring>
 #include <iostream>
@@ -131,80 +132,6 @@ namespace QaplaTester::CliSettings
         return *arg.value;
     }
 
-    std::vector<std::string> Manager::mergeWithSettingsFile(const std::vector<std::string> &originalArgs)
-    {
-        std::string filePath;
-        for (size_t i = 1; i < originalArgs.size(); ++i)
-        {
-            const std::string &arg = originalArgs[i];
-            if (arg.starts_with("--settingsfile="))
-            {
-                filePath = arg.substr(15);
-                break;
-            }
-        }
-
-        if (filePath.empty()) {
-            return originalArgs;
-        }
-
-        std::ifstream file(filePath);
-        if (!file.is_open())
-        {
-            throw AppError::makeInvalidParameters("Failed to open settings file: " + filePath);
-        }
-
-        std::vector<std::string> settingsArgs = {originalArgs[0]}; // preserve program name
-        std::vector<std::string> parsed = parseStreamToArgv(file);
-        settingsArgs.insert(settingsArgs.end(), parsed.begin(), parsed.end());
-        settingsArgs.insert(settingsArgs.end(), originalArgs.begin() + 1, originalArgs.end());
-        return settingsArgs;
-    }
-
-    std::vector<std::string> Manager::parseStreamToArgv(std::istream &input)
-    {
-        std::vector<std::string> args;
-        std::string line;
-        std::string section;
-        int lineNumber = 0;
-
-        while (std::getline(input, line))
-        {
-            ++lineNumber;
-            line = QaplaHelpers::trim(line);
-            if (line.empty() || line[0] == '#') {
-                continue;
-            }
-
-            if (auto maybeSection = QaplaHelpers::parseSection(line))
-            {
-                section = *maybeSection;
-                args.push_back("--" + section);
-                continue;
-            }
-
-            auto kv = QaplaHelpers::parseKeyValue(line);
-            if (!kv)
-            {
-                throw AppError::makeInvalidParameters(std::format("Invalid setting in line {}: '{}'. Expected 'key=value' format.", lineNumber, line));
-            }
-
-            const auto &[key, value] = *kv;
-            if (!section.empty())
-            {
-                std::string arg = std::format("{}={}", key, value);
-                args.push_back(arg);
-            }
-            else
-            {
-                std::string arg = std::format("--{}={}", key, value);
-                args.push_back(arg);
-            }
-        }
-
-        return args;
-    }
-
     void Manager::validateDefaultValue(const std::string &name, const Value &value, ValueType type)
     {
         auto typeMismatch = [&](const std::string &expected)
@@ -254,6 +181,34 @@ namespace QaplaTester::CliSettings
             }
             break;
         }
+    }
+
+    Manager::ParsedParameter Manager::parseParameter(const std::string &raw)
+    {
+        ParsedParameter result;
+        result.original = raw;
+
+        std::string working = raw;
+
+        result.hasPrefix = working.starts_with("--");
+        if (result.hasPrefix)
+        {
+            working = working.substr(2);
+        }
+
+        auto eqPos = working.find('=');
+        if (eqPos == std::string::npos)
+        {
+            result.name = QaplaHelpers::to_lowercase(working);
+            result.value = std::nullopt;
+        }
+        else
+        {
+            result.name = QaplaHelpers::to_lowercase(working.substr(0, eqPos));
+            result.value = working.substr(eqPos + 1);
+        }
+
+        return result;
     }
 
     void Manager::registerSetting(const std::string &name,
@@ -329,81 +284,129 @@ namespace QaplaTester::CliSettings
         return it->second[0];
     }
 
-    Manager::ParsedParameter Manager::parseParameter(const std::string &raw)
+    void Manager::parseCommandLine(const QaplaHelpers::ConfigData& configData)
     {
-        ParsedParameter result;
-        result.original = raw;
-
-        std::string working = raw;
-
-        result.hasPrefix = working.starts_with("--");
-        if (result.hasPrefix)
-        {
-            working = working.substr(2);
+        // Check for help in cliglobal section first
+        auto cliglobalSections = configData.getSectionList("cliglobal", "default");
+        if (cliglobalSections) {
+            for (const auto& section : *cliglobalSections) {
+                auto helpValue = section.getValue("help");
+                if (helpValue) {
+                    showHelp();
+                    exit(0);
+                }
+            }
         }
 
-        auto eqPos = working.find('=');
-        if (eqPos == std::string::npos)
-        {
-            result.name = QaplaHelpers::to_lowercase(working);
-            result.value = std::nullopt;
-        }
-        else
-        {
-            result.name = QaplaHelpers::to_lowercase(working.substr(0, eqPos));
-            result.value = working.substr(eqPos + 1);
-        }
-
-        return result;
-    }
-
-    void Manager::parseCommandLine(const std::vector<std::string> &args)
-    {
-        size_t index = 1;
-
-        while (index < args.size())
-        {
-            auto arg = parseParameter(args[index]);
-
-            if (arg.original == "--help")
-            {
-                showHelp();
-                exit(0);
+        // Process all sections
+        for (const auto& sectionName : configData.getAllSectionNames()) {
+            auto sectionMapOpt = configData.getSectionMap(sectionName);
+            if (!sectionMapOpt) {
+                continue;
             }
-
-            if (!arg.hasPrefix)
-            {
-                throw AppError::makeInvalidParameters(R"(")" + arg.original + R"(" must start with "--")");
-            }
-
-            if (groupDefs_.contains(arg.name))
-            {
-                index = parseGroupedParameter(index, args);
-            }
-            else
-            {
-                index = parseGlobalParameter(index, args);
+            
+            for (const auto& [sectionId, sectionList] : *sectionMapOpt) {
+                for (const auto& section : sectionList) {
+                    if (section.name == "cliglobal") {
+                        // Process global parameters
+                        for (const auto& [key, value] : section.entries) {
+                            parseGlobalParameter(key, value);
+                        }
+                    } else if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
+                        // Process grouped parameters
+                        parseGroupedParameter(section);
+                    } else {
+                        // Unknown section - treat entries as global parameters
+                        for (const auto& [key, value] : section.entries) {
+                            parseGlobalParameter(key, value);
+                        }
+                    }
+                }
             }
         }
 
         finalizeGlobalParameters();
     }
 
-    size_t Manager::parseGlobalParameter(size_t index, const std::vector<std::string> &args)
+    void Manager::parseGlobalParameter(const std::string& key, const std::string& value)
     {
-        auto arg = parseParameter(args[index]);
-
-        if (!arg.hasPrefix) {
-            throw AppError::makeInvalidParameters("\"" + arg.original + "\" must be in the form --name=value");
+        std::string lowerKey = QaplaHelpers::to_lowercase(key);
+        
+        if (lowerKey == "help") {
+            return; // Already handled in parseCommandLine
         }
 
-        auto it = definitions_.find(arg.name);
+        auto it = definitions_.find(lowerKey);
         if (it == definitions_.end()) {
-            throw AppError::makeInvalidParameters("\"" + arg.name + "\" is not a valid global parameter");
+            throw AppError::makeInvalidParameters("\"" + key + "\" is not a valid global parameter");
         }
 
-        values_[arg.name] = parseValue(arg, it->second);
-        return index + 1;
+        values_[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, it->second);
+    }
+
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section)
+    {
+        std::string groupName = QaplaHelpers::to_lowercase(section.name);
+        
+        auto defIt = groupDefs_.find(groupName);
+        if (defIt == groupDefs_.end()) {
+            throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
+        }
+
+        const auto &groupDefinition = defIt->second;
+        ValueMap group;
+
+        if (groupDefinition.unique && groupInstances_.contains(groupName))
+        {
+            throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
+        }
+
+        // Parse all entries in the section
+        for (const auto& [key, value] : section.entries) {
+            std::string lowerKey = QaplaHelpers::to_lowercase(key);
+            
+            // Skip "id" entry as it's used for section identification
+            if (lowerKey == "id") {
+                continue;
+            }
+
+            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
+            if (def == nullptr) {
+                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
+                    "Unknown parameter in section \"" + section.name + "\"");
+            }
+            group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
+        }
+
+        // Check for exclusive keys
+        for (const auto &[key, def] : groupDefinition.keys)
+        {
+            if (def.exclusive && group.contains(key) && group.size() > 1) {
+                throw AppError::makeInvalidParameters(
+                    "Parameter \"" + key + "\" in section \"" + section.name + 
+                    "\" cannot be combined with other parameters");
+            }
+        }
+
+        // Add missing required/default values
+        for (const auto &[key, def] : groupDefinition.keys)
+        {
+            if (key.ends_with(".[name]")) {
+                continue;
+            }
+            if (group.contains(key)) {
+                continue;
+            }
+            if (def.isRequired) {
+                throw AppError::makeInvalidParameters(
+                    "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
+            }
+            if (def.defaultValue) {
+                group[key] = *def.defaultValue;
+            }
+        }
+
+        groupInstances_[groupName].emplace_back(group, groupDefinition);
     }
 
     SetResult Manager::setGlobalValue(const std::string &name, const std::string &value)
@@ -445,74 +448,6 @@ namespace QaplaTester::CliSettings
         }
 
         return nullptr;
-    }
-
-    size_t Manager::parseGroupedParameter(size_t index, const std::vector<std::string> &args)
-    {
-        auto groupArg = parseParameter(args[index]);
-        index++;
-
-        auto defIt = groupDefs_.find(groupArg.name);
-        if (defIt == groupDefs_.end()) {
-            throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" is not a valid parameter");
-        }
-
-        const auto &groupDefinition = defIt->second;
-        ValueMap group;
-
-        if (groupDefinition.unique && groupInstances_.contains(groupArg.name))
-        {
-            throw AppError::makeInvalidParameters("\"" + groupArg.name + "\" may only be specified once");
-        }
-
-        while (index < args.size())
-        {
-            auto arg = parseParameter(args[index]);
-
-            // this is not a parameter of the group, so we stop parsing
-            if (arg.hasPrefix) {
-                break;
-            }
-
-            const Definition *def = resolveGroupedKey(groupDefinition, arg.name);
-            if (def == nullptr) {
-                AppError::throwOnInvalidOption(groupDefinition.keyNames(), arg.name,
-                    "Unknown parameter in section \"" + groupArg.name + "\"");
-            }
-            group[arg.name] = parseValue(arg, *def);
-
-            ++index;
-        }
-
-        // Check for exclusive keys: if an exclusive key is set, no other keys should be present
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (def.exclusive && group.contains(key) && group.size() > 1) {
-                throw AppError::makeInvalidParameters(
-                    "Parameter \"" + key + "\" in section \"" + groupArg.name + 
-                    "\" cannot be combined with other parameters");
-            }
-        }
-
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (key.ends_with(".[name]")) {
-                continue;
-            }
-            if (group.contains(key)) {
-                continue;
-            }
-            if (def.isRequired) {
-                throw AppError::makeInvalidParameters(
-                    "Missing required parameter \"" + key + "\" in section \"" + groupArg.name + "\"");
-            }
-            if (def.defaultValue) {
-                group[key] = *def.defaultValue;
-            }
-        }
-
-        groupInstances_[groupArg.name].emplace_back(group, groupDefinition);
-        return index;
     }
 
     void Manager::finalizeGlobalParameters()

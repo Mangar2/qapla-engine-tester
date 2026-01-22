@@ -26,6 +26,7 @@
 #include <vector>
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
+#include "../base-elements/ini-file.h"
 
 namespace QaplaTester::CliSettings {
 
@@ -157,15 +158,6 @@ namespace QaplaTester::CliSettings {
     public:
 
         /**
-         * Merges the original command line arguments with settings from a file.
-         * If a settings file is specified, it will be parsed and its contents
-         * will be added to the original arguments.
-         * @param originalArgs Original command line arguments.
-         * @return Merged vector of command line arguments.
-         */
-        static std::vector<std::string> mergeWithSettingsFile(const std::vector<std::string>& originalArgs);
-
-        /**
          * @brief Registers a setting with its metadata.
          * @param name Parameter name, case-insensitive.
          * @param description Help text for this parameter.
@@ -192,10 +184,10 @@ namespace QaplaTester::CliSettings {
             const std::unordered_map<std::string, Definition>& keys);
 
         /**
-         * @brief Parses CLI arguments in the format --name=value.
-		 * @param args Vector of command line arguments, e.g. {"--name=value", "--option", "value"}.
+         * @brief Parses configuration data from ConfigData structure.
+		 * @param configData ConfigData instance containing configuration sections and parameters.
          */
-        static void parseCommandLine(const std::vector<std::string>& args);
+        static void parseCommandLine(const QaplaHelpers::ConfigData& configData);
 
         /**
          * @brief Retrieves the typed value of a setting.
@@ -273,31 +265,17 @@ namespace QaplaTester::CliSettings {
         static ParsedParameter parseParameter(const std::string& raw);
 
         /**
-         * @brief Parses an INI-like settings stream into CLI-style arguments.
-         * Section headers (e.g. [engine]) create group switches (--engine),
-         * followed by individual settings as positional parameters.
-         * Top-level keys (without section) are parsed as --key value.
-         * @param input The input stream to parse.
-         * @return Vector of parsed arguments.
+         * @brief Parses a single global parameter from a section entry.
+         * @param key Parameter key.
+         * @param value Parameter value.
          */
-        static std::vector<std::string> parseStreamToArgv(std::istream& input);
-
+        static void parseGlobalParameter(const std::string& key, const std::string& value);
 
         /**
-         * @brief Parses a single global parameter at the given position.
-         * @param index Current index in args vector.
-		 * @param args Vector of command line arguments.
-         * @return Index of the next unprocessed argument.
+         * @brief Parses an entire grouped parameter section.
+         * @param section The section to parse.
          */
-        static size_t parseGlobalParameter(size_t index, const std::vector<std::string>& args);
-
-        /**
-         * @brief Parses an entire grouped parameter block starting at the given position.
-         * @param index Current index in args vector.
-         * @param args Vector of command line arguments.
-         * @return Index of the next unprocessed argument after the group block.
-         */
-        static size_t parseGroupedParameter(size_t index, const std::vector<std::string>& args);
+        static void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
