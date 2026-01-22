@@ -28,7 +28,7 @@
 #include "../base-elements/string-helper.h"
 #include "../base-elements/ini-file.h"
 
-namespace QaplaTester::CliSettings {
+namespace QaplaTester::Settings {
 
     enum class ValueType : std::uint8_t { String, Int, UInt, Float, Bool, PathExists, PathParentExists };
     using Value = std::variant<std::string, int, unsigned int, bool, double>;

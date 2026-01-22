@@ -23,7 +23,7 @@
 #include <vector>
 
 #include "input-handler.h"
-#include "cli-settings-manager.h"
+#include "settings-manager.h"
 
 namespace QaplaTester {
 
@@ -142,8 +142,8 @@ void InputHandler::handleSetCommand(const std::vector<std::string>& args) {
     const std::string& key = args[0];
     const std::string& value = args[1];
 
-    auto result = CliSettings::Manager::setGlobalValue(key, value);
-    if (result.status != CliSettings::SetResult::Status::Success) {
+    auto result = Settings::Manager::setGlobalValue(key, value);
+    if (result.status != Settings::SetResult::Status::Success) {
         std::cout << "Error: " << result.errorMessage << "\n";
     }
 }

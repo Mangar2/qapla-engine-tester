@@ -32,7 +32,7 @@
 
 #include "../engine-tester/event-sink-recorder.h"
 
-#include "../cli/cli-settings-manager.h"
+#include "../cli/settings-manager.h"
 
 #include <memory>
 #include <chrono>
@@ -97,7 +97,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
     engineConfig_ = engine;
 	checklist_ = EngineReport::getChecklist(engineConfig_.getName());
     try {
-        const CliSettings::GroupInstance testSettings = *CliSettings::Manager::getGroupInstance("test");
+        const Settings::GroupInstance testSettings = *Settings::Manager::getGroupInstance("test");
         numGames_ = numGames;
         createGameManager();
         runStartStopTest();
