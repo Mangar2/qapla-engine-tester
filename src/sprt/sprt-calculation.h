@@ -79,7 +79,7 @@ struct SprtResult {
      * @brief Checks if the SPRT test has finished.
      * @return true if a decision was made or max games limit was reached.
      */
-    bool isFinished() const {
+    [[nodiscard]] bool isFinished() const {
         return decision || reachedMaxGames;
     }
 
@@ -87,7 +87,7 @@ struct SprtResult {
      * @brief Checks if the SPRT test is currently running.
      * @return true if the test is ongoing.
      */
-    bool isRunning() const {
+    [[nodiscard]] bool isRunning() const {
         return !isFinished() && (winsA + winsB + draws) > 0;
     }
 };

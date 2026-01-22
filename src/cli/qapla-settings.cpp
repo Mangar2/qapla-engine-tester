@@ -466,9 +466,8 @@ void QaplaSettings::readSprtConfig() {
 
     auto sprtFile = sprt->get<std::string>("file");
     if (!sprtFile.empty()) {
-        QaplaHelpers::ConfigData configData;
-        SprtTournamentFile::load(sprtFile, configData, "sprt-tournament");
-        setFromConfigData(configData, "sprt-tournament");
+        SprtTournamentFile::load(sprtFile, "sprt-tournament");
+        setFromConfigData(SprtTournamentFile::getConfigData(), "sprt-tournament");
         return;
     }
 
