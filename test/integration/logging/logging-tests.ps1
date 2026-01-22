@@ -33,5 +33,27 @@ $loggingTests = @(
             @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 0 }
         )
         Cleanup = "Remove-Item -Path 'test/integration/log/logging-disabled' -Recurse -Force -ErrorAction SilentlyContinue"
+    },
+    @{
+        Name = "logging-engine-trace-none"
+        Description = "SPRT mit engine=true aber per-Engine trace=none - keine Engine-Logdateien"
+        Args = "--settingsfile=test/integration/logging/test-logging-engine-trace-none.ini"
+        LogPath = "test/integration/log/logging-engine-trace-none"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 16 }
+            @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 0 }
+        )
+        Cleanup = "Remove-Item -Path 'test/integration/log/logging-engine-trace-none' -Recurse -Force -ErrorAction SilentlyContinue"
+    },
+    @{
+        Name = "logging-each-trace-none"
+        Description = "SPRT mit engine=true aber [each] trace=none - keine Engine-Logdateien"
+        Args = "--settingsfile=test/integration/logging/test-logging-each-trace-none.ini"
+        LogPath = "test/integration/log/logging-each-trace-none"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 16 }
+            @{ Type = "logFiles"; Path = ""; Pattern = "engine-*.log"; Count = 0 }
+        )
+        Cleanup = "Remove-Item -Path 'test/integration/log/logging-each-trace-none' -Recurse -Force -ErrorAction SilentlyContinue"
     }
 )
