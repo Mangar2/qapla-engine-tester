@@ -1,0 +1,453 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ */
+
+#include "settings-definitions.h"
+
+namespace QaplaTester::Settings {
+
+std::unordered_map<std::string, Definition> getEngineKeys() {
+    return {
+        { "conf",      { .description = "Name of an engine from the configuration file", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "name",      { .description = "Name of the engine", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "cmd",       { .description = "Path to executable", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::PathExists } },
+        { "dir",       { .description = "Working directory", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::PathExists}},
+        { "proto",     { .description = "Protocol (uci/xboard)", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String } },
+        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String } },
+        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::Bool } },
+        { "gauntlet",  { .description = "Set if engine is part of the gauntlet group.", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work", 
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String}},
+        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
+                        .isRequired = false, 
+                        .defaultValue = std::nullopt, 
+                        .type = ValueType::String }},
+        { "option.[name]",  { .description = "UCI engine option", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getLoggingKeys() {
+    return {
+        { "engine", { 
+            .description = "If true, engine logging is enabled", 
+            .isRequired = false, 
+            .defaultValue = true, 
+            .type = ValueType::Bool }},
+        { "path",   { 
+            .description = "Path to the logging directory", 
+            .isRequired = false,
+            .defaultValue = std::string(""), 
+            .type = ValueType::String }},
+        { "mode",   { 
+            .description = "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
+            .isRequired = false, 
+            .defaultValue = std::string("one"), 
+            .type = ValueType::String }},
+    };
+}
+
+std::unordered_map<std::string, Definition> getEachKeys() {
+    return {
+        { "dir",       { .description = "Working directory", 
+                        .isRequired = false, 
+                        .defaultValue = ".", 
+                        .type = ValueType::PathExists } },
+        { "proto",     { .description = "Protocol (uci/xboard)", 
+                        .isRequired = false, 
+                        .defaultValue = "uci", 
+                        .type = ValueType::String } },
+        { "tc",        { .description = "Time control in format moves/time+inc or 'inf'", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "ponder",    { .description = "Enable pondering, if the engine supports it", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool}},
+        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
+                        .isRequired = false, 
+                        .defaultValue = "command", 
+                        .type = ValueType::String}},
+        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)", 
+                        .isRequired = false, 
+                        .defaultValue = "auto", 
+                        .type = ValueType::String }},
+        { "option.[name]",  { .description = "UCI engine option", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getEpdKeys() {
+    return {
+        { "file",      { .description = "Path and file name to the epd file", 
+                        .isRequired = true, 
+                        .defaultValue = "", 
+                        .type = ValueType::PathExists } },
+        { "maxtime",   { .description = "Maximum allowed time in seconds per move during EPD analysis.", 
+                        .isRequired = false, 
+                        .defaultValue = 20, 
+                        .type = ValueType::UInt } },
+        { "mintime",   { .description = "Minimum required time for an early stop, when a correct move is found", 
+                        .isRequired = false, 
+                        .defaultValue = 2, 
+                        .type = ValueType::UInt } },
+        { "seenplies", { .description = "Amount of plies one of the expected moves must be shown to stop early (0 = off)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "minsuccess", { .description = "Minimum percentage of best moves that must be found", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt} }
+    };
+}
+
+std::unordered_map<std::string, Definition> getSprtKeys() {
+    return {
+        { "file", { .description = "File to load/save tournament outcome", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathExists,
+                    .exclusive = true } },
+        { "saveinterval", { .description = "Interval in games to save tournament state", 
+                            .isRequired = false, 
+                            .defaultValue = 100, 
+                            .type = ValueType::UInt } },
+        { "elolower",  { .description = "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "eloupper",  { .description = "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", 
+                        .isRequired = false, 
+                        .defaultValue = 10, 
+                        .type = ValueType::Int } },
+        { "alpha", { .description = "Type I error threshold", 
+                    .isRequired = false, 
+                    .defaultValue = 0.05f, 
+                    .type = ValueType::Float } },
+        { "beta",  { .description = "Type II error threshold", 
+                    .isRequired = false, 
+                    .defaultValue = 0.05f, 
+                    .type = ValueType::Float } },
+        { "maxgames", { .description = "Maximum number of games before forced stop (0 = unlimited)", 
+                        .isRequired = false, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "model", { .description = "Model used for SPRT calculations normalized, logistic, bayesian", 
+                    .isRequired = false, 
+                    .defaultValue = "normalized", 
+                    .type = ValueType::String } },
+        { "pentanomial", { .description = "Use pentanomial model for SPRT calculations", 
+                        .isRequired = false, 
+                        .defaultValue = true, 
+                        .type = ValueType::Bool } },
+        { "montecarlo", { .description = "Run Monte Carlo test instead of SPRT", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getOpeningsKeys() {
+    return {
+        { "file",  { .description = "Path to file with opening positions", 
+                    .isRequired = true, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathExists } },
+        { "order", { .description = "Order of position selection: random, sequential", 
+                    .isRequired = false, 
+                    .defaultValue = "sequential", 
+                    .type = ValueType::String } },
+        { "srand", { .description = "Seed for random opening selection", 
+                    .isRequired = false, 
+                    .defaultValue = 5489, 
+                    .type = ValueType::UInt } },
+        { "plies", { .description = "Max number of plies per opening (all = unlimited)", 
+                    .isRequired = false, 
+                    .defaultValue = "all", 
+                    .type = ValueType::String}},
+        { "start", { .description = "Index of first opening (1-based)", 
+                    .isRequired = false, 
+                    .defaultValue = 1, 
+                    .type = ValueType::UInt } },
+        { "policy", { .description = "Opening switch policy: default, encounter, round", 
+                    .isRequired = false, 
+                    .defaultValue = "default", 
+                    .type = ValueType::String } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getTestKeys() {
+    return {
+        { "underrun",   { .description = "Check for movetime underruns", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "timeusage",  { .description = "Check time usage in test games", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "numgames",   { .description = "Number of test games to run", 
+                        .isRequired = false, 
+                        .defaultValue = 20, 
+                        .type = ValueType::UInt } },
+        { "noponder",   { .description = "Skip pondering test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "noepd",      { .description = "Skip EPD bestmove test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nomemory",   { .description = "Skip hash table memory usage test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nooption",   { .description = "Skip option crash tests", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nostop",     { .description = "Skip immediate stop response test", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "nowait",     { .description = "Skip check that infinite search never returns", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getPgnOutputKeys() {
+    return {
+        { "file", { .description = "Path to the output PGN file", 
+                    .isRequired = true, 
+                    .defaultValue = "", 
+                    .type = ValueType::String } },
+        { "append", { .description = "Append to existing file instead of overwriting it", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "fi", { .description = "Only save finished games", 
+                .isRequired = false, 
+                .defaultValue = true, 
+                .type = ValueType::Bool } },
+        { "min", { .description = "Only save minimal tag information in the PGN output", 
+                .isRequired = false, 
+                .defaultValue = false, 
+                .type = ValueType::Bool } },
+        { "clock", { .description = "Include clock information in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "eval", { .description = "Include evaluation values in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "depth", { .description = "Include search depth in the PGN output", 
+                    .isRequired = false, 
+                    .defaultValue = true, 
+                    .type = ValueType::Bool } },
+        { "pv", { .description = "Include principal variation in the PGN output", 
+                .isRequired = false, 
+                .defaultValue = false, 
+                .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getTournamentKeys() {
+    return {
+        { "type", { .description = "Tournament type: gauntlet/round-robin", 
+                    .isRequired = true, 
+                    .defaultValue = "gauntlet", 
+                    .type = ValueType::String } },
+        { "file", { .description = "File to save tournament state", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::PathParentExists } },
+        { "saveinterval", { .description = "Interval in games to save tournament state", 
+                            .isRequired = false, 
+                            .defaultValue = 10, 
+                            .type = ValueType::UInt } },
+        { "append", { .description = "Append to result file instead of overwriting it", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "event", { .description = "Optional event name for PGN or logging", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String } },
+        { "games", { .description = "Number of games per pairing (total games = games * rounds)", 
+                    .isRequired = false, 
+                    .defaultValue = 2, 
+                    .type = ValueType::UInt } },
+        { "rounds", { .description = "Repeat all pairings this many times", 
+                    .isRequired = false, 
+                    .defaultValue = 1, 
+                    .type = ValueType::UInt } },
+        { "repeat", { .description = "Number of consecutive games using same opening (e.g. 2 with swapping colors)", 
+                    .isRequired = false, 
+                    .defaultValue = 2, 
+                    .type = ValueType::UInt } },
+        { "noswap", { .description = "Disable automatic color swap after each game", 
+                    .isRequired = false, 
+                    .defaultValue = false, 
+                    .type = ValueType::Bool } },
+        { "ratinginterval", { .description = "Interval (in games) for printing rating table", 
+                            .isRequired = false, 
+                            .defaultValue = 100, 
+                            .type = ValueType::UInt } },
+        { "averageelo", { .description = "Set average Elo level for scaling rating output", 
+                        .isRequired = false, 
+                        .defaultValue = 2600, 
+                        .type = ValueType::Int } },
+        { "outcomeinterval", { .description = "Interval (in games) for printing outcome table", 
+                            .isRequired = false, 
+                            .defaultValue = 0, 
+                            .type = ValueType::UInt } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getDrawAdjudicationKeys() {
+    return {
+        { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "movecount",  { .description = "Required number of consecutive moves with evaluation in range", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "score",      { .description = "Centipawn score range (+/-) around zero for draw adjudication", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "test",       { .description = "If true, only reports what would be adjudicated without taking action", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getResignAdjudicationKeys() {
+    return {
+        { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::UInt } },
+        { "score",     { .description = "Centipawn score below zero that triggers resignation", 
+                        .isRequired = true, 
+                        .defaultValue = 0, 
+                        .type = ValueType::Int } },
+        { "twosided",  { .description = "If true, both sides must meet respective score conditions", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } },
+        { "test",      { .description = "If true, only reports what would be adjudicated without taking action", 
+                        .isRequired = false, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getSpsaKeys() {
+    return {
+        { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
+                            .isRequired = false, 
+                            .defaultValue = 32, 
+                            .type = ValueType::UInt } },
+        { "learningrate",  { .description = "Global learning rate for parameter updates (r in SPSA algorithm)", 
+                            .isRequired = false, 
+                            .defaultValue = 0.002F, 
+                            .type = ValueType::Float } },
+        { "gamesperpair",  { .description = "Number of games per parameter perturbation pair", 
+                            .isRequired = false, 
+                            .defaultValue = 8, 
+                            .type = ValueType::UInt } },
+        { "iterations",    { .description = "Maximum number of optimization iterations", 
+                            .isRequired = false, 
+                            .defaultValue = 1000, 
+                            .type = ValueType::UInt } },
+        { "seed",          { .description = "Random seed for opening selection", 
+                            .isRequired = false, 
+                            .defaultValue = 0, 
+                            .type = ValueType::UInt } },
+        { "noswap",        { .description = "Disable automatic color swap between games", 
+                            .isRequired = false, 
+                            .defaultValue = false, 
+                            .type = ValueType::Bool } }
+    };
+}
+
+std::unordered_map<std::string, Definition> getSpsaValueKeys() {
+    return {
+        { "name",      { .description = "UCI parameter name to optimize", 
+                        .isRequired = true, 
+                        .defaultValue = "", 
+                        .type = ValueType::String } },
+        { "default",   { .description = "Starting value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "min",       { .description = "Minimum allowed value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "max",       { .description = "Maximum allowed value for the parameter", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } },
+        { "step",      { .description = "Perturbation step size (c_i in SPSA algorithm)", 
+                        .isRequired = true, 
+                        .defaultValue = 0.0F, 
+                        .type = ValueType::Float } }
+    };
+}
+
+} // namespace QaplaTester::Settings
