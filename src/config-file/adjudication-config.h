@@ -21,6 +21,7 @@
 
 #include "../game-manager/adjudication-manager.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -80,6 +81,26 @@ public:
     [[nodiscard]] static std::optional<AdjudicationManager::ResignAdjudicationConfig> fromResignConfigData(
         const QaplaHelpers::ConfigData& configData,
         const std::string& id);
+
+    /**
+     * @brief Creates draw adjudication configuration from Settings::Manager.
+     * @param manager The settings manager to read from.
+     * @param groupName The group instance name.
+     * @return Draw adjudication configuration populated from manager.
+     */
+    [[nodiscard]] static AdjudicationManager::DrawAdjudicationConfig fromDrawManager(
+        Settings::Manager& manager,
+        const std::string& groupName);
+
+    /**
+     * @brief Creates resign adjudication configuration from Settings::Manager.
+     * @param manager The settings manager to read from.
+     * @param groupName The group instance name.
+     * @return Resign adjudication configuration populated from manager.
+     */
+    [[nodiscard]] static AdjudicationManager::ResignAdjudicationConfig fromResignManager(
+        Settings::Manager& manager,
+        const std::string& groupName);
 };
 
 } // namespace QaplaTester

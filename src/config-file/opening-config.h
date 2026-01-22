@@ -21,6 +21,7 @@
 
 #include "../opening/openings.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -64,6 +65,16 @@ public:
     [[nodiscard]] static std::optional<Openings> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
+
+    /**
+     * @brief Creates opening configuration from Settings::Manager.
+     * @param manager The settings manager to read from.
+     * @param groupName The group instance name.
+     * @return Openings structure populated from manager.
+     */
+    [[nodiscard]] static Openings fromManager(
+        Settings::Manager& manager,
+        const std::string& groupName);
 };
 
 } // namespace QaplaTester

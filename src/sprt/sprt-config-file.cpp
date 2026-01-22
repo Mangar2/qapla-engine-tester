@@ -95,4 +95,25 @@ std::optional<SprtConfig> SprtConfigFile::fromConfigData(
     return fromSections(*sections);
 }
 
+SprtConfig SprtConfigFile::fromManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto sprt = manager.getGroupInstance(groupName);
+    if (!sprt) {
+        return SprtConfig{};
+    }
+
+    return SprtConfig{
+        .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
+        .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
+        .alpha = sprt->get<double>("alpha"),
+        .beta = sprt->get<double>("beta"),
+        .maxGames = sprt->get<unsigned int>("maxgames"),
+        .model = sprt->get<std::string>("model"),
+        .pentanomial = sprt->get<bool>("pentanomial"),
+        .openings = Openings{}
+    };
+}
+
 } // namespace QaplaTester
