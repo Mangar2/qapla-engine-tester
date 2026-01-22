@@ -68,6 +68,83 @@ namespace QaplaHelpers {
         }
     }
 
+    ConfigData ConfigData::fromArgv(const std::vector<std::string>& args) {
+        ConfigData configData;
+        IniFile::Section currentSection{.name = "cliglobal", .entries = {}};
+        bool hasCurrentSection = false;
+
+        for (size_t idx = 1; idx < args.size(); ++idx) {
+            const std::string& arg = args[idx];
+            std::string trimmed = QaplaHelpers::trim(arg);
+            
+            if (trimmed.empty() || trimmed[0] == '#') {
+                continue;
+            }
+
+            if (trimmed.starts_with("--")) {
+                auto rest = trimmed.substr(2);
+                auto eqPos = rest.find('=');
+                
+                if (eqPos == std::string::npos) {
+                    // Check if next arg is a grouped parameter (no -- prefix)
+                    bool isSection = false;
+                    if (idx + 1 < args.size()) {
+                        std::string nextArg = QaplaHelpers::trim(args[idx + 1]);
+                        if (!nextArg.empty() && !nextArg.starts_with("--") && nextArg.find('=') != std::string::npos) {
+                            isSection = true;
+                        }
+                    }
+                    
+                    if (isSection) {
+                        if (hasCurrentSection) {
+                            configData.addSection(currentSection);
+                        }
+                        currentSection = IniFile::Section{.name = rest, .entries = {}};
+                        hasCurrentSection = true;
+                    } else {
+                        // Treat as boolean flag in current section
+                        currentSection.addEntry(rest, "true");
+                        hasCurrentSection = true;
+                    }
+                } else {
+                    std::string key = rest.substr(0, eqPos);
+                    std::string value = rest.substr(eqPos + 1);
+                    currentSection.addEntry(key, value);
+                    hasCurrentSection = true;
+                }
+            } else {
+                auto eqPos = trimmed.find('=');
+                if (eqPos != std::string::npos) {
+                    std::string key = trimmed.substr(0, eqPos);
+                    std::string value = trimmed.substr(eqPos + 1);
+                    currentSection.addEntry(key, value);
+                    hasCurrentSection = true;
+                } else {
+                    currentSection.addEntry(trimmed, "true");
+                    hasCurrentSection = true;
+                }
+            }
+        }
+
+        if (hasCurrentSection) {
+            configData.addSection(currentSection);
+        }
+
+        return configData;
+    }
+
+    ConfigData& ConfigData::merge(const ConfigData& other) {
+        for (const auto& [sectionName, sectionMap] : other.sectionTree_) {
+            for (const auto& [sectionId, sectionList] : sectionMap) {
+                for (const auto& section : sectionList) {
+                    addSection(section);
+                }
+            }
+        }
+        setDirty(true);
+        return *this;
+    }
+
     void ConfigData::save(std::ostream& out) {
         for (const auto& [id, idSectionLists] : sectionTree_) {
             for (const auto& [sectionId, sectionList] : idSectionLists) {
@@ -78,7 +155,37 @@ namespace QaplaHelpers {
 
     void ConfigData::load(std::istream& in) {
         sectionTree_.clear();
-        auto iniSections = IniFile::load(in);
+        std::string line;
+        IniFile::Section cliglobalSection{.name = "cliglobal", .entries = {}};
+        bool hasCliGlobal = false;
+        bool inSection = false;
+        std::string content;
+
+        while (std::getline(in, line)) {
+            std::string trimmed = QaplaHelpers::trim(line);
+            if (trimmed.empty() || trimmed[0] == '#' || trimmed[0] == ';') {
+                content += line + "\n";
+                continue;
+            }
+            if (trimmed.front() == '[' && trimmed.back() == ']') {
+                inSection = true;
+            } else if (!inSection) {
+                auto keyValue = QaplaHelpers::parseKeyValue(trimmed);
+                if (keyValue) {
+                    cliglobalSection.addEntry(keyValue->first, keyValue->second);
+                    hasCliGlobal = true;
+                    continue;
+                }
+            }
+            content += line + "\n";
+        }
+
+        if (hasCliGlobal) {
+            addSection(cliglobalSection);
+        }
+
+        std::istringstream contentStream(content);
+        auto iniSections = IniFile::load(contentStream);
         for (const auto& section : iniSections) {
             addSection(section);
         }
@@ -123,6 +230,14 @@ namespace QaplaHelpers {
             return it->second;
         }
         return std::nullopt;
+    }
+
+    std::vector<std::string> ConfigData::getAllSectionNames() const {
+        std::vector<std::string> names;
+        for (const auto& [name, _] : sectionTree_) {
+            names.push_back(name);
+        }
+        return names;
     }
 
 } // namespace QaplaHelpers

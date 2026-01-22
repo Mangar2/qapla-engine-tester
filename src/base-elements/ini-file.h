@@ -115,6 +115,23 @@ public:
     ~ConfigData() = default;
 
     /**
+     * @brief Creates ConfigData from command line arguments.
+     * Converts argv format (--section key=value) to ConfigData structure.
+     * @param args Vector of command line arguments.
+     * @return ConfigData instance populated from arguments.
+     */
+    static ConfigData fromArgv(const std::vector<std::string>& args);
+
+    /**
+     * @brief Merges another ConfigData into this one.
+     * Entries from other are appended to this ConfigData.
+     * Later entries take precedence during parsing.
+     * @param other The ConfigData to merge in.
+     * @return Reference to this ConfigData.
+     */
+    ConfigData& merge(const ConfigData& other);
+
+    /**
      * @brief Saves the configuration data to the output stream in INI file format.
      * @param out The output stream to write the configuration data to.
      */
@@ -122,6 +139,7 @@ public:
 
     /**
      * @brief Loads the configuration data from a list of INI file sections.
+     * Key-value pairs before the first [section] are placed in "cliglobal" section.
      * @param sections The list of sections to load the configuration data from.
      */
     void load(std::istream& in);
@@ -156,6 +174,12 @@ public:
      * @return An optional containing the section if found, or std::nullopt if not found.
      */
     [[nodiscard]] std::optional<IniFile::SectionList> getSectionList(const std::string& name, const std::string& id = "default") const;
+
+    /**
+     * @brief Gets all unique section names in the configuration data.
+     * @return Vector of section names.
+     */
+    [[nodiscard]] std::vector<std::string> getAllSectionNames() const;
 
     /**
      * @brief Checks if the configuration data has been modified since the last load or save operation.
