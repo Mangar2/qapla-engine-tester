@@ -194,8 +194,9 @@ namespace QaplaTester::Settings {
         /**
          * @brief Parses configuration data from ConfigData structure.
 		 * @param configData ConfigData instance containing configuration sections and parameters.
+         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
          */
-        void parseInput(const QaplaHelpers::ConfigData& configData);
+        void parseInput(const QaplaHelpers::ConfigData& configData, bool strict = true);
 
         /**
          * @brief Retrieves the typed value of a setting.
@@ -276,14 +277,16 @@ namespace QaplaTester::Settings {
          * @brief Parses a single global parameter from a section entry.
          * @param key Parameter key.
          * @param value Parameter value.
+         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
          */
-        void parseGlobalParameter(const std::string& key, const std::string& value);
+        void parseGlobalParameter(const std::string& key, const std::string& value, bool strict);
 
         /**
          * @brief Parses an entire grouped parameter section.
          * @param section The section to parse.
+         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
          */
-        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section);
+        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool strict);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.

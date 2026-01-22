@@ -224,7 +224,7 @@ void SprtTournamentFile::load(const std::string& filename,
         }
         configData_.setSectionList(sectionName, id, *sections);
     }
-    manager_.parseInput(configData_);
+    manager_.parseInput(configData_, false);
 }
 
 bool SprtTournamentFile::loadSprtSettings(const std::string& filename,
