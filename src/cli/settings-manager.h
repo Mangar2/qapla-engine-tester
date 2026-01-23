@@ -132,6 +132,19 @@ namespace QaplaTester::Settings {
 			return values_;
 		}
 
+        /**
+         * @brief Merges another GroupInstance into this one.
+         * Values from this instance take precedence (like std::map::insert behavior).
+         * @param other The GroupInstance to merge from.
+         * @return A new GroupInstance with merged values.
+         */
+        [[nodiscard]] GroupInstance merge(const GroupInstance& other) const {
+            ValueMap merged = values_;
+            const auto& otherValues = other.getValues();
+            merged.insert(otherValues.begin(), otherValues.end());
+            return GroupInstance(merged, definition_);
+        }
+
     private:
         const ValueMap values_;
         const GroupDefinition definition_;
