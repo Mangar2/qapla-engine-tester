@@ -145,24 +145,15 @@ public:
     static ConfigData fromArgv(const std::vector<std::string>& args);
 
     /**
-     * @brief Merges another ConfigData into this one.
-     * Entries from other are appended to this ConfigData.
-     * Later entries take precedence during parsing.
-     * @param other The ConfigData to merge in.
-     * @return Reference to this ConfigData.
-     */
-    ConfigData& merge(const ConfigData& other);
-
-    /**
      * @brief Saves the configuration data to the output stream in INI file format.
      * @param out The output stream to write the configuration data to.
      */
     void save(std::ostream& out);
 
     /**
-     * @brief Loads the configuration data from a list of INI file sections.
-     * Key-value pairs before the first [section] are placed in "cliglobal" section.
-     * @param sections The list of sections to load the configuration data from.
+     * @brief Loads the configuration data from an INI file stream.
+     * Top-level key-value pairs before the first [section] are stored as global parameters.
+     * @param in The input stream to load the configuration data from.
      */
     void load(std::istream& in);
 
@@ -219,10 +210,29 @@ public:
         dirty_ = dirty;
     }
 
+    /**
+     * @brief Gets the global parameters (top-level key-value pairs not in any section).
+     * @return Vector of key-value pairs representing global parameters.
+     */
+    [[nodiscard]] const IniFile::KeyValueMap& getGlobalParameters() const {
+        return globalParameters_;
+    }
+
+    /**
+     * @brief Adds a global parameter (top-level key-value pair).
+     * @param key The parameter name.
+     * @param value The parameter value.
+     */
+    void addGlobalParameter(const std::string& key, const std::string& value) {
+        globalParameters_.emplace_back(key, value);
+        dirty_ = true;
+    }
+
 private:
     bool dirty_ = false;
     using SectionTree = std::unordered_map<std::string, SectionMap>;
     SectionTree sectionTree_;
+    IniFile::KeyValueMap globalParameters_;
 };
 
 } // namespace QaplaHelpers

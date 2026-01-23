@@ -53,21 +53,16 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Convert CLI arguments to ConfigData
     auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
     
-    // Check for settingsfile in cliglobal section
-    auto cliglobalSections = cliData.getSectionList("cliglobal", "default");
+    // Extract settingsfile from CLI global parameters without full parsing
     std::string settingsFile;
-    if (cliglobalSections) {
-        for (const auto& section : *cliglobalSections) {
-            auto fileValue = section.getValue("settingsfile");
-            if (fileValue) {
-                settingsFile = *fileValue;
-                break;
-            }
+    for (const auto& [key, value] : cliData.getGlobalParameters()) {
+        if (QaplaHelpers::to_lowercase(key) == "settingsfile") {
+            settingsFile = value;
+            break;
         }
     }
     
-    // If settings file specified, load and merge
-    QaplaHelpers::ConfigData mergedData = cliData;
+    // If settings file specified, load and parse it first
     if (!settingsFile.empty()) {
         std::ifstream file(settingsFile);
         if (!file.is_open()) {
@@ -75,20 +70,15 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         }
         QaplaHelpers::ConfigData fileData;
         fileData.load(file);
-        mergedData = fileData.merge(cliData);
-    }
-    
-    Manager::instance().parseInput(mergedData);
-    
-    // Merge CLI sections that should override tournament file settings
-    auto cliOpenings = cliData.getSectionList("openings", "default");
-    if (cliOpenings) {
-        Manager::instance().mergeSectionList("openings", *cliOpenings);
-    }
-    
-    auto cliEngines = cliData.getSectionList("engine", "default");
-    if (cliEngines) {
-        Manager::instance().mergeSectionList("engine", *cliEngines, "name");
+        
+        // Parse file data as base
+        Manager::instance().parseInput(fileData);
+        
+        // Merge CLI parameters (overrides file settings)
+        Manager::instance().mergeConfigData(cliData);
+    } else {
+        // No settings file, just parse CLI directly
+        Manager::instance().parseInput(cliData);
     }
 
     // Load and merge settings from an SprtTournamentFile if specified
@@ -543,9 +533,9 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
 
-    Settings::Manager::instance().mergeSectionList("opening", 
-        *configData.getSectionList("opening", id), "", false);
-    setOpenings(SprtTournamentFile::getManager(), "opening");
+    Settings::Manager::instance().mergeSectionList("openings", 
+        *configData.getSectionList("openings", id), "", false);
+    setOpenings(SprtTournamentFile::getManager(), "openings");
     setSprtConfig(SprtTournamentFile::getManager(), "sprtconfig");
     setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");
     setDrawAdjudicationConfig(SprtTournamentFile::getManager(), "drawadjudication");

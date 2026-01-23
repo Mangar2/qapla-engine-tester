@@ -107,7 +107,7 @@ public:
         "eachengine",
         "engineselection",
         "tournament",
-        "opening",
+        "openings",
         "pgnoutput",
         "drawadjudication",
         "resignadjudication",

@@ -224,6 +224,14 @@ namespace QaplaTester::Settings {
                              bool strict = true);
 
         /**
+         * @brief Merges entire ConfigData into existing settings.
+         * Processes all section names in the ConfigData, merging each section list using mergeSectionList.
+         * @param configData ConfigData instance to merge.
+         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         */
+        void mergeConfigData(const QaplaHelpers::ConfigData& configData, bool strict = true);
+
+        /**
          * @brief Validates all group instances for completeness and adds missing defaults.
          * Must be called after all parseInput and mergeSectionList operations are complete.
          * Checks for required parameters and adds default values where needed.
@@ -307,7 +315,7 @@ namespace QaplaTester::Settings {
         static ParsedParameter parseParameter(const std::string& raw);
 
         /**
-         * @brief Checks for help request in cliglobal sections and exits if found.
+         * @brief Checks for help request in global parameters and exits if found.
          * @param configData ConfigData instance to check for help parameter.
          */
         void handleHelpRequest(const QaplaHelpers::ConfigData& configData);
