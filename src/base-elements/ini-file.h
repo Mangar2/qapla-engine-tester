@@ -84,6 +84,28 @@ public:
     using SectionList = std::vector<Section>;
 
     /**
+     * @brief Renames all sections in a SectionList.
+     * @param sections The list of sections to modify.
+     * @param oldName Current section name to match.
+     * @param newName New section name to assign.
+     * @return A new SectionList with renamed sections.
+     */
+    static SectionList renameSections(const SectionList& sections, 
+                                      const std::string& oldName, 
+                                      const std::string& newName) {
+        SectionList result;
+        result.reserve(sections.size());
+        for (const auto& section : sections) {
+            Section newSection = section;
+            if (section.name == oldName) {
+                newSection.name = newName;
+            }
+            result.push_back(std::move(newSection));
+        }
+        return result;
+    }
+
+    /**
      * @brief Loads the INI file sections from the input stream.
      * @warning This function is deprecated. Use ConfigData class for more advanced configuration handling.
      *

@@ -212,6 +212,18 @@ namespace QaplaTester::Settings {
         void parseInput(const QaplaHelpers::ConfigData& configData, bool strict = true);
 
         /**
+         * @brief Merges a section list into existing settings.
+         * @param sectionName Name of the section (e.g., "engine", "openings").
+         * @param sections List of sections to merge.
+         * @param mergeIdentifier Field name used to identify matching instances (e.g., "name" for engines). Empty for unique groups.
+         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         */
+        void mergeSectionList(const std::string& sectionName,
+                             const QaplaHelpers::IniFile::SectionList& sections,
+                             const std::string& mergeIdentifier = "",
+                             bool strict = true);
+
+        /**
          * @brief Retrieves the typed value of a setting.
          * @tparam T Expected type: std::string or int.
          * @param name Name of the parameter.
