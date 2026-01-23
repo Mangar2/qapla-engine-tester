@@ -81,8 +81,8 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::instance().parseInput(mergedData);
 
     // Read options after all settings are registered and read.
-    loadSprtConfig();
     setLoggerConfiguration();
+    loadSprtConfig();
     setEngineOptions();
     setEngineGlobalConfig();
     setPgnConfig(Manager::instance(), "pgnoutput");
@@ -206,46 +206,36 @@ void QaplaSettings::setEngineOptions() {
     auto engineSettings = Settings::Manager::instance().getGroupInstances("engine");
 	auto eachSetting = Settings::Manager::instance().getGroupInstance("each");
     auto loggingSetting = Manager::instance().getGroupInstance("logging");
-        
-	Settings::ValueMap eachOptions;
-	if (eachSetting) {
-		eachOptions = eachSetting->getValues();
-	}
 
     for (const auto& engine : engineSettings) {
-        // Merge global options with engine-specific options (engine options take precedence)
-        Settings::ValueMap mergedOptions = engine.getValues();
-        mergedOptions.insert(eachOptions.begin(), eachOptions.end());
+        // engine.merge(each) ensures per-engine settings take precedence over global [each] defaults
+        Settings::GroupInstance mergedInstance = eachSetting 
+            ? engine.merge(*eachSetting) 
+            : engine;
 
-        // Check if cmd or conf is specified
-        auto cmdIt = mergedOptions.find("cmd");
-        auto confIt = mergedOptions.find("conf");
-        auto nameIt = mergedOptions.find("name");
-        
-        std::string cmd = (cmdIt != mergedOptions.end() && std::holds_alternative<std::string>(cmdIt->second)) 
-            ? std::get<std::string>(cmdIt->second) : "";
-        std::string conf = (confIt != mergedOptions.end() && std::holds_alternative<std::string>(confIt->second))
-            ? std::get<std::string>(confIt->second) : "";
-        std::string name = (nameIt != mergedOptions.end() && std::holds_alternative<std::string>(nameIt->second))
-            ? std::get<std::string>(nameIt->second) : "";
+        std::string cmd = mergedInstance.get<std::string>("cmd");
+        std::string conf = mergedInstance.get<std::string>("conf");
+        std::string name = mergedInstance.get<std::string>("name");
 
+        // Logging is configured per engine, requiring global logging settings to be applied individually
+        Settings::ValueMap finalOptions = mergedInstance.getValues();
         if (loggingSetting && !loggingSetting->get<bool>("engine")) {
-            mergedOptions["trace"] = std::string("none");
+            finalOptions["trace"] = std::string("none");
         }
 
-        EngineConfig config;
-
         if (!cmd.empty()) {
-            config = EngineConfig::createFromValueMap(mergedOptions);
+            // Using executable path (cmd) to create a new EngineConfig from scratch
+            auto config = EngineConfig::createFromValueMap(finalOptions);
             EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
         }
         else if (!conf.empty()) {
+            // Using named configuration reference (conf), loading it and overlaying command-line options
             auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
             if (!engineConfig) {
                 throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
             }
-            config = *engineConfig;
-            config.setCommandLineOptions(mergedOptions, true);
+            auto config = *engineConfig;
+            config.setCommandLineOptions(finalOptions, true);
             EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
         }
         else {
@@ -254,7 +244,7 @@ void QaplaSettings::setEngineOptions() {
                 + engineName + ". Please specify either 'cmd' or 'conf'.");
         }
     }
-    // Ensure that all active engines have different names
+    // Name conflicts would cause ambiguity in tournament results
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
