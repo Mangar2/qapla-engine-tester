@@ -1,6 +1,6 @@
 # Logging Tests - Validiert globales vs. per-Engine Logging
 
-$loggingTests = @(
+return ,@(
     @{
         Name = "logging-global-single-file"
         Description = "SPRT mit globalem Logging - genau eine Log-Datei für alle Engines"
