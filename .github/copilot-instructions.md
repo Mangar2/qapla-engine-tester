@@ -19,6 +19,7 @@ If I ask you to checkin:
 - Always use curly braces for control statements
 - Use `auto` when type is already visible in the line
 - Do not return data via reference or pointer parameters. Use return values instead. Remember that the compiler will optimize return value copies via RVO.
+- Only comment inside methods to explain why something is done - never what is done
 
 ## Unit-Test Design Principles
 - **Test only public interface**: Unit-tests verify behavior through public methods only - never access private members
