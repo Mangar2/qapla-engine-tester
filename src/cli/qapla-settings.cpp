@@ -79,6 +79,17 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     }
     
     Manager::instance().parseInput(mergedData);
+    
+    // Merge CLI sections that should override tournament file settings
+    auto cliOpenings = cliData.getSectionList("openings", "default");
+    if (cliOpenings) {
+        Manager::instance().mergeSectionList("openings", *cliOpenings);
+    }
+    
+    auto cliEngines = cliData.getSectionList("engine", "default");
+    if (cliEngines) {
+        Manager::instance().mergeSectionList("engine", *cliEngines, "name");
+    }
 
     // Read options after all settings are registered and read.
     setLoggerConfiguration();
@@ -145,10 +156,10 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup("logging", "Logger configuration", true, Settings::getLoggingKeys());
 
     // Each group
-    Manager::instance().registerGroup("each", "Defines configuration options for all engines", false, Settings::getEachKeys());
+    Manager::instance().registerGroup("each", "Defines configuration options for all engines", true, Settings::getEachKeys());
 
     // EPD group
-    Manager::instance().registerGroup("epd", "Configuration to run an epd testset against engines", false, Settings::getEpdKeys());
+    Manager::instance().registerGroup("epd", "Configuration to run an epd testset against engines", true, Settings::getEpdKeys());
 
     // SPRT group
     Manager::instance().registerGroup("sprt", "Sequential Probability Ratio Test configuration", true, Settings::getSprtKeys());

@@ -415,6 +415,117 @@ namespace QaplaTester::Settings
         groupInstances_[groupName].emplace_back(group, groupDefinition);
     }
 
+    void Manager::mergeSectionList(const std::string& sectionName,
+                                   const QaplaHelpers::IniFile::SectionList& sections,
+                                   const std::string& mergeIdentifier,
+                                   bool strict)
+    {
+        std::string groupName = QaplaHelpers::to_lowercase(sectionName);
+        
+        auto defIt = groupDefs_.find(groupName);
+        if (defIt == groupDefs_.end()) {
+            throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
+        }
+
+        const auto& groupDefinition = defIt->second;
+
+        for (const auto& section : sections) {
+            ValueMap group;
+
+            // Parse all entries in the section
+            for (const auto& [key, value] : section.entries) {
+                std::string lowerKey = QaplaHelpers::to_lowercase(key);
+                
+                // Skip "id" entry as it's used for section identification
+                if (lowerKey == "id") {
+                    continue;
+                }
+
+                const Definition* def = resolveGroupedKey(groupDefinition, lowerKey);
+                if (def == nullptr) {
+                    if (!strict) {
+                        continue;
+                    }
+                    AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
+                        "Unknown parameter in section \"" + section.name + "\"");
+                }
+                group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
+            }
+
+            // Check for exclusive keys
+            for (const auto& [key, def] : groupDefinition.keys) {
+                if (def.exclusive && group.contains(key) && group.size() > 1) {
+                    throw AppError::makeInvalidParameters(
+                        "Parameter \"" + key + "\" in section \"" + section.name + 
+                        "\" cannot be combined with other parameters");
+                }
+            }
+
+            // Add missing required/default values
+            for (const auto& [key, def] : groupDefinition.keys) {
+                if (key.ends_with(".[name]")) {
+                    continue;
+                }
+                if (group.contains(key)) {
+                    continue;
+                }
+                if (def.isRequired) {
+                    throw AppError::makeInvalidParameters(
+                        "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
+                }
+                if (def.defaultValue) {
+                    group[key] = *def.defaultValue;
+                }
+            }
+
+            // Merge logic: check if we should merge with an existing instance
+            GroupInstance newInstance(group, groupDefinition);
+            
+            if (groupDefinition.unique && groupInstances_.contains(groupName)) {
+                // For unique groups: merge and rebuild the vector
+                auto& instances = groupInstances_[groupName];
+                GroupInstance merged = newInstance.merge(instances[0]);
+                instances = GroupInstances{};
+                instances.emplace_back(std::move(merged));
+            }
+            else if (!groupDefinition.unique && !mergeIdentifier.empty() && groupInstances_.contains(groupName)) {
+                // For non-unique groups: find matching instance by mergeIdentifier and merge
+                auto& instances = groupInstances_[groupName];
+                bool merged = false;
+                
+                auto newIdValue = section.getValue(mergeIdentifier);
+                if (newIdValue) {
+                    GroupInstances newInstances;
+                    for (const auto& existingInstance : instances) {
+                        if (!merged && existingInstance.isKeyProvided(mergeIdentifier)) {
+                            auto existingIdValue = existingInstance.get<std::string>(mergeIdentifier);
+                            if (existingIdValue == *newIdValue) {
+                                newInstances.emplace_back(newInstance.merge(existingInstance));
+                                merged = true;
+                                continue;
+                            }
+                        }
+                        newInstances.emplace_back(existingInstance);
+                    }
+                    
+                    if (merged) {
+                        instances = std::move(newInstances);
+                    } else {
+                        // No matching instance found, append as new
+                        instances.emplace_back(std::move(newInstance));
+                    }
+                } else {
+                    // No identifier value in new section, append as new
+                    instances.emplace_back(std::move(newInstance));
+                }
+            }
+            else {
+                // No merge needed: append new instance
+                groupInstances_[groupName].emplace_back(std::move(newInstance));
+            }
+        }
+    }
+
     SetResult Manager::setGlobalValue(const std::string &name, const std::string &value)
     {
         auto it = definitions_.find(name);
