@@ -1,6 +1,6 @@
 ﻿# SPRT Tests - Basis SPRT Tests für Regression
 
-$sprtTests = @(
+return ,@(
     @{
         Name = "sprt-maxgames-reached"
         Description = "SPRT Test mit maxgames erreicht (exit code 16)"

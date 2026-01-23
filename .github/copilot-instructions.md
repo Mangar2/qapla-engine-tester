@@ -37,3 +37,18 @@ If I ask you to checkin:
 
 ## Ask if things do not fit
 Sometimes function return parameters don´t fit to the format or form we need. Sometimes we may change the the function sometimes we dont´t. So ask what should be done before implementing complex transformation.
+
+## CLI return codes
+- 0 `NoError`: Everything ran correctly; test completed as expected
+- 1 `GeneralError`: Unexpected program error (e.g. crash, unhandled exception)
+- 2 `InvalidParameters`: Invalid or missing CLI parameter
+- 10 `EngineError`: Engine crashed, could not start, or returned illegal moves
+- 11 `EngineMissbehaviour`: Engine hung, ignored protocol, or failed to follow commands
+- 12 `EngineNote`: Test completed, but non-critical engine issues occurred (only in `--test`)
+- 13 `MissedTarget`: EPD target success threshold was not reached (`--epd`)
+- 14 `H1Accepted`: SPRT result: H₁ (stronger engine) accepted (`--sprt`)
+- 15 `H0Accepted`: SPRT result: H₀ (no significant difference) accepted (`--sprt`)
+- 16 `UndefinedResult`: SPRT result could not be decided within maxGames (`--sprt`)
+
+## Creating tests
+- Never fix a test without having checked before that the problem is not in the main code. Inform me how you verified this.

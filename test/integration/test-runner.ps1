@@ -11,19 +11,18 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 . "./test/integration/test-framework.ps1"
 . "./test/integration/test-helpers.ps1"
 
-# Lade alle Test-Gruppen aus test-definitions/*/
+# Load and collect all tests
+$allTests = @()
 $testDirs = Get-ChildItem -Path "./test/integration" -Directory
 foreach ($dir in $testDirs) {
     $testFile = Join-Path $dir.FullName "$($dir.Name)-tests.ps1"
     if (Test-Path $testFile) {
-        . $testFile
+        $tests = & $testFile
+        if ($tests) {
+            $allTests += $tests
+        }
     }
 }
-
-# Sammle alle Tests aus den geladenen Variablen
-$allTests = @()
-if (Get-Variable -Name "loggingTests" -ErrorAction SilentlyContinue) { $allTests += $loggingTests }
-if (Get-Variable -Name "sprtTests" -ErrorAction SilentlyContinue) { $allTests += $sprtTests }
 
 $testsToRun = @()
 
@@ -34,7 +33,7 @@ if ($TestName) {
         exit 1
     }
 } else {
-    $testsToRun = $allTests | Where-Object { $_.Name -like $Filter }
+    $testsToRun = @($allTests | Where-Object { $_.Name -like $Filter })
 }
 
 if ($ListTests) {
