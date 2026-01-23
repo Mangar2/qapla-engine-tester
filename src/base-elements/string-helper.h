@@ -420,7 +420,7 @@ namespace QaplaHelpers {
      * @note Only works correctly for ASCII characters (0-127). UTF-8 encoded strings will be corrupted.
      */
     inline std::wstring ascii_to_wstring(const std::string& str) {
-        return std::wstring(str.begin(), str.end());
+        return { str.begin(), str.end() };
     }
 
 } // namespace QaplaHelpers

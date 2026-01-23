@@ -142,7 +142,7 @@ namespace QaplaTester::Settings {
             ValueMap merged = values_;
             const auto& otherValues = other.getValues();
             merged.insert(otherValues.begin(), otherValues.end());
-            return GroupInstance(merged, definition_);
+            return { merged, definition_ };
         }
 
     private:
@@ -224,6 +224,14 @@ namespace QaplaTester::Settings {
                              bool strict = true);
 
         /**
+         * @brief Validates all group instances for completeness and adds missing defaults.
+         * Must be called after all parseInput and mergeSectionList operations are complete.
+         * Checks for required parameters and adds default values where needed.
+         * @throws AppError if required parameters are missing.
+         */
+        void validateGroupCompleteness();
+
+        /**
          * @brief Retrieves the typed value of a setting.
          * @tparam T Expected type: std::string or int.
          * @param name Name of the parameter.
@@ -282,13 +290,13 @@ namespace QaplaTester::Settings {
             std::optional<std::string> value;   // optional value part
         };
 
-        Value parseBool(const ParsedParameter& arg);
-        Value parseInt(const ParsedParameter& arg);
-        Value parseUInt(const ParsedParameter& arg);
-        Value parseFloat(const ParsedParameter& arg);
-        Value parseString(const ParsedParameter& arg);
-        Value parsePathExists(const ParsedParameter& arg);
-        Value parsePathParentExists(const ParsedParameter& arg);
+        static Value parseBool(const ParsedParameter& arg);
+        static Value parseInt(const ParsedParameter& arg);
+        static Value parseUInt(const ParsedParameter& arg);
+        static Value parseFloat(const ParsedParameter& arg);
+        static Value parseString(const ParsedParameter& arg);
+        static Value parsePathExists(const ParsedParameter& arg);
+        static Value parsePathParentExists(const ParsedParameter& arg);
 
         /**
          * @brief Splits a raw command line argument into syntactic parts.
@@ -296,7 +304,41 @@ namespace QaplaTester::Settings {
          * @param raw The raw argument string, e.g. "--foo=bar" or "baz".
          * @return ParsedParameter with decomposed components.
          */
-        ParsedParameter parseParameter(const std::string& raw);
+        static ParsedParameter parseParameter(const std::string& raw);
+
+        /**
+         * @brief Checks for help request in cliglobal sections and exits if found.
+         * @param configData ConfigData instance to check for help parameter.
+         */
+        void handleHelpRequest(const QaplaHelpers::ConfigData& configData);
+
+        /**
+         * @brief Processes all sections in the config data.
+         * @param configData ConfigData instance containing configuration sections.
+         * @param strict When true, unknown parameters cause an error.
+         */
+        void processSections(const QaplaHelpers::ConfigData& configData, bool strict);
+
+        /**
+         * @brief Processes a section map containing multiple section lists.
+         * @param sectionMap Map of section IDs to section lists.
+         * @param strict When true, unknown parameters cause an error.
+         */
+        void processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool strict);
+
+        /**
+         * @brief Processes a single section based on its type (global or grouped).
+         * @param section The section to process.
+         * @param strict When true, unknown parameters cause an error.
+         */
+        void processSection(const QaplaHelpers::IniFile::Section& section, bool strict);
+
+        /**
+         * @brief Processes all entries in a section as global parameters.
+         * @param section The section containing entries to process.
+         * @param strict When true, unknown parameters cause an error.
+         */
+        void processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool strict);
 
         /**
          * @brief Parses a single global parameter from a section entry.
@@ -319,7 +361,58 @@ namespace QaplaTester::Settings {
          * @param name The key to resolve (e.g. option.Hash).
          * @return Pointer to matching definition, or nullptr if not found.
          */
-        const Definition* resolveGroupedKey(const GroupDefinition& group, const std::string& name);
+        static const Definition* resolveGroupedKey(
+            const GroupDefinition& group, const std::string& name);
+
+        /**
+         * @brief Parses all entries in a section and returns a ValueMap.
+         * @param section The section containing entries to parse.
+         * @param groupDefinition The group definition for validation.
+         * @param strict When true, unknown parameters cause an error.
+         * @return ValueMap containing parsed entries.
+         */
+        [[nodiscard]] static ValueMap parseSectionEntries(
+            const QaplaHelpers::IniFile::Section& section, 
+            const GroupDefinition& groupDefinition, 
+            bool strict);
+
+        /**
+         * @brief Validates that no exclusive keys are combined with other keys.
+         * @param group The parsed group values to validate.
+         * @param groupDefinition The group definition containing exclusivity rules.
+         * @param sectionName The section name for error reporting.
+         * @throws AppError if exclusive keys are combined with others.
+         */
+        static void validateExclusiveKeys(const ValueMap& group, 
+            const GroupDefinition& groupDefinition, 
+            const std::string& sectionName);
+
+        /**
+         * @brief Merges or appends a new instance to the group instances.
+         * @param groupName The name of the group.
+         * @param newInstance The new instance to merge or append.
+         * @param groupDefinition The group definition.
+         * @param section The section containing the merge identifier.
+         * @param mergeIdentifier The field name used to identify matching instances.
+         */
+        void mergeOrAppendInstance(const std::string& groupName,
+            const GroupInstance& newInstance,
+            const GroupDefinition& groupDefinition,
+            const QaplaHelpers::IniFile::Section& section,
+            const std::string& mergeIdentifier);
+
+        /**
+         * @brief Tries to merge a new instance with an existing one by identifier.
+         * @param instances The existing instances to search and merge with.
+         * @param newInstance The new instance to merge.
+         * @param mergeIdentifier The field name used to identify matching instances.
+         * @param newIdValue The identifier value from the new instance.
+         * @return True if merge was successful, false otherwise.
+         */
+        static bool tryMergeByIdentifier(GroupInstances& instances,
+            const GroupInstance& newInstance,
+            const std::string& mergeIdentifier,
+            const std::string& newIdValue);
 
         /** 
          * @brief Validates that the given default value matches the expected ValueType.
@@ -328,7 +421,7 @@ namespace QaplaTester::Settings {
          * @param value The value to validate.
          * @param type The expected type.
          */
-        void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
+        static void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
 
         /**
          * @brief Validates and finalizes all global parameters after parsing.
@@ -342,7 +435,7 @@ namespace QaplaTester::Settings {
 		 * @param def The definition of the expected parameter.
 		 * @return The parsed Value, or throws if invalid.
 		 */
-        Value parseValue(const ParsedParameter& arg, const Definition& def);
+        static Value parseValue(const ParsedParameter& arg, const Definition& def);
 
 
 		// Storage for definitions and group definitions

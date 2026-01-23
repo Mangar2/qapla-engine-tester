@@ -60,8 +60,8 @@ public:
         None = static_cast<std::uint8_t>(GameTask::Type::None),
         ComputeMove = static_cast<std::uint8_t>(GameTask::Type::ComputeMove),
         PlayGame = static_cast<std::uint8_t>(GameTask::Type::PlayGame),
-        FetchNextTask,
-        NotRunning
+        FetchNextTask = static_cast<std::uint8_t>(GameTask::Type::PlayGame) + 1,
+        NotRunning = static_cast<std::uint8_t>(GameTask::Type::PlayGame) + 2
     };
 
 	explicit GameManager(GameManagerPool* pool);

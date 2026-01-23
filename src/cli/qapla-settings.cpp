@@ -91,15 +91,21 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         Manager::instance().mergeSectionList("engine", *cliEngines, "name");
     }
 
-    // Read options after all settings are registered and read.
-    setLoggerConfiguration();
+    // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
+
+    // Validate all group instances for completeness after all merging is complete
+    Manager::instance().validateGroupCompleteness();
+
+    setLoggerConfiguration();
     setEngineOptions();
     setEngineGlobalConfig();
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
     setResignAdjudicationConfig(Manager::instance(), "resign");
     setOpenings(Manager::instance(), "openings");
+    // Must be after openings
+    setSprtConfig(Manager::instance(), "sprt");
     setTournamentConfig();
     setEpdConfig();
     setSPSAConfig();
@@ -121,7 +127,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     config.reportLogBaseName = reportLogBaseName;
     setLoggerConfig(config);
     auto loggingSetting = Settings::Manager::instance().getGroupInstance("logging");
-    if (loggingSetting->get<bool>("engine")) {
+    if (loggingSetting && loggingSetting->get<bool>("engine")) {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
     } else {
         EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none);
@@ -129,8 +135,9 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
 }
 
-std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) {
+std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) { // NOLINT(modernize-avoid-c-arrays)
     std::vector<std::string> result;
+    result.reserve(static_cast<std::size_t>(argc));
     for (int i = 0; i < argc; ++i) {
         result.emplace_back(argv[i]);
     }
@@ -210,7 +217,7 @@ void QaplaSettings::setLoggerConfiguration() {
 
 void QaplaSettings::setEngineOptions() {
 	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::instance().get<bool>("rapid"));
-    std::string enginesFile = Settings::Manager::instance().get<std::string>("enginesfile");
+    auto enginesFile = Settings::Manager::instance().get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
@@ -224,9 +231,9 @@ void QaplaSettings::setEngineOptions() {
             ? engine.merge(*eachSetting) 
             : engine;
 
-        std::string cmd = mergedInstance.get<std::string>("cmd");
-        std::string conf = mergedInstance.get<std::string>("conf");
-        std::string name = mergedInstance.get<std::string>("name");
+        auto cmd = mergedInstance.get<std::string>("cmd");
+        auto conf = mergedInstance.get<std::string>("conf");
+        auto name = mergedInstance.get<std::string>("name");
 
         // Logging is configured per engine, requiring global logging settings to be applied individually
         Settings::ValueMap finalOptions = mergedInstance.getValues();
@@ -241,8 +248,8 @@ void QaplaSettings::setEngineOptions() {
         }
         else if (!conf.empty()) {
             // Using named configuration reference (conf), loading it and overlaying command-line options
-            auto engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
-            if (!engineConfig) {
+            const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+            if (engineConfig == nullptr) {
                 throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
             }
             auto config = *engineConfig;
@@ -417,7 +424,6 @@ void QaplaSettings::loadSprtConfig() {
         return;
     }
 
-    setSprtConfig(Manager::instance(), "sprt");
 }
 
 void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
@@ -537,6 +543,8 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
 
+    Settings::Manager::instance().mergeSectionList("opening", 
+        *configData.getSectionList("opening", id), "", false);
     setOpenings(SprtTournamentFile::getManager(), "opening");
     setSprtConfig(SprtTournamentFile::getManager(), "sprtconfig");
     setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");

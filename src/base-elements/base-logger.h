@@ -91,7 +91,7 @@ public:
      * 
      * @return The base name for log files (without timestamp).
      */
-    virtual std::string getBaseName() const = 0;
+    [[nodiscard]] virtual std::string getBaseName() const = 0;
 
     /**
      * @brief Returns the current log filename.

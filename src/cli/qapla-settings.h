@@ -78,7 +78,7 @@ public:
      * This method registers all settings and groups used by the application,
      * including global settings, engine configurations, test settings, etc.
      */
-    void init();
+    static void init();
 
     /**
      * @brief Gets the PGN output options
@@ -151,7 +151,7 @@ public:
      * @param id Identifier for the configuration sections
      * @return ConfigData containing all current settings
      */
-    QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
+    [[nodiscard]] QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
 
     // Delete copy constructor and assignment operator
     QaplaSettings(const QaplaSettings&) = delete;
@@ -179,7 +179,7 @@ private:
     /**
      * @brief Reads engine options from CLI settings
      */
-    void setEngineOptions();
+    static void setEngineOptions();
 
     /**
      * @brief Reads global engine configuration from CLI settings
@@ -254,7 +254,6 @@ private:
      */
     void applyEngineLoggingToGlobalConfig();
 
-private:
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::unique_ptr<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config

@@ -83,7 +83,7 @@ public:
         updateCnt_ = 0;
     }
 
-    int64_t getUpdateCountSinceLastModification() const {
+    [[nodiscard]] int64_t getUpdateCountSinceLastModification() const {
         return updateCntSinceLastModification;
     }
 
