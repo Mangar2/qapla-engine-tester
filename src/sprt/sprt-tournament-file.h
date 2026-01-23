@@ -128,7 +128,7 @@ public:
         "eachengine",
         "engineselection",
         "sprtconfig",
-        "opening",
+        "openings",
         "pgnoutput",
         "drawadjudication",
         "resignadjudication",

@@ -37,7 +37,7 @@ public:
      * @brief Gets the section name for opening configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getSectionName() { return "opening"; }
+    [[nodiscard]] static constexpr const char* getSectionName() { return "openings"; }
 
     /**
      * @brief Creates INI file sections from Openings data.

@@ -27,5 +27,14 @@ return ,@(
         Validators = @(
             @{ Type = "exitCode"; Expected = 10 }
         )
+        Cleanup = "Remove-Item -Path 'test/integration/log/parameter' -Recurse -Force -ErrorAction SilentlyContinue"    },
+    @{
+        Name = "parameter-sprt-file"
+        Description = "SPRT using sprt file with concurrency parameter"
+        Args = "--concurrency=2 --sprt file=test/integration/parameter/test-parameter-sprt-file.qsprt"
+        LogPath = "test/integration/log/parameter"
+        Validators = @(
+            @{ Type = "exitCode"; Expected = 10 }
+        )
         Cleanup = "Remove-Item -Path 'test/integration/log/parameter' -Recurse -Force -ErrorAction SilentlyContinue"    }
 )

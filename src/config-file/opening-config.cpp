@@ -31,7 +31,7 @@ std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::toSections(
         {"file", openings.file},
         {"order", openings.order},
         {"seed", std::to_string(openings.seed)},
-        {"start", std::to_string(openings.start)},
+        {"start", std::to_string(openings.start + 1)},
         {"policy", openings.policy}
     };
 
@@ -68,7 +68,8 @@ Openings OpeningConfig::fromSections(
             openings.plies = QaplaHelpers::to_int(value);
         }
         else if (key == "start") {
-            openings.start = QaplaHelpers::to_uint32(value).value_or(0);
+            openings.start = QaplaHelpers::to_uint32(value).value_or(1);
+            openings.start--;
         }
         else if (key == "policy" && (value == "default" || value == "encounter" || value == "round")) {
             openings.policy = value;

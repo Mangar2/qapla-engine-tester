@@ -70,8 +70,8 @@ namespace QaplaHelpers {
 
     ConfigData ConfigData::fromArgv(const std::vector<std::string>& args) {
         ConfigData configData;
-        IniFile::Section currentSection{.name = "cliglobal", .entries = {}};
-        bool hasCurrentSection = false;
+        IniFile::Section currentSection{.name = "", .entries = {}};
+        bool inSection = false;
 
         for (size_t idx = 1; idx < args.size(); ++idx) {
             const std::string& arg = args[idx];
@@ -87,30 +87,36 @@ namespace QaplaHelpers {
                 
                 if (eqPos == std::string::npos) {
                     // Check if next arg is a grouped parameter (no -- prefix)
-                    bool isSection = false;
+                    bool isGroupStart = false;
                     if (idx + 1 < args.size()) {
                         std::string nextArg = QaplaHelpers::trim(args[idx + 1]);
                         if (!nextArg.empty() && !nextArg.starts_with("--") && nextArg.find('=') != std::string::npos) {
-                            isSection = true;
+                            isGroupStart = true;
                         }
                     }
                     
-                    if (isSection) {
-                        if (hasCurrentSection) {
+                    if (isGroupStart) {
+                        if (inSection) {
                             configData.addSection(currentSection);
                         }
                         currentSection = IniFile::Section{.name = rest, .entries = {}};
-                        hasCurrentSection = true;
+                        inSection = true;
                     } else {
-                        // Treat as boolean flag in current section
-                        currentSection.addEntry(rest, "true");
-                        hasCurrentSection = true;
+                        // Treat as boolean flag
+                        if (inSection) {
+                            currentSection.addEntry(rest, "true");
+                        } else {
+                            configData.addGlobalParameter(rest, "true");
+                        }
                     }
                 } else {
                     std::string key = rest.substr(0, eqPos);
                     std::string value = rest.substr(eqPos + 1);
-                    currentSection.addEntry(key, value);
-                    hasCurrentSection = true;
+                    if (inSection) {
+                        currentSection.addEntry(key, value);
+                    } else {
+                        configData.addGlobalParameter(key, value);
+                    }
                 }
             } else {
                 auto eqPos = trimmed.find('=');
@@ -118,31 +124,17 @@ namespace QaplaHelpers {
                     std::string key = trimmed.substr(0, eqPos);
                     std::string value = trimmed.substr(eqPos + 1);
                     currentSection.addEntry(key, value);
-                    hasCurrentSection = true;
                 } else {
                     currentSection.addEntry(trimmed, "true");
-                    hasCurrentSection = true;
                 }
             }
         }
 
-        if (hasCurrentSection) {
+        if (inSection) {
             configData.addSection(currentSection);
         }
 
         return configData;
-    }
-
-    ConfigData& ConfigData::merge(const ConfigData& other) {
-        for (const auto& [sectionName, sectionMap] : other.sectionTree_) {
-            for (const auto& [sectionId, sectionList] : sectionMap) {
-                for (const auto& section : sectionList) {
-                    addSection(section);
-                }
-            }
-        }
-        setDirty(true);
-        return *this;
     }
 
     void ConfigData::save(std::ostream& out) {
@@ -155,9 +147,8 @@ namespace QaplaHelpers {
 
     void ConfigData::load(std::istream& in) {
         sectionTree_.clear();
+        globalParameters_.clear();
         std::string line;
-        IniFile::Section cliglobalSection{.name = "cliglobal", .entries = {}};
-        bool hasCliGlobal = false;
         bool inSection = false;
         std::string content;
 
@@ -172,16 +163,11 @@ namespace QaplaHelpers {
             } else if (!inSection) {
                 auto keyValue = QaplaHelpers::parseKeyValue(trimmed);
                 if (keyValue) {
-                    cliglobalSection.addEntry(keyValue->first, keyValue->second);
-                    hasCliGlobal = true;
+                    addGlobalParameter(keyValue->first, keyValue->second);
                     continue;
                 }
             }
             content += line + "\n";
-        }
-
-        if (hasCliGlobal) {
-            addSection(cliglobalSection);
         }
 
         std::istringstream contentStream(content);

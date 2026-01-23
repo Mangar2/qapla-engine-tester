@@ -105,8 +105,8 @@ SprtConfig SprtConfigFile::fromManager(
     }
 
     return SprtConfig{
-        .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
-        .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
+        .eloUpper = static_cast<float>(sprt->get<double>("eloUpper")),
+        .eloLower = static_cast<float>(sprt->get<double>("eloLower")),
         .alpha = sprt->get<double>("alpha"),
         .beta = sprt->get<double>("beta"),
         .maxGames = sprt->get<unsigned int>("maxgames"),

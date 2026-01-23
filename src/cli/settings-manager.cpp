@@ -287,20 +287,20 @@ namespace QaplaTester::Settings
     void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool strict)
     {
         handleHelpRequest(configData);
+        
+        // Process global parameters first
+        for (const auto& [key, value] : configData.getGlobalParameters()) {
+            parseGlobalParameter(key, value, strict);
+        }
+        
         processSections(configData, strict);
         finalizeGlobalParameters();
     }
 
     void Manager::handleHelpRequest(const QaplaHelpers::ConfigData& configData)
     {
-        auto cliglobalSections = configData.getSectionList("cliglobal", "default");
-        if (!cliglobalSections) {
-            return;
-        }
-        
-        for (const auto& section : *cliglobalSections) {
-            auto helpValue = section.getValue("help");
-            if (helpValue) {
+        for (const auto& [key, value] : configData.getGlobalParameters()) {
+            if (QaplaHelpers::to_lowercase(key) == "help") {
                 showHelp();
                 exit(0);
             }
@@ -445,6 +445,38 @@ namespace QaplaTester::Settings
 
             GroupInstance newInstance(group, groupDefinition);
             mergeOrAppendInstance(groupName, newInstance, groupDefinition, section, mergeIdentifier);
+        }
+    }
+
+    void Manager::mergeConfigData(const QaplaHelpers::ConfigData& configData, bool strict)
+    {
+        // Merge global parameters
+        for (const auto& [key, value] : configData.getGlobalParameters()) {
+            parseGlobalParameter(key, value, strict);
+        }
+        
+        // Merge grouped sections
+        auto sectionNames = configData.getAllSectionNames();
+        for (const auto& sectionName : sectionNames) {
+            std::string groupName = QaplaHelpers::to_lowercase(sectionName);
+            
+            auto defIt = groupDefs_.find(groupName);
+            if (defIt == groupDefs_.end()) {
+                if (strict) {
+                    throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
+                }
+                continue;
+            }
+
+            auto sectionMap = configData.getSectionMap(sectionName);
+            if (!sectionMap) {
+                continue;
+            }
+
+            for (const auto& [sectionId, sectionList] : *sectionMap) {
+                std::string mergeIdentifier = (groupName == "engine") ? "name" : "";
+                mergeSectionList(sectionName, sectionList, mergeIdentifier, strict);
+            }
         }
     }
 
