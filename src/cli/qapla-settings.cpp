@@ -543,7 +543,6 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     setDrawAdjudicationConfig(SprtTournamentFile::getManager(), "drawadjudication");
     setResignAdjudicationConfig(SprtTournamentFile::getManager(), "resignadjudication");
 
-    // Load global engine configuration
     auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
     if (globalConfig) {
         m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(*globalConfig);
@@ -551,23 +550,17 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
     
     applyEngineLoggingToGlobalConfig();
     
-    // Load engine-specific configurations
     auto engineConfigs = EngineConfigFile::fromConfigData(configData, id);
     
     if (engineConfigs && !engineConfigs->empty()) {
-        // Store ALL engine configurations (selected and non-selected)
         m_allEngineConfigurations = *engineConfigs;
-        
-        // Clear existing engines and add new ones
         EngineWorkerFactory::getActiveEnginesMutable().clear();
         
         for (auto& engineConfiguration : *engineConfigs) {
-            // Only add engines that are selected for the tournament
             if (!engineConfiguration.selected) {
                 continue;
             }
             
-            // Apply global configuration to each engine if available
             if (globalConfig) {
                 EngineGlobalConfigFile::applyGlobalConfig(engineConfiguration.config, *globalConfig);
             }
