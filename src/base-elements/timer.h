@@ -70,7 +70,7 @@ public:
 
     void printElapsed(const char* label) const {
 		uint64_t elapsed = elapsedMs();
-        int sec = (elapsed / 1000) % 60;
+        uint64_t sec = (elapsed / 1000) % 60;
         
         std::cout << "[Timer] " << label << ": elapsed = " 
             << std::right 

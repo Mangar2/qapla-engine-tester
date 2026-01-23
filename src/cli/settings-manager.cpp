@@ -286,46 +286,62 @@ namespace QaplaTester::Settings
 
     void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool strict)
     {
-        // Check for help in cliglobal section first
+        handleHelpRequest(configData);
+        processSections(configData, strict);
+        finalizeGlobalParameters();
+    }
+
+    void Manager::handleHelpRequest(const QaplaHelpers::ConfigData& configData)
+    {
         auto cliglobalSections = configData.getSectionList("cliglobal", "default");
-        if (cliglobalSections) {
-            for (const auto& section : *cliglobalSections) {
-                auto helpValue = section.getValue("help");
-                if (helpValue) {
-                    showHelp();
-                    exit(0);
-                }
+        if (!cliglobalSections) {
+            return;
+        }
+        
+        for (const auto& section : *cliglobalSections) {
+            auto helpValue = section.getValue("help");
+            if (helpValue) {
+                showHelp();
+                exit(0);
             }
         }
+    }
 
-        // Process all sections
+    void Manager::processSections(const QaplaHelpers::ConfigData& configData, bool strict)
+    {
         for (const auto& sectionName : configData.getAllSectionNames()) {
             auto sectionMapOpt = configData.getSectionMap(sectionName);
             if (!sectionMapOpt) {
                 continue;
             }
             
-            for (const auto& [sectionId, sectionList] : *sectionMapOpt) {
-                for (const auto& section : sectionList) {
-                    if (section.name == "cliglobal") {
-                        // Process global parameters
-                        for (const auto& [key, value] : section.entries) {
-                            parseGlobalParameter(key, value, strict);
-                        }
-                    } else if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
-                        // Process grouped parameters
-                        parseGroupedParameter(section, strict);
-                    } else {
-                        // Unknown section - treat entries as global parameters
-                        for (const auto& [key, value] : section.entries) {
-                            parseGlobalParameter(key, value, strict);
-                        }
-                    }
-                }
+            processSectionMap(*sectionMapOpt, strict);
+        }
+    }
+
+    void Manager::processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool strict)
+    {
+        for (const auto& [sectionId, sectionList] : sectionMap) {
+            for (const auto& section : sectionList) {
+                processSection(section, strict);
             }
         }
+    }
 
-        finalizeGlobalParameters();
+    void Manager::processSection(const QaplaHelpers::IniFile::Section& section, bool strict)
+    {
+        if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
+            parseGroupedParameter(section, strict);
+        } else {
+            processSectionEntries(section, strict);
+        }
+    }
+
+    void Manager::processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool strict)
+    {
+        for (const auto& [key, value] : section.entries) {
+            parseGlobalParameter(key, value, strict);
+        }
     }
 
     void Manager::parseGlobalParameter(const std::string& key, const std::string& value, bool strict)
@@ -347,6 +363,47 @@ namespace QaplaTester::Settings
         values_[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, it->second);
     }
 
+    ValueMap Manager::parseSectionEntries(const QaplaHelpers::IniFile::Section& section, 
+                                           const GroupDefinition& groupDefinition, 
+                                           bool strict)
+    {
+        ValueMap group;
+        
+        for (const auto& [key, value] : section.entries) {
+            std::string lowerKey = QaplaHelpers::to_lowercase(key);
+            
+            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
+            if (def == nullptr) {
+                if (!strict) {
+                    continue;
+                }
+                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
+                    std::format("Unknown parameter in section \"{}\"", section.name));
+            }
+            group[lowerKey] = parseValue({
+                .original = std::format("{}={}", key, value), 
+                .hasPrefix = false, 
+                .name = lowerKey, 
+                .value = value}, *def);
+        }
+        
+        return group;
+    }
+
+    void Manager::validateExclusiveKeys(const ValueMap& group, 
+                                        const GroupDefinition& groupDefinition, 
+                                        const std::string& sectionName)
+    {
+        for (const auto &[key, def] : groupDefinition.keys) {
+            if (def.exclusive && group.contains(key) && group.size() > 1) {
+                throw AppError::makeInvalidParameters(
+                    std::format(
+                        R"(Parameter "{}" in section "{}" cannot be combined with other parameters)", 
+                        key, sectionName));
+            }
+        }
+    }
+
     void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool strict)
     {
         std::string groupName = QaplaHelpers::to_lowercase(section.name);
@@ -357,61 +414,14 @@ namespace QaplaTester::Settings
         }
 
         const auto &groupDefinition = defIt->second;
-        ValueMap group;
 
         if (groupDefinition.unique && groupInstances_.contains(groupName))
         {
             throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
         }
 
-        // Parse all entries in the section
-        for (const auto& [key, value] : section.entries) {
-            std::string lowerKey = QaplaHelpers::to_lowercase(key);
-            
-            // Skip "id" entry as it's used for section identification
-            if (lowerKey == "id") {
-                continue;
-            }
-
-            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
-            if (def == nullptr) {
-                if (!strict) {
-                    continue;
-                }
-                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
-                    "Unknown parameter in section \"" + section.name + "\"");
-            }
-            group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
-        }
-
-        // Check for exclusive keys
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (def.exclusive && group.contains(key) && group.size() > 1) {
-                throw AppError::makeInvalidParameters(
-                    "Parameter \"" + key + "\" in section \"" + section.name + 
-                    "\" cannot be combined with other parameters");
-            }
-        }
-
-        // Add missing required/default values
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (key.ends_with(".[name]")) {
-                continue;
-            }
-            if (group.contains(key)) {
-                continue;
-            }
-            if (def.isRequired) {
-                throw AppError::makeInvalidParameters(
-                    "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
-            }
-            if (def.defaultValue) {
-                group[key] = *def.defaultValue;
-            }
-        }
-
+        ValueMap group = parseSectionEntries(section, groupDefinition, strict);
+        validateExclusiveKeys(group, groupDefinition, section.name);
         groupInstances_[groupName].emplace_back(group, groupDefinition);
     }
 
@@ -430,99 +440,106 @@ namespace QaplaTester::Settings
         const auto& groupDefinition = defIt->second;
 
         for (const auto& section : sections) {
-            ValueMap group;
+            ValueMap group = parseSectionEntries(section, groupDefinition, strict);
+            validateExclusiveKeys(group, groupDefinition, section.name);
 
-            // Parse all entries in the section
-            for (const auto& [key, value] : section.entries) {
-                std::string lowerKey = QaplaHelpers::to_lowercase(key);
-                
-                // Skip "id" entry as it's used for section identification
-                if (lowerKey == "id") {
+            GroupInstance newInstance(group, groupDefinition);
+            mergeOrAppendInstance(groupName, newInstance, groupDefinition, section, mergeIdentifier);
+        }
+    }
+
+    void Manager::mergeOrAppendInstance(const std::string& groupName,
+                                        const GroupInstance& newInstance,
+                                        const GroupDefinition& groupDefinition,
+                                        const QaplaHelpers::IniFile::Section& section,
+                                        const std::string& mergeIdentifier)
+    {
+        if (groupDefinition.unique && groupInstances_.contains(groupName)) {
+            auto& instances = groupInstances_[groupName];
+            GroupInstance merged = newInstance.merge(instances[0]);
+            instances = GroupInstances{};
+            instances.emplace_back(std::move(merged));
+        }
+        else if (!groupDefinition.unique && !mergeIdentifier.empty() && groupInstances_.contains(groupName)) {
+            auto& instances = groupInstances_[groupName];
+            auto newIdValue = section.getValue(mergeIdentifier);
+            
+            if (newIdValue && tryMergeByIdentifier(instances, newInstance, mergeIdentifier, *newIdValue)) {
+                return;
+            }
+            instances.emplace_back(newInstance);
+        }
+        else {
+            groupInstances_[groupName].emplace_back(newInstance);
+        }
+    }
+
+    bool Manager::tryMergeByIdentifier(GroupInstances& instances,
+                                       const GroupInstance& newInstance,
+                                       const std::string& mergeIdentifier,
+                                       const std::string& newIdValue)
+    {
+        GroupInstances newInstances;
+        bool merged = false;
+        
+        for (const auto& existingInstance : instances) {
+            if (!merged && existingInstance.isKeyProvided(mergeIdentifier)) {
+                auto existingIdValue = existingInstance.get<std::string>(mergeIdentifier);
+                if (existingIdValue == newIdValue) {
+                    newInstances.emplace_back(newInstance.merge(existingInstance));
+                    merged = true;
                     continue;
                 }
+            }
+            newInstances.emplace_back(existingInstance);
+        }
+        
+        if (merged) {
+            instances = std::move(newInstances);
+        }
+        return merged;
+    }
 
-                const Definition* def = resolveGroupedKey(groupDefinition, lowerKey);
-                if (def == nullptr) {
-                    if (!strict) {
+    void Manager::validateGroupCompleteness()
+    {
+        // Validate all group instances for required parameters and add defaults
+        for (auto& [groupName, instances] : groupInstances_) {
+            auto defIt = groupDefs_.find(groupName);
+            if (defIt == groupDefs_.end()) {
+                continue; // Should not happen, but skip if definition not found
+            }
+
+            const auto& groupDefinition = defIt->second;
+
+            // We need to rebuild the instances vector with complete instances
+            GroupInstances completeInstances;
+            completeInstances.reserve(instances.size());
+
+            for (const auto& instance : instances) {
+                ValueMap completeGroup = instance.getValues();
+
+                // Check for required parameters and add defaults
+                for (const auto& [key, def] : groupDefinition.keys) {
+                    if (key.ends_with(".[name]")) {
                         continue;
                     }
-                    AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
-                        "Unknown parameter in section \"" + section.name + "\"");
-                }
-                group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
-            }
-
-            // Check for exclusive keys
-            for (const auto& [key, def] : groupDefinition.keys) {
-                if (def.exclusive && group.contains(key) && group.size() > 1) {
-                    throw AppError::makeInvalidParameters(
-                        "Parameter \"" + key + "\" in section \"" + section.name + 
-                        "\" cannot be combined with other parameters");
-                }
-            }
-
-            // Add missing required/default values
-            for (const auto& [key, def] : groupDefinition.keys) {
-                if (key.ends_with(".[name]")) {
-                    continue;
-                }
-                if (group.contains(key)) {
-                    continue;
-                }
-                if (def.isRequired) {
-                    throw AppError::makeInvalidParameters(
-                        "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
-                }
-                if (def.defaultValue) {
-                    group[key] = *def.defaultValue;
-                }
-            }
-
-            // Merge logic: check if we should merge with an existing instance
-            GroupInstance newInstance(group, groupDefinition);
-            
-            if (groupDefinition.unique && groupInstances_.contains(groupName)) {
-                // For unique groups: merge and rebuild the vector
-                auto& instances = groupInstances_[groupName];
-                GroupInstance merged = newInstance.merge(instances[0]);
-                instances = GroupInstances{};
-                instances.emplace_back(std::move(merged));
-            }
-            else if (!groupDefinition.unique && !mergeIdentifier.empty() && groupInstances_.contains(groupName)) {
-                // For non-unique groups: find matching instance by mergeIdentifier and merge
-                auto& instances = groupInstances_[groupName];
-                bool merged = false;
-                
-                auto newIdValue = section.getValue(mergeIdentifier);
-                if (newIdValue) {
-                    GroupInstances newInstances;
-                    for (const auto& existingInstance : instances) {
-                        if (!merged && existingInstance.isKeyProvided(mergeIdentifier)) {
-                            auto existingIdValue = existingInstance.get<std::string>(mergeIdentifier);
-                            if (existingIdValue == *newIdValue) {
-                                newInstances.emplace_back(newInstance.merge(existingInstance));
-                                merged = true;
-                                continue;
-                            }
-                        }
-                        newInstances.emplace_back(existingInstance);
+                    if (completeGroup.contains(key)) {
+                        continue;
                     }
-                    
-                    if (merged) {
-                        instances = std::move(newInstances);
-                    } else {
-                        // No matching instance found, append as new
-                        instances.emplace_back(std::move(newInstance));
+                    if (def.isRequired) {
+                        throw AppError::makeInvalidParameters(
+                            std::format(R"(Missing required parameter "{}" in group "{}")", 
+                                key, groupName));
                     }
-                } else {
-                    // No identifier value in new section, append as new
-                    instances.emplace_back(std::move(newInstance));
+                    if (def.defaultValue) {
+                        completeGroup[key] = *def.defaultValue;
+                    }
                 }
+
+                completeInstances.emplace_back(completeGroup, groupDefinition);
             }
-            else {
-                // No merge needed: append new instance
-                groupInstances_[groupName].emplace_back(std::move(newInstance));
-            }
+
+            instances = std::move(completeInstances);
         }
     }
 
@@ -583,11 +600,7 @@ namespace QaplaTester::Settings
                 values_[key] = parseValue(
                     ParsedParameter{.original="", .hasPrefix = false, .name = key, .value = input}, def);
             }
-            else if (!def.isRequired && def.defaultValue)
-            {
-                values_[key] = *def.defaultValue;
-            }
-            else if (def.isRequired)
+            else if (def.defaultValue)
             {
                 values_[key] = *def.defaultValue;
             }
@@ -598,15 +611,12 @@ namespace QaplaTester::Settings
         switch (type)
         {
         case ValueType::Int:
-            return "<number>";
         case ValueType::UInt:
-            return "<number>";
         case ValueType::Float:
             return "<number>";
         case ValueType::Bool:
             return "<bool>";
         case ValueType::PathExists:
-            return "<path>";
         case ValueType::PathParentExists:
             return "<path>";
         default:

@@ -145,7 +145,7 @@ public:
         }
 
         std::string hint = "\nValid options: ";
-        std::string spacer = "";
+        std::string spacer;
         for (const auto& opt : allowedOptions) {
             hint += spacer + opt;
             spacer = ", ";

@@ -89,20 +89,20 @@ public:
      */
     void schedule(const EngineConfig& engineConfig, GameManagerPool& pool = GameManagerPool::getInstance());
 
-	double getSuccessRate() const;
+	[[nodiscard]] double getSuccessRate() const;
 
     /**
      * @brief Get a copy of all current test results.
      * 
      * @return TestResults 
      */
-    TestResults getResultsCopy() const;
+    [[nodiscard]] TestResults getResultsCopy() const;
 
     /**
 	 * @brief Returns the update count of all test instances. 
 	 * Use this to check, if the EPD tests have been updated since the last getResultsCopy call.
 	 */
-    uint64_t getUpdateCount() const {
+    [[nodiscard]] uint64_t getUpdateCount() const {
 		uint64_t count = 0;
         for (const auto& instance : testInstances_) {
 			count += instance->getUpdateCount();
@@ -137,7 +137,7 @@ private:
      */
     std::optional<EpdTestCase> nextTestCaseFromReader();
     
-    std::string generateHeaderLine() const;
+   [[nodiscard]] std::string generateHeaderLine() const;
     void logHeaderLine() const;
 
     static std::string generateResultLine(const EpdTestCase& current, const TestResults& results);

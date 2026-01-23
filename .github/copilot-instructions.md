@@ -2,6 +2,9 @@
 
 Always use english language for any comment in checkin and code.
 
+## Extending copilot instructions
+Remember that this text is for you only. Be as brief as ever possible, never waste token.
+
 ## Checking in Code for Qapla Chess GUI
 If I ask you to checkin:
 - use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
@@ -20,6 +23,11 @@ If I ask you to checkin:
 - Use `auto` when type is already visible in the line
 - Do not return data via reference or pointer parameters. Use return values instead. Remember that the compiler will optimize return value copies via RVO.
 - Only comment inside methods to explain why something is done - never what is done
+- Use `std::format` for string formatting
+- Use "auto" whenever possible, make it complete like "const auto*" instead of just auto
+- Avoid implicit type conversions (e.g. pointer to bool)
+- Avoid copying code. Instead create methods to be used by multiple callers.
+- Use single tab indentation for continuation lines, NOT alignment to opening parenthesis
 
 ## Unit-Test Design Principles
 - **Test only public interface**: Unit-tests verify behavior through public methods only - never access private members
