@@ -90,7 +90,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setResignAdjudicationConfig(Manager::instance(), "resign");
     setOpenings(Manager::instance(), "openings");
     setTournamentConfig();
-    setSprtConfig();
+    loadSprtConfig();
     setEpdConfig();
     setSPSAConfig();
 }
@@ -403,7 +403,7 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
     return *m_tournamentConfig;
 }
 
-void QaplaSettings::setSprtConfig() {
+void QaplaSettings::loadSprtConfig() {
     auto sprt = Manager::instance().getGroupInstance("sprt");
     if (!sprt) {
         m_sprtConfig = nullptr;
@@ -417,24 +417,29 @@ void QaplaSettings::setSprtConfig() {
         return;
     }
 
-    // SPRT needs openings (unless montecarlo)
-    auto isMontecarlo = sprt->get<bool>("montecarlo");
-    if (!m_openings && !isMontecarlo && sprtFile.empty()) {
+    setSprtConfig(Manager::instance(), "sprt");
+}
+
+void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
+    auto sprt = manager.getGroupInstance(groupName);
+    if (!sprt) {
         m_sprtConfig = nullptr;
         return;
     }
 
-    m_sprtConfig = std::make_unique<SprtConfig>(SprtConfig{
-        .eloUpper = static_cast<float>(sprt->get<int>("eloUpper")),
-        .eloLower = static_cast<float>(sprt->get<int>("eloLower")),
-        .alpha = sprt->get<double>("alpha"),
-        .beta = sprt->get<double>("beta"),
-        .maxGames = sprt->get<unsigned int>("maxgames"),
-        .model = sprt->get<std::string>("model"),
-        .pentanomial = sprt->get<bool>("pentanomial"),
-        .openings = m_openings ? *m_openings : Openings{}
-    });
+    // SPRT needs openings (unless montecarlo)
+    auto isMontecarlo = sprt->get<bool>("montecarlo");
+    if (!m_openings && !isMontecarlo) {
+        m_sprtConfig = nullptr;
+        return;
+    }
 
+    m_sprtConfig = std::make_unique<SprtConfig>(
+        SprtConfigFile::fromManager(manager, groupName));
+    
+    if (m_openings) {
+        m_sprtConfig->openings = *m_openings;
+    }
 }
 
 std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
@@ -531,25 +536,11 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
 }
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
-    // Apply SPRT configuration
-    auto sprtConfig = SprtConfigFile::fromConfigData(configData, id);
-    if (sprtConfig) {
-        m_sprtConfig = std::make_unique<SprtConfig>(*sprtConfig);
-    }
 
-    // Apply Openings configuration
     setOpenings(SprtTournamentFile::getManager(), "opening");
-    if (m_openings && m_sprtConfig) {
-        m_sprtConfig->openings = *m_openings;
-    }
-
-    // Apply PGN configuration
+    setSprtConfig(SprtTournamentFile::getManager(), "sprtconfig");
     setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");
-
-    // Apply Draw Adjudication configuration
     setDrawAdjudicationConfig(SprtTournamentFile::getManager(), "drawadjudication");
-
-    // Apply Resign Adjudication configuration
     setResignAdjudicationConfig(SprtTournamentFile::getManager(), "resignadjudication");
 
     // Load global engine configuration

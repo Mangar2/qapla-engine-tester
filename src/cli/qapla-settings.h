@@ -220,9 +220,16 @@ private:
     void setTournamentConfig();
 
     /**
-     * @brief Reads SPRT configuration from CLI settings
+     * @brief Loads SPRT configuration, checking for file-based config first
      */
-    void setSprtConfig();
+    void loadSprtConfig();
+
+    /**
+     * @brief Reads SPRT configuration from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
+     */
+    void setSprtConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads EPD configuration from CLI settings
