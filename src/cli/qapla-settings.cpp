@@ -78,10 +78,10 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         mergedData = fileData.merge(cliData);
     }
     
-    // Parse the merged configuration
     Manager::instance().parseInput(mergedData);
 
     // Read options after all settings are registered and read.
+    loadSprtConfig();
     setLoggerConfiguration();
     setEngineOptions();
     setEngineGlobalConfig();
@@ -90,7 +90,6 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setResignAdjudicationConfig(Manager::instance(), "resign");
     setOpenings(Manager::instance(), "openings");
     setTournamentConfig();
-    loadSprtConfig();
     setEpdConfig();
     setSPSAConfig();
 }
