@@ -127,11 +127,11 @@ public:
     static constexpr std::array<const char*, 9> sectionNames = {
         "eachengine",
         "engineselection",
-        "sprtconfig",
+        "sprt",
         "openings",
         "pgnoutput",
-        "drawadjudication",
-        "resignadjudication",
+        "draw",
+        "resign",
         "timecontroloptions",
         "round"
     };

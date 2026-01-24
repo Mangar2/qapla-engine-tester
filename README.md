@@ -203,7 +203,7 @@ Qapla Engine Tester allows all command-line options to be specified via a settin
 To use a settings file, pass the path via:
 
 ```bash
---settingsfile path/to/config.ini
+--settingsfile=path/to/config.ini
 ```
 
 ### Example `config.ini` file:

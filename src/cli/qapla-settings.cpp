@@ -533,13 +533,16 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
 
-    Settings::Manager::instance().mergeSectionList("openings", 
-        *configData.getSectionList("openings", id), "", false);
-    setOpenings(SprtTournamentFile::getManager(), "openings");
-    setSprtConfig(SprtTournamentFile::getManager(), "sprtconfig");
-    setPgnConfig(SprtTournamentFile::getManager(), "pgnoutput");
-    setDrawAdjudicationConfig(SprtTournamentFile::getManager(), "drawadjudication");
-    setResignAdjudicationConfig(SprtTournamentFile::getManager(), "resignadjudication");
+    Settings::Manager::instance().mergeSectionList(OpeningConfig::getSectionName(), 
+        *configData.getSectionList(OpeningConfig::getSectionName(), id), "", false);
+    Settings::Manager::instance().mergeSectionList(SprtConfigFile::getSectionName(), 
+        *configData.getSectionList(SprtConfigFile::getSectionName(), id), "", false);
+    Settings::Manager::instance().mergeSectionList(PgnConfig::getSectionName(), 
+        *configData.getSectionList(PgnConfig::getSectionName(), id), "", false);    
+    Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getDrawSectionName(), 
+        *configData.getSectionList(AdjudicationConfig::getDrawSectionName(), id), "", false);
+    Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getResignSectionName(), 
+        *configData.getSectionList(AdjudicationConfig::getResignSectionName(), id), "", false);    
 
     auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
     if (globalConfig) {

@@ -34,7 +34,7 @@ public:
      * @brief Gets the section name for SPRT configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getSectionName() { return "sprtconfig"; }
+    [[nodiscard]] static constexpr const char* getSectionName() { return "sprt"; }
 
     /**
      * @brief Creates INI file sections from SprtConfig.

@@ -29,9 +29,9 @@ std::vector<QaplaHelpers::IniFile::Section> AdjudicationConfig::toDrawSections(
     QaplaHelpers::IniFile::KeyValueMap entries{
         {"id", id},
         {"active", config.active ? "true" : "false"},
-        {"minFullMoves", std::to_string(config.minFullMoves)},
-        {"requiredConsecutiveMoves", std::to_string(config.requiredConsecutiveMoves)},
-        {"centipawnThreshold", std::to_string(config.centipawnThreshold)},
+        {"movenumber", std::to_string(config.minFullMoves)},
+        {"movecount", std::to_string(config.requiredConsecutiveMoves)},
+        {"score", std::to_string(config.centipawnThreshold)},
         {"testOnly", config.testOnly ? "true" : "false"}
     };
     
@@ -48,8 +48,8 @@ std::vector<QaplaHelpers::IniFile::Section> AdjudicationConfig::toResignSections
     QaplaHelpers::IniFile::KeyValueMap entries{
         {"id", id},
         {"active", config.active ? "true" : "false"},
-        {"requiredConsecutiveMoves", std::to_string(config.requiredConsecutiveMoves)},
-        {"centipawnThreshold", std::to_string(config.centipawnThreshold)},
+        {"movecount", std::to_string(config.requiredConsecutiveMoves)},
+        {"score", std::to_string(config.centipawnThreshold)},
         {"twoSided", config.twoSided ? "true" : "false"},
         {"testOnly", config.testOnly ? "true" : "false"}
     };
@@ -76,13 +76,13 @@ std::optional<AdjudicationManager::DrawAdjudicationConfig> AdjudicationConfig::f
         if (key == "active") {
             config.active = (value == "true");
         }
-        else if (key == "minFullMoves") {
+        else if (key == "movenumber") {
             config.minFullMoves = QaplaHelpers::to_uint32(value).value_or(0);
         }
-        else if (key == "requiredConsecutiveMoves") {
+        else if (key == "movecount") {
             config.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
         }
-        else if (key == "centipawnThreshold") {
+        else if (key == "score") {
             config.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
         }
         else if (key == "testOnly") {
@@ -109,10 +109,10 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> AdjudicationConfig:
         if (key == "active") {
             config.active = (value == "true");
         }
-        else if (key == "requiredConsecutiveMoves") {
+        else if (key == "movecount") {
             config.requiredConsecutiveMoves = QaplaHelpers::to_uint32(value).value_or(0);
         }
-        else if (key == "centipawnThreshold") {
+        else if (key == "score") {
             config.centipawnThreshold = QaplaHelpers::to_int(value).value_or(0);
         }
         else if (key == "twoSided") {
