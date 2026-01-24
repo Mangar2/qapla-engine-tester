@@ -34,13 +34,13 @@ public:
      * @brief Gets the section name for draw adjudication configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getDrawSectionName() { return "drawadjudication"; }
+    [[nodiscard]] static constexpr const char* getDrawSectionName() { return "draw"; }
 
     /**
      * @brief Gets the section name for resign adjudication configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getResignSectionName() { return "resignadjudication"; }
+    [[nodiscard]] static constexpr const char* getResignSectionName() { return "resign"; }
 
     /**
      * @brief Creates draw adjudication sections from configuration.

@@ -109,8 +109,8 @@ public:
         "tournament",
         "openings",
         "pgnoutput",
-        "drawadjudication",
-        "resignadjudication",
+        "draw",
+        "resign",
         "timecontroloptions",
         "round"
     };

@@ -19,6 +19,10 @@
 
 #include "sprt-tournament-file.h"
 #include "sprt-manager.h"
+#include "sprt-config-file.h"
+#include "../config-file/opening-config.h"
+#include "../config-file/pgn-config.h"
+#include "../config-file/adjudication-config.h"
 #include "../cli/settings-manager.h"
 #include "../cli/settings-definitions.h"
 #include <fstream>
@@ -140,15 +144,15 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
                            .type = ValueType::String } }
     });
     
-    manager.registerGroup("sprtconfig", "SPRT configuration", true, 
+    manager.registerGroup(SprtConfigFile::getSectionName(), "SPRT configuration", true, 
         addIdKey(Settings::getSprtKeys()));
-    manager.registerGroup("opening", "Opening book configuration", true, 
+    manager.registerGroup(OpeningConfig::getSectionName(), "Opening book configuration", true, 
         addIdKey(Settings::getOpeningsKeys()));
-    manager.registerGroup("pgnoutput", "PGN output settings", true, 
+    manager.registerGroup(PgnConfig::getSectionName(), "PGN output settings", true, 
         addIdKey(Settings::getPgnOutputKeys()));
-    manager.registerGroup("drawadjudication", "Draw adjudication settings", true, 
+    manager.registerGroup(AdjudicationConfig::getDrawSectionName(), "Draw adjudication settings", true, 
         addIdKey(Settings::getDrawAdjudicationKeys()));
-    manager.registerGroup("resignadjudication", "Resign adjudication settings", true, 
+    manager.registerGroup(AdjudicationConfig::getResignSectionName(), "Resign adjudication settings", true, 
         addIdKey(Settings::getResignAdjudicationKeys()));
     
     manager.registerGroup("timecontroloptions", "Time control options", false, {
