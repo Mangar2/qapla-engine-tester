@@ -178,13 +178,17 @@ private:
 
     /**
      * @brief Reads engine options from CLI settings
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    static void setEngineOptions();
+    static void setEngineConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads global engine configuration from CLI settings
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
      */
-    void setEngineGlobalConfig();
+    void setEngineGlobalConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads PGN options from settings manager

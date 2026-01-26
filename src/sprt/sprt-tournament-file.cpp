@@ -54,20 +54,6 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
     manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true, 
         .keys = Settings::getResignAdjudicationKeys()});    
     
-    manager.registerGroup({
-        .name = "timecontroloptions", .description = "Time control options", .unique = false, .keys = {
-            { "id",          { 
-                .description = "Identifier for the tournament configuration",
-                .isRequired = true,
-                .defaultValue = "",
-                .type = ValueType::String } },
-            { "timeControl", { 
-                .description = "Time control in format moves/time+inc or 'inf'",
-                .isRequired = false,
-                .defaultValue = "",
-                .type = ValueType::String } }
-        }
-    });
     return manager;
 }
 

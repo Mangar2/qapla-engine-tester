@@ -303,7 +303,34 @@ namespace QaplaTester::Settings {
             groupInstances_.clear();
         }
 
+        /**
+         * @brief Converts settings to ConfigData for a specific set of section names.
+         * Includes global parameters and group instances.
+         * Only outputs entries that are mandatory or differ from their default values.
+         * @param sectionNames Names of sections to include. Empty vector means all sections.
+         * @param addGlobals If true, includes global parameters in the result.
+         * @return ConfigData instance containing the filtered settings.
+         */
+        [[nodiscard]] QaplaHelpers::ConfigData toConfigData(
+                const std::vector<std::string>& sectionNames = {},
+                bool addGlobals = true) const;
+
     private:
+
+        /**
+         * @brief Converts group instances of a specific name to an IniFile::SectionList.
+         * Only includes entries that are mandatory or differ from their default values.
+         * @param groupName Name of the group to convert (e.g., "engine").
+         * @return SectionList containing all instances of the specified group.
+         */
+        [[nodiscard]] QaplaHelpers::IniFile::SectionList groupInstancesToSectionList(
+                const std::string& groupName) const;
+
+        /**
+         * @brief Collects global parameters that are mandatory or differ from their default values.
+         * @return KeyValueMap containing filtered global parameters.
+         */
+        [[nodiscard]] QaplaHelpers::IniFile::KeyValueMap getFilteredGlobalParameters() const;
 
         struct ParsedParameter {
             std::string original;               // full raw input, for error reporting

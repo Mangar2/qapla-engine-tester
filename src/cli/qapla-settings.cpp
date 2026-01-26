@@ -88,8 +88,8 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::instance().validateGroupCompleteness();
 
     setLoggerConfiguration();
-    setEngineOptions();
-    setEngineGlobalConfig();
+    setEngineConfig(Manager::instance(), "engine");
+    setEngineGlobalConfig(Manager::instance(), "each");
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
     setResignAdjudicationConfig(Manager::instance(), "resign");
@@ -205,15 +205,15 @@ void QaplaSettings::setLoggerConfiguration() {
     });
 }
 
-void QaplaSettings::setEngineOptions() {
-	EngineWorkerFactory::setSuppressInfoLines(Settings::Manager::instance().get<bool>("rapid"));
-    auto enginesFile = Settings::Manager::instance().get<std::string>("enginesfile");
+void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::string& groupName) {
+	EngineWorkerFactory::setSuppressInfoLines(manager.get<bool>("rapid"));
+    auto enginesFile = manager.get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
-    auto engineSettings = Settings::Manager::instance().getGroupInstances("engine");
-	auto eachSetting = Settings::Manager::instance().getGroupInstance("each");
-    auto loggingSetting = Manager::instance().getGroupInstance("logging");
+    auto engineSettings = manager.getGroupInstances(groupName);
+	auto eachSetting = manager.getGroupInstance("each");
+    auto loggingSetting = manager.getGroupInstance("logging");
 
     for (const auto& engine : engineSettings) {
         // engine.merge(each) ensures per-engine settings take precedence over global [each] defaults
@@ -256,19 +256,19 @@ void QaplaSettings::setEngineOptions() {
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
-void QaplaSettings::setEngineGlobalConfig() {
+void QaplaSettings::setEngineGlobalConfig(Settings::Manager& manager, const std::string& groupName) {
     // This function creates m_engineGlobalConfig from [each] settings for GUI compatibility.
     // It is NOT used when loading engines from CLI parameters in readEngineOptions().
     // m_engineGlobalConfig is only applied when loading GUI-based tournament files via
     // setFromConfigData(), where it overrides individual engine settings.
     constexpr uint32_t defaultHashSizeMB = 32;
-    auto eachSetting = Manager::instance().getGroupInstance("each");
+    auto eachSetting = manager.getGroupInstance(groupName);
     if (!eachSetting) {
         m_engineGlobalConfig = nullptr;
         return;
     }
 
-    auto eachSettings = Settings::Manager::instance().getGroupInstances("each");
+    auto eachSettings = manager.getGroupInstances(groupName);
     const auto& each = *eachSetting;
     auto hashProvided = each.isKeyProvided("option.Hash");
     uint32_t hashValue = defaultHashSizeMB;
@@ -543,6 +543,8 @@ void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData
         *configData.getSectionList(AdjudicationConfig::getDrawSectionName(), id), "", false);
     Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getResignSectionName(), 
         *configData.getSectionList(AdjudicationConfig::getResignSectionName(), id), "", false);    
+    Settings::Manager::instance().mergeSectionList(EngineConfigFile::getSectionName(), 
+        *configData.getSectionList(EngineConfigFile::getSectionName(), id), "", false);
 
     auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
     if (globalConfig) {
