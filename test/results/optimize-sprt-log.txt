@@ -1,0 +1,198 @@
+﻿[2026-01-25 12:08:10] ==========================================
+[2026-01-25 12:08:10] Starting SPRT Optimization
+[2026-01-25 12:08:10] Parameter: pstKingEgScale
+[2026-01-25 12:08:10] Range: 300 - 1000
+[2026-01-25 12:08:10] Initial: 500
+[2026-01-25 12:08:10] =============================================
+[2026-01-25 12:08:10] SPRT Parameter Optimization: pstKingEgScale
+[2026-01-25 12:08:10] =============================================
+[2026-01-25 12:08:10] Initial value: 500
+[2026-01-25 12:08:10] Search range: 300 - 1000
+[2026-01-25 12:08:10] 
+[2026-01-25 12:08:10] === RESUMING from previous session ===
+[2026-01-25 12:08:10] Best value: 750
+[2026-01-25 12:08:10] First result: better
+[2026-01-25 12:08:10] Second result: notbetter
+[2026-01-25 12:08:10] 
+[2026-01-25 12:08:10] === Testing UPPER range ===
+[2026-01-25 12:08:10] 
+[2026-01-25 12:08:10] ========================================
+[2026-01-25 12:08:10] Testing: 875 vs 750 (baseline)
+[2026-01-25 12:08:10] ========================================
+[2026-01-25 12:08:10] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=875
+[2026-01-25 12:08:10] 
+[2026-01-25 12:15:11] ==========================================
+[2026-01-25 12:15:11] Starting SPRT Optimization
+[2026-01-25 12:15:11] Parameter: pstKingEgScale
+[2026-01-25 12:15:11] Range: 300 - 1000
+[2026-01-25 12:15:11] Initial: 500
+[2026-01-25 12:15:11] =============================================
+[2026-01-25 12:15:11] SPRT Parameter Optimization: pstKingEgScale
+[2026-01-25 12:15:11] =============================================
+[2026-01-25 12:15:11] Initial value: 500
+[2026-01-25 12:15:11] Search range: 300 - 1000
+[2026-01-25 12:15:11] 
+[2026-01-25 12:15:11] === RESUMING from previous session ===
+[2026-01-25 12:15:11] Restoring 2 previous test(s)
+[2026-01-25 12:15:11]   Test 1: 750 vs 500 â†’ better
+[2026-01-25 12:15:11]   Test 2: 875 vs 750 â†’ notbetter
+[2026-01-25 12:15:11] Current best value: 750
+[2026-01-25 12:15:11] Adjusted bounds: [300 - 874], testedUpper=False, testedLower=False
+[2026-01-25 12:15:11] 
+[2026-01-25 12:15:11] === Testing UPPER range ===
+[2026-01-25 12:15:11] 
+[2026-01-25 12:15:11] ========================================
+[2026-01-25 12:15:11] Testing: 812 vs 750 (baseline)
+[2026-01-25 12:15:11] ========================================
+[2026-01-25 12:15:11] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=812
+[2026-01-25 12:15:11] 
+[2026-01-25 12:35:32] ==========================================
+[2026-01-25 12:35:32] Starting SPRT Optimization
+[2026-01-25 12:35:32] Parameter: pstKingEgScale
+[2026-01-25 12:35:32] Range: 300 - 1000
+[2026-01-25 12:35:32] Initial: 500
+[2026-01-25 12:35:32] =============================================
+[2026-01-25 12:35:32] SPRT Parameter Optimization: pstKingEgScale
+[2026-01-25 12:35:32] =============================================
+[2026-01-25 12:35:32] Initial value: 500
+[2026-01-25 12:35:32] Search range: 300 - 1000
+[2026-01-25 12:35:32] 
+[2026-01-25 12:35:32] === RESUMING from previous session ===
+[2026-01-25 12:35:32] Restoring 2 previous test(s)
+[2026-01-25 12:35:32]   Test 1: 750 vs 500 â†’ better
+[2026-01-25 12:35:32]   Test 2: 875 vs 750 â†’ notbetter
+[2026-01-25 12:35:32] Current best: 750
+[2026-01-25 12:35:32] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:35:32] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:35:33] 
+[2026-01-25 12:35:33] === Round 3 ===
+[2026-01-25 12:35:33] Best value: 750
+[2026-01-25 12:35:33] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:35:33] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:35:33] Choosing Interval 1 (larger): Testing midpoint 625
+[2026-01-25 12:35:33] 
+[2026-01-25 12:35:33] ========================================
+[2026-01-25 12:35:33] Testing: 625 vs 750 (baseline)
+[2026-01-25 12:35:33] ========================================
+[2026-01-25 12:35:33] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=625
+[2026-01-25 12:35:33] 
+[2026-01-25 12:37:11] ==========================================
+[2026-01-25 12:37:11] Starting SPRT Optimization
+[2026-01-25 12:37:11] Parameter: pstKingEgScale
+[2026-01-25 12:37:11] Range: 300 - 1000
+[2026-01-25 12:37:11] Initial: 500
+[2026-01-25 12:37:11] =============================================
+[2026-01-25 12:37:11] SPRT Parameter Optimization: pstKingEgScale
+[2026-01-25 12:37:11] =============================================
+[2026-01-25 12:37:11] Initial value: 500
+[2026-01-25 12:37:11] Search range: 300 - 1000
+[2026-01-25 12:37:11] 
+[2026-01-25 12:37:11] === RESUMING from previous session ===
+[2026-01-25 12:37:11] Restoring 2 previous test(s)
+[2026-01-25 12:37:11]   Test 1: 750 vs 500 â†’ better
+[2026-01-25 12:37:11]   Test 2: 875 vs 750 â†’ notbetter
+[2026-01-25 12:37:11] Current best: 750
+[2026-01-25 12:37:11] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:37:11] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:37:11] 
+[2026-01-25 12:37:11] === Round 3 ===
+[2026-01-25 12:37:11] Best value: 750
+[2026-01-25 12:37:11] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:37:11] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:37:11] Choosing Interval 1 (larger): Testing midpoint 625
+[2026-01-25 12:37:11] 
+[2026-01-25 12:37:11] ========================================
+[2026-01-25 12:37:11] Testing: 625 vs 750 (baseline)
+[2026-01-25 12:37:11] ========================================
+[2026-01-25 12:37:11] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=625
+[2026-01-25 12:37:11] 
+[2026-01-25 12:39:55] ==========================================
+[2026-01-25 12:39:55] Starting SPRT Optimization
+[2026-01-25 12:39:55] Parameter: pstKingEgScale
+[2026-01-25 12:39:55] Range: 300 - 1000
+[2026-01-25 12:39:55] Initial: 500
+[2026-01-25 12:39:55] =============================================
+[2026-01-25 12:39:55] SPRT Parameter Optimization: pstKingEgScale
+[2026-01-25 12:39:56] =============================================
+[2026-01-25 12:39:56] Initial value: 500
+[2026-01-25 12:39:56] Search range: 300 - 1000
+[2026-01-25 12:39:56] 
+[2026-01-25 12:39:56] === RESUMING from previous session ===
+[2026-01-25 12:39:56] Restoring 2 previous test(s)
+[2026-01-25 12:39:56]   Test 1: 750 vs 500 â†’ better
+[2026-01-25 12:39:56]   Test 2: 875 vs 750 â†’ notbetter
+[2026-01-25 12:39:56] Current best: 750
+[2026-01-25 12:39:56] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:39:56] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:39:56] 
+[2026-01-25 12:39:56] === Round 3 ===
+[2026-01-25 12:39:56] Best value: 750
+[2026-01-25 12:39:56] Interval 1: [500 - 750] (size: 250)
+[2026-01-25 12:39:56] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 12:39:56] Choosing Interval 1 (larger): Testing midpoint 625
+[2026-01-25 12:39:56] 
+[2026-01-25 12:39:56] ========================================
+[2026-01-25 12:39:56] Testing: 625 vs 750 (baseline)
+[2026-01-25 12:39:56] ========================================
+[2026-01-25 12:39:56] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=625
+[2026-01-25 12:39:56] 
+[2026-01-25 15:42:51] 
+[2026-01-25 15:42:51] Result: H0_Accepted (Exit Code: 15)
+[2026-01-25 15:42:51] â†’ Not better
+[2026-01-25 15:42:51] 
+[2026-01-25 15:42:51] === Round 4 ===
+[2026-01-25 15:42:51] Best value: 750
+[2026-01-25 15:42:51] Interval 1: [625 - 750] (size: 125)
+[2026-01-25 15:42:51] Interval 2: [750 - 875] (size: 125)
+[2026-01-25 15:42:51] Choosing Interval 2 (larger): Testing midpoint 812
+[2026-01-25 15:42:51] 
+[2026-01-25 15:42:51] ========================================
+[2026-01-25 15:42:51] Testing: 812 vs 750 (baseline)
+[2026-01-25 15:42:51] ========================================
+[2026-01-25 15:42:51] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=812
+[2026-01-25 15:42:51] 
+[2026-01-25 22:06:04] 
+[2026-01-25 22:06:04] Result: Undecided (Exit Code: 16)
+[2026-01-25 22:06:04] â†’ Not better
+[2026-01-25 22:06:04] 
+[2026-01-25 22:06:04] === Round 5 ===
+[2026-01-25 22:06:04] Best value: 750
+[2026-01-25 22:06:04] Interval 1: [625 - 750] (size: 125)
+[2026-01-25 22:06:04] Interval 2: [750 - 812] (size: 62)
+[2026-01-25 22:06:04] Choosing Interval 1 (larger): Testing midpoint 687
+[2026-01-25 22:06:04] 
+[2026-01-25 22:06:04] ========================================
+[2026-01-25 22:06:04] Testing: 687 vs 750 (baseline)
+[2026-01-25 22:06:04] ========================================
+[2026-01-25 22:06:04] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=687
+[2026-01-25 22:06:04] 
+[2026-01-26 02:31:25] 
+[2026-01-26 02:31:25] Result: H0_Accepted (Exit Code: 15)
+[2026-01-26 02:31:25] â†’ Not better
+[2026-01-26 02:31:25] 
+[2026-01-26 02:31:25] === Round 6 ===
+[2026-01-26 02:31:25] Best value: 750
+[2026-01-26 02:31:25] Interval 1: [687 - 750] (size: 63)
+[2026-01-26 02:31:25] Interval 2: [750 - 812] (size: 62)
+[2026-01-26 02:31:25] Choosing Interval 1 (larger): Testing midpoint 718
+[2026-01-26 02:31:25] 
+[2026-01-26 02:31:25] ========================================
+[2026-01-26 02:31:25] Testing: 718 vs 750 (baseline)
+[2026-01-26 02:31:25] ========================================
+[2026-01-26 02:31:25] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=718
+[2026-01-26 02:31:25] 
+[2026-01-26 08:56:34] 
+[2026-01-26 08:56:34] Result: Unknown_-1073740940 (Exit Code: -1073740940)
+[2026-01-26 08:56:34] â†’ Not better
+[2026-01-26 08:56:34] 
+[2026-01-26 08:56:34] === Round 7 ===
+[2026-01-26 08:56:34] Best value: 750
+[2026-01-26 08:56:34] Interval 1: [718 - 750] (size: 32)
+[2026-01-26 08:56:34] Interval 2: [750 - 812] (size: 62)
+[2026-01-26 08:56:34] Choosing Interval 2 (larger): Testing midpoint 781
+[2026-01-26 08:56:34] 
+[2026-01-26 08:56:34] ========================================
+[2026-01-26 08:56:34] Testing: 781 vs 750 (baseline)
+[2026-01-26 08:56:34] ========================================
+[2026-01-26 08:56:34] Command: .\build\release\qapla-engine-tester.exe --settingsfile="test\tournaments\sprt.ini" --concurrency=16 --engine name="Qapla 0.4.0 B" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=false option.pstKingEgScale=750 --engine name="Qapla 0.4.0 A" cmd="C:\Development\Qapla2\x64\Release\Qapla.exe" gauntlet=true option.pstKingEgScale=781
+[2026-01-26 08:56:34] 

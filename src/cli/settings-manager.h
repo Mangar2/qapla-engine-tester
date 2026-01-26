@@ -34,6 +34,20 @@ namespace QaplaTester::Settings {
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
+    struct SettingConfig {
+        std::string name;
+        std::string description;
+        bool isRequired;
+        std::optional<Value> defaultValue;
+        ValueType type;
+    };
+
+    struct GroupConfig {
+        std::string name;
+        std::string description;
+        bool unique;
+    };
+
     struct Definition {
         std::string description;
         bool isRequired;
@@ -180,28 +194,16 @@ namespace QaplaTester::Settings {
 
         /**
          * @brief Registers a setting with its metadata.
-         * @param name Parameter name, case-insensitive.
-         * @param description Help text for this parameter.
-         * @param isRequired True if input is mandatory and must be provided.
-         * @param defaultValue Default value if not required.
-         * @param type Expected value type and validation mode.
+         * @param config Configuration struct containing all setting parameters.
          */
-        void registerSetting(const std::string& name,
-            const std::string& description,
-            bool isRequired,
-            std::optional<Value> defaultValue,
-            ValueType type = ValueType::String);
+        void registerSetting(const SettingConfig& config);
 
         /**
          * @brief Registers a grouped CLI block (e.g. --engine key=value...) with description and expected keys.
-         * @param groupName Name of the group (e.g. \"engine\").
-         * @param groupDescription Description shown in help output.
-		 * @param unique True if only one instance of this group is allowed.
+         * @param config Configuration struct containing group parameters.
          * @param keys Map of key names and their descriptions.
          */
-        void registerGroup(const std::string& groupName,
-            const std::string& groupDescription,
-            bool unique,
+        void registerGroup(const GroupConfig& config,
             const std::unordered_map<std::string, Definition>& keys);
 
         /**
