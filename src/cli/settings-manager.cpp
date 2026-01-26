@@ -748,4 +748,124 @@ namespace QaplaTester::Settings
                 return parseString(arg);
         }
     }
+
+    QaplaHelpers::IniFile::SectionList Manager::groupInstancesToSectionList(
+            const std::string& groupName) const {
+        QaplaHelpers::IniFile::SectionList result;
+        
+        const auto groupIt = groupInstances_.find(QaplaHelpers::to_lowercase(groupName));
+        if (groupIt == groupInstances_.end()) {
+            return result;
+        }
+        
+        const auto& instances = groupIt->second;
+        result.reserve(instances.size());
+        
+        for (const auto& instance : instances) {
+            QaplaHelpers::IniFile::Section section;
+            section.name = groupName;
+            
+            const auto& definition = instance.getDefinition();
+            const auto& values = instance.getValues();
+            
+            for (const auto& [keyName, keyDef] : definition.keys) {
+                const auto valueIt = values.find(keyName);
+                const auto hasValue = (valueIt != values.end());
+                
+                const auto isRequired = keyDef.isRequired;
+                const auto hasDefault = keyDef.defaultValue.has_value();
+                const auto isDifferentFromDefault = hasValue && hasDefault && 
+                        (valueIt->second != *keyDef.defaultValue);
+                
+                if (isRequired || !hasDefault || isDifferentFromDefault) {
+                    std::string keyToUse = keyName;
+                    constexpr std::string_view suffix = ".[name]";
+                    if (keyName.ends_with(suffix)) {
+                        keyToUse = keyName.substr(0, keyName.size() - suffix.size());
+                    }
+                    
+                    std::string valueStr;
+                    if (hasValue) {
+                        std::visit([&valueStr](auto&& val) {
+                            std::ostringstream oss;
+                            oss << val;
+                            valueStr = oss.str();
+                        }, valueIt->second);
+                    } else if (hasDefault) {
+                        std::visit([&valueStr](auto&& val) {
+                            std::ostringstream oss;
+                            oss << val;
+                            valueStr = oss.str();
+                        }, *keyDef.defaultValue);
+                    }
+                    
+                    section.addEntry(keyToUse, valueStr);
+                }
+            }
+            
+            result.push_back(std::move(section));
+        }
+        
+        return result;
+    }
+
+    QaplaHelpers::IniFile::KeyValueMap Manager::getFilteredGlobalParameters() const {
+        QaplaHelpers::IniFile::KeyValueMap result;
+        
+        for (const auto& [name, value] : values_) {
+            const auto defIt = definitions_.find(name);
+            if (defIt == definitions_.end()) {
+                continue;
+            }
+            
+            const auto& definition = defIt->second;
+            const auto isRequired = definition.isRequired;
+            const auto hasDefault = definition.defaultValue.has_value();
+            const auto isDifferentFromDefault = hasDefault && (value != *definition.defaultValue);
+            
+            if (isRequired || !hasDefault || isDifferentFromDefault) {
+                std::string valueStr;
+                std::visit([&valueStr](auto&& val) {
+                    std::ostringstream oss;
+                    oss << val;
+                    valueStr = oss.str();
+                }, value);
+                
+                result.emplace_back(name, valueStr);
+            }
+        }
+        
+        return result;
+    }
+
+    QaplaHelpers::ConfigData Manager::toConfigData(
+            const std::vector<std::string>& sectionNames,
+            bool addGlobals) const {
+        QaplaHelpers::ConfigData configData;
+        
+        std::vector<std::string> sectionsToExport = sectionNames;
+        if (sectionsToExport.empty()) {
+            for (const auto& [groupName, _] : groupInstances_) {
+                sectionsToExport.push_back(groupName);
+            }
+        }
+        
+        for (const auto& sectionName : sectionsToExport) {
+            const auto sectionList = groupInstancesToSectionList(sectionName);
+            if (!sectionList.empty()) {
+                configData.setSectionList(sectionName, "default", sectionList);
+            }
+        }
+        
+        if (addGlobals) {
+            const auto globalParams = getFilteredGlobalParameters();
+            for (const auto& [name, value] : globalParams) {
+                configData.addGlobalParameter(name, value);
+            }
+        }
+        
+        return configData;
+    }
+
 } // namespace QaplaTester::CliSettings
+

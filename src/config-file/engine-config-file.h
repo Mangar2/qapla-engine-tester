@@ -46,7 +46,7 @@ public:
      * @brief Gets the section name for engine configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getSectionName() { return "engineselection"; }
+    [[nodiscard]] static constexpr const char* getSectionName() { return "engine"; }
 
     /**
      * @brief Creates INI file section from EngineConfiguration.

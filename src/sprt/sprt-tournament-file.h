@@ -124,15 +124,14 @@ public:
      * - timecontroloptions: Time control settings
      * - round: Tournament results (game records)
      */
-    static constexpr std::array<const char*, 9> sectionNames = {
-        "eachengine",
-        "engineselection",
+    static constexpr std::array<const char*, 8> sectionNames = {
+        "each",
+        "engine",
         "sprt",
         "openings",
         "pgnoutput",
         "draw",
         "resign",
-        "timecontroloptions",
         "round"
     };
 };
