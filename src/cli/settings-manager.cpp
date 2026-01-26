@@ -229,11 +229,10 @@ namespace QaplaTester::Settings
         definitions_[key] = {.description = config.description, .isRequired = config.isRequired, .defaultValue = defaultValue, .type = config.type};
     }
 
-    void Manager::registerGroup(const GroupConfig& config,
-                                const std::unordered_map<std::string, ParameterDefinition> &keys)
+    void Manager::registerGroup(const GroupDefinition& config)
     {
         std::string key = QaplaHelpers::to_lowercase(config.name);
-        groupDefs_[key] = {.description = config.description, .unique = config.unique, .keys = keys};
+        groupDefs_[key] = config;
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {

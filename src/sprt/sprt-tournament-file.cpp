@@ -47,7 +47,7 @@ namespace {
 
 Settings::Manager SprtTournamentFile::registerSettingsGroups() {
     Settings::Manager manager;
-    manager.registerGroup({.name = "eachengine", .description = "Global engine configuration", .unique = false}, {
+    manager.registerGroup({.name = "eachengine", .description = "Global engine configuration", .unique = false, .keys = {
         { "id",        { .description = "Identifier for the tournament configuration",
                         .isRequired = true,
                         .defaultValue = "",
@@ -84,8 +84,8 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
                         .isRequired = false,
                         .defaultValue = "auto",
                         .type = ValueType::String } }
-    });
-    manager.registerGroup({.name = "engineselection", .description = "Engine selection for tournament", .unique = false}, {
+    }});
+    manager.registerGroup({.name = "engineselection", .description = "Engine selection for tournament", .unique = false, .keys = {
         { "id",           { .description = "Identifier for the tournament configuration",
                            .isRequired = true,
                            .defaultValue = "",
@@ -142,28 +142,32 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
                            .isRequired = false,
                            .defaultValue = "",
                            .type = ValueType::String } }
-    });
+    }});
     
-    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true}, 
-        addIdKey(Settings::getSprtKeys()));
-    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true}, 
-        addIdKey(Settings::getOpeningsKeys()));
-    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true}, 
-        addIdKey(Settings::getPgnOutputKeys()));
-    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true}, 
-        addIdKey(Settings::getDrawAdjudicationKeys()));
-    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true}, 
-        addIdKey(Settings::getResignAdjudicationKeys()));
+    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true, .keys = 
+        addIdKey(Settings::getSprtKeys())});
+    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true, .keys = 
+        addIdKey(Settings::getOpeningsKeys())});
+    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true, .keys = 
+        addIdKey(Settings::getPgnOutputKeys())});
+    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true, .keys = 
+        addIdKey(Settings::getDrawAdjudicationKeys())});
+    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true, .keys = 
+        addIdKey(Settings::getResignAdjudicationKeys())});
     
-    manager.registerGroup({.name = "timecontroloptions", .description = "Time control options", .unique = false}, {
-        { "id",          { .description = "Identifier for the tournament configuration",
-                          .isRequired = true,
-                          .defaultValue = "",
-                          .type = ValueType::String } },
-        { "timeControl", { .description = "Time control in format moves/time+inc or 'inf'",
-                          .isRequired = false,
-                          .defaultValue = "",
-                          .type = ValueType::String } }
+    manager.registerGroup({
+        .name = "timecontroloptions", .description = "Time control options", .unique = false, .keys = {
+            { "id",          { 
+                .description = "Identifier for the tournament configuration",
+                .isRequired = true,
+                .defaultValue = "",
+                .type = ValueType::String } },
+            { "timeControl", { 
+                .description = "Time control in format moves/time+inc or 'inf'",
+                .isRequired = false,
+                .defaultValue = "",
+                .type = ValueType::String } }
+        }
     });
     return manager;
 }

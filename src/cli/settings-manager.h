@@ -41,13 +41,7 @@ namespace QaplaTester::Settings {
         std::optional<Value> defaultValue;
         ValueType type;
     };
-
-    struct GroupConfig {
-        std::string name;
-        std::string description;
-        bool unique;
-    };
-
+    
     struct ParameterDefinition {
         std::string description;
         bool isRequired;
@@ -55,10 +49,11 @@ namespace QaplaTester::Settings {
         ValueType type;
         bool exclusive = false;
     };
-    
+
     struct GroupDefinition {
+        std::string name;
         std::string description;
-		bool unique = false; 
+        bool unique;
         std::unordered_map<std::string, ParameterDefinition> keys;
 
         /**
@@ -201,11 +196,9 @@ namespace QaplaTester::Settings {
 
         /**
          * @brief Registers a grouped CLI block (e.g. --engine key=value...) with description and expected keys.
-         * @param config Configuration struct containing group parameters.
-         * @param keys Map of key names and their descriptions.
+         * @param config Configuration struct containing group parameters including keys.
          */
-        void registerGroup(const GroupConfig& config,
-            const std::unordered_map<std::string, ParameterDefinition>& keys);
+        void registerGroup(const GroupDefinition& config);
 
         /**
          * @brief Parses configuration data from ConfigData structure.

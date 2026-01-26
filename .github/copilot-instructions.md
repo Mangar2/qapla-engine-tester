@@ -12,6 +12,9 @@ If I ask you to checkin:
 ## Project Overview
 **Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
 
+## Renaming symbols in c++
+Never rename symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
+
 ## C++ Code Style
 - C++20 - use ranges, format, nodiscard
 - Min identifier length: 3 chars

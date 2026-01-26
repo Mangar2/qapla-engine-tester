@@ -147,41 +147,41 @@ void QaplaSettings::init() {
         .type = ValueType::PathExists});
 
     // Engine group
-    Manager::instance().registerGroup({.name = "engine", .description = "Defines an engine configuration", .unique = false}, Settings::getEngineKeys());
+    Manager::instance().registerGroup({.name = "engine", .description = "Defines an engine configuration", .unique = false, .keys = Settings::getEngineKeys()});
 
     // Logging group
-    Manager::instance().registerGroup({.name = "logging", .description = "Logger configuration", .unique = true}, Settings::getLoggingKeys());
+    Manager::instance().registerGroup({.name = "logging", .description = "Logger configuration", .unique = true, .keys = Settings::getLoggingKeys()});
 
     // Each group
-    Manager::instance().registerGroup({.name = "each", .description = "Defines configuration options for all engines", .unique = true}, Settings::getEachKeys());
+    Manager::instance().registerGroup({.name = "each", .description = "Defines configuration options for all engines", .unique = true, .keys = Settings::getEachKeys()});
 
     // EPD group
-    Manager::instance().registerGroup({.name = "epd", .description = "Configuration to run an epd testset against engines", .unique = true}, Settings::getEpdKeys());
+    Manager::instance().registerGroup({.name = "epd", .description = "Configuration to run an epd testset against engines", .unique = true, .keys = Settings::getEpdKeys()});
 
     // SPRT group
-    Manager::instance().registerGroup({.name = "sprt", .description = "Sequential Probability Ratio Test configuration", .unique = true}, Settings::getSprtKeys());
+    Manager::instance().registerGroup({.name = "sprt", .description = "Sequential Probability Ratio Test configuration", .unique = true, .keys = Settings::getSprtKeys()});
     // Openings group
-    Manager::instance().registerGroup({.name = "openings", .description = "Defines how start positions are selected", .unique = true}, Settings::getOpeningsKeys());
+    Manager::instance().registerGroup({.name = "openings", .description = "Defines how start positions are selected", .unique = true, .keys = Settings::getOpeningsKeys()});
 
     // Test group
-    Manager::instance().registerGroup({.name = "test", .description = "Test the engine", .unique = true}, Settings::getTestKeys());
+    Manager::instance().registerGroup({.name = "test", .description = "Test the engine", .unique = true, .keys = Settings::getTestKeys()});
 
     // PGN output group
-    Manager::instance().registerGroup({.name = "pgnoutput", .description = "PGN output settings", .unique = true}, Settings::getPgnOutputKeys());
+    Manager::instance().registerGroup({.name = "pgnoutput", .description = "PGN output settings", .unique = true, .keys = Settings::getPgnOutputKeys()});
 
     // Tournament group
-    Manager::instance().registerGroup({.name = "tournament", .description = "Tournament setup and general parameters", .unique = true}, Settings::getTournamentKeys());
+    Manager::instance().registerGroup({.name = "tournament", .description = "Tournament setup and general parameters", .unique = true, .keys = Settings::getTournamentKeys()});
 
     // Draw adjudication group
-    Manager::instance().registerGroup({.name = "draw", .description = "Draw adjudication settings", .unique = true}, Settings::getDrawAdjudicationKeys());
+    Manager::instance().registerGroup({.name = "draw", .description = "Draw adjudication settings", .unique = true, .keys = Settings::getDrawAdjudicationKeys()});
 
     // Resign adjudication group
-    Manager::instance().registerGroup({.name = "resign", .description = "Resign adjudication settings", .unique = true}, Settings::getResignAdjudicationKeys());
+    Manager::instance().registerGroup({.name = "resign", .description = "Resign adjudication settings", .unique = true, .keys = Settings::getResignAdjudicationKeys()});
     // SPSA optimization group
-    Manager::instance().registerGroup({.name = "spsa", .description = "SPSA parameter optimization configuration", .unique = true}, Settings::getSpsaKeys());
+    Manager::instance().registerGroup({.name = "spsa", .description = "SPSA parameter optimization configuration", .unique = true, .keys = Settings::getSpsaKeys()});
 
     // SPSA parameter value group
-    Manager::instance().registerGroup({.name = "spsavalue", .description = "Defines a single parameter to optimize with SPSA", .unique = false}, Settings::getSpsaValueKeys());
+    Manager::instance().registerGroup({.name = "spsavalue", .description = "Defines a single parameter to optimize with SPSA", .unique = false, .keys = Settings::getSpsaValueKeys()});
 }
 
 void QaplaSettings::setLoggerConfiguration() {
