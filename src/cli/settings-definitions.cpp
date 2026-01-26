@@ -21,7 +21,7 @@
 
 namespace QaplaTester::Settings {
 
-std::unordered_map<std::string, Definition> getEngineKeys() {
+std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
     return {
         { "conf",      { .description = "Name of an engine from the configuration file", 
                         .isRequired = false, 
@@ -70,7 +70,7 @@ std::unordered_map<std::string, Definition> getEngineKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getLoggingKeys() {
+std::unordered_map<std::string, ParameterDefinition> getLoggingKeys() {
     return {
         { "engine", { 
             .description = "If true, engine logging is enabled", 
@@ -90,7 +90,7 @@ std::unordered_map<std::string, Definition> getLoggingKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getEachKeys() {
+std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
     return {
         { "dir",       { .description = "Working directory", 
                         .isRequired = false, 
@@ -123,7 +123,7 @@ std::unordered_map<std::string, Definition> getEachKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getEpdKeys() {
+std::unordered_map<std::string, ParameterDefinition> getEpdKeys() {
     return {
         { "file",      { .description = "Path and file name to the epd file", 
                         .isRequired = true, 
@@ -148,7 +148,7 @@ std::unordered_map<std::string, Definition> getEpdKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getSprtKeys() {
+std::unordered_map<std::string, ParameterDefinition> getSprtKeys() {
     return {
         { "file", { .description = "File to load/save tournament outcome", 
                     .isRequired = false, 
@@ -194,7 +194,7 @@ std::unordered_map<std::string, Definition> getSprtKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getOpeningsKeys() {
+std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys() {
     return {
         { "file",  { .description = "Path to file with opening positions", 
                     .isRequired = true, 
@@ -223,7 +223,7 @@ std::unordered_map<std::string, Definition> getOpeningsKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getTestKeys() {
+std::unordered_map<std::string, ParameterDefinition> getTestKeys() {
     return {
         { "underrun",   { .description = "Check for movetime underruns", 
                         .isRequired = false, 
@@ -264,7 +264,7 @@ std::unordered_map<std::string, Definition> getTestKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getPgnOutputKeys() {
+std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys() {
     return {
         { "file", { .description = "Path to the output PGN file", 
                     .isRequired = true, 
@@ -301,7 +301,7 @@ std::unordered_map<std::string, Definition> getPgnOutputKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getTournamentKeys() {
+std::unordered_map<std::string, ParameterDefinition> getTournamentKeys() {
     return {
         { "type", { .description = "Tournament type: gauntlet/round-robin", 
                     .isRequired = true, 
@@ -354,7 +354,7 @@ std::unordered_map<std::string, Definition> getTournamentKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getDrawAdjudicationKeys() {
+std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
     return {
         { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
                         .isRequired = true, 
@@ -375,7 +375,7 @@ std::unordered_map<std::string, Definition> getDrawAdjudicationKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getResignAdjudicationKeys() {
+std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys() {
     return {
         { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
                         .isRequired = true, 
@@ -396,7 +396,7 @@ std::unordered_map<std::string, Definition> getResignAdjudicationKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getSpsaKeys() {
+std::unordered_map<std::string, ParameterDefinition> getSpsaKeys() {
     return {
         { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
                             .isRequired = false, 
@@ -425,7 +425,7 @@ std::unordered_map<std::string, Definition> getSpsaKeys() {
     };
 }
 
-std::unordered_map<std::string, Definition> getSpsaValueKeys() {
+std::unordered_map<std::string, ParameterDefinition> getSpsaValueKeys() {
     return {
         { "name",      { .description = "UCI parameter name to optimize", 
                         .isRequired = true, 

@@ -27,43 +27,43 @@
 namespace QaplaTester::Settings {
 
 /// Returns key definitions for engine group
-std::unordered_map<std::string, Definition> getEngineKeys();
+std::unordered_map<std::string, ParameterDefinition> getEngineKeys();
 
 /// Returns key definitions for logging group
-std::unordered_map<std::string, Definition> getLoggingKeys();
+std::unordered_map<std::string, ParameterDefinition> getLoggingKeys();
 
 /// Returns key definitions for each group
-std::unordered_map<std::string, Definition> getEachKeys();
+std::unordered_map<std::string, ParameterDefinition> getEachKeys();
 
 /// Returns key definitions for epd group
-std::unordered_map<std::string, Definition> getEpdKeys();
+std::unordered_map<std::string, ParameterDefinition> getEpdKeys();
 
 /// Returns key definitions for sprt group
-std::unordered_map<std::string, Definition> getSprtKeys();
+std::unordered_map<std::string, ParameterDefinition> getSprtKeys();
 
 /// Returns key definitions for openings group
-std::unordered_map<std::string, Definition> getOpeningsKeys();
+std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys();
 
 /// Returns key definitions for test group
-std::unordered_map<std::string, Definition> getTestKeys();
+std::unordered_map<std::string, ParameterDefinition> getTestKeys();
 
 /// Returns key definitions for pgnoutput group
-std::unordered_map<std::string, Definition> getPgnOutputKeys();
+std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys();
 
 /// Returns key definitions for tournament group
-std::unordered_map<std::string, Definition> getTournamentKeys();
+std::unordered_map<std::string, ParameterDefinition> getTournamentKeys();
 
 /// Returns key definitions for draw group
-std::unordered_map<std::string, Definition> getDrawAdjudicationKeys();
+std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys();
 
 /// Returns key definitions for resign group
-std::unordered_map<std::string, Definition> getResignAdjudicationKeys();
+std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys();
 
 /// Returns key definitions for spsa group
-std::unordered_map<std::string, Definition> getSpsaKeys();
+std::unordered_map<std::string, ParameterDefinition> getSpsaKeys();
 
 /// Returns key definitions for spsavalue group
-std::unordered_map<std::string, Definition> getSpsaValueKeys();
+std::unordered_map<std::string, ParameterDefinition> getSpsaValueKeys();
 
 } // namespace QaplaTester::Settings
 

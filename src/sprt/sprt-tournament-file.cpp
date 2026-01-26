@@ -36,7 +36,7 @@ QaplaHelpers::ConfigData SprtTournamentFile::configData_;
 Settings::Manager SprtTournamentFile::manager_;
 
 namespace {
-    std::unordered_map<std::string, Settings::Definition> addIdKey(std::unordered_map<std::string, Settings::Definition> keys) {
+    std::unordered_map<std::string, Settings::ParameterDefinition> addIdKey(std::unordered_map<std::string, Settings::ParameterDefinition> keys) {
         keys["id"] = { .description = "Identifier for the tournament configuration",
                        .isRequired = true,
                        .defaultValue = "",

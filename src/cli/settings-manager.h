@@ -34,7 +34,7 @@ namespace QaplaTester::Settings {
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
-    struct SettingConfig {
+    struct GlobalDefinition {
         std::string name;
         std::string description;
         bool isRequired;
@@ -48,17 +48,18 @@ namespace QaplaTester::Settings {
         bool unique;
     };
 
-    struct Definition {
+    struct ParameterDefinition {
         std::string description;
         bool isRequired;
         std::optional<Value> defaultValue;
         ValueType type;
         bool exclusive = false;
     };
+    
     struct GroupDefinition {
         std::string description;
 		bool unique = false; 
-        std::unordered_map<std::string, Definition> keys;
+        std::unordered_map<std::string, ParameterDefinition> keys;
 
         /**
          * Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
@@ -196,7 +197,7 @@ namespace QaplaTester::Settings {
          * @brief Registers a setting with its metadata.
          * @param config Configuration struct containing all setting parameters.
          */
-        void registerSetting(const SettingConfig& config);
+        void registerSetting(const GlobalDefinition& config);
 
         /**
          * @brief Registers a grouped CLI block (e.g. --engine key=value...) with description and expected keys.
@@ -204,7 +205,7 @@ namespace QaplaTester::Settings {
          * @param keys Map of key names and their descriptions.
          */
         void registerGroup(const GroupConfig& config,
-            const std::unordered_map<std::string, Definition>& keys);
+            const std::unordered_map<std::string, ParameterDefinition>& keys);
 
         /**
          * @brief Parses configuration data from ConfigData structure.
@@ -371,7 +372,7 @@ namespace QaplaTester::Settings {
          * @param name The key to resolve (e.g. option.Hash).
          * @return Pointer to matching definition, or nullptr if not found.
          */
-        static const Definition* resolveGroupedKey(
+        static const ParameterDefinition* resolveGroupedKey(
             const GroupDefinition& group, const std::string& name);
 
         /**
@@ -445,11 +446,11 @@ namespace QaplaTester::Settings {
 		 * @param def The definition of the expected parameter.
 		 * @return The parsed Value, or throws if invalid.
 		 */
-        static Value parseValue(const ParsedParameter& arg, const Definition& def);
+        static Value parseValue(const ParsedParameter& arg, const ParameterDefinition& def);
 
 
 		// Storage for definitions and group definitions
-        std::unordered_map<std::string, Definition> definitions_;
+        std::unordered_map<std::string, ParameterDefinition> definitions_;
         std::unordered_map<std::string, GroupDefinition> groupDefs_;
 
 		// Storage for parsed values and group instances
