@@ -656,6 +656,10 @@ namespace QaplaTester::Settings
         std::cout << "Available options:\n";
         for (const auto &[key, def] : definitions_)
         {
+            if (def.isHidden) {
+                continue;
+            }
+
             std::ostringstream line;
             line << "  --" << key << "=";
 
@@ -693,6 +697,10 @@ namespace QaplaTester::Settings
 
             for (const auto &[param, meta] : def.keys)
             {
+                if (meta.isHidden) {
+                    continue;
+                }
+
                 std::ostringstream line;
                 line << "    " << param << "=";
 
