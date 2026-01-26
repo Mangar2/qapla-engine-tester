@@ -47,7 +47,7 @@ namespace {
 
 Settings::Manager SprtTournamentFile::registerSettingsGroups() {
     Settings::Manager manager;
-    manager.registerGroup("eachengine", "Global engine configuration", false, {
+    manager.registerGroup({.name = "eachengine", .description = "Global engine configuration", .unique = false}, {
         { "id",        { .description = "Identifier for the tournament configuration",
                         .isRequired = true,
                         .defaultValue = "",
@@ -85,7 +85,7 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
                         .defaultValue = "auto",
                         .type = ValueType::String } }
     });
-    manager.registerGroup("engineselection", "Engine selection for tournament", false, {
+    manager.registerGroup({.name = "engineselection", .description = "Engine selection for tournament", .unique = false}, {
         { "id",           { .description = "Identifier for the tournament configuration",
                            .isRequired = true,
                            .defaultValue = "",
@@ -144,18 +144,18 @@ Settings::Manager SprtTournamentFile::registerSettingsGroups() {
                            .type = ValueType::String } }
     });
     
-    manager.registerGroup(SprtConfigFile::getSectionName(), "SPRT configuration", true, 
+    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true}, 
         addIdKey(Settings::getSprtKeys()));
-    manager.registerGroup(OpeningConfig::getSectionName(), "Opening book configuration", true, 
+    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true}, 
         addIdKey(Settings::getOpeningsKeys()));
-    manager.registerGroup(PgnConfig::getSectionName(), "PGN output settings", true, 
+    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true}, 
         addIdKey(Settings::getPgnOutputKeys()));
-    manager.registerGroup(AdjudicationConfig::getDrawSectionName(), "Draw adjudication settings", true, 
+    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true}, 
         addIdKey(Settings::getDrawAdjudicationKeys()));
-    manager.registerGroup(AdjudicationConfig::getResignSectionName(), "Resign adjudication settings", true, 
+    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true}, 
         addIdKey(Settings::getResignAdjudicationKeys()));
     
-    manager.registerGroup("timecontroloptions", "Time control options", false, {
+    manager.registerGroup({.name = "timecontroloptions", .description = "Time control options", .unique = false}, {
         { "id",          { .description = "Identifier for the tournament configuration",
                           .isRequired = true,
                           .defaultValue = "",

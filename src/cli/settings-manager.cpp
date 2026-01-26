@@ -211,36 +211,29 @@ namespace QaplaTester::Settings
         return result;
     }
 
-    void Manager::registerSetting(const std::string &name,
-                                  const std::string &description,
-                                  bool isRequired,
-                                  std::optional<Value> defaultValue,
-                                  ValueType type)
+    void Manager::registerSetting(const SettingConfig& config)
     {
+        auto defaultValue = config.defaultValue;
 
         if (defaultValue)
         {
-            if (type == ValueType::UInt && std::holds_alternative<int>(*defaultValue) 
+            if (config.type == ValueType::UInt && std::holds_alternative<int>(*defaultValue) 
                 && (std::get<int>(*defaultValue) >= 0))
             {
-                *defaultValue = static_cast<unsigned int>(std::get<int>(*defaultValue));
+                defaultValue = static_cast<unsigned int>(std::get<int>(*defaultValue));
 			}
-            validateDefaultValue(name, *defaultValue, type);
+            validateDefaultValue(config.name, *defaultValue, config.type);
         }
 
-        std::string key = QaplaHelpers::to_lowercase(name);
-        definitions_[key] = {.description = description, .isRequired = isRequired, .defaultValue = defaultValue, .type = type};
+        std::string key = QaplaHelpers::to_lowercase(config.name);
+        definitions_[key] = {.description = config.description, .isRequired = config.isRequired, .defaultValue = defaultValue, .type = config.type};
     }
 
-    void Manager::registerGroup(const std::string &groupName,
-                                const std::string &groupDescription,
-                                bool unique,
+    void Manager::registerGroup(const GroupConfig& config,
                                 const std::unordered_map<std::string, Definition> &keys)
     {
-
-
-        std::string key = QaplaHelpers::to_lowercase(groupName);
-        groupDefs_[key] = {.description = groupDescription, .unique = unique, .keys = keys};
+        std::string key = QaplaHelpers::to_lowercase(config.name);
+        groupDefs_[key] = {.description = config.description, .unique = config.unique, .keys = keys};
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {
