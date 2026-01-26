@@ -211,7 +211,7 @@ namespace QaplaTester::Settings
         return result;
     }
 
-    void Manager::registerSetting(const SettingConfig& config)
+    void Manager::registerSetting(const GlobalDefinition& config)
     {
         auto defaultValue = config.defaultValue;
 
@@ -230,7 +230,7 @@ namespace QaplaTester::Settings
     }
 
     void Manager::registerGroup(const GroupConfig& config,
-                                const std::unordered_map<std::string, Definition> &keys)
+                                const std::unordered_map<std::string, ParameterDefinition> &keys)
     {
         std::string key = QaplaHelpers::to_lowercase(config.name);
         groupDefs_[key] = {.description = config.description, .unique = config.unique, .keys = keys};
@@ -365,7 +365,7 @@ namespace QaplaTester::Settings
         for (const auto& [key, value] : section.entries) {
             std::string lowerKey = QaplaHelpers::to_lowercase(key);
             
-            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
+            const ParameterDefinition *def = resolveGroupedKey(groupDefinition, lowerKey);
             if (def == nullptr) {
                 if (!strict) {
                     continue;
@@ -588,7 +588,7 @@ namespace QaplaTester::Settings
         return {.status = SetResult::Status::Success, .errorMessage = {}};
     }
 
-    const Definition *Manager::resolveGroupedKey(const GroupDefinition &group, const std::string &name)
+    const ParameterDefinition *Manager::resolveGroupedKey(const GroupDefinition &group, const std::string &name)
     {
         auto it = group.keys.find(name);
         if (it != group.keys.end()) {
@@ -722,7 +722,7 @@ namespace QaplaTester::Settings
         }
     }
 
-    Value Manager::parseValue(const ParsedParameter &arg, const Definition &def)
+    Value Manager::parseValue(const ParsedParameter &arg, const ParameterDefinition &def)
     {
         switch (def.type) {
             case ValueType::Bool:
