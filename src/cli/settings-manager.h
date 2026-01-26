@@ -34,30 +34,48 @@ namespace QaplaTester::Settings {
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
+    /**
+     * @brief Definition of a global setting parameter.
+     * Used as input configuration when registering a global setting with registerSetting().
+     * Contains all metadata needed to validate and process the setting.
+     */
     struct GlobalDefinition {
-        std::string name;
-        std::string description;
-        bool isRequired;
-        std::optional<Value> defaultValue;
-        ValueType type;
+        std::string name;                    ///< Parameter name, case-insensitive
+        std::string description;             ///< Help text shown to users
+        bool isRequired = false;             ///< True if parameter must be provided
+        std::optional<Value> defaultValue;   ///< Default value if parameter is not required
+        ValueType type;                      ///< Expected value type for validation        
+        bool isHidden = false;               ///< True if parameter should not be shown in help output    
     };
     
+    /**
+     * @brief Definition of a parameter within a group.
+     * Describes a single key-value parameter that can appear in a grouped section.
+     * The parameter name is stored as the key in the GroupDefinition::keys map.
+     */
     struct ParameterDefinition {
-        std::string description;
-        bool isRequired;
-        std::optional<Value> defaultValue;
-        ValueType type;
-        bool exclusive = false;
+        std::string description;             ///< Help text shown to users
+        bool isRequired = false;             ///< True if parameter must be provided within its group
+        std::optional<Value> defaultValue;   ///< Default value if parameter is not required
+        ValueType type;                      ///< Expected value type for validation
+        bool exclusive = false;              ///< True if parameter is mutually exclusive with others in the group        
+        bool isHidden = false;               ///< True if parameter should not be shown in help output    
     };
 
+    /**
+     * @brief Definition of a grouped parameter section.
+     * Used as input configuration when registering a group with registerGroup().
+     * Defines a reusable parameter block (e.g., --engine) that can contain multiple key-value pairs.
+     */
     struct GroupDefinition {
-        std::string name;
-        std::string description;
-        bool unique;
-        std::unordered_map<std::string, ParameterDefinition> keys;
+        std::string name;                                             ///< Group name, case-insensitive (e.g., "engine", "openings")
+        std::string description;                                      ///< Help text shown to users
+        bool unique;                                                  ///< True if only one instance of this group is allowed
+        std::unordered_map<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions
 
         /**
-         * Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
+         * @brief Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
+         * @return Vector of key names without wildcard suffixes.
         */
         [[nodiscard]] std::vector<std::string> keyNames() const {
             std::vector<std::string> result;
