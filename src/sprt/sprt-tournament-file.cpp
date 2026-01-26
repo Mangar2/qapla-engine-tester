@@ -35,125 +35,24 @@ using Settings::ValueType;
 QaplaHelpers::ConfigData SprtTournamentFile::configData_;
 Settings::Manager SprtTournamentFile::manager_;
 
-namespace {
-    std::unordered_map<std::string, Settings::ParameterDefinition> addIdKey(std::unordered_map<std::string, Settings::ParameterDefinition> keys) {
-        keys["id"] = { .description = "Identifier for the tournament configuration",
-                       .isRequired = true,
-                       .defaultValue = "",
-                       .type = ValueType::String };
-        return keys;
-    }
-}
-
 Settings::Manager SprtTournamentFile::registerSettingsGroups() {
     Settings::Manager manager;
-    manager.registerGroup({.name = "eachengine", .description = "Global engine configuration", .unique = false, .keys = {
-        { "id",        { .description = "Identifier for the tournament configuration",
-                        .isRequired = true,
-                        .defaultValue = "",
-                        .type = ValueType::String } },
-        { "usehash",   { .description = "Enable global hash size setting",
-                        .isRequired = false,
-                        .defaultValue = false,
-                        .type = ValueType::Bool } },
-        { "hash",      { .description = "Hash table size in MB",
-                        .isRequired = false,
-                        .defaultValue = 32,
-                        .type = ValueType::UInt } },
-        { "useponder", { .description = "Enable global ponder setting",
-                        .isRequired = false,
-                        .defaultValue = false,
-                        .type = ValueType::Bool } },
-        { "ponder",    { .description = "Enable pondering, if the engine supports it",
-                        .isRequired = false,
-                        .defaultValue = false,
-                        .type = ValueType::Bool } },
-        { "usetrace",  { .description = "Enable global trace setting",
-                        .isRequired = false,
-                        .defaultValue = false,
-                        .type = ValueType::Bool } },
-        { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
-                        .isRequired = false,
-                        .defaultValue = "command",
-                        .type = ValueType::String } },
-        { "userestart", { .description = "Enable global restart setting",
-                        .isRequired = false,
-                        .defaultValue = false,
-                        .type = ValueType::Bool } },
-        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
-                        .isRequired = false,
-                        .defaultValue = "auto",
-                        .type = ValueType::String } }
-    }});
-    manager.registerGroup({.name = "engineselection", .description = "Engine selection for tournament", .unique = false, .keys = {
-        { "id",           { .description = "Identifier for the tournament configuration",
-                           .isRequired = true,
-                           .defaultValue = "",
-                           .type = ValueType::String } },
-        { "name",         { .description = "Name of the engine",
-                           .isRequired = false,
-                           .defaultValue = "",
-                           .type = ValueType::String } },
-        { "originalName", { .description = "Original name of the engine before modification",
-                           .isRequired = false,
-                           .defaultValue = "",
-                           .type = ValueType::String } },
-        { "selected",     { .description = "Whether this engine is selected for the tournament",
-                           .isRequired = false,
-                           .defaultValue = false,
-                           .type = ValueType::Bool } },
-        { "author",       { .description = "Author of the engine",
-                           .isRequired = false,
-                           .defaultValue = "",
-                           .type = ValueType::String } },
-        { "cmd",          { .description = "Path to executable",
-                           .isRequired = false,
-                           .defaultValue = "",
-                           .type = ValueType::PathExists } },
-        { "dir",          { .description = "Working directory",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::PathExists } },
-        { "proto",        { .description = "Protocol (uci/xboard)",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::String } },
-        { "tc",           { .description = "Time control in format moves/time+inc or 'inf'",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::String } },
-        { "ponder",       { .description = "Enable pondering, if the engine supports it",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::Bool } },
-        { "trace",        { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::String } },
-        { "restart",      { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
-                           .isRequired = false,
-                           .defaultValue = std::nullopt,
-                           .type = ValueType::String } },
-        { "gauntlet",     { .description = "Set if engine is part of the gauntlet group.",
-                           .isRequired = false,
-                           .defaultValue = false,
-                           .type = ValueType::Bool } },
-        { "option.[name]",  { .description = "UCI engine option",
-                           .isRequired = false,
-                           .defaultValue = "",
-                           .type = ValueType::String } }
-    }});
+    manager.registerGroup({.name = "each", .description = "Global engine configuration", .unique = false, 
+        .keys = Settings::getEachKeys()});
+
+    manager.registerGroup({.name = "engine", .description = "Engine selection for tournament", .unique = false, 
+        .keys = Settings::getEngineKeys()});
     
-    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true, .keys = 
-        addIdKey(Settings::getSprtKeys())});
-    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true, .keys = 
-        addIdKey(Settings::getOpeningsKeys())});
-    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true, .keys = 
-        addIdKey(Settings::getPgnOutputKeys())});
-    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true, .keys = 
-        addIdKey(Settings::getDrawAdjudicationKeys())});
-    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true, .keys = 
-        addIdKey(Settings::getResignAdjudicationKeys())});
+    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true, 
+        .keys = Settings::getSprtKeys()});
+    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true, 
+        .keys = Settings::getOpeningsKeys()});
+    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true, 
+        .keys = Settings::getPgnOutputKeys()});
+    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true, 
+        .keys = Settings::getDrawAdjudicationKeys()});
+    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true, 
+        .keys = Settings::getResignAdjudicationKeys()});    
     
     manager.registerGroup({
         .name = "timecontroloptions", .description = "Time control options", .unique = false, .keys = {

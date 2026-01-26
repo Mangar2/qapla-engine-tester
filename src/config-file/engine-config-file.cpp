@@ -25,27 +25,25 @@ namespace QaplaTester {
 QaplaHelpers::IniFile::Section EngineConfigFile::toSection(
     const EngineConfiguration& config, const std::string& id) {
     
-    QaplaHelpers::IniFile::KeyValueMap entries;
-    
-    entries.emplace_back("id", id);
-    entries.emplace_back("name", config.config.getName());
-    entries.emplace_back("originalName", config.originalName);
-    entries.emplace_back("selected", config.selected ? "true" : "false");
+    QaplaHelpers::IniFile::KeyValueMap entries {
+        {"id", id},
+        {"name", config.config.getName()},
+        {"originalName", config.originalName},
+        {"selected", config.selected ? "true" : "false"},
+        {"cmd", config.config.getCmd()},
+        {"dir", config.config.getDir()},
+        {"proto", to_string(config.config.getProtocol())},
+        {"trace", to_string(config.config.getTraceLevel())},
+        {"restart", to_string(config.config.getRestartOption())}
+    };
     
     if (!config.config.getAuthor().empty()) {
         entries.emplace_back("author", config.config.getAuthor());
     }
     
-    entries.emplace_back("cmd", config.config.getCmd());
-    entries.emplace_back("dir", config.config.getDir());
-    
     if (!config.config.getArgs().empty()) {
         entries.emplace_back("args", config.config.getArgs());
     }
-    
-    entries.emplace_back("proto", to_string(config.config.getProtocol()));
-    entries.emplace_back("trace", to_string(config.config.getTraceLevel()));
-    entries.emplace_back("restart", to_string(config.config.getRestartOption()));
     
     const auto timeControl = config.config.getTimeControl().toPgnTimeControlString();
     if (!timeControl.empty()) {
@@ -68,10 +66,7 @@ QaplaHelpers::IniFile::Section EngineConfigFile::toSection(
         entries.emplace_back(name, value);
     }
     
-    return {
-        .name = getSectionName(),
-        .entries = entries
-    };
+    return {.name = getSectionName(), .entries = entries};
 }
 
 EngineConfiguration EngineConfigFile::fromSection(const QaplaHelpers::IniFile::Section& section) {
