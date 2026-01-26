@@ -23,6 +23,11 @@ namespace QaplaTester::Settings {
 
 std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
     return {
+        { "id",        { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "conf",      { .description = "Name of an engine from the configuration file", 
                         .isRequired = false, 
                         .defaultValue = "", 
@@ -31,6 +36,21 @@ std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
                         .isRequired = false, 
                         .defaultValue = "", 
                         .type = ValueType::String } },
+        { "originalName", { .description = "Original name of the engine before modification",
+                        .isRequired = false,
+                        .defaultValue = "",
+                        .type = ValueType::String,
+                        .isHidden = true } },
+        { "selected",  { .description = "Whether this engine is selected for the tournament",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool,
+                        .isHidden = true } },
+        { "author",    { .description = "Author of the engine",
+                        .isRequired = false,
+                        .defaultValue = "",
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "cmd",       { .description = "Path to executable", 
                         .isRequired = false, 
                         .defaultValue = "", 
@@ -72,6 +92,12 @@ std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getLoggingKeys() {
     return {
+        { "id",     { 
+            .description = "Identifier for the configuration", 
+            .isRequired = false, 
+            .defaultValue = "", 
+            .type = ValueType::String,
+            .isHidden = true }},
         { "engine", { 
             .description = "If true, engine logging is enabled", 
             .isRequired = false, 
@@ -92,6 +118,11 @@ std::unordered_map<std::string, ParameterDefinition> getLoggingKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
     return {
+        { "id",        { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "dir",       { .description = "Working directory", 
                         .isRequired = false, 
                         .defaultValue = ".", 
@@ -104,14 +135,39 @@ std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
                         .isRequired = false, 
                         .defaultValue = "", 
                         .type = ValueType::String } },
+        { "usehash",   { .description = "Enable global hash size setting",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool,
+                        .isHidden = true } },
+        { "hash",      { .description = "Hash table size in MB",
+                        .isRequired = false,
+                        .defaultValue = 32,
+                        .type = ValueType::UInt,
+                        .isHidden = true } },
+        { "useponder", { .description = "Enable global ponder setting",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool,
+                        .isHidden = true } },
         { "ponder",    { .description = "Enable pondering, if the engine supports it", 
                         .isRequired = false, 
                         .defaultValue = false, 
                         .type = ValueType::Bool}},
+        { "usetrace",  { .description = "Enable global trace setting",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool,
+                        .isHidden = true } },
         { "trace",     { .description = "Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work",
                         .isRequired = false, 
                         .defaultValue = "command", 
                         .type = ValueType::String}},
+        { "userestart", { .description = "Enable global restart setting",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool,
+                        .isHidden = true } },
         { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)", 
                         .isRequired = false, 
                         .defaultValue = "auto", 
@@ -125,6 +181,11 @@ std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getEpdKeys() {
     return {
+        { "id",        { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "file",      { .description = "Path and file name to the epd file", 
                         .isRequired = true, 
                         .defaultValue = "", 
@@ -150,6 +211,11 @@ std::unordered_map<std::string, ParameterDefinition> getEpdKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getSprtKeys() {
     return {
+        { "id",   { .description = "Identifier for the configuration", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String,
+                    .isHidden = true } },
         { "file", { .description = "File to load/save tournament outcome", 
                     .isRequired = false, 
                     .defaultValue = "", 
@@ -196,6 +262,11 @@ std::unordered_map<std::string, ParameterDefinition> getSprtKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys() {
     return {
+        { "id",    { .description = "Identifier for the configuration", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String,
+                    .isHidden = true } },
         { "file",  { .description = "Path to file with opening positions", 
                     .isRequired = true, 
                     .defaultValue = "", 
@@ -225,6 +296,11 @@ std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getTestKeys() {
     return {
+        { "id",         { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "underrun",   { .description = "Check for movetime underruns", 
                         .isRequired = false, 
                         .defaultValue = false, 
@@ -266,6 +342,11 @@ std::unordered_map<std::string, ParameterDefinition> getTestKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys() {
     return {
+        { "id",   { .description = "Identifier for the configuration", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String,
+                    .isHidden = true } },
         { "file", { .description = "Path to the output PGN file", 
                     .isRequired = true, 
                     .defaultValue = "", 
@@ -303,6 +384,11 @@ std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getTournamentKeys() {
     return {
+        { "id",   { .description = "Identifier for the configuration", 
+                    .isRequired = false, 
+                    .defaultValue = "", 
+                    .type = ValueType::String,
+                    .isHidden = true } },
         { "type", { .description = "Tournament type: gauntlet/round-robin", 
                     .isRequired = true, 
                     .defaultValue = "gauntlet", 
@@ -356,6 +442,11 @@ std::unordered_map<std::string, ParameterDefinition> getTournamentKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
     return {
+        { "id",         { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
                         .isRequired = true, 
                         .defaultValue = 0, 
@@ -377,6 +468,11 @@ std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys() {
     return {
+        { "id",        { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
                         .isRequired = true, 
                         .defaultValue = 0, 
@@ -398,6 +494,11 @@ std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys()
 
 std::unordered_map<std::string, ParameterDefinition> getSpsaKeys() {
     return {
+        { "id",            { .description = "Identifier for the configuration", 
+                            .isRequired = false, 
+                            .defaultValue = "", 
+                            .type = ValueType::String,
+                            .isHidden = true } },
         { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
                             .isRequired = false, 
                             .defaultValue = 32, 
@@ -427,6 +528,11 @@ std::unordered_map<std::string, ParameterDefinition> getSpsaKeys() {
 
 std::unordered_map<std::string, ParameterDefinition> getSpsaValueKeys() {
     return {
+        { "id",        { .description = "Identifier for the configuration", 
+                        .isRequired = false, 
+                        .defaultValue = "", 
+                        .type = ValueType::String,
+                        .isHidden = true } },
         { "name",      { .description = "UCI parameter name to optimize", 
                         .isRequired = true, 
                         .defaultValue = "", 
