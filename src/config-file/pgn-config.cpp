@@ -110,7 +110,7 @@ PgnSave::Options PgnConfig::fromManager(
     return PgnSave::Options{
         .file = pgn.get<std::string>("file"),
         .append = pgn.get<bool>("append"),
-        .onlyFinishedGames = pgn.get<bool>("fi"),
+        .onlyFinishedGames = pgn.get<bool>("finished"),
         .minimalTags = pgn.get<bool>("min"),
         .includeClock = pgn.get<bool>("clock"),
         .includeEval = pgn.get<bool>("eval"),

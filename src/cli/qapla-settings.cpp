@@ -534,45 +534,20 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
 
     Settings::Manager::instance().mergeSectionList(OpeningConfig::getSectionName(), 
-        *configData.getSectionList(OpeningConfig::getSectionName(), id), "", false);
+        *configData.getSectionList(OpeningConfig::getSectionName(), id), "");
     Settings::Manager::instance().mergeSectionList(SprtConfigFile::getSectionName(), 
-        *configData.getSectionList(SprtConfigFile::getSectionName(), id), "", false);
+        *configData.getSectionList(SprtConfigFile::getSectionName(), id), "");
     Settings::Manager::instance().mergeSectionList(PgnConfig::getSectionName(), 
-        *configData.getSectionList(PgnConfig::getSectionName(), id), "", false);    
+        *configData.getSectionList(PgnConfig::getSectionName(), id), "");    
     Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getDrawSectionName(), 
-        *configData.getSectionList(AdjudicationConfig::getDrawSectionName(), id), "", false);
+        *configData.getSectionList(AdjudicationConfig::getDrawSectionName(), id), "");
     Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getResignSectionName(), 
-        *configData.getSectionList(AdjudicationConfig::getResignSectionName(), id), "", false);    
+        *configData.getSectionList(AdjudicationConfig::getResignSectionName(), id), "");    
     Settings::Manager::instance().mergeSectionList(EngineConfigFile::getSectionName(), 
-        *configData.getSectionList(EngineConfigFile::getSectionName(), id), "", false);
+        *configData.getSectionList(EngineConfigFile::getSectionName(), id), "");
+    Settings::Manager::instance().mergeSectionList(EngineGlobalConfigFile::getSectionName(), 
+        *configData.getSectionList(EngineGlobalConfigFile::getSectionName(), id), "");
 
-    auto globalConfig = EngineGlobalConfigFile::fromConfigData(configData, id);
-    if (globalConfig) {
-        m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(*globalConfig);
-    }
-    
-    applyEngineLoggingToGlobalConfig();
-    
-    auto engineConfigs = EngineConfigFile::fromConfigData(configData, id);
-    
-    if (engineConfigs && !engineConfigs->empty()) {
-        m_allEngineConfigurations = *engineConfigs;
-        EngineWorkerFactory::getActiveEnginesMutable().clear();
-        
-        for (auto& engineConfiguration : *engineConfigs) {
-            if (!engineConfiguration.selected) {
-                continue;
-            }
-            
-            if (globalConfig) {
-                EngineGlobalConfigFile::applyGlobalConfig(engineConfiguration.config, *globalConfig);
-            }
-            
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(engineConfiguration.config);
-        }
-        
-        EngineWorkerFactory::assignUniqueDisplayNames();
-    }
 }
 
 const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {

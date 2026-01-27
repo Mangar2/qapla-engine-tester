@@ -103,8 +103,10 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         if (update && std::holds_alternative<std::string>(value) && std::get<std::string>(value).empty()) {
             continue;
         }
-        if (key == "conf") { continue; }
+        if (key == "conf" || key == "id" || key == "author") { continue; }
         if (key == "ponder") { setPonder(std::get<bool>(value)); }
+        else if (key == "originalname") { originalName_ = std::get<std::string>(value); }
+        else if (key == "selected") { selected_ = std::get<bool>(value); }
         else if (key == "tc") { setTimeControl(std::get<std::string>(value)); }
         else if (key == "gauntlet") { setGauntlet(std::get<bool>(value)); }
         else if (key == "whitepov") { setScoreFromWhitePov(std::get<bool>(value)); }
@@ -173,8 +175,9 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
 }
 
 void  EngineConfig::setValue(const std::string& key, const std::string& value) {
-    std::set<std::string> internalKeys = { "id", "selected", "originalName" };
+    std::set<std::string> internalKeys = { "id", "selected" };
     if (key == "name") { setName(value); }
+    else if (key == "originalname") { originalName_ = value; }
     else if (key == "author") { setAuthor(value); }
     else if (key == "cmd") { setCmd(value); }
     else if (key == "dir") { setDir(value); }
