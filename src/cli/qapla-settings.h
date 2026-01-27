@@ -146,13 +146,6 @@ public:
      */
     [[nodiscard]] const LoggerConfig* getLoggerConfig() const;
 
-    /**
-     * @brief Collects all current configurations into ConfigData
-     * @param id Identifier for the configuration sections
-     * @return ConfigData containing all current settings
-     */
-    [[nodiscard]] QaplaHelpers::ConfigData getConfigData(const std::string& id) const;
-
     // Delete copy constructor and assignment operator
     QaplaSettings(const QaplaSettings&) = delete;
     QaplaSettings& operator=(const QaplaSettings&) = delete;
@@ -189,13 +182,6 @@ private:
      * @param groupName The group instance name
      */
     static void setEngineConfig(Settings::Manager& manager, const std::string& groupName);
-
-    /**
-     * @brief Reads global engine configuration from CLI settings
-     * @param manager The settings manager to read from
-     * @param groupName The group instance name
-     */
-    void setEngineGlobalConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads PGN options from settings manager
@@ -259,12 +245,6 @@ private:
      */
     void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
-    /**
-     * @brief Applies engine logging settings from [logging] section to global engine config
-     * If engine logging is disabled, sets all engines to TraceLevel::none
-     */
-    void applyEngineLoggingToGlobalConfig();
-
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::unique_ptr<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
@@ -274,7 +254,6 @@ private:
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
-    std::unique_ptr<EngineGlobalConfig> m_engineGlobalConfig; ///< Global engine configuration
     std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration
     std::vector<EngineConfiguration> m_allEngineConfigurations; ///< All engine configurations (selected and non-selected)
 };

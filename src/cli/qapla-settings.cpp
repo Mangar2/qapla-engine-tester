@@ -82,7 +82,6 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
 
     setLoggerConfiguration();
     setEngineConfig(Manager::instance(), "engine");
-    setEngineGlobalConfig(Manager::instance(), "each");
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
     setResignAdjudicationConfig(Manager::instance(), "resign");
@@ -345,42 +344,6 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
-void QaplaSettings::setEngineGlobalConfig(Settings::Manager& manager, const std::string& groupName) {
-    // This function creates m_engineGlobalConfig from [each] settings for GUI compatibility.
-    // It is NOT used when loading engines from CLI parameters in readEngineOptions().
-    // m_engineGlobalConfig is only applied when loading GUI-based tournament files via
-    // setFromConfigData(), where it overrides individual engine settings.
-    constexpr uint32_t defaultHashSizeMB = 32;
-    auto eachSetting = manager.getGroupInstance(groupName);
-    if (!eachSetting) {
-        m_engineGlobalConfig = nullptr;
-        return;
-    }
-
-    auto eachSettings = manager.getGroupInstances(groupName);
-    const auto& each = *eachSetting;
-    auto hashProvided = each.isKeyProvided("option.Hash");
-    uint32_t hashValue = defaultHashSizeMB;
-    if (hashProvided) {
-        auto hashStr = each.get<std::string>("option.Hash");
-        hashValue = QaplaHelpers::to_unsigned_int<uint32_t>(hashStr).value_or(defaultHashSizeMB);
-    }
-
-    m_engineGlobalConfig = std::make_unique<EngineGlobalConfig>(EngineGlobalConfig{
-        .useGlobalHash = hashProvided,
-        .hashSizeMB = hashValue,
-        .useGlobalPonder = each.isKeyProvided("ponder"),
-        .ponder = each.get<bool>("ponder"),
-        .useGlobalTrace = each.isKeyProvided("trace"),
-        .traceLevel = each.get<std::string>("trace"),
-        .useGlobalRestart = each.isKeyProvided("restart"),
-        .restart = each.get<std::string>("restart"),
-        .timeControl = each.get<std::string>("tc")
-    });
-    
-    applyEngineLoggingToGlobalConfig();
-}
-
 void QaplaSettings::setPgnConfig(Settings::Manager& manager, const std::string& groupName) {
     auto pgnOptionInstance = manager.getGroupInstance(groupName);
     if (!pgnOptionInstance) {
@@ -605,70 +568,12 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
     return *m_spsaConfig;
 }
 
-void QaplaSettings::applyEngineLoggingToGlobalConfig() {
-    if (!m_engineGlobalConfig) {
-        return;
-    }
-    
-    auto loggingSetting = Manager::instance().getGroupInstance("logging");
-    if (loggingSetting && !loggingSetting->get<bool>("engine")) {
-        m_engineGlobalConfig->useGlobalTrace = true;
-        m_engineGlobalConfig->traceLevel = "none";
-    }
-}
-
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& /*id*/) {
     Settings::Manager::instance().parseInput(configData, false);
 }
 
 const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {
     return m_allEngineConfigurations;
-}
-
-QaplaHelpers::ConfigData QaplaSettings::getConfigData(const std::string& id) const {
-    QaplaHelpers::ConfigData configData;
-
-    // Convert Engine Global configuration back to sections
-    if (m_engineGlobalConfig) {
-        auto engineSections = EngineGlobalConfigFile::toEngineConfigSections(*m_engineGlobalConfig, id);
-        configData.setSectionList("eachengine", id, engineSections);
-        
-        auto timeControlSections = EngineGlobalConfigFile::toTimeControlSections(*m_engineGlobalConfig, id);
-        configData.setSectionList("timecontroloptions", id, timeControlSections);
-    }
-
-    if (m_openings) {
-        auto sections = OpeningConfig::toSections(*m_openings, id);
-        configData.setSectionList(OpeningConfig::getSectionName(), id, sections);
-    }
-
-    if (m_sprtConfig) {
-        auto sections = SprtConfigFile::toSections(*m_sprtConfig, id);
-        configData.setSectionList(SprtConfigFile::getSectionName(), id, sections);
-    }
-
-    if (m_pgnOptions) {
-        auto sections = PgnConfig::toSections(*m_pgnOptions, id);
-        configData.setSectionList(PgnConfig::getSectionName(), id, sections);
-    }
-
-    if (m_drawConfig) {
-        auto sections = AdjudicationConfig::toDrawSections(*m_drawConfig, id);
-        configData.setSectionList(AdjudicationConfig::getDrawSectionName(), id, sections);
-    }
-
-    if (m_resignConfig) {
-        auto sections = AdjudicationConfig::toResignSections(*m_resignConfig, id);
-        configData.setSectionList(AdjudicationConfig::getResignSectionName(), id, sections);
-    }
-
-
-    if (!m_allEngineConfigurations.empty()) {
-        auto sections = EngineConfigFile::toSections(m_allEngineConfigurations, id);
-        configData.setSectionList(EngineConfigFile::getSectionName(), id, sections);
-    }
-
-    return configData;
 }
 
 } // namespace QaplaTester::CliSettings

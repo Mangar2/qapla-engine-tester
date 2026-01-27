@@ -163,7 +163,7 @@ static auto sprtFileIO(const std::string filename, uint32_t saveInterval,
         
         manager->setGameFinishedCallback(
             [filename,
-             configData = Settings::QaplaSettings::instance().getConfigData("sprt-tournament"),
+             configData = Settings::Manager::instance().toConfigData(),
              saveInterval,
              saveTrigger = 0u,
              manager = manager.get()]() mutable 
@@ -226,8 +226,7 @@ static auto runSprt(AppReturnCode code) {
             
             if (!sprtfile.empty()) {
                 auto section = manager->getSection();
-                QaplaHelpers::ConfigData configData = Settings::QaplaSettings::instance().
-                    getConfigData("sprt-tournament");
+                QaplaHelpers::ConfigData configData = Settings::Manager::instance().toConfigData();
                 if (section) {
                     configData.addSection(*section);
                 }
