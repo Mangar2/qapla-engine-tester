@@ -25,7 +25,6 @@
 #include "../config-file/adjudication-config.h"
 #include "../cli/settings-manager.h"
 #include "../cli/settings-definitions.h"
-#include <fstream>
 #include <stdexcept>
 
 namespace QaplaTester {
@@ -92,22 +91,13 @@ void SprtTournamentFile::load(const std::string& filename,
         throw std::invalid_argument("No filename specified for loading SPRT tournament.");
     }
 
-    std::ifstream in(filename);
-    if (!in) {
-        throw std::runtime_error("Failed to open file for reading: " + filename);
-    }
-
     manager_ = registerSettingsGroups();
     configData_ = QaplaHelpers::ConfigData{};
 
-    // Load all sections from the file into a temporary ConfigData
-    QaplaHelpers::ConfigData tempConfigData;
-    tempConfigData.load(in);
-    in.close();
+    configData_.load(filename);
 
-    // Transfer sections with the specified id to the target ConfigData
     for (const auto& sectionName : sectionNames) {
-        auto sections = tempConfigData.getSectionList(sectionName, id);
+        auto sections = configData_.getSectionList(sectionName, id);
         if (!sections || sections->empty()) {
             if (std::string(sectionName) == "round") {
                 continue;
@@ -115,7 +105,6 @@ void SprtTournamentFile::load(const std::string& filename,
             throw std::runtime_error("Missing required section '" + std::string(sectionName) + 
                                    "' in SPRT tournament file: " + filename);
         }
-        configData_.setSectionList(sectionName, id, *sections);
     }
     manager_.parseInput(configData_, false);
 }

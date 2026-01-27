@@ -449,7 +449,7 @@ namespace QaplaTester::Settings
         return std::nullopt;
     }
 
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite)
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/)
     {
         const auto groupName = QaplaHelpers::to_lowercase(section.name);
         
@@ -483,109 +483,7 @@ namespace QaplaTester::Settings
         groupInstances_[groupName].emplace_back(newValues, groupDefinition);
     }
 
-    void Manager::mergeSectionList(const std::string& sectionName,
-                                   const QaplaHelpers::IniFile::SectionList& sections,
-                                   const std::string& mergeIdentifier,
-                                   bool overwrite)
-    {
-        std::string groupName = QaplaHelpers::to_lowercase(sectionName);
-        
-        auto defIt = groupDefs_.find(groupName);
-        if (defIt == groupDefs_.end()) {
-            throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
-        }
 
-        const auto& groupDefinition = defIt->second;
-
-        for (const auto& section : sections) {
-            const auto newValues = parseSectionEntries(section, groupDefinition, false, nullptr);
-            validateExclusiveKeys(newValues, groupDefinition, section.name);
-
-            const auto newInstance = GroupInstance(newValues, groupDefinition);
-            mergeOrAppendInstance(groupName, newInstance, groupDefinition, section, mergeIdentifier);
-        }
-    }
-
-    void Manager::mergeConfigData(const QaplaHelpers::ConfigData& configData, bool overwrite)
-    {
-        // Merge global parameters
-        for (const auto& [key, value] : configData.getGlobalParameters()) {
-            parseGlobalParameter(key, value, overwrite);
-        }
-        
-        // Merge grouped sections
-        auto sectionNames = configData.getAllSectionNames();
-        for (const auto& sectionName : sectionNames) {
-            std::string groupName = QaplaHelpers::to_lowercase(sectionName);
-            
-            auto defIt = groupDefs_.find(groupName);
-            if (defIt == groupDefs_.end()) {
-                throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
-            }
-
-            auto sectionMap = configData.getSectionMap(sectionName);
-            if (!sectionMap) {
-                continue;
-            }
-
-            for (const auto& [sectionId, sectionList] : *sectionMap) {
-                std::string mergeIdentifier = (groupName == "engine") ? "name" : "";
-                mergeSectionList(sectionName, sectionList, mergeIdentifier, overwrite);
-            }
-        }
-    }
-
-    void Manager::mergeOrAppendInstance(const std::string& groupName,
-                                        const GroupInstance& newInstance,
-                                        const GroupDefinition& groupDefinition,
-                                        const QaplaHelpers::IniFile::Section& section,
-                                        const std::string& mergeIdentifier)
-    {
-        if (groupDefinition.unique && groupInstances_.contains(groupName)) {
-            auto& instances = groupInstances_[groupName];
-            GroupInstance merged = newInstance.merge(instances[0]);
-            instances = GroupInstances{};
-            instances.emplace_back(std::move(merged));
-        }
-        else if (!groupDefinition.unique && !mergeIdentifier.empty() && groupInstances_.contains(groupName)) {
-            auto& instances = groupInstances_[groupName];
-            auto newIdValue = section.getValue(mergeIdentifier);
-            
-            if (newIdValue && tryMergeByIdentifier(instances, newInstance, mergeIdentifier, *newIdValue)) {
-                return;
-            }
-            instances.emplace_back(newInstance);
-        }
-        else {
-            groupInstances_[groupName].emplace_back(newInstance);
-        }
-    }
-
-    bool Manager::tryMergeByIdentifier(GroupInstances& instances,
-                                       const GroupInstance& newInstance,
-                                       const std::string& mergeIdentifier,
-                                       const std::string& newIdValue)
-    {
-        GroupInstances newInstances;
-        bool merged = false;
-        
-        for (const auto& existingInstance : instances) {
-            if (!merged && existingInstance.isKeyProvided(mergeIdentifier)) {
-                auto existingIdValue = existingInstance.get<std::string>(mergeIdentifier);
-                if (existingIdValue == newIdValue) {
-                    newInstances.emplace_back(newInstance.merge(existingInstance));
-                    merged = true;
-                    continue;
-                }
-            }
-            newInstances.emplace_back(existingInstance);
-        }
-        
-        if (merged) {
-            instances = std::move(newInstances);
-        }
-        return merged;
-    }
 
     void Manager::validateGroupCompleteness()
     {

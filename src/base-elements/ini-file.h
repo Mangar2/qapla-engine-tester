@@ -158,6 +158,14 @@ public:
     void load(std::istream& in);
 
     /**
+     * @brief Loads the configuration data from an INI file.
+     * Top-level key-value pairs before the first [section] are stored as global parameters.
+     * @param filename The path to the INI file to load.
+     * @throws std::runtime_error if the file cannot be opened.
+     */
+    void load(const std::string& filename);
+
+    /**
      * @brief Adds a section to the configuration data.
      * If a section with the same name and id already exists, it will be appended to the list.
      * @param section The section to add.
