@@ -45,5 +45,6 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/parameter",
             "backup_files": ["test/integration/parameter/test-parameter-sprt-file.qsprt"],
+            "save_modified_as": "{original}.testresult",
         },
     ]

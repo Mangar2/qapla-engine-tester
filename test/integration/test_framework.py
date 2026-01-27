@@ -287,6 +287,25 @@ def invoke_test(test: Dict[str, Any]) -> bool:
         if not result:
             all_passed = False
 
+    # Save modified files for inspection before restoring
+    if backup_files and "save_modified_as" in test:
+        import shutil
+        save_pattern = test["save_modified_as"]
+        for original_path, _ in backup_files:
+            if os.path.exists(original_path):
+                save_path = save_pattern.replace("{original}", original_path)
+                try:
+                    shutil.copy2(original_path, save_path)
+                    print(
+                        f"  {Colors.CYAN}[INFO]{Colors.RESET} "
+                        f"Modified file saved to: {save_path}"
+                    )
+                except Exception as e:
+                    print(
+                        f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
+                        f"Failed to save modified file: {e}"
+                    )
+
     # Restore backed up files
     if backup_files:
         import shutil

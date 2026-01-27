@@ -73,23 +73,14 @@ namespace QaplaTester::Settings {
         bool unique;                                                  ///< True if only one instance of this group is allowed
         std::vector<std::string> primaryKey{};                          ///< List of keys that uniquely identify an instance of the group
         std::unordered_map<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions
+        std::vector<std::string> keyOrder{};                            ///< Order of keys as defined in registration (for consistent export order)
 
         /**
-         * @brief Returns all defined keys in the group. Keys ending with ".[name]" are returned without that suffix.
-         * @return Vector of key names without wildcard suffixes.
+         * @brief Returns all defined keys in the order they were registered.
+         * @return Vector of key names in definition order.
         */
-        [[nodiscard]] std::vector<std::string> keyNames() const {
-            std::vector<std::string> result;
-            result.reserve(keys.size());
-            constexpr std::string_view suffix = ".[name]";
-            for (const auto& [key, _] : keys) {
-                if (key.ends_with(suffix)) {
-                    result.emplace_back(key.substr(0, key.size() - suffix.size()));
-                } else {
-                    result.emplace_back(key);
-                }
-            }
-            return result;
+        [[nodiscard]] const std::vector<std::string>& getKeyNames() const {
+            return keyOrder;
         }
     };
 
@@ -301,12 +292,12 @@ namespace QaplaTester::Settings {
     private:
 
         /**
-         * @brief Converts group instances of a specific name to an IniFile::SectionList.
+         * @brief Converts group instances of a specific name to a map of SectionLists grouped by ID.
          * Only includes entries that are mandatory or differ from their default values.
          * @param groupName Name of the group to convert (e.g., "engine").
-         * @return SectionList containing all instances of the specified group.
+         * @return Map of ID to SectionList containing all instances of the specified group.
          */
-        [[nodiscard]] QaplaHelpers::IniFile::SectionList groupInstancesToSectionList(
+        [[nodiscard]] std::map<std::string, QaplaHelpers::IniFile::SectionList> groupInstancesToSectionMap(
                 const std::string& groupName) const;
 
         /**

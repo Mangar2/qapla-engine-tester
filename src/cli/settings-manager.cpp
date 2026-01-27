@@ -233,12 +233,16 @@ namespace QaplaTester::Settings
     {
         std::string key = QaplaHelpers::to_lowercase(config.name);
         std::unordered_map<std::string, ParameterDefinition> lowercaseKeys;
+        std::vector<std::string> orderedKeys;
         for (const auto& [key, def] : config.keys) {
-            lowercaseKeys[QaplaHelpers::to_lowercase(key)] = def;
+            const auto lowerKey = QaplaHelpers::to_lowercase(key);
+            lowercaseKeys[lowerKey] = def;
+            orderedKeys.push_back(lowerKey);
         }
 
         groupDefs_[key] = config;
         groupDefs_[key].keys = std::move(lowercaseKeys);
+        groupDefs_[key].keyOrder = std::move(orderedKeys);
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {
@@ -365,7 +369,7 @@ namespace QaplaTester::Settings
         for (const auto& [key, value] : section.entries) {
             const auto* def = resolveGroupedKey(groupDefinition, key);
             if (def == nullptr) {
-                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
+                AppError::throwOnInvalidOption(groupDefinition.getKeyNames(), key,
                     std::format("Unknown parameter in section \"{}\"", section.name));
                 throw AppError::makeInvalidParameters(
                     std::format("Unknown parameter \"{}\" in section \"{}\"", key, section.name));
@@ -432,72 +436,7 @@ namespace QaplaTester::Settings
         }
         return std::nullopt;
     }
-    /*
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section)
-    {
-        std::string groupName = QaplaHelpers::to_lowercase(section.name);
-        
-        auto defIt = groupDefs_.find(groupName);
-        if (defIt == groupDefs_.end()) {
-            throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
-        }
-
-        const auto &groupDefinition = defIt->second;
-        ValueMap group;
-
-        if (groupDefinition.unique && groupInstances_.contains(groupName))
-        {
-            throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
-        }
-
-        // Parse all entries in the section
-        for (const auto& [key, value] : section.entries) {
-            std::string lowerKey = QaplaHelpers::to_lowercase(key);
-            
-            // Skip "id" entry as it's used for section identification
-            if (lowerKey == "id") {
-                continue;
-            }
-
-            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
-            if (def == nullptr) {
-                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
-                    "Unknown parameter in section \"" + section.name + "\"");
-            }
-            group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
-        }
-
-        // Check for exclusive keys
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (def.exclusive && group.contains(key) && group.size() > 1) {
-                throw AppError::makeInvalidParameters(
-                    "Parameter \"" + key + "\" in section \"" + section.name + 
-                    "\" cannot be combined with other parameters");
-            }
-        }
-
-        // Add missing required/default values
-        for (const auto &[key, def] : groupDefinition.keys)
-        {
-            if (key.ends_with(".[name]")) {
-                continue;
-            }
-            if (group.contains(key)) {
-                continue;
-            }
-            if (def.isRequired) {
-                throw AppError::makeInvalidParameters(
-                    "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
-            }
-            if (def.defaultValue) {
-                group[key] = *def.defaultValue;
-            }
-        }
-
-        groupInstances_[groupName].emplace_back(group, groupDefinition);
-    }
-    */
+    
     void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/, bool strict)
     {
         const auto groupName = QaplaHelpers::to_lowercase(section.name);
@@ -763,17 +702,16 @@ namespace QaplaTester::Settings
         }
     }
 
-    QaplaHelpers::IniFile::SectionList Manager::groupInstancesToSectionList(
+    std::map<std::string, QaplaHelpers::IniFile::SectionList> Manager::groupInstancesToSectionMap(
             const std::string& groupName) const {
-        QaplaHelpers::IniFile::SectionList result;
+        std::map<std::string, QaplaHelpers::IniFile::SectionList> result;
         
-        const auto groupIt = groupInstances_.find(QaplaHelpers::to_lowercase(groupName));
-        if (groupIt == groupInstances_.end()) {
+        const auto lowerGroupName = QaplaHelpers::to_lowercase(groupName);
+        if (!groupInstances_.contains(lowerGroupName)) {
             return result;
         }
         
-        const auto& instances = groupIt->second;
-        result.reserve(instances.size());
+        const auto& instances = groupInstances_.at(lowerGroupName);
         
         for (const auto& instance : instances) {
             QaplaHelpers::IniFile::Section section;
@@ -782,14 +720,22 @@ namespace QaplaTester::Settings
             const auto& definition = instance.getDefinition();
             const auto& values = instance.getValues();
             
-            for (const auto& [keyName, keyDef] : definition.keys) {
-                const auto valueIt = values.find(keyName);
-                const auto hasValue = (valueIt != values.end());
+            std::string id = "default";
+            if (instance.isKeyProvided("id")) {
+                id = instance.get<std::string>("id");
+            }
+            
+            for (const auto& keyName : definition.getKeyNames()) {
+                if (!definition.keys.contains(keyName)) {
+                    continue;
+                }
+                const auto& keyDef = definition.keys.at(keyName);
+                const auto hasValue = values.contains(keyName);
                 
                 const auto isRequired = keyDef.isRequired;
                 const auto hasDefault = keyDef.defaultValue.has_value();
                 const auto isDifferentFromDefault = hasValue && hasDefault && 
-                        (valueIt->second != *keyDef.defaultValue);
+                        (values.at(keyName) != *keyDef.defaultValue);
                 
                 if (isRequired || !hasDefault || isDifferentFromDefault) {
                     std::string keyToUse = keyName;
@@ -802,22 +748,24 @@ namespace QaplaTester::Settings
                     if (hasValue) {
                         std::visit([&valueStr](auto&& val) {
                             std::ostringstream oss;
-                            oss << val;
+                            oss << std::boolalpha << val;
                             valueStr = oss.str();
-                        }, valueIt->second);
+                        }, values.at(keyName));
                     } else if (hasDefault) {
                         std::visit([&valueStr](auto&& val) {
                             std::ostringstream oss;
-                            oss << val;
+                            oss << std::boolalpha << val;
                             valueStr = oss.str();
                         }, *keyDef.defaultValue);
                     }
                     
-                    section.addEntry(keyToUse, valueStr);
+                    if (!valueStr.empty()) {
+                        section.addEntry(keyToUse, valueStr);
+                    }
                 }
             }
             
-            result.push_back(std::move(section));
+            result[id].push_back(std::move(section));
         }
         
         return result;
@@ -865,9 +813,9 @@ namespace QaplaTester::Settings
         }
         
         for (const auto& sectionName : sectionsToExport) {
-            const auto sectionList = groupInstancesToSectionList(sectionName);
-            if (!sectionList.empty()) {
-                configData.setSectionList(sectionName, "default", sectionList);
+            const auto sectionMap = groupInstancesToSectionMap(sectionName);
+            for (const auto& [id, sectionList] : sectionMap) {
+                configData.setSectionList(sectionName, id, sectionList);
             }
         }
         
