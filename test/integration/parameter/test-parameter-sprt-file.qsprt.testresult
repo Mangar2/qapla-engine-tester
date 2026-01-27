@@ -1,37 +1,37 @@
 [each]
-tc=5+0.01
 id=sprt-tournament
+tc=5+0.01
 
 [engine]
 id=sprt-tournament
-author=volker boehm
 name=llt1
 originalname=diagnostic-engine-lossontime
 selected=true
-dir=.
+author=volker boehm
 cmd=C:\Development\qapla-engine-tester\test\engines\diagnostic-engine-lossontime.exe
+dir=.
 proto=uci
 trace=none
 restart=auto
 
 [engine]
 id=sprt-tournament
-author=volker boehm
 name=llt2
 originalname=diagnostic-engine-lossontime
 selected=true
-dir=.
+author=volker boehm
 cmd=C:\Development\qapla-engine-tester\test\engines\diagnostic-engine-lossontime.exe
+dir=.
 proto=uci
 trace=none
 restart=auto
 
 [sprt]
 id=sprt-tournament
-maxgames=2
-alpha=0.05
 file=test/integration/parameter/test-parameter-sprt-file.qsprt
+alpha=0.05
 beta=0.05
+maxgames=2
 
 [openings]
 id=sprt-tournament
@@ -44,9 +44,9 @@ file=c:\development\qapla-chess-gui\test\log\sprt-tournament.pgn
 [draw]
 id=sprt-tournament
 active=false
-score=20
 movenumber=40
 movecount=10
+score=20
 
 [resign]
 id=sprt-tournament
