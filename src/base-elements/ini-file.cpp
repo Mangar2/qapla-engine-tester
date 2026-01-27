@@ -19,6 +19,7 @@
 
 #include "ini-file.h"
 #include "string-helper.h"
+#include <fstream>
 
 namespace QaplaHelpers {
 
@@ -143,6 +144,14 @@ namespace QaplaHelpers {
                 IniFile::saveSections(out, sectionList);
             }
         }
+    }
+
+    void ConfigData::load(const std::string& filename) {
+        std::ifstream in(filename);
+        if (!in) {
+            throw std::runtime_error("Failed to open file for reading: " + filename);
+        }
+        load(in);
     }
 
     void ConfigData::load(std::istream& in) {

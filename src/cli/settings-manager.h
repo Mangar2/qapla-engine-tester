@@ -71,7 +71,7 @@ namespace QaplaTester::Settings {
         std::string name;                                             ///< Group name, case-insensitive (e.g., "engine", "openings")
         std::string description;                                      ///< Help text shown to users
         bool unique;                                                  ///< True if only one instance of this group is allowed
-        std::vector<std::string> primaryKey;                          ///< List of keys that uniquely identify an instance of the group
+        std::vector<std::string> primaryKey{};                          ///< List of keys that uniquely identify an instance of the group
         std::unordered_map<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions
 
         /**
@@ -162,12 +162,13 @@ namespace QaplaTester::Settings {
 		}
 
         /**
-         * @brief Merges another GroupInstance into this one.
+         * @brief Merges another GroupInstance into this one, using it as default values.
          * Values from this instance take precedence (like std::map::insert behavior).
-         * @param other The GroupInstance to merge from.
+         * Use this to apply defaults while preserving existing values.
+         * @param other The GroupInstance containing default values.
          * @return A new GroupInstance with merged values.
          */
-        [[nodiscard]] GroupInstance merge(const GroupInstance& other) const {
+        [[nodiscard]] GroupInstance mergeWithDefaults(const GroupInstance& other) const {
             ValueMap merged = values_;
             const auto& otherValues = other.getValues();
             merged.insert(otherValues.begin(), otherValues.end());
@@ -226,25 +227,7 @@ namespace QaplaTester::Settings {
          */
         void parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite = false);
 
-        /**
-         * @brief Merges a section list into existing settings.
-         * @param sectionName Name of the section (e.g., "engine", "openings").
-         * @param sections List of sections to merge.
-         * @param mergeIdentifier Field name used to identify matching instances (e.g., "name" for engines). Empty for unique groups.
-         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
-         */
-        void mergeSectionList(const std::string& sectionName,
-                             const QaplaHelpers::IniFile::SectionList& sections,
-                             const std::string& mergeIdentifier = "",
-                             bool overwrite = false);
 
-        /**
-         * @brief Merges entire ConfigData into existing settings.
-         * Processes all section names in the ConfigData, merging each section list using mergeSectionList.
-         * @param configData ConfigData instance to merge.
-         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
-         */
-        void mergeConfigData(const QaplaHelpers::ConfigData& configData, bool overwrite = false);
 
         /**
          * @brief Validates all group instances for completeness and adds missing defaults.
@@ -438,33 +421,6 @@ namespace QaplaTester::Settings {
         static void validateExclusiveKeys(const ValueMap& group, 
             const GroupDefinition& groupDefinition, 
             const std::string& sectionName);
-
-        /**
-         * @brief Merges or appends a new instance to the group instances.
-         * @param groupName The name of the group.
-         * @param newInstance The new instance to merge or append.
-         * @param groupDefinition The group definition.
-         * @param section The section containing the merge identifier.
-         * @param mergeIdentifier The field name used to identify matching instances.
-         */
-        void mergeOrAppendInstance(const std::string& groupName,
-            const GroupInstance& newInstance,
-            const GroupDefinition& groupDefinition,
-            const QaplaHelpers::IniFile::Section& section,
-            const std::string& mergeIdentifier);
-
-        /**
-         * @brief Tries to merge a new instance with an existing one by identifier.
-         * @param instances The existing instances to search and merge with.
-         * @param newInstance The new instance to merge.
-         * @param mergeIdentifier The field name used to identify matching instances.
-         * @param newIdValue The identifier value from the new instance.
-         * @return True if merge was successful, false otherwise.
-         */
-        static bool tryMergeByIdentifier(GroupInstances& instances,
-            const GroupInstance& newInstance,
-            const std::string& mergeIdentifier,
-            const std::string& newIdValue);
 
         /** 
          * @brief Validates that the given default value matches the expected ValueType.

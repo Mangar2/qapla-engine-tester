@@ -75,7 +75,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         Manager::instance().parseInput(fileData);
         
         // Merge CLI parameters (overrides file settings)
-        Manager::instance().mergeConfigData(cliData);
+        Manager::instance().parseInput(cliData, false);
     } else {
         // No settings file, just parse CLI directly
         Manager::instance().parseInput(cliData);
@@ -312,9 +312,9 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
     auto loggingSetting = manager.getGroupInstance("logging");
 
     for (const auto& engine : engineSettings) {
-        // engine.merge(each) ensures per-engine settings take precedence over global [each] defaults
+        // engine.mergeWithDefaults(each) ensures per-engine settings take precedence over global [each] defaults
         Settings::GroupInstance mergedInstance = eachSetting 
-            ? engine.merge(*eachSetting) 
+            ? engine.mergeWithDefaults(*eachSetting) 
             : engine;
 
         auto cmd = mergedInstance.get<std::string>("cmd");
@@ -627,23 +627,8 @@ void QaplaSettings::applyEngineLoggingToGlobalConfig() {
     }
 }
 
-void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id) {
-
-    Settings::Manager::instance().mergeSectionList(OpeningConfig::getSectionName(), 
-        *configData.getSectionList(OpeningConfig::getSectionName(), id), "");
-    Settings::Manager::instance().mergeSectionList(SprtConfigFile::getSectionName(), 
-        *configData.getSectionList(SprtConfigFile::getSectionName(), id), "");
-    Settings::Manager::instance().mergeSectionList(PgnConfig::getSectionName(), 
-        *configData.getSectionList(PgnConfig::getSectionName(), id), "");    
-    Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getDrawSectionName(), 
-        *configData.getSectionList(AdjudicationConfig::getDrawSectionName(), id), "");
-    Settings::Manager::instance().mergeSectionList(AdjudicationConfig::getResignSectionName(), 
-        *configData.getSectionList(AdjudicationConfig::getResignSectionName(), id), "");    
-    Settings::Manager::instance().mergeSectionList(EngineConfigFile::getSectionName(), 
-        *configData.getSectionList(EngineConfigFile::getSectionName(), id), "");
-    Settings::Manager::instance().mergeSectionList(EngineGlobalConfigFile::getSectionName(), 
-        *configData.getSectionList(EngineGlobalConfigFile::getSectionName(), id), "");
-
+void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& /*id*/) {
+    Settings::Manager::instance().parseInput(configData, false);
 }
 
 const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {
