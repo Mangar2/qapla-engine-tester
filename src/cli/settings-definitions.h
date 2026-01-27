@@ -21,50 +21,48 @@
 #define SETTINGS_DEFINITIONS_H
 
 #include "settings-manager.h"
-#include <unordered_map>
+#include "../base-elements/stable-map.h"
 #include <string>
 
 namespace QaplaTester::Settings {
 
 /// Returns key definitions for engine group
-std::unordered_map<std::string, ParameterDefinition> getEngineKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys();
 
 /// Returns key definitions for logging group
-std::unordered_map<std::string, ParameterDefinition> getLoggingKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys();
 
 /// Returns key definitions for each group
-std::unordered_map<std::string, ParameterDefinition> getEachKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys();
 
 /// Returns key definitions for epd group
-std::unordered_map<std::string, ParameterDefinition> getEpdKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys();
 
 /// Returns key definitions for sprt group
-std::unordered_map<std::string, ParameterDefinition> getSprtKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys();
 
 /// Returns key definitions for openings group
-std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getOpeningsKeys();
 
 /// Returns key definitions for test group
-std::unordered_map<std::string, ParameterDefinition> getTestKeys();
-
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys();
 /// Returns key definitions for pgnoutput group
-std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getPgnOutputKeys();
 
 /// Returns key definitions for tournament group
-std::unordered_map<std::string, ParameterDefinition> getTournamentKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys();
 
 /// Returns key definitions for draw group
-std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getDrawAdjudicationKeys();
 
 /// Returns key definitions for resign group
-std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getResignAdjudicationKeys();
 
 /// Returns key definitions for spsa group
-std::unordered_map<std::string, ParameterDefinition> getSpsaKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys();
 
 /// Returns key definitions for spsavalue group
-std::unordered_map<std::string, ParameterDefinition> getSpsaValueKeys();
-
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys();
 } // namespace QaplaTester::Settings
 
 #endif // SETTINGS_DEFINITIONS_H

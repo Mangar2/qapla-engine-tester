@@ -27,6 +27,7 @@
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/ini-file.h"
+#include "../base-elements/stable-map.h"
 
 namespace QaplaTester::Settings {
 
@@ -72,15 +73,19 @@ namespace QaplaTester::Settings {
         std::string description;                                      ///< Help text shown to users
         bool unique;                                                  ///< True if only one instance of this group is allowed
         std::vector<std::string> primaryKey{};                          ///< List of keys that uniquely identify an instance of the group
-        std::unordered_map<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions
-        std::vector<std::string> keyOrder{};                            ///< Order of keys as defined in registration (for consistent export order)
+        QaplaHelpers::StableMap<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions (preserves insertion order)
 
         /**
          * @brief Returns all defined keys in the order they were registered.
          * @return Vector of key names in definition order.
         */
-        [[nodiscard]] const std::vector<std::string>& getKeyNames() const {
-            return keyOrder;
+        [[nodiscard]] std::vector<std::string> getKeyNames() const {
+            std::vector<std::string> result;
+            result.reserve(keys.size());
+            for (const auto& [key, _] : keys) {
+                result.push_back(key);
+            }
+            return result;
         }
     };
 

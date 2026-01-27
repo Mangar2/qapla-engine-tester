@@ -232,17 +232,14 @@ namespace QaplaTester::Settings
     void Manager::registerGroup(const GroupDefinition& config)
     {
         std::string key = QaplaHelpers::to_lowercase(config.name);
-        std::unordered_map<std::string, ParameterDefinition> lowercaseKeys;
-        std::vector<std::string> orderedKeys;
+        QaplaHelpers::StableMap<std::string, ParameterDefinition> lowercaseKeys;
         for (const auto& [key, def] : config.keys) {
             const auto lowerKey = QaplaHelpers::to_lowercase(key);
             lowercaseKeys[lowerKey] = def;
-            orderedKeys.push_back(lowerKey);
         }
 
         groupDefs_[key] = config;
         groupDefs_[key].keys = std::move(lowercaseKeys);
-        groupDefs_[key].keyOrder = std::move(orderedKeys);
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {

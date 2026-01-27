@@ -21,7 +21,7 @@
 
 namespace QaplaTester::Settings {
 
-std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -90,7 +90,7 @@ std::unordered_map<std::string, ParameterDefinition> getEngineKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getLoggingKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
     return {
         { "id",     { 
             .description = "Identifier for the configuration", 
@@ -116,7 +116,7 @@ std::unordered_map<std::string, ParameterDefinition> getLoggingKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -154,7 +154,7 @@ std::unordered_map<std::string, ParameterDefinition> getEachKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getEpdKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -184,7 +184,7 @@ std::unordered_map<std::string, ParameterDefinition> getEpdKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getSprtKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
@@ -235,7 +235,7 @@ std::unordered_map<std::string, ParameterDefinition> getSprtKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getOpeningsKeys() {
     return {
         { "id",    { .description = "Identifier for the configuration", 
                     .isRequired = false, 
@@ -269,7 +269,7 @@ std::unordered_map<std::string, ParameterDefinition> getOpeningsKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getTestKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
     return {
         { "id",         { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -315,7 +315,7 @@ std::unordered_map<std::string, ParameterDefinition> getTestKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getPgnOutputKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
@@ -357,7 +357,7 @@ std::unordered_map<std::string, ParameterDefinition> getPgnOutputKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getTournamentKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
@@ -415,7 +415,7 @@ std::unordered_map<std::string, ParameterDefinition> getTournamentKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
     return {
         { "id",         { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -446,7 +446,7 @@ std::unordered_map<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getResignAdjudicationKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
@@ -477,7 +477,7 @@ std::unordered_map<std::string, ParameterDefinition> getResignAdjudicationKeys()
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getSpsaKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys() {
     return {
         { "id",            { .description = "Identifier for the configuration", 
                             .isRequired = false, 
@@ -511,7 +511,7 @@ std::unordered_map<std::string, ParameterDefinition> getSpsaKeys() {
     };
 }
 
-std::unordered_map<std::string, ParameterDefinition> getSpsaValueKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
