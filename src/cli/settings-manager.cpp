@@ -448,7 +448,72 @@ namespace QaplaTester::Settings
         }
         return std::nullopt;
     }
+    /*
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section)
+    {
+        std::string groupName = QaplaHelpers::to_lowercase(section.name);
+        
+        auto defIt = groupDefs_.find(groupName);
+        if (defIt == groupDefs_.end()) {
+            throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
+        }
 
+        const auto &groupDefinition = defIt->second;
+        ValueMap group;
+
+        if (groupDefinition.unique && groupInstances_.contains(groupName))
+        {
+            throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
+        }
+
+        // Parse all entries in the section
+        for (const auto& [key, value] : section.entries) {
+            std::string lowerKey = QaplaHelpers::to_lowercase(key);
+            
+            // Skip "id" entry as it's used for section identification
+            if (lowerKey == "id") {
+                continue;
+            }
+
+            const Definition *def = resolveGroupedKey(groupDefinition, lowerKey);
+            if (def == nullptr) {
+                AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
+                    "Unknown parameter in section \"" + section.name + "\"");
+            }
+            group[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, *def);
+        }
+
+        // Check for exclusive keys
+        for (const auto &[key, def] : groupDefinition.keys)
+        {
+            if (def.exclusive && group.contains(key) && group.size() > 1) {
+                throw AppError::makeInvalidParameters(
+                    "Parameter \"" + key + "\" in section \"" + section.name + 
+                    "\" cannot be combined with other parameters");
+            }
+        }
+
+        // Add missing required/default values
+        for (const auto &[key, def] : groupDefinition.keys)
+        {
+            if (key.ends_with(".[name]")) {
+                continue;
+            }
+            if (group.contains(key)) {
+                continue;
+            }
+            if (def.isRequired) {
+                throw AppError::makeInvalidParameters(
+                    "Missing required parameter \"" + key + "\" in section \"" + section.name + "\"");
+            }
+            if (def.defaultValue) {
+                group[key] = *def.defaultValue;
+            }
+        }
+
+        groupInstances_[groupName].emplace_back(group, groupDefinition);
+    }
+    */
     void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/)
     {
         const auto groupName = QaplaHelpers::to_lowercase(section.name);

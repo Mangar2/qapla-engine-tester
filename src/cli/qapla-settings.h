@@ -172,6 +172,12 @@ private:
     [[nodiscard]] static std::vector<std::string> argvToVector(int argc, char* argv[]);
 
     /**
+     * @brief Applies settings from a configuration file
+     * @param settingsFile Path to the settings file
+     */
+    void applySettingsFromFile(std::string_view settingsFile);
+
+    /**
      * @brief Reads logger configuration from CLI settings
      */
     void setLoggerConfiguration();

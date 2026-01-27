@@ -49,36 +49,29 @@ QaplaSettings& QaplaSettings::instance() {
     return instance;
 }
 
+void QaplaSettings::applySettingsFromFile(std::string_view settingsFile) {
+    std::ifstream file(settingsFile.data());
+    if (!file.is_open()) {
+        throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
+    }
+    QaplaHelpers::ConfigData fileData;
+    fileData.load(file);
+    
+    // Parse file data
+    Manager::instance().parseInput(fileData, false);
+}
+
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Convert CLI arguments to ConfigData
     auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
+    Manager::instance().parseInput(cliData);
     
     // Extract settingsfile from CLI global parameters without full parsing
-    std::string settingsFile;
-    for (const auto& [key, value] : cliData.getGlobalParameters()) {
-        if (QaplaHelpers::to_lowercase(key) == "settingsfile") {
-            settingsFile = value;
-            break;
-        }
-    }
+    std::string settingsFile = Manager::instance().get<std::string>("settingsfile");
     
     // If settings file specified, load and parse it first
     if (!settingsFile.empty()) {
-        std::ifstream file(settingsFile);
-        if (!file.is_open()) {
-            throw AppError::makeInvalidParameters("Failed to open settings file: " + settingsFile);
-        }
-        QaplaHelpers::ConfigData fileData;
-        fileData.load(file);
-        
-        // Parse file data as base
-        Manager::instance().parseInput(fileData);
-        
-        // Merge CLI parameters (overrides file settings)
-        Manager::instance().parseInput(cliData, false);
-    } else {
-        // No settings file, just parse CLI directly
-        Manager::instance().parseInput(cliData);
+        applySettingsFromFile(settingsFile);
     }
 
     // Load and merge settings from an SprtTournamentFile if specified
@@ -505,11 +498,8 @@ void QaplaSettings::loadSprtConfig() {
 
     auto sprtFile = sprt->get<std::string>("file");
     if (!sprtFile.empty()) {
-        SprtTournamentFile::load(sprtFile, "sprt-tournament");
-        setFromConfigData(SprtTournamentFile::getConfigData(), "sprt-tournament");
-        return;
+        applySettingsFromFile(sprtFile);
     }
-
 }
 
 void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
