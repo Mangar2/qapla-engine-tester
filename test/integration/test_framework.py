@@ -4,6 +4,7 @@
 Provides validation functions and test execution infrastructure.
 """
 
+import difflib
 import os
 import re
 import subprocess
@@ -107,10 +108,105 @@ def validate_file_exists(path: str, test_name: str) -> bool:
         return False
 
 
+def validate_file_append_only(
+    path: str, original_content: str, test_name: str
+) -> bool:
+    """Validate that file was only appended to, original content preserved."""
+    if not os.path.exists(path):
+        print(f"  {Colors.RED}[FAIL]{Colors.RESET} File not found: {path}")
+        return False
+
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            current_content = f.read()
+
+        if not current_content.startswith(original_content):
+            print(
+                f"  {Colors.RED}[FAIL]{Colors.RESET} File content was modified "
+                f"(original content not preserved): {path}"
+            )
+            
+            # Show unified diff (limited to first 20 lines)
+            original_lines = original_content.splitlines(keepends=True)
+            current_lines = current_content.splitlines(keepends=True)
+            
+            diff = difflib.unified_diff(
+                original_lines,
+                current_lines,
+                fromfile="original",
+                tofile="current",
+                lineterm="",
+            )
+            
+            print(f"  {Colors.YELLOW}Diff (first 20 lines):{Colors.RESET}")
+            diff_lines = list(diff)
+            for idx, line in enumerate(diff_lines[:20]):
+                line = line.rstrip()
+                if line.startswith("+++") or line.startswith("---"):
+                    print(f"    {Colors.GRAY}{line}{Colors.RESET}")
+                elif line.startswith("+"):
+                    print(f"    {Colors.GREEN}{line}{Colors.RESET}")
+                elif line.startswith("-"):
+                    print(f"    {Colors.RED}{line}{Colors.RESET}")
+                elif line.startswith("@@"):
+                    print(f"    {Colors.CYAN}{line}{Colors.RESET}")
+                else:
+                    print(f"    {line}")
+            
+            if len(diff_lines) > 20:
+                print(f"    {Colors.GRAY}... ({len(diff_lines) - 20} more lines){Colors.RESET}")
+            
+            return False
+
+        if len(current_content) > len(original_content):
+            added_lines = len(current_content.splitlines()) - len(
+                original_content.splitlines()
+            )
+            print(
+                f"  {Colors.GREEN}[OK]{Colors.RESET} File only appended "
+                f"({added_lines} lines added): {path}"
+            )
+        else:
+            print(
+                f"  {Colors.GREEN}[OK]{Colors.RESET} File content preserved: {path}"
+            )
+
+        return True
+    except Exception as e:
+        print(
+            f"  {Colors.RED}[FAIL]{Colors.RESET} Error reading file {path}: {e}"
+        )
+        return False
+
+
 def invoke_test(test: Dict[str, Any]) -> bool:
     """Execute a single test and validate results."""
     print()
     print(f"  {Colors.CYAN}Test: {test['name']}{Colors.RESET}")
+
+    # Store original content for append-only validation
+    file_original_contents = {}
+    for validator in test.get("validators", []):
+        if validator["type"] == "fileAppendOnly":
+            file_path = validator["path"]
+            if os.path.exists(file_path):
+                try:
+                    with open(
+                        file_path, "r", encoding="utf-8", errors="ignore"
+                    ) as f:
+                        file_original_contents[file_path] = f.read()
+                except Exception:
+                    pass
+
+    # Backup files if specified
+    backup_files = []
+    if "backup_files" in test and test["backup_files"]:
+        import shutil
+        for file_to_backup in test["backup_files"]:
+            if os.path.exists(file_to_backup):
+                backup_path = f"{file_to_backup}.backup"
+                shutil.copy2(file_to_backup, backup_path)
+                backup_files.append((file_to_backup, backup_path))
 
     # Run cleanup if specified
     if "cleanup" in test and test["cleanup"]:
@@ -171,6 +267,18 @@ def invoke_test(test: Dict[str, Any]) -> bool:
             )
         elif validator_type == "fileExists":
             result = validate_file_exists(validator["path"], test["name"])
+        elif validator_type == "fileAppendOnly":
+            file_path = validator["path"]
+            if file_path in file_original_contents:
+                result = validate_file_append_only(
+                    file_path, file_original_contents[file_path], test["name"]
+                )
+            else:
+                print(
+                    f"  {Colors.YELLOW}[SKIP]{Colors.RESET} "
+                    f"No original content stored for: {file_path}"
+                )
+                result = True
         else:
             print(
                 f"  {Colors.YELLOW}[SKIP]{Colors.RESET} Unknown validator: {validator_type}"
@@ -178,6 +286,18 @@ def invoke_test(test: Dict[str, Any]) -> bool:
 
         if not result:
             all_passed = False
+
+    # Restore backed up files
+    if backup_files:
+        import shutil
+        for original_path, backup_path in backup_files:
+            try:
+                shutil.move(backup_path, original_path)
+            except Exception as e:
+                print(
+                    f"  {Colors.YELLOW}[WARN]{Colors.RESET} Failed to restore "
+                    f"{original_path}: {e}"
+                )
 
     print()
     if all_passed:

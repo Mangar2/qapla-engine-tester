@@ -36,7 +36,14 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "SPRT using sprt file with concurrency parameter",
             "args": "--concurrency=2 --sprt file=test/integration/parameter/test-parameter-sprt-file.qsprt",
             "log_path": "test/integration/log/parameter",
-            "validators": [{"type": "exitCode", "expected": 10}],
+            "validators": [
+                {"type": "exitCode", "expected": 10},
+                {
+                    "type": "fileAppendOnly",
+                    "path": "test/integration/parameter/test-parameter-sprt-file.qsprt",
+                },
+            ],
             "cleanup": "test/integration/log/parameter",
+            "backup_files": ["test/integration/parameter/test-parameter-sprt-file.qsprt"],
         },
     ]

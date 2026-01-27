@@ -224,10 +224,9 @@ namespace QaplaTester::Settings {
          * @brief Parses configuration data from ConfigData structure.
 		 * @param configData ConfigData instance containing configuration sections and parameters.
          * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
+         * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
          */
-        void parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite = false);
-
-
+        void parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite = false, bool strict = true);
 
         /**
          * @brief Validates all group instances for completeness and adds missing defaults.
@@ -349,29 +348,19 @@ namespace QaplaTester::Settings {
          * @brief Processes all sections in the config data.
          * @param configData ConfigData instance containing configuration sections.
          * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
+         * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
          */
-        void processSections(const QaplaHelpers::ConfigData& configData, bool overwrite);
+        void processSections(const QaplaHelpers::ConfigData& configData, bool overwrite, bool strict);
 
         /**
          * @brief Processes a section map containing multiple section lists.
          * @param sectionMap Map of section IDs to section lists.
          * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
+         * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
          */
-        void processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite);
+        void processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite, bool strict);
 
-        /**
-         * @brief Processes a single section based on its type (global or grouped).
-         * @param section The section to process.
-         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
-         */
-        void processSection(const QaplaHelpers::IniFile::Section& section, bool overwrite);
 
-        /**
-         * @brief Processes all entries in a section as global parameters.
-         * @param section The section containing entries to process.
-         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
-         */
-        void processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool overwrite);
 
         /**
          * @brief Parses a single global parameter from a section entry.
@@ -385,8 +374,9 @@ namespace QaplaTester::Settings {
          * @brief Parses an entire grouped parameter section.
          * @param section The section to parse.
          * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
+         * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
          */
-        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite);
+        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite, bool strict);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.

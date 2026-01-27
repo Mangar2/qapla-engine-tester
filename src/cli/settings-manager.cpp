@@ -282,7 +282,7 @@ namespace QaplaTester::Settings
         return it->second[0];
     }
 
-    void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite)
+    void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite, bool strict)
     {
         handleHelpRequest(configData);
         
@@ -291,7 +291,7 @@ namespace QaplaTester::Settings
             parseGlobalParameter(key, value, overwrite);
         }
         
-        processSections(configData, overwrite);
+        processSections(configData, overwrite, strict);
         finalizeGlobalParameters();
     }
 
@@ -305,7 +305,7 @@ namespace QaplaTester::Settings
         }
     }
 
-    void Manager::processSections(const QaplaHelpers::ConfigData& configData, bool overwrite)
+    void Manager::processSections(const QaplaHelpers::ConfigData& configData, bool overwrite, bool strict)
     {
         for (const auto& sectionName : configData.getAllSectionNames()) {
             auto sectionMapOpt = configData.getSectionMap(sectionName);
@@ -313,11 +313,11 @@ namespace QaplaTester::Settings
                 continue;
             }
             
-            processSectionMap(*sectionMapOpt, overwrite);
+            processSectionMap(*sectionMapOpt, overwrite, strict);
         }
     }
 
-    void Manager::processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite)
+    void Manager::processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite, bool strict)
     {
         for (const auto& [sectionId, sectionList] : sectionMap) {
             if (!sectionList.empty()) {
@@ -329,24 +329,8 @@ namespace QaplaTester::Settings
             }
             
             for (const auto& section : sectionList) {
-                processSection(section, overwrite);
+                parseGroupedParameter(section, overwrite, strict);
             }
-        }
-    }
-
-    void Manager::processSection(const QaplaHelpers::IniFile::Section& section, bool overwrite)
-    {
-        if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
-            parseGroupedParameter(section, overwrite);
-        } else {
-            processSectionEntries(section, overwrite);
-        }
-    }
-
-    void Manager::processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool overwrite)
-    {
-        for (const auto& [key, value] : section.entries) {
-            parseGlobalParameter(key, value, overwrite);
         }
     }
 
@@ -514,12 +498,15 @@ namespace QaplaTester::Settings
         groupInstances_[groupName].emplace_back(group, groupDefinition);
     }
     */
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/)
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/, bool strict)
     {
         const auto groupName = QaplaHelpers::to_lowercase(section.name);
         
         const auto defIt = groupDefs_.find(groupName);
         if (defIt == groupDefs_.end()) {
+            if (!strict) {
+                return;
+            }
             throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
         }
         const auto& groupDefinition = defIt->second;
