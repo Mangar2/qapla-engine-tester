@@ -136,52 +136,148 @@ std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) { /
 
 void QaplaSettings::init() {
     // Global settings
-    Manager::instance().registerSetting({.name = "interactive", .description = "Enables interactive mode", .isRequired = false, .defaultValue = false, .type = ValueType::Bool});
-    Manager::instance().registerSetting({.name = "concurrency", .description = "Maximal number of in parallel running engines", .isRequired = true, .defaultValue = 10,
-        .type = ValueType::UInt});
-    Manager::instance().registerSetting({.name = "rapid", .description = "Ignores engine info output. Speeds up games with <10s total compute time",
-        .isRequired = false, .defaultValue = false, .type = ValueType::Bool});
-    Manager::instance().registerSetting({.name = "enginesfile", .description = "Path to an ini file with engine configurations", .isRequired = false, .defaultValue = "",
-        .type = ValueType::PathExists});
-    Manager::instance().registerSetting({.name = "settingsfile", .description = "Path to a settings file in INI-style format", .isRequired = false, .defaultValue = std::string(""),
-        .type = ValueType::PathExists});
+    Manager::instance().registerSetting({
+        .name = "interactive", 
+        .description = "Enables interactive mode", 
+        .isRequired = false, 
+        .defaultValue = false, 
+        .type = ValueType::Bool
+    });
+    
+    Manager::instance().registerSetting({
+        .name = "concurrency", 
+        .description = "Maximal number of in parallel running engines", 
+        .isRequired = true, 
+        .defaultValue = 10,
+        .type = ValueType::UInt
+    });
+    
+    Manager::instance().registerSetting({
+        .name = "rapid", 
+        .description = "Enables rapid mode (suppresses engine info lines)",
+        .isRequired = false, 
+        .defaultValue = false, 
+        .type = ValueType::Bool
+    });
 
-    // Engine group
-    Manager::instance().registerGroup({.name = "engine", .description = "Defines an engine configuration", .unique = false, .keys = Settings::getEngineKeys()});
+    Manager::instance().registerSetting({
+        .name = "enginesfile", 
+        .description = "Path to an ini file with engine configurations", 
+        .isRequired = false, 
+        .defaultValue = "",
+        .type = ValueType::PathExists
+    });
+
+    Manager::instance().registerSetting({
+        .name = "settingsfile", 
+        .description = "Path to a settings file in INI-style format", 
+        .isRequired = false, 
+        .defaultValue = std::string(""),
+        .type = ValueType::PathExists
+    });
+
+    Manager::instance().registerGroup({
+        .name = "engine", 
+        .description = "Defines an engine configuration", 
+        .unique = false, 
+        .primaryKey = {"name", "conf"},
+        .keys = Settings::getEngineKeys()}
+    );
 
     // Logging group
-    Manager::instance().registerGroup({.name = "logging", .description = "Logger configuration", .unique = true, .keys = Settings::getLoggingKeys()});
+    Manager::instance().registerGroup({
+        .name = "logging", 
+        .description = "Logger configuration", 
+        .unique = true, 
+        .keys = Settings::getLoggingKeys()
+    });
 
     // Each group
-    Manager::instance().registerGroup({.name = "each", .description = "Defines configuration options for all engines", .unique = true, .keys = Settings::getEachKeys()});
+    Manager::instance().registerGroup({
+        .name = "each", 
+        .description = "Defines configuration options for all engines", 
+        .unique = true, 
+        .keys = Settings::getEachKeys()
+    });
 
     // EPD group
-    Manager::instance().registerGroup({.name = "epd", .description = "Configuration to run an epd testset against engines", .unique = true, .keys = Settings::getEpdKeys()});
+    Manager::instance().registerGroup({
+        .name = "epd", 
+        .description = "Configuration to run an epd testset against engines", 
+        .unique = true, 
+        .keys = Settings::getEpdKeys()
+    });
 
     // SPRT group
-    Manager::instance().registerGroup({.name = "sprt", .description = "Sequential Probability Ratio Test configuration", .unique = true, .keys = Settings::getSprtKeys()});
+    Manager::instance().registerGroup({
+        .name = "sprt", 
+        .description = "Sequential Probability Ratio Test configuration", 
+        .unique = true, 
+        .keys = Settings::getSprtKeys()
+    });
     // Openings group
-    Manager::instance().registerGroup({.name = "openings", .description = "Defines how start positions are selected", .unique = true, .keys = Settings::getOpeningsKeys()});
+    Manager::instance().registerGroup({
+        .name = "openings", 
+        .description = "Defines how start positions are selected", 
+        .unique = true, 
+        .keys = Settings::getOpeningsKeys()
+    });
 
     // Test group
-    Manager::instance().registerGroup({.name = "test", .description = "Test the engine", .unique = true, .keys = Settings::getTestKeys()});
+    Manager::instance().registerGroup({
+        .name = "test", 
+        .description = "Test the engine", 
+        .unique = true, 
+        .keys = Settings::getTestKeys()
+    });
 
     // PGN output group
-    Manager::instance().registerGroup({.name = "pgnoutput", .description = "PGN output settings", .unique = true, .keys = Settings::getPgnOutputKeys()});
+    Manager::instance().registerGroup({
+        .name = "pgnoutput", 
+        .description = "PGN output settings", 
+        .unique = true, 
+        .keys = Settings::getPgnOutputKeys()
+    });
 
     // Tournament group
-    Manager::instance().registerGroup({.name = "tournament", .description = "Tournament setup and general parameters", .unique = true, .keys = Settings::getTournamentKeys()});
+    Manager::instance().registerGroup({
+        .name = "tournament", 
+        .description = "Tournament setup and general parameters", 
+        .unique = true, 
+        .keys = Settings::getTournamentKeys()
+    });
 
     // Draw adjudication group
-    Manager::instance().registerGroup({.name = "draw", .description = "Draw adjudication settings", .unique = true, .keys = Settings::getDrawAdjudicationKeys()});
+    Manager::instance().registerGroup({
+        .name = "draw", 
+        .description = "Draw adjudication settings", 
+        .unique = true, 
+        .keys = Settings::getDrawAdjudicationKeys()
+    });
 
     // Resign adjudication group
-    Manager::instance().registerGroup({.name = "resign", .description = "Resign adjudication settings", .unique = true, .keys = Settings::getResignAdjudicationKeys()});
+    Manager::instance().registerGroup({
+        .name = "resign", 
+        .description = "Resign adjudication settings", 
+        .unique = true, 
+        .keys = Settings::getResignAdjudicationKeys()
+    });
+
     // SPSA optimization group
-    Manager::instance().registerGroup({.name = "spsa", .description = "SPSA parameter optimization configuration", .unique = true, .keys = Settings::getSpsaKeys()});
+    Manager::instance().registerGroup({
+        .name = "spsa", 
+        .description = "SPSA parameter optimization configuration", 
+        .unique = true, 
+        .keys = Settings::getSpsaKeys()
+    });
 
     // SPSA parameter value group
-    Manager::instance().registerGroup({.name = "spsavalue", .description = "Defines a single parameter to optimize with SPSA", .unique = false, .keys = Settings::getSpsaValueKeys()});
+    Manager::instance().registerGroup({
+        .name = "spsavalue", 
+        .description = "Defines a single parameter to optimize with SPSA", 
+        .unique = false, 
+        .keys = Settings::getSpsaValueKeys()
+    });
 }
 
 void QaplaSettings::setLoggerConfiguration() {
