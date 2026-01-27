@@ -71,6 +71,7 @@ namespace QaplaTester::Settings {
         std::string name;                                             ///< Group name, case-insensitive (e.g., "engine", "openings")
         std::string description;                                      ///< Help text shown to users
         bool unique;                                                  ///< True if only one instance of this group is allowed
+        std::vector<std::string> primaryKey;                          ///< List of keys that uniquely identify an instance of the group
         std::unordered_map<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions
 
         /**
@@ -221,29 +222,29 @@ namespace QaplaTester::Settings {
         /**
          * @brief Parses configuration data from ConfigData structure.
 		 * @param configData ConfigData instance containing configuration sections and parameters.
-         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void parseInput(const QaplaHelpers::ConfigData& configData, bool strict = true);
+        void parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite = false);
 
         /**
          * @brief Merges a section list into existing settings.
          * @param sectionName Name of the section (e.g., "engine", "openings").
          * @param sections List of sections to merge.
          * @param mergeIdentifier Field name used to identify matching instances (e.g., "name" for engines). Empty for unique groups.
-         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
         void mergeSectionList(const std::string& sectionName,
                              const QaplaHelpers::IniFile::SectionList& sections,
                              const std::string& mergeIdentifier = "",
-                             bool strict = true);
+                             bool overwrite = false);
 
         /**
          * @brief Merges entire ConfigData into existing settings.
          * Processes all section names in the ConfigData, merging each section list using mergeSectionList.
          * @param configData ConfigData instance to merge.
-         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void mergeConfigData(const QaplaHelpers::ConfigData& configData, bool strict = true);
+        void mergeConfigData(const QaplaHelpers::ConfigData& configData, bool overwrite = false);
 
         /**
          * @brief Validates all group instances for completeness and adds missing defaults.
@@ -364,45 +365,45 @@ namespace QaplaTester::Settings {
         /**
          * @brief Processes all sections in the config data.
          * @param configData ConfigData instance containing configuration sections.
-         * @param strict When true, unknown parameters cause an error.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void processSections(const QaplaHelpers::ConfigData& configData, bool strict);
+        void processSections(const QaplaHelpers::ConfigData& configData, bool overwrite);
 
         /**
          * @brief Processes a section map containing multiple section lists.
          * @param sectionMap Map of section IDs to section lists.
-         * @param strict When true, unknown parameters cause an error.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool strict);
+        void processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite);
 
         /**
          * @brief Processes a single section based on its type (global or grouped).
          * @param section The section to process.
-         * @param strict When true, unknown parameters cause an error.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void processSection(const QaplaHelpers::IniFile::Section& section, bool strict);
+        void processSection(const QaplaHelpers::IniFile::Section& section, bool overwrite);
 
         /**
          * @brief Processes all entries in a section as global parameters.
          * @param section The section containing entries to process.
-         * @param strict When true, unknown parameters cause an error.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool strict);
+        void processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool overwrite);
 
         /**
          * @brief Parses a single global parameter from a section entry.
          * @param key Parameter key.
          * @param value Parameter value.
-         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void parseGlobalParameter(const std::string& key, const std::string& value, bool strict);
+        void parseGlobalParameter(const std::string& key, const std::string& value, bool overwrite);
 
         /**
          * @brief Parses an entire grouped parameter section.
          * @param section The section to parse.
-         * @param strict When true, unknown parameters cause an error. When false, unknown parameters are ignored.
+         * @param overwrite When true, existing values are overwritten. When false, existing values are kept.
          */
-        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool strict);
+        void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
@@ -417,13 +418,15 @@ namespace QaplaTester::Settings {
          * @brief Parses all entries in a section and returns a ValueMap.
          * @param section The section containing entries to parse.
          * @param groupDefinition The group definition for validation.
-         * @param strict When true, unknown parameters cause an error.
-         * @return ValueMap containing parsed entries.
+         * @param overwrite When true, existing keys in existingMap are overwritten. When false, existing keys are kept.
+         * @param existingMap Optional pointer to existing ValueMap to use as base.
+         * @return ValueMap containing parsed entries, optionally merged with existing values.
          */
         [[nodiscard]] static ValueMap parseSectionEntries(
             const QaplaHelpers::IniFile::Section& section, 
-            const GroupDefinition& groupDefinition, 
-            bool strict);
+            const GroupDefinition& groupDefinition,
+            bool overwrite,
+            const ValueMap* existingMap = nullptr);
 
         /**
          * @brief Validates that no exclusive keys are combined with other keys.
@@ -471,6 +474,28 @@ namespace QaplaTester::Settings {
          * @param type The expected type.
          */
         static void validateDefaultValue(const std::string& name, const Value& value, ValueType type);
+
+        /**
+         * @brief Checks if a Section matches an existing GroupInstance by comparing primaryKey values.
+         * @param section The section containing the values to check.
+         * @param instance The existing GroupInstance to compare against.
+         * @param primaryKeys The list of key names that must match.
+         * @return True if all primaryKey values match, false otherwise.
+         */
+        static bool matchesPrimaryKey(const QaplaHelpers::IniFile::Section& section,
+            const GroupInstance& instance,
+            const std::vector<std::string>& primaryKeys);
+
+        /**
+         * @brief Finds a GroupInstance in a list by matching primaryKey values from a Section.
+         * @param instances The list of GroupInstances to search.
+         * @param section The section containing primaryKey values to match.
+         * @param primaryKeys The list of key names that must match.
+         * @return Index to the matching GroupInstance
+         */
+        static std::optional<size_t> findInstanceByPrimaryKey(GroupInstances& instances,
+            const QaplaHelpers::IniFile::Section& section,
+            const std::vector<std::string>& primaryKeys);
 
         /**
          * @brief Validates and finalizes all global parameters after parsing.

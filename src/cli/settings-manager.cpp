@@ -282,16 +282,16 @@ namespace QaplaTester::Settings
         return it->second[0];
     }
 
-    void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool strict)
+    void Manager::parseInput(const QaplaHelpers::ConfigData& configData, bool overwrite)
     {
         handleHelpRequest(configData);
         
         // Process global parameters first
         for (const auto& [key, value] : configData.getGlobalParameters()) {
-            parseGlobalParameter(key, value, strict);
+            parseGlobalParameter(key, value, overwrite);
         }
         
-        processSections(configData, strict);
+        processSections(configData, overwrite);
         finalizeGlobalParameters();
     }
 
@@ -305,7 +305,7 @@ namespace QaplaTester::Settings
         }
     }
 
-    void Manager::processSections(const QaplaHelpers::ConfigData& configData, bool strict)
+    void Manager::processSections(const QaplaHelpers::ConfigData& configData, bool overwrite)
     {
         for (const auto& sectionName : configData.getAllSectionNames()) {
             auto sectionMapOpt = configData.getSectionMap(sectionName);
@@ -313,36 +313,44 @@ namespace QaplaTester::Settings
                 continue;
             }
             
-            processSectionMap(*sectionMapOpt, strict);
+            processSectionMap(*sectionMapOpt, overwrite);
         }
     }
 
-    void Manager::processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool strict)
+    void Manager::processSectionMap(const QaplaHelpers::ConfigData::SectionMap& sectionMap, bool overwrite)
     {
         for (const auto& [sectionId, sectionList] : sectionMap) {
+            if (!sectionList.empty()) {
+                const auto groupName = QaplaHelpers::to_lowercase(sectionList[0].name);
+                const auto defIt = groupDefs_.find(groupName);
+                if (defIt != groupDefs_.end() && defIt->second.unique && sectionList.size() > 1) {
+                    throw AppError::makeInvalidParameters("\"" + sectionList[0].name + "\" may only be specified once");
+                }
+            }
+            
             for (const auto& section : sectionList) {
-                processSection(section, strict);
+                processSection(section, overwrite);
             }
         }
     }
 
-    void Manager::processSection(const QaplaHelpers::IniFile::Section& section, bool strict)
+    void Manager::processSection(const QaplaHelpers::IniFile::Section& section, bool overwrite)
     {
         if (groupDefs_.contains(QaplaHelpers::to_lowercase(section.name))) {
-            parseGroupedParameter(section, strict);
+            parseGroupedParameter(section, overwrite);
         } else {
-            processSectionEntries(section, strict);
+            processSectionEntries(section, overwrite);
         }
     }
 
-    void Manager::processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool strict)
+    void Manager::processSectionEntries(const QaplaHelpers::IniFile::Section& section, bool overwrite)
     {
         for (const auto& [key, value] : section.entries) {
-            parseGlobalParameter(key, value, strict);
+            parseGlobalParameter(key, value, overwrite);
         }
     }
 
-    void Manager::parseGlobalParameter(const std::string& key, const std::string& value, bool strict)
+    void Manager::parseGlobalParameter(const std::string& key, const std::string& value, bool overwrite)
     {
         std::string lowerKey = QaplaHelpers::to_lowercase(key);
         
@@ -352,41 +360,43 @@ namespace QaplaTester::Settings
 
         auto it = definitions_.find(lowerKey);
         if (it == definitions_.end()) {
-            if (!strict) {
-                return;
-            }
             throw AppError::makeInvalidParameters("\"" + key + "\" is not a valid global parameter");
         }
 
-        values_[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, it->second);
+        if (overwrite || !values_.contains(lowerKey)) {
+            values_[lowerKey] = parseValue({.original = key + "=" + value, .hasPrefix = false, .name = lowerKey, .value = value}, it->second);
+        }
     }
 
     ValueMap Manager::parseSectionEntries(const QaplaHelpers::IniFile::Section& section, 
-                                           const GroupDefinition& groupDefinition, 
-                                           bool strict)
+                                           const GroupDefinition& groupDefinition,
+                                           bool overwrite,
+                                           const ValueMap* existingMap)
     {
-        ValueMap group;
+        ValueMap result;
+        if (existingMap != nullptr) {
+            result = *existingMap;
+        }
         
         for (const auto& [key, value] : section.entries) {
-            const ParameterDefinition *def = resolveGroupedKey(groupDefinition, key);
+            const auto* def = resolveGroupedKey(groupDefinition, key);
             if (def == nullptr) {
-                if (!strict) {
-                    continue;
-                }
                 AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
                     std::format("Unknown parameter in section \"{}\"", section.name));
                 throw AppError::makeInvalidParameters(
                     std::format("Unknown parameter \"{}\" in section \"{}\"", key, section.name));
             }
-            std::string lowerKey = QaplaHelpers::to_lowercase(key);
-            group[lowerKey] = parseValue({
-                .original = std::format("{}={}", key, value), 
-                .hasPrefix = false, 
-                .name = lowerKey, 
-                .value = value}, *def);
+            const auto lowerKey = QaplaHelpers::to_lowercase(key);
+            if (overwrite || !result.contains(lowerKey)) {
+                result[lowerKey] = parseValue({
+                    .original = std::format("{}={}", key, value), 
+                    .hasPrefix = false, 
+                    .name = lowerKey, 
+                    .value = value}, *def);
+            }
         }
         
-        return group;
+        return result;
     }
 
     void Manager::validateExclusiveKeys(const ValueMap& group, 
@@ -403,31 +413,80 @@ namespace QaplaTester::Settings
         }
     }
 
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool strict)
+    bool Manager::matchesPrimaryKey(const QaplaHelpers::IniFile::Section& section,
+                                    const GroupInstance& instance,
+                                    const std::vector<std::string>& primaryKeys)
     {
-        std::string groupName = QaplaHelpers::to_lowercase(section.name);
+        for (const auto& keyName : primaryKeys) {
+            const auto sectionValue = section.getValue(keyName);
+            if (!sectionValue.has_value() || !instance.isKeyProvided(keyName)) {
+                return false;
+            }
+            
+            const auto lowerKey = QaplaHelpers::to_lowercase(keyName);
+            const auto instanceValue = instance.getValues().at(lowerKey);
+            
+            if (!std::holds_alternative<std::string>(instanceValue)) {
+                return false;
+            }
+            
+            if (*sectionValue != std::get<std::string>(instanceValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    std::optional<size_t> Manager::findInstanceByPrimaryKey(GroupInstances& instances,
+        const QaplaHelpers::IniFile::Section& section,
+        const std::vector<std::string>& primaryKeys)
+    {
+        for (size_t i = 0; i < instances.size(); ++i) {
+            if (matchesPrimaryKey(section, instances[i], primaryKeys)) {
+                return i;
+            }
+        }
+        return std::nullopt;
+    }
+
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite)
+    {
+        const auto groupName = QaplaHelpers::to_lowercase(section.name);
         
-        auto defIt = groupDefs_.find(groupName);
+        const auto defIt = groupDefs_.find(groupName);
         if (defIt == groupDefs_.end()) {
             throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
         }
+        const auto& groupDefinition = defIt->second;
+        std::optional<size_t> matchingIndex;
+        auto& instances = groupInstances_[groupName];
 
-        const auto &groupDefinition = defIt->second;
-
-        if (groupDefinition.unique && groupInstances_.contains(groupName))
-        {
-            throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
+        if (groupDefinition.unique && instances.size() >= 1) {
+            if (instances.size() > 1) {
+                throw AppError::makeInvalidParameters("\"" + section.name + "\" may only be specified once");
+            }
+            matchingIndex = 0;
+        } else if (groupInstances_.contains(groupName) && !groupDefinition.primaryKey.empty()) {
+            matchingIndex = findInstanceByPrimaryKey(instances, section, groupDefinition.primaryKey);
+        }
+        
+        if (matchingIndex) {
+            const auto mergedValues = parseSectionEntries(section, groupDefinition, true, 
+                &instances[*matchingIndex].getValues());
+            validateExclusiveKeys(mergedValues, groupDefinition, section.name);
+            instances[*matchingIndex] = GroupInstance(mergedValues, groupDefinition);
+            return;
         }
 
-        ValueMap group = parseSectionEntries(section, groupDefinition, strict);
-        validateExclusiveKeys(group, groupDefinition, section.name);
-        groupInstances_[groupName].emplace_back(group, groupDefinition);
+        const auto newValues = parseSectionEntries(section, groupDefinition, false, nullptr);
+        validateExclusiveKeys(newValues, groupDefinition, section.name);
+        groupInstances_[groupName].emplace_back(newValues, groupDefinition);
     }
 
     void Manager::mergeSectionList(const std::string& sectionName,
                                    const QaplaHelpers::IniFile::SectionList& sections,
                                    const std::string& mergeIdentifier,
-                                   bool strict)
+                                   bool overwrite)
     {
         std::string groupName = QaplaHelpers::to_lowercase(sectionName);
         
@@ -439,19 +498,19 @@ namespace QaplaTester::Settings
         const auto& groupDefinition = defIt->second;
 
         for (const auto& section : sections) {
-            ValueMap group = parseSectionEntries(section, groupDefinition, strict);
-            validateExclusiveKeys(group, groupDefinition, section.name);
+            const auto newValues = parseSectionEntries(section, groupDefinition, false, nullptr);
+            validateExclusiveKeys(newValues, groupDefinition, section.name);
 
-            GroupInstance newInstance(group, groupDefinition);
+            const auto newInstance = GroupInstance(newValues, groupDefinition);
             mergeOrAppendInstance(groupName, newInstance, groupDefinition, section, mergeIdentifier);
         }
     }
 
-    void Manager::mergeConfigData(const QaplaHelpers::ConfigData& configData, bool strict)
+    void Manager::mergeConfigData(const QaplaHelpers::ConfigData& configData, bool overwrite)
     {
         // Merge global parameters
         for (const auto& [key, value] : configData.getGlobalParameters()) {
-            parseGlobalParameter(key, value, strict);
+            parseGlobalParameter(key, value, overwrite);
         }
         
         // Merge grouped sections
@@ -461,10 +520,7 @@ namespace QaplaTester::Settings
             
             auto defIt = groupDefs_.find(groupName);
             if (defIt == groupDefs_.end()) {
-                if (strict) {
-                    throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
-                }
-                continue;
+                throw AppError::makeInvalidParameters("\"" + sectionName + "\" is not a valid parameter group");
             }
 
             auto sectionMap = configData.getSectionMap(sectionName);
@@ -474,7 +530,7 @@ namespace QaplaTester::Settings
 
             for (const auto& [sectionId, sectionList] : *sectionMap) {
                 std::string mergeIdentifier = (groupName == "engine") ? "name" : "";
-                mergeSectionList(sectionName, sectionList, mergeIdentifier, strict);
+                mergeSectionList(sectionName, sectionList, mergeIdentifier, overwrite);
             }
         }
     }
