@@ -49,7 +49,7 @@ QaplaSettings& QaplaSettings::instance() {
     return instance;
 }
 
-void QaplaSettings::applySettingsFromFile(std::string_view settingsFile) {
+void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool strict) {
     std::ifstream file(settingsFile.data());
     if (!file.is_open()) {
         throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
@@ -58,7 +58,7 @@ void QaplaSettings::applySettingsFromFile(std::string_view settingsFile) {
     fileData.load(file);
     
     // Parse file data
-    Manager::instance().parseInput(fileData, false);
+    Manager::instance().parseInput(fileData, false, strict);
 }
 
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
@@ -498,7 +498,7 @@ void QaplaSettings::loadSprtConfig() {
 
     auto sprtFile = sprt->get<std::string>("file");
     if (!sprtFile.empty()) {
-        applySettingsFromFile(sprtFile);
+        applySettingsFromFile(sprtFile, false);
     }
 }
 
