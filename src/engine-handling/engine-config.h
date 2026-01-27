@@ -357,6 +357,7 @@ private:
 
     static std::string toString(const Value& value);
     std::string name_;
+    std::string originalName_;  ///> Name as reported by the engine itself (may be duplicate)
     std::string author_;
     std::string cmd_;
     std::string dir_;
@@ -367,6 +368,7 @@ private:
     RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;
 	bool gauntlet_ = false;
+    bool selected_ = true;
 	bool scoreFromWhitePov_ = false;
     std::unordered_map<std::string, std::string> internalKeys_;
     std::unordered_map<std::string, OptionValue> optionValues_;

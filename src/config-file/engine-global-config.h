@@ -61,7 +61,7 @@ public:
      * @brief Gets the section name for global engine configuration.
      * @return The section name used in INI files.
      */
-    [[nodiscard]] static constexpr const char* getSectionName() { return "eachengine"; }
+    [[nodiscard]] static constexpr const char* getSectionName() { return "each"; }
 
     /**
      * @brief Creates INI file section from EngineGlobalConfig.

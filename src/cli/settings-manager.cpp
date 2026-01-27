@@ -232,7 +232,13 @@ namespace QaplaTester::Settings
     void Manager::registerGroup(const GroupDefinition& config)
     {
         std::string key = QaplaHelpers::to_lowercase(config.name);
+        std::unordered_map<std::string, ParameterDefinition> lowercaseKeys;
+        for (const auto& [key, def] : config.keys) {
+            lowercaseKeys[QaplaHelpers::to_lowercase(key)] = def;
+        }
+
         groupDefs_[key] = config;
+        groupDefs_[key].keys = std::move(lowercaseKeys);
 
         for (auto& [name, def] : groupDefs_[key].keys)
         {
@@ -362,16 +368,17 @@ namespace QaplaTester::Settings
         ValueMap group;
         
         for (const auto& [key, value] : section.entries) {
-            std::string lowerKey = QaplaHelpers::to_lowercase(key);
-            
-            const ParameterDefinition *def = resolveGroupedKey(groupDefinition, lowerKey);
+            const ParameterDefinition *def = resolveGroupedKey(groupDefinition, key);
             if (def == nullptr) {
                 if (!strict) {
                     continue;
                 }
                 AppError::throwOnInvalidOption(groupDefinition.keyNames(), key,
                     std::format("Unknown parameter in section \"{}\"", section.name));
+                throw AppError::makeInvalidParameters(
+                    std::format("Unknown parameter \"{}\" in section \"{}\"", key, section.name));
             }
+            std::string lowerKey = QaplaHelpers::to_lowercase(key);
             group[lowerKey] = parseValue({
                 .original = std::format("{}={}", key, value), 
                 .hasPrefix = false, 
@@ -589,7 +596,8 @@ namespace QaplaTester::Settings
 
     const ParameterDefinition *Manager::resolveGroupedKey(const GroupDefinition &group, const std::string &name)
     {
-        auto it = group.keys.find(name);
+        std::string lowerName = QaplaHelpers::to_lowercase(name);
+        auto it = group.keys.find(lowerName);
         if (it != group.keys.end()) {
             return &it->second;
         }
@@ -599,7 +607,7 @@ namespace QaplaTester::Settings
             if (key.ends_with("." + postFix))
             {
                 std::string prefix = key.substr(0, key.size() - postFix.length());
-                if (name.starts_with(prefix)) {
+                if (lowerName.starts_with(prefix)) {
                     return &def;
                 }
             }

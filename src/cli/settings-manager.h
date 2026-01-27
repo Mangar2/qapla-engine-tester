@@ -174,8 +174,8 @@ namespace QaplaTester::Settings {
         }
 
     private:
-        const ValueMap values_;
-        const GroupDefinition definition_;
+        ValueMap values_;
+        GroupDefinition definition_;
     };
 
 	using GroupInstances = std::vector<GroupInstance>;

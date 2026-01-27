@@ -444,7 +444,7 @@ This group is used for all game-based tests (e.g. `--sprt`, `--roundrobin`) to s
 - **`append`** (Optional, Default: `true`)  
   If enabled, new games will be appended to the existing PGN file. If disabled, the file is overwritten at the start of each run.
 
-- **`fi`** (Optional, Default: `true`)  
+- **`finished`** (Optional, Default: `true`)  
   Save only games that were finished (i.e. not crashed or aborted). If disabled, all games are written regardless of status.
 
 - **`min`** (Optional, Default: `false`)  
