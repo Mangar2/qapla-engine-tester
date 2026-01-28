@@ -23,6 +23,7 @@
 #include <utility>
 #include <iostream>
 #include <memory>
+#include <format>
 
 #ifndef _WIN32
 #include <signal.h>
@@ -89,16 +90,20 @@ static auto runEpd(AppReturnCode code) {
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         std::string name = engine.getName();
-        std::string earlyStop = "Early stop - Seen plies: " + 
-            std::to_string(epdConfig->seenPlies) + " Min time: " + std::to_string(epdConfig->minTime) + "s";
-        Logger::reportLogger().log("Using engine: " + name 
-            + " Concurrency: " + std::to_string(concurrency) + " Max Time: " + std::to_string(epdConfig->maxTime) + "s "
-            + earlyStop);
+        std::string earlyStop = std::format("Early stop - Seen plies: {} Min time: {}s",
+            epdConfig->seenPlies, epdConfig->minTime);
+
+        Logger::reportLogger().log(std::format("Using engine: {} Concurrency: {} Max Time: {}s {}",
+            name, concurrency, epdConfig->maxTime, earlyStop));
         epdManager->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies);
-        epdManager->schedule(engine);
-        GameManagerPool::getInstance().waitForTask();
-        code = logChecklist(code, TraceLevel::info);
-        if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
+        GameManagerPool& pool = GameManagerPool::getInstance();
+
+        pool.setConcurrency(concurrency, true);
+        epdManager->schedule(engine, pool);
+        pool.waitForTask();
+        Logger::reportLogger().log(std::format("Finished EPD test for engine: {}, success rate: {:.2f}%", 
+            name, epdManager->getSuccessRate() * 100.0));
+        if (code == AppReturnCode::NoError) {
             bool success = epdManager->getSuccessRate() >= epdConfig->minSuccess / 100.0;
             code = success ? code : AppReturnCode::MissedTarget;
         }
@@ -122,17 +127,17 @@ static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode 
             controller.runAllTests(engine, test.get<uint32_t>("numgames"));
         }
         catch (const AppError& ex) {
-            Logger::reportLogger().log("Application error during engine test for " + name + ": " + std::string(ex.what()), 
+            Logger::reportLogger().log(std::format("Application error during engine test for {}: {}", name, ex.what()), 
                 TraceLevel::error);
             code = ex.getReturnCode();
         }
 		catch (const std::exception& e) {
-			Logger::reportLogger().log("Application error during engine test for " + name + ": " + std::string(e.what()), 
+			Logger::reportLogger().log(std::format("Application error during engine test for {}: {}", name, e.what()), 
                 TraceLevel::error);
             code = AppReturnCode::GeneralError;
 		}
 		catch (...) {
-			Logger::reportLogger().log("Unknown exception during engine test for " + name, TraceLevel::error);
+			Logger::reportLogger().log(std::format("Unknown exception during engine test for {}", name), TraceLevel::error);
             code = AppReturnCode::GeneralError;
 		}
         code = logChecklist(code);
@@ -143,8 +148,9 @@ static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode 
 static void checkTimeControl() {
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         if (!engine.getTimeControl().isValid()) {
-            throw AppError::makeInvalidParameters("No valid time control defined for engine '" + engine.getName()
-                + "'. Please specify a time control using 'tc' option.");
+            throw AppError::makeInvalidParameters(std::format(
+                "No valid time control defined for engine '{}'. Please specify a time control using 'tc' option.",
+                engine.getName()));
         }
     }
 }
@@ -153,7 +159,7 @@ static auto sprtFileIO(const std::string filename, uint32_t saveInterval,
     const std::shared_ptr<SprtManager>& manager) {
     if (!filename.empty()) {
         if (SprtTournamentFile::loadSprtSettings(filename)) {
-            Logger::reportLogger().log("Loaded SPRT tournament state from: " + filename, TraceLevel::result);
+            Logger::reportLogger().log(std::format("Loaded SPRT tournament state from: {}", filename), TraceLevel::result);
         }
     }
     auto& configData = SprtTournamentFile::getConfigData();
@@ -177,7 +183,7 @@ static auto sprtFileIO(const std::string filename, uint32_t saveInterval,
                         auto saveData = configData;
                         saveData.addSection(*section);
                         SprtTournamentFile::save(filename, saveData);
-                        Logger::reportLogger().log("Auto-saved SPRT state to: " + filename, TraceLevel::info);
+                        Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
                     }
                 }
             }
@@ -248,7 +254,7 @@ static auto runSprt(AppReturnCode code) {
         }
     }
     catch (const std::exception& e) {
-        Logger::reportLogger().log("Exception during sprt run: " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log(std::format("Exception during sprt run: {}", e.what()), TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     catch (...) {
@@ -289,17 +295,15 @@ static auto runSpsa(AppReturnCode code) {
         // Print final results
         auto currentParams = optimizer->getCurrentParameters();
         Logger::reportLogger().log("SPSA optimization completed", TraceLevel::result);
-        std::ostringstream oss;
-        oss << "\nFinal optimized parameters:\n";
+        std::string results = "\nFinal optimized parameters:\n";
         for (size_t i = 0; i < spsaConfig->parameters.size(); ++i) {
-            oss << "  " << spsaConfig->parameters[i].name << ": " 
-                << currentParams[i] << "\n";
+            results += std::format("  {}: {}\n", spsaConfig->parameters[i].name, currentParams[i]);
         }
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+        Logger::reportLogger().log(results, TraceLevel::result);
         
     }
     catch (const std::exception& e) {
-        Logger::reportLogger().log("Exception during SPSA run: " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log(std::format("Exception during SPSA run: {}", e.what()), TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     catch (...) {
@@ -336,16 +340,20 @@ static AppReturnCode runTournament(AppReturnCode code) {
         if (!tournamentConfig->tournamentFilename.empty()) {
             QaplaHelpers::ConfigData configData;
             if (TournamentFile::loadIntoTournament(tournamentConfig->tournamentFilename, configData, tournament, "tournament")) {
-                Logger::reportLogger().log("Loaded tournament state from: " + tournamentConfig->tournamentFilename, TraceLevel::result);
+                Logger::reportLogger().log(std::format("Loaded tournament state from: {}", 
+                    tournamentConfig->tournamentFilename), TraceLevel::result);
             } else {
-                Logger::reportLogger().log("Failed to load tournament from file: " + tournamentConfig->tournamentFilename, TraceLevel::error);
+                Logger::reportLogger().log(std::format("Failed to load tournament from file: {}", 
+                    tournamentConfig->tournamentFilename), TraceLevel::error);
                 return AppReturnCode::GeneralError;
             }
         }
 		tournament.load(tournamentConfig->tournamentFilename);
-        tournament.scheduleAll(concurrency);
-        // tournament.wait();
-		if (!tournamentConfig->tournamentFilename.empty()) {
+        GameManagerPool& pool = GameManagerPool::getInstance();
+        tournament.scheduleAll(concurrency, true, pool);
+        pool.waitForTask();
+
+        if (!tournamentConfig->tournamentFilename.empty()) {
 			// tournament.save(tournamentConfig->tournamentFilename);
 		}
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
@@ -356,7 +364,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
  		code = updateCode(code, EngineReport::logAll(TraceLevel::info, tournament.getResult()));
     }
     catch (const std::exception& e) {
-        Logger::reportLogger().log("Exception during tournament run: " + std::string(e.what()), TraceLevel::error);
+        Logger::reportLogger().log(std::format("Exception during tournament run: {}", e.what()), TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     catch (...) {
@@ -446,11 +454,11 @@ int main(int argc, char** argv) {
 			
     }
     catch (const AppError& ex) {
-		Logger::reportLogger().log("Application error: " + std::string(ex.what()), TraceLevel::error);
+		Logger::reportLogger().log(std::format("Application error: {}", ex.what()), TraceLevel::error);
         returnCode = ex.getReturnCode();
     }
 	catch (const std::exception& e) {
-		Logger::reportLogger().log(std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log(std::format("{}", e.what()), TraceLevel::error);
         returnCode = AppReturnCode::GeneralError;
 	}
 	catch (...) {

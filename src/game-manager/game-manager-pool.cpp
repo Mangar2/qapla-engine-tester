@@ -324,6 +324,7 @@ bool GameManagerPool::areAllTasksFinished() {
 }
 
 void GameManagerPool::startManagers() {
+
     auto toStart = maxConcurrency_;
     std::scoped_lock lock(startManagerMutex_);
     {

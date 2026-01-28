@@ -368,7 +368,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
                     .isRequired = true, 
                     .defaultValue = "gauntlet", 
                     .type = ValueType::String } },
-        { "file", { .description = "File to save tournament state", 
+        { "file", { .description = "Tournament stat file to load and update tournament state", 
                     .isRequired = false, 
                     .defaultValue = "", 
                     .type = ValueType::PathParentExists } },
