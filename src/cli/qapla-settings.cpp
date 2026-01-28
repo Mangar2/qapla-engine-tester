@@ -77,8 +77,8 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
 
-    // Validate all group instances for completeness after all merging is complete
-    Manager::instance().validateGroupCompleteness();
+    // Validate all settings for completeness after all merging is complete
+    Manager::instance().validateCompleteness();
 
     setLoggerConfiguration();
     setEngineConfig(Manager::instance(), "engine");

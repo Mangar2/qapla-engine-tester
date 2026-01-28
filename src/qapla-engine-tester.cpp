@@ -233,10 +233,9 @@ static auto runSprt(AppReturnCode code) {
                 SprtTournamentFile::save(sprtfile, configData, "sprt-tournament");
             }
             
-            code = updateCode(code, EngineReport::logAll(TraceLevel::command, manager->getResult()));
             Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
 
-            if (code == AppReturnCode::NoError || code == AppReturnCode::EngineNote) {
+            if (code == AppReturnCode::NoError) {
                 auto sprtResults = manager->getSprtResults();
                 if (!sprtResults.empty() && !sprtResults.front().empty()) {
                     manager->logFinalResult();

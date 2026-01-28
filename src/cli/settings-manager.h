@@ -233,6 +233,13 @@ namespace QaplaTester::Settings {
         void validateGroupCompleteness();
 
         /**
+         * @brief Validates completeness of all settings (global and grouped) after parsing.
+         * Applies default values for missing optional parameters and checks for required parameters.
+         * @throws AppError if required parameters are missing.
+         */
+        void validateCompleteness();
+
+        /**
          * @brief Retrieves the typed value of a setting.
          * @tparam T Expected type: std::string or int.
          * @param name Name of the parameter.
@@ -443,7 +450,7 @@ namespace QaplaTester::Settings {
          * @brief Validates and finalizes all global parameters after parsing.
          * Throws if required values are missing.
          */
-        void finalizeGlobalParameters();
+        void validateGlobalParameterCompleteness();
 
 		/**
 		 * @brief Parses a single value from a command line argument.
