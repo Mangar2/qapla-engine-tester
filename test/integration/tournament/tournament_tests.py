@@ -11,7 +11,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "name": "tournament-basic",
             "description": "Basic tournament gauntlet test",
             "args": "--settingsfile=test/integration/tournament/test-tournament-file.ini",
-            "log_path": "log",
+            "log_path": "test/integration/log/tournament",
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
@@ -27,5 +27,6 @@ def get_tests() -> List[Dict[str, Any]]:
                     "count": 1,
                 },
             ],
+            "cleanup": "test/integration/log/tournament",
         }
     ]
