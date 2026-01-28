@@ -17,6 +17,8 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
+#include <format>
+
 #include "epd-test.h"
 
 #include "../game-manager/game-manager.h"
@@ -46,7 +48,6 @@ void EpdTest::continueAnalysis() {
 
 std::optional<GameTask> EpdTest::nextTask() {
     std::scoped_lock lock(testResultMutex_);
-
 
     GameTask task;
     task.taskType = GameTask::Type::ComputeMove;

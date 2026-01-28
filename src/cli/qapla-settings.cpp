@@ -437,7 +437,7 @@ void QaplaSettings::setTournamentConfig() {
     m_tournamentConfig = std::make_unique<TournamentConfig>(TournamentConfig{
         .event = tournamentGroup->get<std::string>("event"),
         .type = tournamentGroup->get<std::string>("type"),
-        .tournamentFilename = tournamentGroup->get<std::string>("resultfile"),
+        .tournamentFilename = tournamentGroup->get<std::string>("file"),
         .saveInterval = tournamentGroup->get<unsigned int>("saveinterval"),
         .games = tournamentGroup->get<unsigned int>("games"),
         .rounds = tournamentGroup->get<unsigned int>("rounds"),
