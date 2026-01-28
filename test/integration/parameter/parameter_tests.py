@@ -34,7 +34,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "parameter-sprt-file",
             "description": "SPRT using sprt file with concurrency parameter",
-            "args": "--concurrency=2 --sprt file=test/integration/parameter/test-parameter-sprt-file.qsprt alpha=0.01",
+            "args": "--concurrency=2 --sprt file=test/integration/parameter/test-parameter-sprt-file.qsprt",
             "log_path": "test/integration/log/parameter",
             "validators": [
                 {"type": "exitCode", "expected": 16},
@@ -51,5 +51,37 @@ def get_tests() -> List[Dict[str, Any]]:
                     "keep_modified": "test/integration/parameter/test-parameter-sprt-file.qsprt.testresult",
                 }
             ],
+        },
+        {
+            "name": "parameter-global-fail",
+            "description": "SPRT with illegal global parameter in ini file",
+            "args": "--settingsfile=test/integration/parameter/test-parameter-illegal-global.ini",
+            "log_path": "test/integration/log/parameter",
+            "validators": [{"type": "exitCode", "expected": 2}],
+            "cleanup": "test/integration/log/parameter",
+        },
+        {
+            "name": "parameter-global-override",
+            "description": "SPRT with illegal global parameter in ini file overridden by cli",
+            "args": "--settingsfile=test/integration/parameter/test-parameter-illegal-global.ini --concurrency=1",
+            "log_path": "test/integration/log/parameter",
+            "validators": [{"type": "exitCode", "expected": 16}],
+            "cleanup": "test/integration/log/parameter",
+        },
+        {
+            "name": "parameter-group-fail",
+            "description": "SPRT with illegal group parameter in ini file",
+            "args": "--settingsfile=test/integration/parameter/test-parameter-illegal-group.ini",
+            "log_path": "test/integration/log/parameter",
+            "validators": [{"type": "exitCode", "expected": 2}],
+            "cleanup": "test/integration/log/parameter",
+        },
+        {
+            "name": "parameter-group-override",
+            "description": "SPRT with illegal group parameter in ini file overridden by cli",
+            "args": "--settingsfile=test/integration/parameter/test-parameter-illegal-group.ini --openings order=sequential",
+            "log_path": "test/integration/log/parameter",
+            "validators": [{"type": "exitCode", "expected": 16}],
+            "cleanup": "test/integration/log/parameter",
         },
     ]

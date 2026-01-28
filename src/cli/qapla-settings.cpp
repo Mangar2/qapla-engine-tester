@@ -91,6 +91,11 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setTournamentConfig();
     setEpdConfig();
     setSPSAConfig();
+
+    // Check concurrency is not zero
+    if (Manager::instance().get<unsigned int>("concurrency") == 0) {
+        throw AppError::makeInvalidParameters("Concurrency must be at least 1.");
+    }
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {

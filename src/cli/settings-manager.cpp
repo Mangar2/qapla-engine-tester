@@ -433,7 +433,7 @@ namespace QaplaTester::Settings
         return std::nullopt;
     }
     
-    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool /*overwrite*/, bool strict)
+    void Manager::parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite, bool strict)
     {
         const auto groupName = QaplaHelpers::to_lowercase(section.name);
         
@@ -458,7 +458,7 @@ namespace QaplaTester::Settings
         }
         
         if (matchingIndex) {
-            const auto mergedValues = parseSectionEntries(section, groupDefinition, true, 
+            const auto mergedValues = parseSectionEntries(section, groupDefinition, overwrite, 
                 &instances[*matchingIndex].getValues());
             validateExclusiveKeys(mergedValues, groupDefinition, section.name);
             instances[*matchingIndex] = GroupInstance(mergedValues, groupDefinition);
