@@ -293,7 +293,6 @@ namespace QaplaTester::Settings
         }
         
         processSections(configData, overwrite, strict);
-        finalizeGlobalParameters();
     }
 
     void Manager::handleHelpRequest(const QaplaHelpers::ConfigData& configData)
@@ -471,8 +470,6 @@ namespace QaplaTester::Settings
         groupInstances_[groupName].emplace_back(newValues, groupDefinition);
     }
 
-
-
     void Manager::validateGroupCompleteness()
     {
         // Validate all group instances for required parameters and add defaults
@@ -514,6 +511,12 @@ namespace QaplaTester::Settings
 
             instances = std::move(completeInstances);
         }
+    }
+
+    void Manager::validateCompleteness()
+    {
+        validateGroupCompleteness();
+        validateGlobalParameterCompleteness();
     }
 
     SetResult Manager::setGlobalValue(const std::string &name, const std::string &value)
@@ -558,7 +561,7 @@ namespace QaplaTester::Settings
         return nullptr;
     }
 
-    void Manager::finalizeGlobalParameters()
+    void Manager::validateGlobalParameterCompleteness()
     {
         for (const auto &[key, def] : definitions_)
         {
@@ -568,11 +571,8 @@ namespace QaplaTester::Settings
 
             if (def.isRequired && !def.defaultValue)
             {
-                std::string input;
-                std::cout << key << " (required): ";
-                std::getline(std::cin, input);
-                values_[key] = parseValue(
-                    ParsedParameter{.original="", .hasPrefix = false, .name = key, .value = input}, def);
+                throw AppError::makeInvalidParameters(
+                    std::format("Missing required global parameter \"{}\"", key));
             }
             else if (def.defaultValue)
             {

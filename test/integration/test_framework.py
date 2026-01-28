@@ -184,29 +184,22 @@ def invoke_test(test: Dict[str, Any]) -> bool:
     print()
     print(f"  {Colors.CYAN}Test: {test['name']}{Colors.RESET}")
 
-    # Store original content for append-only validation
-    file_original_contents = {}
-    for validator in test.get("validators", []):
-        if validator["type"] == "fileAppendOnly":
-            file_path = validator["path"]
-            if os.path.exists(file_path):
-                try:
-                    with open(
-                        file_path, "r", encoding="utf-8", errors="ignore"
-                    ) as f:
-                        file_original_contents[file_path] = f.read()
-                except Exception:
-                    pass
-
-    # Backup files if specified
-    backup_files = []
-    if "backup_files" in test and test["backup_files"]:
+    # Copy source files to target location if specified
+    source_file_configs = []
+    if "source_files" in test and test["source_files"]:
         import shutil
-        for file_to_backup in test["backup_files"]:
-            if os.path.exists(file_to_backup):
-                backup_path = f"{file_to_backup}.backup"
-                shutil.copy2(file_to_backup, backup_path)
-                backup_files.append((file_to_backup, backup_path))
+        for config in test["source_files"]:
+            source = config["source"]
+            target = config["target"]
+            if os.path.exists(source):
+                try:
+                    shutil.copy2(source, target)
+                    source_file_configs.append(config)
+                except Exception as e:
+                    print(
+                        f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
+                        f"Failed to copy {source} to {target}: {e}"
+                    )
 
     # Run cleanup if specified
     if "cleanup" in test and test["cleanup"]:
@@ -269,14 +262,30 @@ def invoke_test(test: Dict[str, Any]) -> bool:
             result = validate_file_exists(validator["path"], test["name"])
         elif validator_type == "fileAppendOnly":
             file_path = validator["path"]
-            if file_path in file_original_contents:
-                result = validate_file_append_only(
-                    file_path, file_original_contents[file_path], test["name"]
-                )
+            # Find source file for this target
+            source_path = None
+            for config in source_file_configs:
+                if config["target"] == file_path:
+                    source_path = config["source"]
+                    break
+            
+            if source_path and os.path.exists(source_path):
+                try:
+                    with open(source_path, "r", encoding="utf-8", errors="ignore") as f:
+                        original_content = f.read()
+                    result = validate_file_append_only(
+                        file_path, original_content, test["name"]
+                    )
+                except Exception as e:
+                    print(
+                        f"  {Colors.YELLOW}[SKIP]{Colors.RESET} "
+                        f"Failed to read source file {source_path}: {e}"
+                    )
+                    result = True
             else:
                 print(
                     f"  {Colors.YELLOW}[SKIP]{Colors.RESET} "
-                    f"No original content stored for: {file_path}"
+                    f"No source file configured for: {file_path}"
                 )
                 result = True
         else:
@@ -287,36 +296,24 @@ def invoke_test(test: Dict[str, Any]) -> bool:
         if not result:
             all_passed = False
 
-    # Save modified files for inspection before restoring
-    if backup_files and "save_modified_as" in test:
+    # Keep modified files as test results if specified
+    if source_file_configs:
         import shutil
-        save_pattern = test["save_modified_as"]
-        for original_path, _ in backup_files:
-            if os.path.exists(original_path):
-                save_path = save_pattern.replace("{original}", original_path)
+        for config in source_file_configs:
+            target = config["target"]
+            keep_modified = config.get("keep_modified")
+            if keep_modified and os.path.exists(target):
                 try:
-                    shutil.copy2(original_path, save_path)
+                    shutil.copy2(target, keep_modified)
                     print(
                         f"  {Colors.CYAN}[INFO]{Colors.RESET} "
-                        f"Modified file saved to: {save_path}"
+                        f"Modified file saved to: {keep_modified}"
                     )
                 except Exception as e:
                     print(
                         f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
                         f"Failed to save modified file: {e}"
                     )
-
-    # Restore backed up files
-    if backup_files:
-        import shutil
-        for original_path, backup_path in backup_files:
-            try:
-                shutil.move(backup_path, original_path)
-            except Exception as e:
-                print(
-                    f"  {Colors.YELLOW}[WARN]{Colors.RESET} Failed to restore "
-                    f"{original_path}: {e}"
-                )
 
     print()
     if all_passed:

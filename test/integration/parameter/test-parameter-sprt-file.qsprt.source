@@ -51,15 +51,6 @@ score=20
 [resign]
 id=sprt-tournament
 active=false
-movecount=5
-score=500
-
-[round]
-id=sprt-tournament
-round=1
-engineA=llt1
-engineB=llt2
-games=01
-wincauses=time forfeit:1
-losscauses=time forfeit:1
-
+movecount=10
+score=600
+twosided=true
