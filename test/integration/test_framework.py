@@ -179,7 +179,7 @@ def validate_file_append_only(
         return False
 
 
-def invoke_test(test: Dict[str, Any]) -> bool:
+def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     """Execute a single test and validate results."""
     print()
     print(f"  {Colors.CYAN}Test: {test['name']}{Colors.RESET}")
@@ -215,7 +215,7 @@ def invoke_test(test: Dict[str, Any]) -> bool:
 
     # Build command
     args = test["args"].split()
-    cmd = ["build/default/qapla-engine-tester.exe"] + args
+    cmd = [f"build/{config_name}/qapla-engine-tester.exe"] + args
 
     print(f"  {Colors.GRAY}Running: {' '.join(cmd)}{Colors.RESET}")
     print()

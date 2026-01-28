@@ -44,7 +44,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "SPRT in rapid mode",
             "args": "--settingsfile=test/integration/sprt/test-sprt-rapid.ini",
             "log_path": "test/integration/log/sprt",
-            "validators": [{"type": "exitCode", "expected": 15}],
+            "validators": [{"type": "exitCode", "expected": 16}],
             "cleanup": "test/integration/log/sprt",
         },
     ]

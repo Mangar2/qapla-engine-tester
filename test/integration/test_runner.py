@@ -38,6 +38,12 @@ def main():
         default="*",
         help="Filter tests by name pattern (supports wildcards)",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default="default",
+        help="Build configuration to use (default or release)",
+    )
     parser.add_argument("--test", type=str, help="Run specific test by name")
     parser.add_argument(
         "--list", action="store_true", help="List available tests without running"
@@ -100,7 +106,7 @@ def main():
     failed = 0
 
     for test in tests_to_run:
-        result = invoke_test(test)
+        result = invoke_test(test, args.config)
 
         if result:
             passed += 1
