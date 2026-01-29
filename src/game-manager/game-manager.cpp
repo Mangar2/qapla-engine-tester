@@ -41,6 +41,7 @@
 
 #include <iostream>
 #include <atomic>
+#include <format>
 
 namespace QaplaTester {
 
@@ -271,10 +272,10 @@ void GameManager::processEvent(const EngineEvent& event) {
 
     }
 	catch (const std::exception& e) {
-		Logger::reportLogger().log("Exception in GameManager::handleState " + std::string(e.what()), TraceLevel::error);
+		Logger::reportLogger().log(std::format("Exception in GameManager::processEvent: {}", e.what()), TraceLevel::error);
 	}
 	catch (...) {
-		Logger::reportLogger().log("Unknown exception in GameManager::handleState", TraceLevel::error);
+		Logger::reportLogger().log("Unknown exception in GameManager::processEvent", TraceLevel::error);
 	}
 }
 
@@ -576,31 +577,52 @@ void GameManager::finalizeTaskAndContinue() {
         return;
     }
     
-    managerState_ = ManagerState::FetchNextTask;
-    
-    // Cancel any ongoing compute operations
-	gameContext_.cancelCompute();
+    try {
+        managerState_ = ManagerState::FetchNextTask;
+        
+        // Cancel any ongoing compute operations
+        gameContext_.cancelCompute();
 
-    // The current game is finished - we ignore all remaining engine events except disconnects
-    {
-        std::scoped_lock lock(queueMutex_);
-        clearQueueButHandleDisconnects();
-    }
-    // Inform the task provider about the finished game
-	const auto& gameRecord = gameContext_.gameRecord();
-    taskProvider_->setGameRecord(taskId_, gameRecord);
-	pool_->getAdjudicationManager().onGameFinished(gameRecord);
-    // Check if we are requested to pause
-    {
-        std::scoped_lock lock(pauseMutex_);
-        if (pauseRequested_) {
-            paused_ = true;
-            return;
+        // The current game is finished - we ignore all remaining engine events except disconnects
+        {
+            std::scoped_lock lock(queueMutex_);
+            clearQueueButHandleDisconnects();
         }
-    }
+        
+        // Inform the task provider about the finished game
+        const auto& gameRecord = gameContext_.gameRecord();
+        try {
+            taskProvider_->setGameRecord(taskId_, gameRecord);
+        }
+        catch (const std::exception& e) {
+            Logger::reportLogger().log(std::format("Error in setGameRecord for task {}: {}", taskId_, e.what()), TraceLevel::error);
+        }
 
-    auto task = nextAssignment();
-	executeTask(std::move(task));
+        try {
+            pool_->getAdjudicationManager().onGameFinished(gameRecord);
+        }
+        catch (const std::exception& e) {
+            Logger::reportLogger().log(std::format("Error in adjudication manager for task {}: {}", taskId_, e.what()), TraceLevel::error);
+        }
+
+        // Check if we are requested to pause
+        {
+            std::scoped_lock lock(pauseMutex_);
+            if (pauseRequested_) {
+                paused_ = true;
+                return;
+            }
+        }
+
+        auto task = nextAssignment();
+        executeTask(std::move(task));
+    } catch (const std::exception& e) {
+        Logger::reportLogger().log(std::format("Unexpected exception in finalizeTaskAndContinue: {}", e.what()), TraceLevel::error);
+        tearDown("finalizeTaskAndContinue failed");
+    } catch (...) {
+        Logger::reportLogger().log("Unknown unexpected exception in finalizeTaskAndContinue", TraceLevel::error);
+        tearDown("finalizeTaskAndContinue failed");
+    }
 }
 
 void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {

@@ -108,6 +108,31 @@ def validate_file_exists(path: str, test_name: str) -> bool:
         return False
 
 
+def validate_file_content(path: str, content_pattern: str, test_name: str, error_msg: Optional[str] = None) -> bool:
+    """Validate that a file contains the expected content pattern."""
+    if not os.path.exists(path):
+        print(f"  {Colors.RED}[FAIL]{Colors.RESET} File not found for content check: {path}")
+        return False
+
+    try:
+        content_regex = re.compile(content_pattern)
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.read()
+
+        if content_regex.search(content):
+            print(f"  {Colors.GREEN}[OK]{Colors.RESET} File '{path}' has expected content")
+            return True
+        else:
+            msg = error_msg if error_msg else f"missing content: '{content_pattern}'"
+            print(
+                f"  {Colors.RED}[FAIL]{Colors.RESET} File '{path}': {msg}"
+            )
+            return False
+    except Exception as e:
+        print(f"  {Colors.RED}[FAIL]{Colors.RESET} Error reading file '{path}': {e}")
+        return False
+
+
 def validate_file_append_only(
     path: str, original_content: str, test_name: str
 ) -> bool:
@@ -221,18 +246,18 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     print()
 
     # Run command
+    exit_code = -1
     try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, encoding="utf-8", errors="ignore"
+        process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="ignore", bufsize=1
         )
-        exit_code = result.returncode
-
-        # Print output with indentation
-        for line in result.stdout.splitlines():
-            print(f"    {line}")
-        if result.stderr:
-            for line in result.stderr.splitlines():
-                print(f"    {line}")
+        
+        if process.stdout:
+            for line in iter(process.stdout.readline, ""):
+                print(f"    {line.rstrip()}")
+        
+        process.wait()
+        exit_code = process.returncode
     except Exception as e:
         print(f"  {Colors.RED}[FAIL]{Colors.RESET} Failed to run command: {e}")
         return False
@@ -257,6 +282,13 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
                 expected_count=validator["count"],
                 content_pattern=validator.get("content"),
                 test_name=test["name"],
+            )
+        elif validator_type == "fileContent":
+            result = validate_file_content(
+                path=validator["path"],
+                content_pattern=validator["content"],
+                test_name=test["name"],
+                error_msg=validator.get("message"),
             )
         elif validator_type == "fileExists":
             result = validate_file_exists(validator["path"], test["name"])

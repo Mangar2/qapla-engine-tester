@@ -22,6 +22,7 @@
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/ini-file.h"
+#include "../base-elements/file-helper.h"
 
 #include <cstring>
 #include <iostream>
@@ -114,21 +115,13 @@ namespace QaplaTester::Settings
         return *arg.value;
     }
 
-    Value Manager::parsePathParentExists(const ParsedParameter& arg)
+    Value Manager::parsePathIsValid(const ParsedParameter& arg)
     {
         if (!arg.value)
         {
             throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
         }
-        std::filesystem::path path(*arg.value);
-        std::filesystem::path parent = path.parent_path();
-        if (parent.empty()) {
-            parent = std::filesystem::current_path();
-        }
-        if (!std::filesystem::exists(parent))
-        {
-            throw AppError::makeInvalidParameters("The parent directory of \"" + arg.original + "\" does not exist");
-        }
+        QaplaHelpers::validateOutputPath(*arg.value);
         return *arg.value;
     }
 
@@ -168,7 +161,7 @@ namespace QaplaTester::Settings
                 typeMismatch("empty string required as default for type PathExists");
             }
             break;
-        case ValueType::PathParentExists:
+        case ValueType::ValidateOutputPath:
             if (!std::holds_alternative<std::string>(value) ||
                 (!std::get<std::string>(value).empty() && std::get<std::string>(value) != "."))
             {
@@ -591,7 +584,7 @@ namespace QaplaTester::Settings
         case ValueType::Bool:
             return "<bool>";
         case ValueType::PathExists:
-        case ValueType::PathParentExists:
+        case ValueType::ValidateOutputPath:
             return "<path>";
         default:
             return "string";
@@ -692,8 +685,8 @@ namespace QaplaTester::Settings
                 return parseFloat(arg);
             case ValueType::PathExists:
                 return parsePathExists(arg);
-            case ValueType::PathParentExists:
-                return parsePathParentExists(arg);
+            case ValueType::ValidateOutputPath:
+                return parsePathIsValid(arg);
             default:
                 return parseString(arg);
         }

@@ -17,7 +17,7 @@ def get_tests() -> List[Dict[str, Any]]:
                 {
                     "type": "logFiles",
                     "path": "",
-                    "pattern": "tournament.qrtour",
+                    "pattern": "tournament-report-*.log",
                     "count": 1,
                 },
                  {
