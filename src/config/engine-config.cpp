@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "engine-config-file.h"
+#include "engine-config.h"
 #include "../base-elements/string-helper.h"
 
 namespace QaplaTester {

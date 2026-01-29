@@ -19,46 +19,51 @@
 
 #include "sprt-tournament-file.h"
 #include "sprt-manager.h"
-#include "sprt-config-file.h"
-#include "../config-file/opening-config.h"
-#include "../config-file/pgn-config.h"
-#include "../config-file/adjudication-config.h"
+#include "sprt-config.h"
+
+#include "../config/opening-config.h"
+#include "../config/pgn-config.h"
+#include "../config/adjudication-config.h"
 #include "../cli/settings-manager.h"
 #include "../cli/settings-definitions.h"
 #include <stdexcept>
 
 namespace QaplaTester {
 
-using Settings::ValueType;
-
-QaplaHelpers::ConfigData SprtTournamentFile::configData_;
-Settings::Manager SprtTournamentFile::manager_;
-
-Settings::Manager SprtTournamentFile::registerSettingsGroups() {
-    Settings::Manager manager;
-    manager.registerGroup({.name = "each", .description = "Global engine configuration", .unique = false, 
-        .keys = Settings::getEachKeys()});
-
-    manager.registerGroup({.name = "engine", .description = "Engine selection for tournament", .unique = false, 
-        .keys = Settings::getEngineKeys()});
+ void SprtTournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+    const std::shared_ptr<SprtManager>& manager) {
     
-    manager.registerGroup({.name = SprtConfigFile::getSectionName(), .description = "SPRT configuration", .unique = true, 
-        .keys = Settings::getSprtKeys()});
-    manager.registerGroup({.name = OpeningConfig::getSectionName(), .description = "Opening book configuration", .unique = true, 
-        .keys = Settings::getOpeningsKeys()});
-    manager.registerGroup({.name = PgnConfig::getSectionName(), .description = "PGN output settings", .unique = true, 
-        .keys = Settings::getPgnOutputKeys()});
-    manager.registerGroup({.name = AdjudicationConfig::getDrawSectionName(), .description = "Draw adjudication settings", .unique = true, 
-        .keys = Settings::getDrawAdjudicationKeys()});
-    manager.registerGroup({.name = AdjudicationConfig::getResignSectionName(), .description = "Resign adjudication settings", .unique = true, 
-        .keys = Settings::getResignAdjudicationKeys()});    
-    
-    return manager;
+    // Setup autosave callback if file and interval are specified
+    if (!filename.empty() && saveInterval > 0) {
+        
+        manager->setGameFinishedCallback(
+            [filename,
+             configData = Settings::Manager::instance().toConfigData(),
+             saveInterval,
+             saveTrigger = 0u,
+             manager = manager.get()]() mutable 
+            {
+                ++saveTrigger;
+                if (saveTrigger >= saveInterval) {
+                    saveTrigger = 0;
+                    
+                    auto section = manager->getSection();
+                    if (section) {
+                        auto saveData = configData;
+                        saveData.addSection(*section);
+                        SprtTournamentFile::save(filename, saveData);
+                        Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
+                    }
+                }
+            }
+        );
+    }
 }
 
 void SprtTournamentFile::save(const std::string& filename,
-                               const QaplaHelpers::ConfigData& configData,
-                               const std::string& id) {
+    const QaplaHelpers::ConfigData& configData,
+    const std::string& id) 
+{
     if (filename.empty()) {
         throw std::invalid_argument("No filename specified for saving SPRT tournament.");
     }
@@ -84,67 +89,35 @@ void SprtTournamentFile::save(const std::string& filename,
     }
 }
 
-void SprtTournamentFile::load(const std::string& filename, 
-                               const std::string& id) {
-    
-    if (filename.empty()) {
-        throw std::invalid_argument("No filename specified for loading SPRT tournament.");
-    }
-
-    manager_ = registerSettingsGroups();
-    configData_ = QaplaHelpers::ConfigData{};
-
-    configData_.load(filename);
-
-    for (const auto& sectionName : sectionNames) {
-        auto sections = configData_.getSectionList(sectionName, id);
-        if (!sections || sections->empty()) {
-            if (std::string(sectionName) == "round") {
-                continue;
-            }
-            throw std::runtime_error("Missing required section '" + std::string(sectionName) + 
-                                   "' in SPRT tournament file: " + filename);
+void SprtTournamentFile::save(
+    const std::string& filename, 
+    const Settings::Manager& settingsManager,
+    const std::shared_ptr<SprtManager>& sprtManager,
+    const std::string& id) 
+{
+    if (!filename.empty()) {
+        auto section = sprtManager->getSection();
+        QaplaHelpers::ConfigData configData = settingsManager.toConfigData();
+        if (section) {
+            configData.addSection(*section);
         }
+        save(filename, configData, id);
     }
-    manager_.parseInput(configData_, false);
 }
 
-bool SprtTournamentFile::loadSprtSettings(const std::string& filename,
-                                        const std::string& id) {
+void SprtTournamentFile::loadGameResults(
+    const std::string& filename, 
+    const std::shared_ptr<SprtManager>& manager,
+    const std::string& id) 
+{
     if (filename.empty()) {
-        return false;
+        return;
     }
-
-    try {
-        load(filename, id);
-    } catch (const std::exception&) {
-        return false;
-    }
-    return true;
+    QaplaHelpers::ConfigData configData;
+    configData.load(filename);
+    auto sections = configData.getSectionList("round", id);
+    manager->setGameResults(*sections);
 }
 
-QaplaHelpers::ConfigData& SprtTournamentFile::getConfigData() {
-    return configData_;
-}
-
-Settings::Manager& SprtTournamentFile::getManager() {
-    return manager_;
-}
-
-bool SprtTournamentFile::loadIntoManagerFromConfigData(const QaplaHelpers::ConfigData& configData,
-                                                      SprtManager& manager,
-                                                      const std::string& id) {
-    try {
-        auto sections = configData.getSectionList("round", id);
-        if (sections && !sections->empty()) {
-            manager.setGameResults(*sections);
-            return true;
-        }
-    } catch (const std::exception&) {
-        return false;
-    }
-    
-    return false;
-}
 
 } // namespace QaplaTester

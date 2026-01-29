@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "sprt-config-file.h"
+#include "sprt-config.h"
 #include "../base-elements/string-helper.h"
 #include <algorithm>
 
