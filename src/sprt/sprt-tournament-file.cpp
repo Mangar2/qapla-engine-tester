@@ -60,6 +60,8 @@ namespace QaplaTester {
     }
 }
 
+
+
 void SprtTournamentFile::save(const std::string& filename,
     const QaplaHelpers::ConfigData& configData,
     const std::string& id) 
@@ -77,7 +79,12 @@ void SprtTournamentFile::save(const std::string& filename,
     for (const auto& sectionName : sectionNames) {
         auto sections = configData.getSectionList(sectionName, id);
         if (sections && !sections->empty()) {
-            for (const auto& section : *sections) {
+            for (auto& section : *sections) {
+                auto name = section.name;
+                // Avoid recursive self-reference: The 'file' entry contains the name of this state file.
+                if (name == "sprt") {
+                    section.eraseEntry("file");
+                }
                 QaplaHelpers::IniFile::saveSection(out, section);
             }
         }

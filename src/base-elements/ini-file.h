@@ -55,6 +55,16 @@ public:
         }
 
         /**
+         * @brief Deletes all entries with the specified key.
+         * @param key The key of the entries to delete.
+         */
+        void eraseEntry(const std::string& key) {
+            std::erase_if(entries, [&](const auto& pair) {
+                return pair.first == key;
+            });
+        }
+
+        /**
          * @brief Retrieves the value for a given key.
          * @param key The key to look up.
          * @return An optional containing the value if found, or std::nullopt if not found.

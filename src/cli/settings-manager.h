@@ -31,7 +31,7 @@
 
 namespace QaplaTester::Settings {
 
-    enum class ValueType : std::uint8_t { String, Int, UInt, Float, Bool, PathExists, PathParentExists };
+    enum class ValueType : std::uint8_t { String, Int, UInt, Float, Bool, PathExists, ValidateOutputPath };
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
     
@@ -331,7 +331,7 @@ namespace QaplaTester::Settings {
         static Value parseFloat(const ParsedParameter& arg);
         static Value parseString(const ParsedParameter& arg);
         static Value parsePathExists(const ParsedParameter& arg);
-        static Value parsePathParentExists(const ParsedParameter& arg);
+        static Value parsePathIsValid(const ParsedParameter& arg);
 
         /**
          * @brief Splits a raw command line argument into syntactic parts.
