@@ -19,6 +19,7 @@
 
 #include "tournament-config.h"
 #include "../base-elements/string-helper.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -28,6 +29,7 @@ std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::toSections(
     QaplaHelpers::IniFile::KeyValueMap entries{
         {"id", id},
         {"event", config.event},
+        {"file", config.tournamentFilename},
         {"type", config.type},
         {"rounds", std::to_string(config.rounds)},
         {"games", std::to_string(config.games)},
@@ -52,6 +54,9 @@ TournamentConfig TournamentConfigFile::fromSections(
     for (const auto& [key, value] : sections[0].entries) {
         if (key == "event") {
             config.event = value;
+        }
+        else if (key == "file") {
+            config.tournamentFilename = value;
         }
         else if (key == "type") {
             config.type = value;
@@ -89,6 +94,31 @@ std::optional<TournamentConfig> TournamentConfigFile::fromConfigData(
     }
 
     return fromSections(*sections);
+}
+
+TournamentConfig TournamentConfigFile::fromManager(
+    Settings::Manager& manager,
+    const std::string& groupName) {
+    
+    auto tournament = manager.getGroupInstance(groupName);
+    if (!tournament) {
+        return TournamentConfig{};
+    }
+
+    return TournamentConfig{
+        .event = tournament->get<std::string>("event"),
+        .type = tournament->get<std::string>("type"),
+        .tournamentFilename = tournament->get<std::string>("file"),
+        .saveInterval = tournament->get<unsigned int>("saveinterval"),
+        .games = tournament->get<unsigned int>("games"),
+        .rounds = tournament->get<unsigned int>("rounds"),
+        .repeat = tournament->get<unsigned int>("repeat"),
+        .ratingInterval = tournament->get<unsigned int>("ratinginterval"),
+        .outcomeInterval = tournament->get<unsigned int>("outcomeinterval"),
+        .averageElo = tournament->get<int>("averageelo"),
+        .noSwap = tournament->get<bool>("noswap"),
+        .openings = Openings{}
+    };
 }
 
 } // namespace QaplaTester

@@ -27,6 +27,7 @@
 
 #include <random>
 #include <iomanip>
+#include <format>
 
 namespace QaplaTester {
 
@@ -202,7 +203,11 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     results_[gameInRound - 1] = result;
     GameRecord pgnRecord = record;
     pgnRecord.setTotalGameNo(gameInRound + config_.gameNumberOffset);
-    PgnSave::tournament().saveGame(pgnRecord);
+    try {
+        PgnSave::tournament().saveGame(pgnRecord);
+    } catch (const std::exception& e) {
+        Logger::reportLogger().log(std::format("Failed to save tournament PGN: {}", e.what()), TraceLevel::error);
+    }
 
 	duelResult_.addResult(record);
     collectPentanomialStats(gameInRound - 1);

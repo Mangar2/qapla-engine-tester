@@ -21,6 +21,7 @@
 
 #include "../tournament/tournament.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
@@ -61,6 +62,16 @@ public:
     [[nodiscard]] static std::optional<TournamentConfig> fromConfigData(
         const QaplaHelpers::ConfigData& configData, 
         const std::string& id);
+
+    /**
+     * @brief Creates tournament configuration from Settings::Manager.
+     * @param manager The settings manager to read from.
+     * @param groupName The group instance name.
+     * @return TournamentConfig populated from manager.
+     */
+    [[nodiscard]] static TournamentConfig fromManager(
+        Settings::Manager& manager,
+        const std::string& groupName);
 };
 
 } // namespace QaplaTester

@@ -27,6 +27,7 @@
 #include "../base-elements/ini-file.h"
 #include "../opening/openings.h"
 #include "../tournament/tournament.h"
+#include "../tournament/tournament-config.h"
 #include "../sprt/sprt-manager.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../sprt/sprt-config.h"
@@ -76,6 +77,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
 
     // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
+    loadTournamentConfig();
 
     // Validate all settings for completeness after all merging is complete
     Manager::instance().validateCompleteness();
@@ -88,7 +90,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     setOpenings(Manager::instance(), "openings");
     // Must be after openings
     setSprtConfig(Manager::instance(), "sprt");
-    setTournamentConfig();
+    setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
     setSPSAConfig();
 
@@ -421,9 +423,9 @@ std::optional<Openings> QaplaSettings::getOpenings() const {
     return *m_openings;
 }
 
-void QaplaSettings::setTournamentConfig() {
-    auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
-    if (!tournamentGroup) {
+void QaplaSettings::setTournamentConfig(Settings::Manager& manager, const std::string& groupName) {
+    auto tournament = manager.getGroupInstance(groupName);
+    if (!tournament) {
         m_tournamentConfig = nullptr;
         return;
     }
@@ -434,20 +436,12 @@ void QaplaSettings::setTournamentConfig() {
         return;
     }
 
-    m_tournamentConfig = std::make_unique<TournamentConfig>(TournamentConfig{
-        .event = tournamentGroup->get<std::string>("event"),
-        .type = tournamentGroup->get<std::string>("type"),
-        .tournamentFilename = tournamentGroup->get<std::string>("file"),
-        .saveInterval = tournamentGroup->get<unsigned int>("saveinterval"),
-        .games = tournamentGroup->get<unsigned int>("games"),
-        .rounds = tournamentGroup->get<unsigned int>("rounds"),
-        .repeat = tournamentGroup->get<unsigned int>("repeat"),
-        .ratingInterval = tournamentGroup->get<unsigned int>("ratinginterval"),
-        .outcomeInterval = tournamentGroup->get<unsigned int>("outcomeinterval"),
-        .averageElo = tournamentGroup->get<int>("averageelo"),
-        .noSwap = tournamentGroup->get<bool>("noswap"),
-        .openings = *m_openings
-    });
+    m_tournamentConfig = std::make_unique<TournamentConfig>(
+        TournamentConfigFile::fromManager(manager, groupName));
+    
+    if (m_openings) {
+        m_tournamentConfig->openings = *m_openings;
+    }
 }
 
 std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
@@ -455,6 +449,19 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
         return std::nullopt;
     }
     return *m_tournamentConfig;
+}
+
+void QaplaSettings::loadTournamentConfig() {
+    auto tournament = Manager::instance().getGroupInstance("tournament");
+    if (!tournament) {
+        m_tournamentConfig = nullptr;
+        return;
+    }
+
+    auto tournamentFile = tournament->get<std::string>("file");
+    if (!tournamentFile.empty()) {
+        applySettingsFromFile(tournamentFile, false);
+    }
 }
 
 void QaplaSettings::loadSprtConfig() {
