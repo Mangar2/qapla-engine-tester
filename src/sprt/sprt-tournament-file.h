@@ -93,16 +93,6 @@ private:
     /**
      * @brief List of all section names used in SPRT tournament files.
      * 
-     * These sections include:
-     * - eachengine: Global engine settings
-     * - engineselection: Selected engines and their configurations
-     * - sprtconfig: SPRT test parameters
-     * - opening: Opening book configuration
-     * - pgnoutput: PGN output options
-     * - drawadjudication: Draw adjudication settings
-     * - resignadjudication: Resign adjudication settings
-     * - timecontroloptions: Time control settings
-     * - round: Tournament results (game records)
      */
     static constexpr std::array<const char*, 8> sectionNames = {
         "each",

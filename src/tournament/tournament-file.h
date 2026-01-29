@@ -48,70 +48,17 @@ public:
                     const std::string& id = "tournament");
 
     /**
-     * @brief Loads all tournament sections from a file into ConfigData.
-     * @param filename The file path to load from.
-     * @param configData The configuration data to populate.
-     * @param id The identifier for the tournament (default: "tournament").
-     */
-    static void load(const std::string& filename, 
-                    QaplaHelpers::ConfigData& configData,
-                    const std::string& id = "tournament");
-
-    /**
-     * @brief Helper method to load tournament state into a Tournament.
-     * 
-     * This is a convenience method that loads the tournament file and
-     * applies the "round" sections to the tournament's internal state.
-     * 
-     * @param filename The file path to load from.
-     * @param configData The configuration data to populate.
-     * @param tournament The Tournament to load state into.
-     * @param id The identifier for the tournament (default: "tournament").
-     * @return true if state was loaded successfully, false otherwise.
-     */
-    static bool loadIntoTournament(const std::string& filename,
-                                  QaplaHelpers::ConfigData& configData,
-                                  class Tournament& tournament,
-                                  const std::string& id = "tournament");
-
-    /**
-     * @brief Helper method to load tournament state from ConfigData into a Tournament.
-     * 
-     * This is a convenience method that uses existing ConfigData and
-     * applies the "round" sections to the tournament's internal state.
-     * 
-     * @param configData The configuration data containing tournament state.
-     * @param tournament The Tournament to load state into.
-     * @param id The identifier for the tournament (default: "tournament").
-     * @return true if state was loaded successfully, false otherwise.
-     */
-    static bool loadIntoTournamentFromConfigData(const QaplaHelpers::ConfigData& configData,
-                                                class Tournament& tournament,
-                                                const std::string& id = "tournament");
-
-    /**
      * @brief List of all section names used in tournament files.
      * 
-     * These sections include:
-     * - eachengine: Global engine settings
-     * - engineselection: Selected engines and their configurations
-     * - tournament: Tournament parameters (type, rounds, games, etc.)
-     * - opening: Opening book configuration
-     * - pgnoutput: PGN output options
-     * - drawadjudication: Draw adjudication settings
-     * - resignadjudication: Resign adjudication settings
-     * - timecontroloptions: Time control settings
-     * - round: Tournament results (game records)
      */
-    static constexpr std::array<const char*, 9> sectionNames = {
-        "eachengine",
-        "engineselection",
+    static constexpr std::array<const char*, 8> sectionNames = {
+        "each",
+        "engine",
         "tournament",
         "openings",
         "pgnoutput",
         "draw",
         "resign",
-        "timecontroloptions",
         "round"
     };
 };

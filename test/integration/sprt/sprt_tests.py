@@ -47,4 +47,24 @@ def get_tests() -> List[Dict[str, Any]]:
             "validators": [{"type": "exitCode", "expected": 16}],
             "cleanup": "test/integration/log/sprt",
         },
+        {
+            "name": "sprt-continuation-from-file",
+            "description": "SPRT continuation from existing SPRT file",
+            "args": "--concurrency=2 --sprt file=test/integration/sprt/test-parameter-sprt-file.qsprt",
+            "log_path": "test/integration/log/sprt",
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "fileAppendOnly",
+                    "path": "test/integration/sprt/test-parameter-sprt-file.qsprt",
+                },
+            ],
+            "cleanup": "test/integration/log/sprt",
+            "source_files": [
+                {
+                    "source": "test/integration/sprt/test-parameter-sprt-file.qsprt.source",
+                    "target": "test/integration/sprt/test-parameter-sprt-file.qsprt"
+                }
+            ],
+        },
     ]
