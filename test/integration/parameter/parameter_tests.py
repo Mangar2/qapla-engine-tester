@@ -47,8 +47,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "source_files": [
                 {
                     "source": "test/integration/parameter/test-parameter-sprt-file.qsprt.source",
-                    "target": "test/integration/parameter/test-parameter-sprt-file.qsprt",
-                    "keep_modified": "test/integration/parameter/test-parameter-sprt-file.qsprt.testresult",
+                    "target": "test/integration/parameter/test-parameter-sprt-file.qsprt"
                 }
             ],
         },
