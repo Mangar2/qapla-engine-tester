@@ -116,7 +116,9 @@ void SprtTournamentFile::loadGameResults(
     QaplaHelpers::ConfigData configData;
     configData.load(filename);
     auto sections = configData.getSectionList("round", id);
-    manager->setGameResults(*sections);
+    if (sections) {
+        manager->setGameResults(*sections);
+    }
 }
 
 

@@ -212,9 +212,16 @@ private:
     void setOpenings(Settings::Manager& manager, const std::string& groupName);
 
     /**
-     * @brief Reads tournament configuration from CLI settings
+     * @brief Loads tournament configuration, checking for file-based config first
      */
-    void setTournamentConfig();
+    void loadTournamentConfig();
+
+    /**
+     * @brief Reads tournament configuration from settings manager
+     * @param manager The settings manager to read from
+     * @param groupName The group instance name
+     */
+    void setTournamentConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Loads SPRT configuration, checking for file-based config first

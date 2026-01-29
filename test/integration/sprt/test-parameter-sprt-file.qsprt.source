@@ -38,7 +38,7 @@ file=test/opening/8ply-1000+-0,4+.pgn
 
 [pgnoutput]
 id=sprt-tournament
-file=test/integration/log/parameter
+file=test/integration/log/sprt
 
 [draw]
 id=sprt-tournament

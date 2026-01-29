@@ -289,6 +289,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
         Tournament tournament;
         
         // Load tournament state if tournamentfile is specified
+        /*
         if (!tournamentConfig->tournamentFilename.empty()) {
             QaplaHelpers::ConfigData configData;
             if (TournamentFile::loadIntoTournament(tournamentConfig->tournamentFilename, configData, tournament, "tournament")) {
@@ -300,6 +301,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
                 return AppReturnCode::GeneralError;
             }
         }
+        */
 		//tournament.load(tournamentConfig->tournamentFilename);
         GameManagerPool& pool = GameManagerPool::getInstance();
         tournament.createTournament(activeEngines, *tournamentConfig);
