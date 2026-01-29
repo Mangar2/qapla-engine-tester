@@ -35,14 +35,14 @@
 #include "epd/epd-manager.h"
 #include "sprt/sprt-manager.h"
 #include "sprt/sprt-tournament-file.h"
-#include "sprt/sprt-config-file.h"
+#include "sprt/sprt-config.h"
 #include "spsa/spsa-optimizer.h"
 #include "tournament/tournament.h"
 #include "tournament/tournament-file.h"
 #include "opening/pgn-save.h"
-#include "config-file/opening-config.h"
-#include "config-file/pgn-config.h"
-#include "config-file/adjudication-config.h"
+#include "config/opening-config.h"
+#include "config/pgn-config.h"
+#include "config/adjudication-config.h"
 
 #include "cli/input-handler.h"
 #include "cli/settings-manager.h"
@@ -155,43 +155,6 @@ static void checkTimeControl() {
     }
 }
 
-static auto sprtFileIO(const std::string filename, uint32_t saveInterval, 
-    const std::shared_ptr<SprtManager>& manager) {
-    if (!filename.empty()) {
-        if (SprtTournamentFile::loadSprtSettings(filename)) {
-            Logger::reportLogger().log(std::format("Loaded SPRT tournament state from: {}", filename), TraceLevel::result);
-        }
-    }
-    auto& configData = SprtTournamentFile::getConfigData();
-    
-    // Setup autosave callback if file and interval are specified
-    if (!filename.empty() && saveInterval > 0) {
-        
-        manager->setGameFinishedCallback(
-            [filename,
-             configData = Settings::Manager::instance().toConfigData(),
-             saveInterval,
-             saveTrigger = 0u,
-             manager = manager.get()]() mutable 
-            {
-                ++saveTrigger;
-                if (saveTrigger >= saveInterval) {
-                    saveTrigger = 0;
-                    
-                    auto section = manager->getSection();
-                    if (section) {
-                        auto saveData = configData;
-                        saveData.addSection(*section);
-                        SprtTournamentFile::save(filename, saveData);
-                        Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
-                    }
-                }
-            }
-        );
-    }
-    return configData.getSectionList("round", "sprt-tournament");
-}
-
 static auto runSprt(AppReturnCode code) {
     // Get SPRT config (already loaded from file or CLI by readSprtConfig)
     const auto& sprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
@@ -217,28 +180,18 @@ static auto runSprt(AppReturnCode code) {
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
         } else {
-            auto sections = sprtFileIO(sprtfile, sprtGroup->get<unsigned int>("saveinterval"), manager);
-            const auto& updatedSprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
+            SprtTournamentFile::setSaveCallback(sprtfile, sprtGroup->get<unsigned int>("saveinterval"), manager);
             const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
 
-            manager->createTournament(activeEngines, *updatedSprtConfig);
-            if (sections) {
-                manager->setGameResults(*sections);
-            }
+            manager->createTournament(activeEngines, *sprtConfig);
+            SprtTournamentFile::loadGameResults(sprtfile, manager);
+
             const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
             pool.waitForTask();
-            
-            if (!sprtfile.empty()) {
-                auto section = manager->getSection();
-                QaplaHelpers::ConfigData configData = Settings::Manager::instance().toConfigData();
-                if (section) {
-                    configData.addSection(*section);
-                }
-                SprtTournamentFile::save(sprtfile, configData, "sprt-tournament");
-            }
-            
+
+            SprtTournamentFile::save(sprtfile, Settings::Manager::instance(), manager);
             Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
 
             if (code == AppReturnCode::NoError) {

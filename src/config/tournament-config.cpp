@@ -17,7 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "tournament-config-file.h"
+#include "tournament-config.h"
 #include "../base-elements/string-helper.h"
 
 namespace QaplaTester {

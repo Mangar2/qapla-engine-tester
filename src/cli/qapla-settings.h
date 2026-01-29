@@ -22,8 +22,8 @@
 #include "settings-manager.h"
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
-#include "../config-file/engine-config-file.h"
-#include "../config-file/engine-global-config.h"
+#include "../config/engine-config.h"
+#include "../config/engine-global-config.h"
 #include "../base-elements/logger.h"
 
 #include <string>
