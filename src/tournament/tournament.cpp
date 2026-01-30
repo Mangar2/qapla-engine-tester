@@ -170,15 +170,9 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
         auto result = getResult();
         result.printOutcome(std::cout);
     }
-    if (config_.saveInterval > 0 && saveTrigger_ >= config_.saveInterval) {
-        saveTrigger_ = 0;
-        try {
-            if (!config_.tournamentFilename.empty()) {
-                save(config_.tournamentFilename);
-            }
-        } catch (const std::exception& ex) {
-            Logger::reportLogger().log("Error saving tournament state: " + std::string(ex.what()), TraceLevel::error);
-        }
+    
+    if (gameFinishedCallback_) {
+        gameFinishedCallback_();
     }
 }
 

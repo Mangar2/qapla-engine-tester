@@ -19,9 +19,15 @@
 
 #pragma once
 
+#include "tournament.h"
 #include "../base-elements/ini-file.h"
 #include <string>
 #include <array>
+#include <memory>
+
+namespace QaplaTester::Settings {
+    class Manager;
+}
 
 namespace QaplaTester {
 
@@ -37,6 +43,8 @@ namespace QaplaTester {
  */
 class TournamentFile {
 public:
+    static constexpr const char* id = "tournament";
+
     /**
      * @brief Saves all tournament sections from ConfigData to a file.
      * @param filename The file path to save to.
@@ -45,13 +53,44 @@ public:
      */
     static void save(const std::string& filename, 
                     const QaplaHelpers::ConfigData& configData,
-                    const std::string& id = "tournament");
+                    const std::string& id = TournamentFile::id);
+
+    /**
+     * @brief Saves all tournament sections from SettingsManager and Tournament to a file.
+     * @param filename The file path to save to.
+     * @param settingsManager The settings manager containing all configurations.
+     * @param tournament The tournament instance to get results from.
+     * @param id The identifier for the tournament (default: "tournament").
+     */
+    static void save(const std::string& filename, 
+                    const Settings::Manager& settingsManager,
+                    const std::shared_ptr<Tournament>& tournament,
+                    const std::string& id = TournamentFile::id);
+
+    /**
+     * @brief Sets up an autosave callback for the tournament.
+     * @param filename The file path to save to.
+     * @param saveInterval The number of games between autosaves.
+     * @param tournament The tournament instance.
+     */
+    static void setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+                               const std::shared_ptr<Tournament>& tournament);
+
+    /**
+     * @brief Loads game results from a tournament file into a tournament instance.
+     * @param filename The file path to load from.
+     * @param tournament The tournament instance to load results into.
+     * @param id The identifier for the tournament (default: "tournament").
+     */
+    static void loadGameResults(const std::string& filename, 
+                               const std::shared_ptr<Tournament>& tournament, 
+                               const std::string& id = TournamentFile::id);
 
     /**
      * @brief List of all section names used in tournament files.
      * 
      */
-    static constexpr std::array<const char*, 8> sectionNames = {
+    static constexpr std::array<const char*, 9> sectionNames = {
         "each",
         "engine",
         "tournament",
@@ -59,6 +98,7 @@ public:
         "pgnoutput",
         "draw",
         "resign",
+        "global",
         "round"
     };
 };

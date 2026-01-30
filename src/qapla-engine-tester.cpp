@@ -276,34 +276,21 @@ static AppReturnCode runTournament(AppReturnCode code) {
     try {
         uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
 
-        Tournament tournament;
+        auto tournament = std::make_shared<Tournament>();
+        const auto& tournamentFilename = tournamentConfig->tournamentFilename;
         
-        // Load tournament state if tournamentfile is specified
-        /*
-        if (!tournamentConfig->tournamentFilename.empty()) {
-            QaplaHelpers::ConfigData configData;
-            if (TournamentFile::loadIntoTournament(tournamentConfig->tournamentFilename, configData, tournament, "tournament")) {
-                Logger::reportLogger().log(std::format("Loaded tournament state from: {}", 
-                    tournamentConfig->tournamentFilename), TraceLevel::result);
-            } else {
-                Logger::reportLogger().log(std::format("Failed to load tournament from file: {}", 
-                    tournamentConfig->tournamentFilename), TraceLevel::error);
-                return AppReturnCode::GeneralError;
-            }
-        }
-        */
-		//tournament.load(tournamentConfig->tournamentFilename);
+        TournamentFile::setSaveCallback(tournamentFilename, tournamentConfig->saveInterval, tournament);
+        tournament->createTournament(activeEngines, *tournamentConfig);
+        TournamentFile::loadGameResults(tournamentFilename, tournament);
+
         GameManagerPool& pool = GameManagerPool::getInstance();
-        tournament.createTournament(activeEngines, *tournamentConfig);
-        tournament.scheduleAll(concurrency, true, pool);
+        tournament->scheduleAll(concurrency, true, pool);
         pool.waitForTask();
 
-        if (!tournamentConfig->tournamentFilename.empty()) {
-			// tournament.save(tournamentConfig->tournamentFilename);
-		}
+        TournamentFile::save(tournamentFilename, Settings::Manager::instance(), tournament);
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
         GameManagerPool::getInstance().getAdjudicationManager().printTestResult(std::cout);
-        std::string resultString = tournament.getResultString();
+        std::string resultString = tournament->getResultString();
         Logger::reportLogger().log(resultString, TraceLevel::result);
     }
     catch (const std::exception& e) {
