@@ -17,8 +17,6 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include "epd-test-manager.h"
-#include "test-tournament.h"
 #include "engine-test-functions.h"
 #include "engine-test-controller.h"
 
@@ -27,18 +25,13 @@
 #include "../engine-handling/engine-worker-factory.h"
 
 #include "../game-manager/compute-task.h"
-#include "../game-manager/game-manager.h"
-#include "../game-manager/game-manager-pool.h"
 
-#include "../engine-tester/event-sink-recorder.h"
 
 #include "../cli/settings-manager.h"
 
 #include <memory>
 #include <chrono>
-#include <sstream>
 #include <string>
-#include <thread>
 
 
 namespace QaplaTester {

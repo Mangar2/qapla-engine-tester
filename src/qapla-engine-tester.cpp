@@ -20,7 +20,6 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <utility>
 #include <iostream>
 #include <memory>
 #include <format>
@@ -35,14 +34,10 @@
 #include "epd/epd-manager.h"
 #include "sprt/sprt-manager.h"
 #include "sprt/sprt-tournament-file.h"
-#include "sprt/sprt-config.h"
 #include "spsa/spsa-optimizer.h"
 #include "tournament/tournament.h"
 #include "tournament/tournament-file.h"
 #include "opening/pgn-save.h"
-#include "config/opening-config.h"
-#include "config/pgn-config.h"
-#include "config/adjudication-config.h"
 
 #include "cli/input-handler.h"
 #include "cli/settings-manager.h"
@@ -72,7 +67,9 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 
 static auto runEpd(AppReturnCode code) {
     const auto& epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
-    if (!epdConfig) return code;
+    if (!epdConfig) {
+        return code;
+    }
 
     uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
     Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
@@ -114,7 +111,7 @@ static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode 
         std::string name = engine.getName();
         try {
 			EngineReport::reportUnderruns = test.get<bool>("underrun");
-            controller.runAllTests(engine, test.get<uint32_t>("numgames"));
+            controller.runAllTests(engine, static_cast<int>(test.get<uint32_t>("numgames")));
         }
         catch (const AppError& ex) {
             Logger::reportLogger().log(std::format("Application error during engine test for {}: {}", name, ex.what()), 
@@ -148,7 +145,9 @@ static void checkTimeControl() {
 static auto runSprt(AppReturnCode code) {
     // Get SPRT config (already loaded from file or CLI by readSprtConfig)
     const auto& sprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
-    if (!sprtConfig) return code;
+    if (!sprtConfig) {
+        return code;
+    }
     
     auto sprtGroup = Settings::Manager::instance().getGroupInstance("sprt");
     auto sprtfile = sprtGroup->get<std::string>("file");
@@ -190,8 +189,13 @@ static auto runSprt(AppReturnCode code) {
                     manager->logFinalResult();
                     
                     auto decision = sprtResults.front().front().decision;
-                    code = !decision ? AppReturnCode::UndefinedResult : 
-                           (*decision ? AppReturnCode::H1Accepted : AppReturnCode::H0Accepted);
+                    if (!decision) {
+                        code = AppReturnCode::UndefinedResult;
+                    } else if (*decision) {
+                        code = AppReturnCode::H1Accepted;
+                    } else {
+                        code = AppReturnCode::H0Accepted;
+                    }
                 }
             }
         }
@@ -209,7 +213,9 @@ static auto runSprt(AppReturnCode code) {
 
 static auto runSpsa(AppReturnCode code) {
     const auto& spsaConfig = Settings::QaplaSettings::instance().getSPSAConfig();
-    if (!spsaConfig) return code;
+    if (!spsaConfig) {
+        return code;
+    }
     const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
@@ -258,7 +264,9 @@ static auto runSpsa(AppReturnCode code) {
 
 static AppReturnCode runTournament(AppReturnCode code) {
     const auto& tournamentConfig = Settings::QaplaSettings::instance().getTournamentConfig();
-    if (!tournamentConfig) return code;
+    if (!tournamentConfig) {
+        return code;
+    }
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.size() < 2) {
@@ -319,7 +327,9 @@ static void setAdjudicationOptions() {
 
 static void setPgnConfig() {
     const auto& pgnOptions = Settings::QaplaSettings::instance().getPgnOptions();
-    if (!pgnOptions) return;
+    if (!pgnOptions) {
+        return;
+    }
 
     PgnSave::tournament().setOptions(*pgnOptions);
 }
@@ -371,10 +381,11 @@ int main(int argc, char** argv) {
         Logger::reportLogger().log("Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n");
 
         // Initialize settings
-        Settings::QaplaSettings::instance().init();
+        Settings::QaplaSettings::init();
         
         // Convert and store arguments
         std::vector<std::string> args;
+        args.reserve(static_cast<size_t>(argc));
         for (int i = 0; i < argc; ++i) {
             args.emplace_back(argv[i]);
         }
