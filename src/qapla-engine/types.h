@@ -25,7 +25,6 @@
 #include <array>
 #include <string>
 #include <iostream>
-#include <iomanip>
 
 namespace QaplaBasics {
 
@@ -297,8 +296,8 @@ namespace QaplaBasics {
 	constexpr auto squareToString(square_t square) {
 		std::string result;
 		if (square >= Square::A1 && square <= Square::H8) {
-			result += ('a' + static_cast<char>(square % NORTH));
-			result += ('1' + static_cast<char>(square / NORTH));
+			result += static_cast<char>('a' + (square % NORTH));
+			result += static_cast<char>('1' + (square / NORTH));
 		}
 		return result;
 	}

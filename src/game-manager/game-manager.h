@@ -20,19 +20,14 @@
 
 
 #include "game-task.h"
-#include "game-state.h"
 #include "player-context.h"
 #include "game-context.h"
 
-#include "../engine-tester/engine-report.h"
 
 #include "../engine-handling/engine-worker.h"
 
-#include "../chess-game/move-record.h"
 #include "../chess-game/game-record.h"
 
-#include "../base-elements/timer.h"
-#include "../base-elements/time-control.h"
 
 #include <memory>
 #include <future>
