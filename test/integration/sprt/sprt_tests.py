@@ -78,17 +78,15 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "exitCode", "expected": 16},
                 {
                     "type": "fileContent",
-                    "path": "test/integration/sprt/test-sprt-file.qsprt",
-                    "content": "games===",
-                    "message": "Tournament results from source file were not reused (continuation failed)."
+                    "path": "test/integration/log/sprt/test-sprt-write-nonexisting.qsprt",
+                    "content": "[each]"
                 },
-            ],
-            "cleanup": "test/integration/log/sprt",
-            "source_files": [
                 {
-                    "source": "test/integration/sprt/test-sprt-file.qsprt.source",
-                    "target": "test/integration/sprt/test-sprt-file.qsprt"
+                    "type": "fileContent",
+                    "path": "test/integration/log/sprt/test-sprt-write-nonexisting.qsprt",
+                    "content": "[round]"
                 }
             ],
+            "cleanup": "test/integration/log/sprt"
         },
     ]

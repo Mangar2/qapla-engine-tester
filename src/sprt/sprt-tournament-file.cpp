@@ -104,7 +104,7 @@ void SprtTournamentFile::save(
 {
     if (!filename.empty()) {
         auto section = sprtManager->getSection();
-        QaplaHelpers::ConfigData configData = settingsManager.toConfigData();
+        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({}, id);
         if (section) {
             configData.addSection(*section);
         }
@@ -117,7 +117,7 @@ void SprtTournamentFile::loadGameResults(
     const std::shared_ptr<SprtManager>& manager,
     const std::string& id) 
 {
-    if (filename.empty()) {
+    if (filename.empty() || !std::filesystem::exists(filename)) {
         return;
     }
     QaplaHelpers::ConfigData configData;

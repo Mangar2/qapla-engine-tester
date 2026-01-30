@@ -50,10 +50,13 @@ QaplaSettings& QaplaSettings::instance() {
     return instance;
 }
 
-void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool strict) {
+void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool required, bool strict) {
     std::ifstream file(settingsFile.data());
     if (!file.is_open()) {
-        throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
+        if (required) {
+            throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
+        }
+        return;
     }
     QaplaHelpers::ConfigData fileData;
     fileData.load(file);
@@ -460,7 +463,7 @@ void QaplaSettings::loadTournamentConfig() {
 
     auto tournamentFile = tournament->get<std::string>("file");
     if (!tournamentFile.empty()) {
-        applySettingsFromFile(tournamentFile, false);
+        applySettingsFromFile(tournamentFile, false, false);
     }
 }
 
@@ -473,7 +476,7 @@ void QaplaSettings::loadSprtConfig() {
 
     auto sprtFile = sprt->get<std::string>("file");
     if (!sprtFile.empty()) {
-        applySettingsFromFile(sprtFile, false);
+        applySettingsFromFile(sprtFile, false, false);
     }
 }
 
