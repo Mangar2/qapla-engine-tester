@@ -21,11 +21,13 @@
 
 #pragma once
 
+#include "types.h"
+
 #include <cstdint>
 #include <ostream>
 #include <cmath>
 #include <array>
-#include "types.h"
+#include <iomanip>
 
 namespace QaplaBasics {
 
@@ -169,16 +171,16 @@ namespace QaplaBasics {
 		}
 
 		//This method handles all the outputs.    
-		friend std::ostream& operator<<(std::ostream&, const EvalValue&);
+		friend std::ostream& operator<<(std::ostream& ostr, const EvalValue& value);
 	private:
 		value_t _midgame;
 		value_t _endgame;
 	};
 
-	inline std::ostream& operator<<(std::ostream& o, const EvalValue& v) {
-		o << "{" << std::right << std::setw(3) << v._midgame << ", " 
-			<< std::right << std::setw(3) << v._endgame << "}";
-		return o;
+	inline std::ostream& operator<<(std::ostream& ostr, const EvalValue& value) {
+		ostr << "{" << std::right << std::setw(3) << value._midgame << ", " 
+			<< std::right << std::setw(3) << value._endgame << "}";
+		return ostr;
 	}
 
 	constexpr EvalValue operator+(EvalValue a, EvalValue b) {

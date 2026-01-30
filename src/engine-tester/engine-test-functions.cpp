@@ -662,6 +662,7 @@ TestResult runComputeGameTest(const EngineConfig& engineConfig, bool logMoves)
         computeTask->initEngines(std::move(engines));
         
         try {
+            Logger::reportLogger().log("The engine now plays against itself without pondering, please wait...", TraceLevel::command);
             computeTask->newGame();
             computeTask->setPosition(true);
             TimeControl t1; t1.addTimeSegment({ .movesToPlay = 0, .baseTimeMs = 20000, .incrementMs = 100 });
@@ -768,6 +769,7 @@ TestResult runUciPonderTest(const EngineConfig& engineConfig)
             testPonderMiss(gameRecord, engine, "h4h3", testname);
             testPonderMiss(gameRecord, engine, "h4h3", testname, std::chrono::milliseconds(0));
             
+            Logger::reportLogger().logAligned("UCI ponder test", "All ponder scenarios tested");
             return {TestResultEntry("UCI ponder test", "All ponder scenarios tested", true)};
         }
         catch (const std::exception& e) {
@@ -799,7 +801,7 @@ TestResult runPonderGameTest(const EngineConfig& engineConfig, bool logMoves)
         computeTask->initEngines(std::move(engines));
         
         try {
-            Logger::reportLogger().log("The engine now plays against itself with pondering enabled", TraceLevel::command);
+            Logger::reportLogger().log("The engine now plays against itself with pondering enabled, please wait...", TraceLevel::command);
             
             computeTask->newGame();
             computeTask->setPosition(true);
