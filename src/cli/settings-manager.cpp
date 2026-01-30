@@ -37,6 +37,20 @@
 
 namespace QaplaTester::Settings
 {
+    namespace
+    {
+        /**
+         * @brief Converts a Setting::Value variant to a string.
+         * @param value The value to convert.
+         * @return The string representation of the value.
+         */
+        [[nodiscard]] std::string valueToString(const Value& value)
+        {
+            return std::visit([](auto&& val) {
+                return std::format("{}", val);
+            }, value);
+        }
+    }
 
     Value Manager::parseBool(const ParsedParameter& arg)
     {
@@ -620,10 +634,7 @@ namespace QaplaTester::Settings
                 bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue) && std::get<std::string>(*def.defaultValue).empty();
                 if (!isEmptyString)
                 {
-                    std::cout << " (default: ";
-                    std::visit([](auto &&v)
-                               { std::cout << v; }, *def.defaultValue);
-                    std::cout << ")";
+                    std::cout << std::format(" (default: {})", valueToString(*def.defaultValue));
                 }
             }
             std::cout << "\n";
@@ -661,10 +672,7 @@ namespace QaplaTester::Settings
                     bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue) && std::get<std::string>(*meta.defaultValue).empty();
                     if (!isEmptyString)
                     {
-                        std::cout << " (default: ";
-                        std::visit([](auto &&v)
-                                   { std::cout << v; }, *meta.defaultValue);
-                        std::cout << ")";
+                        std::cout << std::format(" (default: {})", valueToString(*meta.defaultValue));
                     }
                 }
                 std::cout << "\n";
@@ -692,9 +700,9 @@ namespace QaplaTester::Settings
         }
     }
 
-    std::map<std::string, QaplaHelpers::IniFile::SectionList> Manager::groupInstancesToSectionMap(
-            const std::string& groupName) const {
-        std::map<std::string, QaplaHelpers::IniFile::SectionList> result;
+    QaplaHelpers::IniFile::SectionList Manager::groupInstancesToSectionList(
+            const std::string& groupName, bool suppressDefault) const {
+        QaplaHelpers::IniFile::SectionList result;
         
         const auto lowerGroupName = QaplaHelpers::to_lowercase(groupName);
         if (!groupInstances_.contains(lowerGroupName)) {
@@ -710,11 +718,6 @@ namespace QaplaTester::Settings
             const auto& definition = instance.getDefinition();
             const auto& values = instance.getValues();
             
-            std::string id = "default";
-            if (instance.isKeyProvided("id")) {
-                id = instance.get<std::string>("id");
-            }
-            
             for (const auto& keyName : definition.getKeyNames()) {
                 if (!definition.keys.contains(keyName)) {
                     continue;
@@ -727,27 +730,15 @@ namespace QaplaTester::Settings
                 const auto isDifferentFromDefault = hasValue && hasDefault && 
                         (values.at(keyName) != *keyDef.defaultValue);
                 
-                if (isRequired || !hasDefault || isDifferentFromDefault) {
+                if (!suppressDefault || isRequired || !hasDefault || isDifferentFromDefault) {
                     std::string keyToUse = keyName;
                     constexpr std::string_view suffix = ".[name]";
                     if (keyName.ends_with(suffix)) {
                         keyToUse = keyName.substr(0, keyName.size() - suffix.size());
                     }
                     
-                    std::string valueStr;
-                    if (hasValue) {
-                        std::visit([&valueStr](auto&& val) {
-                            std::ostringstream oss;
-                            oss << std::boolalpha << val;
-                            valueStr = oss.str();
-                        }, values.at(keyName));
-                    } else if (hasDefault) {
-                        std::visit([&valueStr](auto&& val) {
-                            std::ostringstream oss;
-                            oss << std::boolalpha << val;
-                            valueStr = oss.str();
-                        }, *keyDef.defaultValue);
-                    }
+                    const std::string valueStr = hasValue ? valueToString(values.at(keyName)) : 
+                            (hasDefault ? valueToString(*keyDef.defaultValue) : "");
                     
                     if (!valueStr.empty()) {
                         section.addEntry(keyToUse, valueStr);
@@ -755,7 +746,7 @@ namespace QaplaTester::Settings
                 }
             }
             
-            result[id].push_back(std::move(section));
+            result.push_back(std::move(section));
         }
         
         return result;
@@ -776,14 +767,7 @@ namespace QaplaTester::Settings
             const auto isDifferentFromDefault = hasDefault && (value != *definition.defaultValue);
             
             if (isRequired || !hasDefault || isDifferentFromDefault) {
-                std::string valueStr;
-                std::visit([&valueStr](auto&& val) {
-                    std::ostringstream oss;
-                    oss << val;
-                    valueStr = oss.str();
-                }, value);
-                
-                result.emplace_back(name, valueStr);
+                result.emplace_back(name, valueToString(value));
             }
         }
         
@@ -792,6 +776,7 @@ namespace QaplaTester::Settings
 
     QaplaHelpers::ConfigData Manager::toConfigData(
             const std::vector<std::string>& sectionNames,
+            const std::string& id,
             bool addGlobals) const {
         QaplaHelpers::ConfigData configData;
         
@@ -803,9 +788,12 @@ namespace QaplaTester::Settings
         }
         
         for (const auto& sectionName : sectionsToExport) {
-            const auto sectionMap = groupInstancesToSectionMap(sectionName);
-            for (const auto& [id, sectionList] : sectionMap) {
-                configData.setSectionList(sectionName, id, sectionList);
+            auto sections = groupInstancesToSectionList(sectionName);
+            for (auto& section : sections) {
+                if (!section.getValue("id")) {
+                    section.insertFirst("id", id);
+                }
+                configData.addSection(section);
             }
         }
         

@@ -167,9 +167,10 @@ private:
     /**
      * @brief Applies settings from a configuration file
      * @param settingsFile Path to the settings file
+     * @param required When true, throws an error if the file cannot be opened.
      * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
      */
-    void applySettingsFromFile(std::string_view settingsFile, bool strict = true);
+    void applySettingsFromFile(std::string_view settingsFile, bool required = true, bool strict = true);
 
     /**
      * @brief Reads logger configuration from CLI settings

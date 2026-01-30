@@ -295,22 +295,24 @@ namespace QaplaTester::Settings {
          * Only outputs entries that are mandatory or differ from their default values.
          * @param sectionNames Names of sections to include. Empty vector means all sections.
          * @param addGlobals If true, includes global parameters in the result.
+         * @param id The identifier to use for grouped sections, if none is provided.
          * @return ConfigData instance containing the filtered settings.
          */
         [[nodiscard]] QaplaHelpers::ConfigData toConfigData(
                 const std::vector<std::string>& sectionNames = {},
+                const std::string& id = "default",
                 bool addGlobals = true) const;
 
     private:
 
         /**
-         * @brief Converts group instances of a specific name to a map of SectionLists grouped by ID.
-         * Only includes entries that are mandatory or differ from their default values.
+         * @brief Converts group instances of a specific name to a list of Sections.
          * @param groupName Name of the group to convert (e.g., "engine").
-         * @return Map of ID to SectionList containing all instances of the specified group.
+         * @param suppressDefault If true, only includes entries that are mandatory or differ from their default values.
+         * @return SectionList containing all instances of the specified group.
          */
-        [[nodiscard]] std::map<std::string, QaplaHelpers::IniFile::SectionList> groupInstancesToSectionMap(
-                const std::string& groupName) const;
+        [[nodiscard]] QaplaHelpers::IniFile::SectionList groupInstancesToSectionList(
+                const std::string& groupName, bool suppressDefault = false) const;
 
         /**
          * @brief Collects global parameters that are mandatory or differ from their default values.

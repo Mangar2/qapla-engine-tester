@@ -108,18 +108,23 @@ def validate_file_exists(path: str, test_name: str) -> bool:
         return False
 
 
-def validate_file_content(path: str, content_pattern: str, test_name: str, error_msg: Optional[str] = None) -> bool:
+def validate_file_content(path: str, content_pattern: str, test_name: str, error_msg: Optional[str] = None, is_regex: bool = False) -> bool:
     """Validate that a file contains the expected content pattern."""
     if not os.path.exists(path):
         print(f"  {Colors.RED}[FAIL]{Colors.RESET} File not found for content check: {path}")
         return False
 
     try:
-        content_regex = re.compile(content_pattern)
         with open(path, "r", encoding="utf-8", errors="ignore") as f:
             content = f.read()
 
-        if content_regex.search(content):
+        found = False
+        if is_regex:
+            found = re.compile(content_pattern).search(content) is not None
+        else:
+            found = content_pattern in content
+
+        if found:
             print(f"  {Colors.GREEN}[OK]{Colors.RESET} File '{path}' has expected content")
             return True
         else:
@@ -289,6 +294,7 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
                 content_pattern=validator["content"],
                 test_name=test["name"],
                 error_msg=validator.get("message"),
+                is_regex=validator.get("isRegex", False)
             )
         elif validator_type == "fileExists":
             result = validate_file_exists(validator["path"], test["name"])
