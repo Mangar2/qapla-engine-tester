@@ -59,16 +59,6 @@
 using namespace QaplaTester;
 using QaplaHelpers::Timer;
 
-static auto updateCode(AppReturnCode code, AppReturnCode newCode) {
-	if (code == AppReturnCode::NoError) {
-		return newCode;
-	}
-	else if (code >= AppReturnCode::EngineError) {
-		return std::min(code, newCode);
-	}
-	return code;
-}
-
 static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel::command) {
     auto newCode = EngineReport::logAll(traceLevel);
     if (code == AppReturnCode::NoError) {
@@ -315,8 +305,6 @@ static AppReturnCode runTournament(AppReturnCode code) {
         GameManagerPool::getInstance().getAdjudicationManager().printTestResult(std::cout);
         std::string resultString = tournament.getResultString();
         Logger::reportLogger().log(resultString, TraceLevel::result);
-
- 		code = updateCode(code, EngineReport::logAll(TraceLevel::info, tournament.getResult()));
     }
     catch (const std::exception& e) {
         Logger::reportLogger().log(std::format("Exception during tournament run: {}", e.what()), TraceLevel::error);

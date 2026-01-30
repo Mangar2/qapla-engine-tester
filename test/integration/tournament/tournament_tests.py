@@ -28,5 +28,25 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
             ],
             "cleanup": "test/integration/log/tournament",
-        }
+        },
+        {
+            "name": "tournament-nonexisting-file",
+            "description": "Tournament continuation from existing tournament file",
+            "args": "--settingsfile=test/integration/tournament/test-tournament-write-nonexisting.ini",
+            "log_path": "test/integration/log/tournament",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/tournament/test-tournament-write-nonexisting.qtour",
+                    "content": "[each]"
+                },
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/tournament/test-tournament-write-nonexisting.qtour",
+                    "content": "[round]"
+                }
+            ],
+            "cleanup": "test/integration/log/tournament"
+        },
     ]
