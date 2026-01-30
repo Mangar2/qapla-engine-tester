@@ -27,8 +27,6 @@
 #include <string>
 #include <optional>
 #include <vector>
-#include <sstream>
-#include <iomanip>
 
 namespace QaplaTester {
 

@@ -102,24 +102,34 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
             runLowerCaseOptionTest();
             runEngineOptionTests();
         }
-        runAnalyzeTest();
+        if (!testSettings.get<bool>("noanalyze")) {
+            runAnalyzeTest();
+        }
 		if (!testSettings.get<bool>("nostop")) {
             runImmediateStopTest();
         }
 		if (!testSettings.get<bool>("nowait")) {
             runInfiniteAnalyzeTest();
         }
-        runGoLimitsTests();
-        runEpFromFenTest();
+        if (!testSettings.get<bool>("nogolimits")) {
+            runGoLimitsTests();
+        }
+        if (!testSettings.get<bool>("nofens")) {
+            runEpFromFenTest();
+        }
         if (!testSettings.get<bool>("noepd")) {
 			runEpdTests();
 		}
-        runComputeGameTest();
+        if (!testSettings.get<bool>("nocompute")) {
+            runComputeGameTest();
+        }
         if (!testSettings.get<bool>("noponder")) {
             runUciPonderTest();
             runPonderGameTest();
         }
-        runMultipleGamesTest();
+        if (numGames_ > 0) {
+            runMultipleGamesTest();
+        }
     }
 	catch (const std::exception& e) {
 		Logger::reportLogger().log("Exception during engine tests, all remaining tests cancelled: " + std::string(e.what()), TraceLevel::error);

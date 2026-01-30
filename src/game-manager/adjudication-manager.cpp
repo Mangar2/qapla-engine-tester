@@ -13,8 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * @author Volker BÃ¶hm
- * @copyright Copyright (c) 2025 Volker BÃ¶hm
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
  */
 
 #include "adjudication-manager.h"
@@ -31,11 +31,11 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
 
     if (cfg.requiredConsecutiveMoves <= 0 
         || cfg.centipawnThreshold <= 0 
-        || moves.size() < 2 * cfg.minFullMoves ) {
+        || moves.size() < static_cast<size_t>(2) * cfg.minFullMoves ) {
         return { GameEndCause::Ongoing, GameResult::Unterminated };
     }
 
-    if (moves.empty() || moves.back().halfmoveClock < 2 * cfg.requiredConsecutiveMoves) {
+    if (moves.empty() || moves.back().halfmoveClock < 2U * cfg.requiredConsecutiveMoves) {
         return { GameEndCause::Ongoing, GameResult::Unterminated };
     }
 
@@ -49,7 +49,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
         }
 
         consecutiveOk++;
-        if (consecutiveOk >= 2 * cfg.requiredConsecutiveMoves) {
+        if (consecutiveOk >= 2U * cfg.requiredConsecutiveMoves) {
             return { GameEndCause::Adjudication, GameResult::Draw };
         }
     }
@@ -66,7 +66,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
 
     if (cfg.requiredConsecutiveMoves <= 0 
         || cfg.centipawnThreshold <= 0 
-        || moves.size() < static_cast<size_t>(2 * cfg.requiredConsecutiveMoves)) {
+        || moves.size() < static_cast<size_t>(2) * cfg.requiredConsecutiveMoves) {
         return { GameEndCause::Ongoing, GameResult::Unterminated };
     }
 
@@ -91,7 +91,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
         }
         consecutive++;
 
-        if (consecutive >= 2 * cfg.requiredConsecutiveMoves) {
+        if (consecutive >= 2U * cfg.requiredConsecutiveMoves) {
             return { GameEndCause::Adjudication, prospectiveResult };
         }
         curLoosing = !curLoosing;
@@ -115,7 +115,7 @@ std::pair<GameEndCause, GameResult> AdjudicationManager::adjudicateDraw(const Ga
 std::optional<size_t> AdjudicationManager::findDrawAdjudicationIndex(const GameRecord& game) const {
 	const auto& cfg = drawConfig_;
     const auto& moves = game.history();
-    if (cfg.requiredConsecutiveMoves <= 0 || cfg.centipawnThreshold <= 0 || moves.size() < 2 * cfg.minFullMoves) {
+    if (cfg.requiredConsecutiveMoves <= 0 || cfg.centipawnThreshold <= 0 || moves.size() < static_cast<size_t>(2) * cfg.minFullMoves) {
         return std::nullopt;
     }
 
@@ -128,9 +128,9 @@ std::optional<size_t> AdjudicationManager::findDrawAdjudicationIndex(const GameR
             inRangeCount = 0;
         } else {
             inRangeCount++;
-            if (inRangeCount >= 2 * cfg.requiredConsecutiveMoves &&
-                i + 1 >= 2 * static_cast<size_t>(cfg.minFullMoves) &&
-                move.halfmoveClock >= 2 * cfg.requiredConsecutiveMoves) {
+            if (inRangeCount >= 2U * cfg.requiredConsecutiveMoves &&
+                i + 1 >= static_cast<size_t>(2) * cfg.minFullMoves &&
+                move.halfmoveClock >= 2U * cfg.requiredConsecutiveMoves) {
                 return i;
             }
         }
@@ -147,7 +147,7 @@ static bool isValidResignConfig(const AdjudicationManager::ResignAdjudicationCon
     const std::vector<MoveRecord>& moves) {
     return config.requiredConsecutiveMoves > 0 
         && config.centipawnThreshold > 0 
-        && moves.size() >= 2 * static_cast<size_t>(config.requiredConsecutiveMoves);
+        && moves.size() >= static_cast<size_t>(2) * config.requiredConsecutiveMoves;
 }
 
 std::pair<GameResult, size_t> AdjudicationManager::findResignAdjudicationIndex(const GameRecord& game) const {
@@ -165,7 +165,7 @@ std::pair<GameResult, size_t> AdjudicationManager::findResignAdjudicationIndex(c
     uint32_t bConsecutive = 0;
     // Required to ensure that both sides satisfy their respective conditions when two-sided resign is active
     uint32_t requiredConsecutive = resignConfig_.twoSided ? 
-        2 * resignConfig_.requiredConsecutiveMoves : resignConfig_.requiredConsecutiveMoves;
+        2U * resignConfig_.requiredConsecutiveMoves : resignConfig_.requiredConsecutiveMoves;
 
     for (size_t i = 0; i < moves.size(); ++i) {
         const auto& move = moves[i];

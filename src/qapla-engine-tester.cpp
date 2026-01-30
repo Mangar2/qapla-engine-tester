@@ -71,7 +71,7 @@ static auto runEpd(AppReturnCode code) {
         return code;
     }
 
-    uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+    auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
     Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
     auto epdManager = std::make_shared<EpdManager>();
 
@@ -99,11 +99,6 @@ static auto runEpd(AppReturnCode code) {
 }
 
 static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code) {
-    Settings::QaplaSettings::instance().applyLoggerConfig("report");
-    if (!EngineLogger::engineLogger().getFilename().empty()) {
-        Logger::reportLogger().logAligned("Engine communication log: ", 
-            EngineLogger::engineLogger().getFilename());
-    }
     Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
 
     EngineTestController controller;
