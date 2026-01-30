@@ -23,7 +23,6 @@
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
 #include "../config/engine-config.h"
-#include "../config/engine-global-config.h"
 #include "../base-elements/logger.h"
 
 #include <string>
@@ -170,7 +169,7 @@ private:
      * @param required When true, throws an error if the file cannot be opened.
      * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
      */
-    void applySettingsFromFile(std::string_view settingsFile, bool required = true, bool strict = true);
+    static void applySettingsFromFile(std::string_view settingsFile, bool required = true, bool strict = true);
 
     /**
      * @brief Reads logger configuration from CLI settings
@@ -251,7 +250,7 @@ private:
      * @param configData The configuration data to apply
      * @param id Identifier for the configuration sections
      */
-    void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
+    static void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options

@@ -21,7 +21,6 @@
 
 #include "settings-manager.h"
 #include "settings-definitions.h"
-#include "../opening/pgn-io.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/ini-file.h"
@@ -35,12 +34,10 @@
 #include "../config/pgn-config.h"
 #include "../config/adjudication-config.h"
 #include "../config/engine-config.h"
-#include "../config/engine-global-config.h"
 #include "../epd/epd-manager.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../spsa/spsa-optimizer.h"
 
-#include <format>
 #include <fstream>
 
 namespace QaplaTester::Settings {
@@ -51,7 +48,14 @@ QaplaSettings& QaplaSettings::instance() {
 }
 
 void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool required, bool strict) {
-    std::ifstream file(settingsFile.data());
+    const auto *fileName = settingsFile.data();
+    if (fileName == nullptr || *fileName == '\0') {
+        if (required) {
+            throw AppError::makeInvalidParameters("Settings file path is empty.");
+        }
+        return;
+    }
+    std::ifstream file(fileName);
     if (!file.is_open()) {
         if (required) {
             throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
@@ -71,7 +75,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     Manager::instance().parseInput(cliData);
     
     // Extract settingsfile from CLI global parameters without full parsing
-    std::string settingsFile = Manager::instance().get<std::string>("settingsfile");
+    auto settingsFile = Manager::instance().get<std::string>("settingsfile");
     
     // If settings file specified, load and parse it first
     if (!settingsFile.empty()) {

@@ -17,11 +17,28 @@ def get_tests() -> List[Dict[str, Any]]:
                 {
                     "type": "logFiles",
                     "path": "",
-                    "pattern": "report-.*\\.log",
+                    "pattern": "engine-report-.*\\.log",
                     "count": 1,
                     "content": "PASS Engine starts and stops quickly and without issues"
                 }
             ],
             "cleanup": "test/integration/log/engine-test/minimal",
+        },
+        {
+            "name": "engine-test-noinit",
+            "description": "Engine fails to initialize (noinit diagnostic engine)",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-fail.ini",
+            "log_path": "test/integration/log/engine-test/fail",
+            "validators": [
+                {"type": "exitCode", "expected": 10},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-report-.*\\.log",
+                    "count": 1,
+                    "content": "FAIL Engine starts and stops quickly and without issues"
+                }
+            ],
+            "cleanup": "test/integration/log/engine-test/fail",
         }
     ]
