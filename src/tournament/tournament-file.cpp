@@ -19,8 +19,12 @@
 
 #include "tournament-file.h"
 #include "tournament.h"
+#include "../cli/settings-manager.h"
+#include "../base-elements/logger.h"
 #include <fstream>
 #include <stdexcept>
+#include <format>
+#include <filesystem>
 
 namespace QaplaTester {
 
@@ -41,7 +45,12 @@ void TournamentFile::save(const std::string& filename,
     for (const auto& sectionName : sectionNames) {
         auto sections = configData.getSectionList(sectionName, id);
         if (sections && !sections->empty()) {
-            for (const auto& section : *sections) {
+            for (auto& section : *sections) {
+                auto name = section.name;
+                // Avoid recursive self-reference: The 'file' entry contains the name of this state file.
+                if (name == "tournament") {
+                    section.eraseEntry("file");
+                }
                 QaplaHelpers::IniFile::saveSection(out, section);
             }
         }
@@ -50,6 +59,64 @@ void TournamentFile::save(const std::string& filename,
     out.close();
     if (!out) {
         throw std::runtime_error("Error while writing to file: " + filename);
+    }
+}
+
+void TournamentFile::save(const std::string& filename, 
+                          const Settings::Manager& settingsManager,
+                          const std::shared_ptr<Tournament>& tournament,
+                          const std::string& id) {
+    if (!filename.empty()) {
+        auto sections = tournament->getSections();
+        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({}, id);
+        for (const auto& section : sections) {
+            configData.addSection(section);
+        }
+        save(filename, configData, id);
+    }
+}
+
+void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+                                     const std::shared_ptr<Tournament>& tournament) {
+    // Setup autosave callback if file and interval are specified
+    if (!filename.empty() && saveInterval > 0) {
+        tournament->setGameFinishedCallback(
+            [filename,
+             configData = Settings::Manager::instance().toConfigData({}, TournamentFile::id),
+             saveInterval,
+             saveTrigger = 0u,
+             tournament = tournament.get()]() mutable 
+            {
+                ++saveTrigger;
+                if (saveTrigger >= saveInterval) {
+                    saveTrigger = 0;
+                    
+                    auto sections = tournament->getSections();
+                    if (!sections.empty()) {
+                        auto saveData = configData;
+                        for (const auto& section : sections) {
+                            saveData.addSection(section);
+                        }
+                        TournamentFile::save(filename, saveData, TournamentFile::id);
+                        Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
+                    }
+                }
+            }
+        );
+    }
+}
+
+void TournamentFile::loadGameResults(const std::string& filename, 
+                                     const std::shared_ptr<Tournament>& tournament, 
+                                     const std::string& id) {
+    if (filename.empty() || !std::filesystem::exists(filename)) {
+        return;
+    }
+    QaplaHelpers::ConfigData configData;
+    configData.load(filename);
+    auto sections = configData.getSectionList("round", id);
+    if (sections) {
+        tournament->load(*sections);
     }
 }
 

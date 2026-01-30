@@ -35,6 +35,7 @@
 #include <ostream>
 #include <istream>
 #include <string>
+#include <functional>
 
 namespace QaplaTester {
 
@@ -174,6 +175,14 @@ public:
      */
     static uint32_t calculateTotalGames(const std::vector<EngineConfig>& engines, const TournamentConfig& config);
 
+    /**
+     * @brief Sets a callback to be executed after each game completion.
+     * @param callback Function to call.
+     */
+    void setGameFinishedCallback(std::function<void()> callback) {
+        gameFinishedCallback_ = std::move(callback);
+    }
+
 private:
     TournamentResult result_;
     ChangeTracker changeTracker_;
@@ -220,6 +229,7 @@ private:
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;
+    std::function<void()> gameFinishedCallback_;
 };
 
 } // namespace QaplaTester
