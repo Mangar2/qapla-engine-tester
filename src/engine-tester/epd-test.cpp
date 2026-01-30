@@ -17,7 +17,6 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include <format>
 
 #include "epd-test.h"
 

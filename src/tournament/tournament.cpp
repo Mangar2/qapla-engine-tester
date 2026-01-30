@@ -20,7 +20,6 @@
 #include "tournament.h"
 #include "../opening/opening-parser.h"
 #include "../opening/pgn-save.h"
-#include "../engine-handling/engine-config-manager.h"
 
 #include "../cli/input-handler.h"
 
@@ -28,10 +27,9 @@
 #include "../game-manager/adjudication-manager.h"
 
 #include "../base-elements/logger.h"
+#include "../base-elements/string-helper.h"
 
-#include <sstream>
 #include <fstream>
-#include <iomanip>
 #include <ctime>
 #include <random>
 #include <format>
@@ -260,26 +258,32 @@ void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
     uint32_t round = 0;
     std::string games;
     changeTracker_.trackModification();
-    try {
-        for (const auto& [key, value]: section.entries) {
-            if (key == "engineA") {
-                engineA = value;
-            } else if (key == "engineB") {
-                engineB = value;
-            } else if (key == "round") {
-                round = std::stoul(value) - 1;
-            } else if (key == "games") {
-                games = value;
+
+    for (const auto& [key, value] : section.entries) {
+        if (key == "engineA") {
+            engineA = value;
+        } else if (key == "engineB") {
+            engineB = value;
+        } else if (key == "round") {
+            const auto val = QaplaHelpers::to_uint32(value);
+            if (!val) {
+                return;
             }
+            round = *val - 1;
+        } else if (key == "games") {
+            games = value;
         }
-        for (const auto& pairing : pairings_) {
-            if (!games.empty() && pairing->matches(round, engineA, engineB)) {
-                pairing->fromSection(section);
-                break;
-            }
+    }
+
+    if (games.empty()) {
+        return;
+    }
+
+    for (const auto& pairing : pairings_) {
+        if (pairing->matches(round, engineA, engineB)) {
+            pairing->fromSection(section);
+            break;
         }
-    } catch (const std::exception& ex) {
-        // Ignore invalid section
     }
 }
 
