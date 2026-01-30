@@ -46,7 +46,12 @@ void EngineTestController::startEngine() {
     try {
         auto ctList = EngineWorkerFactory::createEngines(engineConfig_, 1);
 		computeTask_->initEngines(std::move(ctList));
-		success = computeTask_->getEngine()->requestReady();
+        auto *engine = computeTask_->getEngine();
+        if (engine == nullptr) {
+            success = false;
+        } else {
+            success = engine->requestReady();
+        }
     }
     catch (const std::exception& e) {
         Logger::reportLogger().log("Configuration error during engine test for " + 

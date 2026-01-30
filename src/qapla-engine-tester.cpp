@@ -99,6 +99,8 @@ static auto runEpd(AppReturnCode code) {
 }
 
 static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code) {
+    
+    Settings::QaplaSettings::instance().applyLoggerConfig("engine-report");
     Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
 
     EngineTestController controller;
