@@ -321,7 +321,7 @@ void EngineTestController::runEpFromFenTest() {
 
 void EngineTestController::runComputeGameTest() {
     // Use QaplaTester function
-    auto results = QaplaTester::runComputeGameTest(engineConfig_);
+    auto results = QaplaTester::runComputeGameTest(engineConfig_, false);
     for (const auto& entry : results) {
         if (!entry.success) {
             Logger::reportLogger().log("Compute game test failed: " + entry.result, TraceLevel::error);
@@ -331,7 +331,7 @@ void EngineTestController::runComputeGameTest() {
 
 void EngineTestController::runPonderGameTest() {
     // Use QaplaTester function
-    auto results = QaplaTester::runPonderGameTest(engineConfig_);
+    auto results = QaplaTester::runPonderGameTest(engineConfig_, false);
     for (const auto& entry : results) {
         if (!entry.success) {
             Logger::reportLogger().log("Ponder game test failed: " + entry.result, TraceLevel::error);
