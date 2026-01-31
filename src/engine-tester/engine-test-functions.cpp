@@ -707,6 +707,8 @@ static void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
     engine->computeMove(gameRecord, goLimits, true);
     success = engine->waitForHandshake(TIMEOUT);
     checklist->logReport(testname, success, "Engine did not send a bestmove after compute move in ponder mode.");
+
+    engine->setEventSink(nullptr);
 }
 
 // Helper function to test ponder miss scenario
@@ -737,6 +739,8 @@ static void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
         success = engine->waitForHandshake(TIMEOUT);
         checklist->logReport(testname, success, "Engine never sent a bestmove after receiving stop in ponder mode.");
     }
+
+    engine->setEventSink(nullptr);
 }
 
 TestResult runUciPonderTest(const EngineConfig& engineConfig)

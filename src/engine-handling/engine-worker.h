@@ -165,6 +165,7 @@ public:
 	 * @param sink The event sink function.
 	 */
 	void setEventSink(std::function<void(EngineEvent&&)> sink) {
+		std::scoped_lock lock(eventSinkMutex_);
 		eventSink_ = std::move(sink);
 	}
 
@@ -315,6 +316,12 @@ private:
 	 */
 	void readLoop();
 	void writeLoop();
+
+	/**
+	 * @brief Sends an event to the event sink in a thread-safe way.
+	 * @param event The event to send.
+	 */
+	void sendEvent(EngineEvent&& event) const;
 	
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
 	static constexpr std::chrono::seconds BestMoveTimeout{ 2 };
@@ -347,6 +354,7 @@ private:
 	std::unique_ptr<EngineAdapter> adapter_;
 
 	// GameManager communication
+	mutable std::mutex eventSinkMutex_;
 	std::function<void(EngineEvent&&)> eventSink_;
 
 	// Engine configuration
