@@ -263,40 +263,33 @@ void EngineWorker::computeMove(const GameRecord& gameRecord, const GoLimits& lim
     GameStruct game = gameRecord.createGameStruct();
     post([this, game = std::move(game), limits, ponderHit](EngineAdapter& adapter) {
         try {
-            if (eventSink_) {
-                // This ensures that all remaining info packets from pondering arrive before this marker,
-                // allowing the GameManager to safely distinguish between stale and current compute data.
-                eventSink_(EngineEvent::create(EngineEvent::Type::SendingComputeMove, identifier_, 
-                    Timer::getCurrentTimeMs()));
-            }
+            // This ensures that all remaining info packets from pondering arrive before this marker,
+            // allowing the GameManager to safely distinguish between stale and current compute data.
+            sendEvent(EngineEvent::create(EngineEvent::Type::SendingComputeMove, identifier_, 
+                Timer::getCurrentTimeMs()));
+
             uint64_t sendTimestamp = adapter.computeMove(game, limits, ponderHit);
-            if (eventSink_) {
-				eventSink_(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
-            }
+            sendEvent(EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_, sendTimestamp));
         }
         catch (const std::exception& ex) {
-            if (eventSink_) {
-                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
-                    Timer::getCurrentTimeMs());
-                e.errors.push_back({ 
-                    .name = "I/O Error", 
-                    .detail = std::string("Failed to send compute move command: ") + ex.what(),
-					.level = TraceLevel::error
-                    });
-                eventSink_(std::move(e));
-            }
+            auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
+                Timer::getCurrentTimeMs());
+            e.errors.push_back({ 
+                .name = "I/O Error", 
+                .detail = std::string("Failed to send compute move command: ") + ex.what(),
+                .level = TraceLevel::error
+                });
+            sendEvent(std::move(e));
         }
         catch (...) {
-            if (eventSink_) {
-                auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
-                    Timer::getCurrentTimeMs());
-                e.errors.push_back({ 
-                    .name = "I/O Error",
-                    .detail = std::string("Failed to send compute move command"),
-                    .level = TraceLevel::error
-                });
-                eventSink_(std::move(e));
-            }
+            auto e = EngineEvent::create(EngineEvent::Type::ComputeMoveSent, identifier_,
+                Timer::getCurrentTimeMs());
+            e.errors.push_back({ 
+                .name = "I/O Error",
+                .detail = std::string("Failed to send compute move command"),
+                .level = TraceLevel::error
+            });
+            sendEvent(std::move(e));
         }
         });
 }
@@ -307,17 +300,13 @@ void EngineWorker::allowPonder(const GameRecord& gameRecord, const GoLimits& lim
     post([this, game, limits, ponderMove](EngineAdapter& adapter) {
         try {
 			uint64_t sendTimestamp = adapter.allowPonder(game, limits, ponderMove);
-            if (eventSink_) {
-                eventSink_(EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, sendTimestamp));
-            }
+            sendEvent(EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, sendTimestamp));
         }
         catch (...) {
-            if (eventSink_) {
-                auto error = EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, 
-                    Timer::getCurrentTimeMs());
-                error.errors.push_back({ .name = "I/O Error", .detail = "Failed to send go ponder command" });
-                eventSink_(std::move(error));
-            }
+            auto error = EngineEvent::create(EngineEvent::Type::PonderMoveSent, identifier_, 
+                Timer::getCurrentTimeMs());
+            error.errors.push_back({ .name = "I/O Error", .detail = "Failed to send go ponder command" });
+            sendEvent(std::move(error));
         }
         });
 }
@@ -345,10 +334,9 @@ void EngineWorker::readLoop() {
 				continue; 
 			}
 
-            if (eventSink_) {
-                eventSink_(std::move(event));
-            }
-			if (event.type == EngineEvent::Type::EngineDisconnected) {
+            const auto type = event.type;
+            sendEvent(std::move(event));
+			if (type == EngineEvent::Type::EngineDisconnected) {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread
 				disconnected_ = true;
                 workerState_ = WorkerState::failure;
@@ -366,6 +354,13 @@ void EngineWorker::readLoop() {
 				TraceLevel::error);
 		}
     }
+}
+
+void EngineWorker::sendEvent(EngineEvent&& event) const {
+	std::scoped_lock lock(eventSinkMutex_);
+	if (eventSink_) {
+		eventSink_(std::move(event));
+	}
 }
 
 } // namespace QaplaTester
