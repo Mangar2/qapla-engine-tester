@@ -18,13 +18,20 @@
  */
  
 
-#include <string>
-#include <filesystem>
 
 #include "engine-config.h"
 #include "engine-option.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
+
+#include <string>
+#include <filesystem>
+#include <iostream>
+#include <unordered_set>
+#include <vector>
+#include <optional>
+#include <stdexcept>
+#include <set>
 
 namespace QaplaTester {
 
@@ -47,9 +54,9 @@ std::string EngineConfig::toString(const Value& value) {
         {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, std::string>) { return v; }
-            else if constexpr (std::is_same_v<T, int>) { return std::to_string(v); }
-            else if constexpr (std::is_same_v<T, unsigned int>) { return std::to_string(v); }
-            else if constexpr (std::is_same_v<T, double>) { return std::to_string(v); }
+            else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, unsigned int> || std::is_same_v<T, double>) { 
+                return std::to_string(v); 
+            }
             else if constexpr (std::is_same_v<T, bool>) { return v ? "true" : "false"; }
             else {
                 static_assert(always_false<T>, "Unsupported variant type");
@@ -93,6 +100,7 @@ void EngineConfig::setProtocol(const std::string& proto) {
 	protocol_ = parseEngineProtocol(proto);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     std::unordered_set<std::string> seenKeys;
 
@@ -174,6 +182,7 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
         && lhs.optionValues_ == rhs.optionValues_;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     std::set<std::string> internalKeys = { "id", "selected" };
     if (key == "name") { setName(value); }

@@ -18,23 +18,16 @@
  */
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-#include <optional>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
-#include <variant>
-#include <set>
-#include <filesystem>
-
-#include "../base-elements/ini-file.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/time-control.h"
 #include "engine-option.h"
-#include "../base-elements/logger.h"
+#include "../base-elements/base-logger.h"
+
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <filesystem>
+
 
 namespace QaplaTester {
 

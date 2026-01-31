@@ -141,17 +141,17 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-nocompute-fail",
             "description": "Negative test for single compute game",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nocompute=false --engine conf='Qapla 0.3.1' --logging path=test/integration/log/engine-test/compute-fail",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nocompute=false --engine conf='diagnostic-engine-lossontime' --logging path=test/integration/log/engine-test/compute-fail",
             "log_path": "test/integration/log/engine-test/compute-fail",
             "validators": [
-                {"type": "exitCode", "expected": 11}
+                {"type": "exitCode", "expected": 10}
             ],
             "cleanup": "test/integration/log/engine-test/compute-fail",
         },
         {
             "name": "engine-test-noponder-fail",
             "description": "Negative test for pondering",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noponder=false --engine conf='Qapla 0.3.1' --logging path=test/integration/log/engine-test/ponder-fail",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noponder=false --engine conf='Qapla 0.2.0' --logging path=test/integration/log/engine-test/ponder-fail",
             "log_path": "test/integration/log/engine-test/ponder-fail",
             "validators": [
                 {"type": "exitCode", "expected": 10}
