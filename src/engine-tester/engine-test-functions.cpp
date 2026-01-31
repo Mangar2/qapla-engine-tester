@@ -854,7 +854,7 @@ TestResult runEpdTest(const EngineConfig& engineConfig)
     }
 }
 
-TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGames, uint32_t concurrency)
+TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGames, uint32_t concurrency, bool checkTimeLimits)
 {
     // This test doesn't use runTest() because it needs GameManagerPool
     // which has different lifecycle management than single engines
@@ -864,6 +864,7 @@ TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGa
         Logger::reportLogger().log("Testing playing " + std::to_string(numGames) + " games...", TraceLevel::command);
         
         auto tournament = std::make_shared<TestTournament>(numGames, checklist);
+        tournament->checkTimeLimits = checkTimeLimits;
         
         GameManagerPool::getInstance().addTaskProvider(tournament, engineConfig, engineConfig);
         GameManagerPool::getInstance().setConcurrency(concurrency, true, true);  

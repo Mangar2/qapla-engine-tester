@@ -238,8 +238,10 @@ TestResult runEpdTest(const EngineConfig& engineConfig);
  * 
  * @param engineConfig Configuration for the engine to test
  * @param numGames Number of games to play (default: determined by test)
+ * @param concurrency Number of concurrent games to run
+ * @param checkTimeLimits Whether to validate time usage limits in the games
  * @return TestResult Vector containing tournament results
  */
-TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGames = 10, uint32_t concurrency = 4);
+TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGames = 10, uint32_t concurrency = 4, bool checkTimeLimits = false);
 
 } // namespace QaplaTester

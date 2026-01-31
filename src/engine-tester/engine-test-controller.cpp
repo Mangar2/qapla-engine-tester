@@ -29,6 +29,7 @@
 
 #include "../cli/settings-manager.h"
 
+#include <cstdint>
 #include <memory>
 #include <chrono>
 #include <string>
@@ -95,7 +96,8 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
     engineConfig_ = engine;
 	checklist_ = EngineReport::getChecklist(engineConfig_.getName());
     try {
-        const Settings::GroupInstance testSettings = *Settings::Manager::instance().getGroupInstance("test");
+        const auto testSettings = *Settings::Manager::instance().getGroupInstance("test");
+        const auto concurrency = Settings::Manager::instance().get<uint32_t>("concurrency");
         numGames_ = numGames;
         createGameManager();
         runStartStopTest();
@@ -133,7 +135,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
             runPonderGameTest();
         }
         if (numGames_ > 0) {
-            runMultipleGamesTest();
+            runMultipleGamesTest(concurrency, testSettings.get<bool>("timeusage"));
         }
     }
 	catch (const std::exception& e) {
@@ -339,9 +341,10 @@ void EngineTestController::runPonderGameTest() {
     }
 }
 
-void EngineTestController::runMultipleGamesTest() {
+void EngineTestController::runMultipleGamesTest(uint32_t concurrency, bool checkTimeLimits) {
     // Use QaplaTester function
-    auto results = QaplaTester::runMultipleGamesTest(engineConfig_, numGames_);
+    auto results = QaplaTester::runMultipleGamesTest(
+        engineConfig_, numGames_, concurrency, checkTimeLimits);
     for (const auto& entry : results) {
         if (!entry.success) {
             Logger::reportLogger().log("Multiple games test failed: " + entry.result, TraceLevel::error);
