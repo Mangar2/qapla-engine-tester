@@ -20,11 +20,9 @@
 #pragma once
 
 #include "../engine-handling/engine-config.h"
-#include "../engine-handling/engine-worker-factory.h"
 
 #include <vector>
 #include <string>
-#include <functional>
 
 namespace QaplaTester {
 

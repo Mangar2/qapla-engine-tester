@@ -7,6 +7,7 @@ Provides validation functions and test execution infrastructure.
 import difflib
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -244,7 +245,7 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     os.makedirs(log_path, exist_ok=True)
 
     # Build command
-    args = test["args"].split()
+    args = shlex.split(test["args"], posix=True)
     cmd = [f"build/{config_name}/qapla-engine-tester.exe"] + args
 
     print(f"  {Colors.GRAY}Running: {' '.join(cmd)}{Colors.RESET}")

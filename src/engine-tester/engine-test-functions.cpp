@@ -70,7 +70,8 @@ TestResult runTest(
             
             // Verify engines respond to UCI isReady command to ensure they are operational
             for (const auto& engine : engines) {
-                auto* checklist = EngineReport::getChecklist(engine->getEngineName());
+                auto* checklist = EngineReport::getChecklist(
+                    engine->getConfig().getName()); 
                 bool isReady = engine->requestReady();
                 checklist->logReport("starts-and-stops-cleanly", isReady, 
                     "  engine did not respond to isReady after startup in time");
