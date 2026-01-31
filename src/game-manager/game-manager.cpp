@@ -164,8 +164,7 @@ void GameManager::signalFinished() {
         try {
             finishedPromise_.set_value();
         }
-        catch (const std::future_error& e) {
-            (void) e;
+        catch (...) { // NOLINT(bugprone-empty-catch)
             // already satisfied -> ignore or log
         }
         finishedPromiseValid_ = false;

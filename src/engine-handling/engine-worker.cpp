@@ -94,7 +94,7 @@ void EngineWorker::stop(bool wait) {
             try {
                 adapter.terminateEngine();
             }
-            catch (...) {
+            catch (...) { // NOLINT(bugprone-empty-catch)
                 // Nothing to do, if we cannot stop it, we can do nothing else
             }
             });

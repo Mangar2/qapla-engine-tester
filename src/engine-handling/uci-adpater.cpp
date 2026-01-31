@@ -51,9 +51,8 @@ void UciAdapter::terminateEngine() {
 		// Once Terminating is set, writing to the engine is not allowed anymore
         terminating_ = true;
     }
-    catch (const std::exception& ex) {
+    catch (...) { // NOLINT(bugprone-empty-catch)
         // Engine might already be gone; nothing to do
-        (void) ex;
     }
 
     // Force termination if the engine didn't quit in time
