@@ -824,36 +824,30 @@ TestResult runPonderGameTest(const EngineConfig& engineConfig, bool logMoves)
 
 TestResult runEpdTest(const EngineConfig& engineConfig)
 {
-    return runTest({engineConfig}, [&engineConfig](EngineList&& engines) -> TestResult {
-        if (engines.empty()) {
-            return {TestResultEntry("EPD test", "No engine started", false)};
-        }
+    auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+    
+    try {
+        Logger::reportLogger().log("Testing positions, this will take a while...", TraceLevel::command);
         
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto epdManager = std::make_shared<EpdTestManager>(checklist);
         
-        try {
-            Logger::reportLogger().log("Testing positions, this will take a while...", TraceLevel::command);
-            
-            auto epdManager = std::make_shared<EpdTestManager>(checklist);
-            GameManager gameManager(nullptr);
-            gameManager.initUniqueEngine(std::move(engines[0]));
-            gameManager.start(epdManager);
-            gameManager.getFinishedFuture().wait();
-            
-            Logger::reportLogger().logAligned("Testing positions:", "All positions computed");
-            return {TestResultEntry("EPD test", "All positions computed successfully", true)};
-        }
-        catch (const std::exception& e) {
-            Logger::reportLogger().logAligned("Testing positions:", std::string("Error: ") + e.what());
-            checklist->logReport("epd-test", false, "Exception during EPD test: " + std::string(e.what()));
-            return {TestResultEntry("EPD test", std::string("Error: ") + e.what(), false)};
-        }
-        catch (...) {
-            Logger::reportLogger().logAligned("Testing positions:", "Unknown error");
-            checklist->logReport("epd-test", false, "Unknown exception during EPD test");
-            return {TestResultEntry("EPD test", "Unknown error", false)};
-        }
-    });
+        GameManagerPool::getInstance().addTaskProvider(epdManager, engineConfig);
+        GameManagerPool::getInstance().setConcurrency(1, true, true);  
+        GameManagerPool::getInstance().waitForTaskPolling(std::chrono::seconds(1));
+
+        Logger::reportLogger().logAligned("Testing positions:", "All positions computed");
+        return {TestResultEntry("EPD test", "All positions computed successfully", true)};
+    }
+    catch (const std::exception& e) {
+        Logger::reportLogger().logAligned("Testing positions:", std::string("Error: ") + e.what());
+        checklist->logReport("epd-test", false, "Exception during EPD test: " + std::string(e.what()));
+        return {TestResultEntry("EPD test", std::string("Error: ") + e.what(), false)};
+    }
+    catch (...) {
+        Logger::reportLogger().logAligned("Testing positions:", "Unknown error");
+        checklist->logReport("epd-test", false, "Unknown exception during EPD test");
+        return {TestResultEntry("EPD test", "Unknown error", false)};
+    }
 }
 
 TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGames, uint32_t concurrency)
