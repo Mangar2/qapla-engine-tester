@@ -20,17 +20,17 @@
 
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <optional>
-#include <fstream>
-#include <sstream>
-#include <stdexcept>
-#include <iostream>
+
 
 #include "engine-config.h"
 #include "../cli/settings-manager.h"
+
+#include <string>
+#include <unordered_set>
+#include <vector>
+#include <fstream>
+#include <stdexcept>
+#include <iostream>
 
 namespace QaplaTester {
 

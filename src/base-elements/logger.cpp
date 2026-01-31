@@ -18,8 +18,12 @@
  */
 
 #include "logger.h"
+
 #include <format>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
+
 
 namespace QaplaTester {
 
