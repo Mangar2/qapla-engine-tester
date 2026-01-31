@@ -28,6 +28,7 @@
 #include <algorithm>
 
 #include "engine-report.h"
+#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 

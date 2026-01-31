@@ -29,12 +29,10 @@
 #include "../cli/input-handler.h"
 #include "../base-elements/ini-file.h"
 
-#include <tuple>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <functional>
-#include <array>
 
 namespace QaplaTester {
 

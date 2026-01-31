@@ -18,6 +18,7 @@
  */
 
 #include "test-tournament.h"
+#include "../base-elements/logger.h"
 
 #include <sstream>
 #include <iomanip>
