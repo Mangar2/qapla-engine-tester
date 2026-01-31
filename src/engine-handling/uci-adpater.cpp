@@ -23,9 +23,7 @@
 #include <sstream>
 #include <chrono>
 #include <limits>
-#include <unordered_set>
 
-#include "../base-elements/timer.h"
 #include "uci-adapter.h"
 #include "engine-process.h"
 #include "../base-elements/logger.h"
@@ -53,8 +51,9 @@ void UciAdapter::terminateEngine() {
 		// Once Terminating is set, writing to the engine is not allowed anymore
         terminating_ = true;
     }
-    catch (...) {
+    catch (const std::exception& ex) {
         // Engine might already be gone; nothing to do
+        (void) ex;
     }
 
     // Force termination if the engine didn't quit in time
@@ -299,8 +298,9 @@ static bool isLanMoveToken(const std::string& token) {
 	return true;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timestamp, 
-    const std::string& originalLine) {  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    const std::string& originalLine) {  
     SearchInfo info;
     EngineEvent event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, originalLine);
     std::string token;
@@ -409,6 +409,7 @@ EngineEvent UciAdapter::readUciEvent(const EngineLine& engineLine) {
         catch (const std::exception& e) {
 			EngineEvent event = EngineEvent::create(EngineEvent::Type::Error, identifier_, engineLine.timestampMs, line);
             std::string err = static_cast<std::string>("Bad uci option (") + e.what() + ")";
+            event.errors.push_back({.name="bad-uci-option", .detail=err});
             return event;
         }
     }

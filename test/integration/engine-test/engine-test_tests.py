@@ -54,7 +54,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-nostop-fail",
             "description": "Negative test for immediate stop command",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nostop=false",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nostop=false --engine conf='Qapla 0.3.0'",
             "log_path": "test/integration/log/engine-test/stop-fail",
             "validators": [
                 {"type": "exitCode", "expected": 11}
@@ -64,7 +64,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-nomemory-fail",
             "description": "Negative test for memory/hash adjustment",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nomemory=false",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nomemory=false --engine conf='Qapla 0.2.0'",
             "log_path": "test/integration/log/engine-test/memory-fail",
             "validators": [
                 {"type": "exitCode", "expected": 12}
@@ -74,7 +74,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-nooption-fail",
             "description": "Negative test for UCI options handling",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nooption=false",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nooption=false --engine conf='Qapla 0.3.0'",
             "log_path": "test/integration/log/engine-test/option-fail",
             "validators": [
                 {"type": "exitCode", "expected": 10}
@@ -84,17 +84,17 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-noanalyze-fail",
             "description": "Negative test for standard analysis",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noanalyze=false",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noanalyze=false --engine conf='midnightv5'",
             "log_path": "test/integration/log/engine-test/analyze-fail",
             "validators": [
-                {"type": "exitCode", "expected": 11}
+                {"type": "exitCode", "expected": 10}
             ],
             "cleanup": "test/integration/log/engine-test/analyze-fail",
         },
         {
             "name": "engine-test-nowait-fail",
             "description": "Negative test for infinite search",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nowait=false",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nowait=false --engine conf='Qapla 0.2.0'",
             "log_path": "test/integration/log/engine-test/nowait-fail",
             "validators": [
                 {"type": "exitCode", "expected": 11}

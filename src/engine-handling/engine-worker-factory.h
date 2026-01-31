@@ -18,17 +18,12 @@
  */
 #pragma once
 
-#include <memory>
-#include <filesystem>
-#include <optional>
-#include <string>
-#include <unordered_map>
-#include <atomic>
-
 #include "engine-worker.h"
 #include "engine-config-manager.h"
 
-#include "../engine-tester/engine-report.h"
+#include <memory>
+#include <atomic>
+
 
 namespace QaplaTester {
 
