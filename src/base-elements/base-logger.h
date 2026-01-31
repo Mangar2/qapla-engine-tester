@@ -97,9 +97,7 @@ public:
      * @brief Returns the current log filename.
      * @return The full path and name of the log file.
      */
-    [[nodiscard]] std::string getFilename() const {
-        return filename_;
-    }
+    [[nodiscard]] std::string getFilename();
 
     /**
      * @brief Sets the trace level thresholds for console and file logging.
@@ -160,6 +158,8 @@ protected:
     TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
     std::string filename_;                      ///< Current log filename
+    std::string openedBasename_;                ///< Basename of the currently open log file
+    std::string openedLogPath_;                 ///< Directory path of the currently open log file
 };
 
 } // namespace QaplaTester

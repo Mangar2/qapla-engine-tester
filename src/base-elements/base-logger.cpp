@@ -47,27 +47,28 @@ std::string to_string(QaplaTester::TraceLevel level) {
 
 void BaseLogger::ensureFileOpen(const std::string& logPath) {
     std::string basename = getBaseName();
-    
-    // Check if we need to open/reopen the file
     if (basename.empty()) {
-        return; // No basename set, don't create file
-    }
-    
-    // If file is already open and basename hasn't changed, nothing to do
-    if (fileStream_.is_open() && filename_.find(basename) != std::string::npos) {
         return;
     }
-    
-    // Close existing file if open
+
+    if (fileStream_.is_open() && basename == openedBasename_ && logPath == openedLogPath_) {
+        return;
+    }
+
     if (fileStream_.is_open()) {
         fileStream_.close();
     }
-    
-    // Create new timestamped filename
+
     filename_ = generateTimestampedFilename(basename, logPath);
-    
-    // Open the file
+    openedBasename_ = basename;
+    openedLogPath_ = logPath;
     fileStream_.open(filename_, std::ios::app);
+}
+
+std::string BaseLogger::getFilename() {
+    std::scoped_lock lock(loggingMutex_);
+    ensureFileOpen(logPath_);
+    return filename_;
 }
 
 std::string BaseLogger::generateTimestampedFilename(const std::string& baseName, const std::string& logPath) {
