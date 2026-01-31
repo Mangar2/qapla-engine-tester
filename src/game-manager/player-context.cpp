@@ -263,11 +263,11 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 
     if (goLimits_.moveTimeMs.has_value()) {
-        checklist_->logReport("no-move-time-overrun", moveElapsedMs < *goLimits_.moveTimeMs + GRACE_MS,
+        checklist_->logReport("no-movetime-overrun", moveElapsedMs < *goLimits_.moveTimeMs + GRACE_MS,
             std::format("took {} ms, limit is {} ms", moveElapsedMs, *goLimits_.moveTimeMs), 
             TraceLevel::warning);
         if (numLimits == 1 && EngineReport::reportUnderruns) {
-            checklist_->logReport("no-move-time-underrun", moveElapsedMs > *goLimits_.moveTimeMs * 99 / 100,
+            checklist_->logReport("no-movetime-underrun", moveElapsedMs > *goLimits_.moveTimeMs * 99 / 100,
                 "The engine should use EXACTLY " + std::to_string(*goLimits_.moveTimeMs) +
                 " ms but took " + std::to_string(moveElapsedMs), 
                 TraceLevel::info);

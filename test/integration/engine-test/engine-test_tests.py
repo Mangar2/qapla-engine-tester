@@ -161,7 +161,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-underrun-fail",
             "description": "Negative test for movetime underrun",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test underrun=true --engine conf='Qapla 0.3.1' --logging path=test/integration/log/engine-test/underrun-fail",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test underrun=true nogolimits=false --engine conf='Qapla 0.3.1' --logging path=test/integration/log/engine-test/underrun-fail",
             "log_path": "test/integration/log/engine-test/underrun-fail",
             "validators": [
                 {"type": "exitCode", "expected": 12}
@@ -171,7 +171,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-timeusage-fail",
             "description": "Negative test for time usage in games",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=2 --engine conf='Qapla 0.3.1' --logging path=test/integration/log/engine-test/timeusage-fail",
+            "args": "--concurrency=5 --settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=5 --engine conf='Stockfish' --logging path=test/integration/log/engine-test/timeusage-fail",
             "log_path": "test/integration/log/engine-test/timeusage-fail",
             "validators": [
                 {"type": "exitCode", "expected": 12}

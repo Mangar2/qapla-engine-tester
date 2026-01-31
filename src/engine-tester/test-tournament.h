@@ -25,7 +25,6 @@
 
 #include "../base-elements/time-control.h"
 #include "../chess-game/game-record.h"
-#include "../chess-game/game-result.h"
 #include "../game-manager/game-task.h"
 
 #include "engine-report.h"
