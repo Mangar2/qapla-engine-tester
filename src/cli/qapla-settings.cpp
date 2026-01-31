@@ -305,6 +305,7 @@ void QaplaSettings::setLoggerConfiguration() {
         .engineLogBaseName = "engine",
         .engineLogStrategy = logMode
     });
+    setLoggerConfig(*m_loggerConfig);
 }
 
 void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::string& groupName) {
