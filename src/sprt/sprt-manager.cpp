@@ -22,7 +22,6 @@
 
 #include "../opening/opening-parser.h"
 #include "../opening/pgn-save.h"
-#include "../engine-handling/engine-config-manager.h"
 
 #include "../game-manager/game-manager-pool.h"
 
@@ -180,13 +179,13 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto configuredResult = computeSprt(config_.model, config_.pentanomial);
     resultsForRound.push_back(configuredResult);
 
-    for (auto model : { "normalized", "logistic", "bayesian" }) {
+    for (const auto* model : { "normalized", "logistic", "bayesian" }) {
         if (model != config_.model || config_.pentanomial) {
             auto altResult = computeSprt(model, false);
             resultsForRound.push_back(altResult);
         }
     }
-    for (auto model : { "normalized", "logistic" }) {
+    for (const auto* model : { "normalized", "logistic" }) {
         if (model != config_.model || !config_.pentanomial) {
             auto altPentaResult = computeSprt(model, true);
             resultsForRound.push_back(altPentaResult);

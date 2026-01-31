@@ -28,17 +28,12 @@
 #include "../opening/openings.h"
 
 #include "../base-elements/ini-file.h"
-#include "../base-elements/time-control.h"
 
 #include <vector>
 #include <memory>
 #include <optional>
 #include <string>
-#include <istream>
-#include <ostream>
 #include <mutex>
-#include <array>
-#include <sstream>
 #include <random>
 #include <functional>
 #include <atomic>

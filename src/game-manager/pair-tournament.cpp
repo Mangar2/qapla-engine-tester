@@ -389,7 +389,6 @@ static void parseEndCauses(std::string_view text, EngineDuelResult& result, int 
 }
 
 void PairTournament::fromSection(const QaplaHelpers::IniFile::Section& section) {
-    std::string line;
    	duelResult_.clear();
     results_.clear();
     for (const auto& entry : section.entries) {
