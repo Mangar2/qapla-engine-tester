@@ -24,6 +24,7 @@
 
 #include "../game-manager/compute-task.h"
 
+#include <cstdint>
 #include <string>
 
 
@@ -131,10 +132,12 @@ private:
 
 	/**
 	 * @brief Tests the engine's ability to compute moves in a game.
+     * @param concurrency The number of games to run in parallel.
+     * @param checkTimeLimits Whether to validate time usage limits in the games.
 	 *
 	 * This test runs multipe games with different time controls in parallel.
 	 */
-    void runMultipleGamesTest();
+    void runMultipleGamesTest(uint32_t concurrency, bool checkTimeLimits);
     
     EngineReport* checklist_;
     std::unique_ptr<ComputeTask> computeTask_;
