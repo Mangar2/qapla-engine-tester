@@ -108,9 +108,7 @@ void EngineWorker::stop(bool wait) {
         }
 
         if (readThread_.joinable()) {
-            // std::cout << "[" << identifier_ << "] Waiting for read thread to join..." << std::endl;
             readThread_.join();
-            // std::cout << "[" << identifier_ << "] Read thread joined." << std::endl;
         }
     }
 }

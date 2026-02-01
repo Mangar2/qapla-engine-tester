@@ -279,7 +279,7 @@ static AppReturnCode runTournament(AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
 
     try {
-        uint32_t concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+        auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
 
         auto tournament = std::make_shared<Tournament>();
         const auto& tournamentFilename = tournamentConfig->tournamentFilename;

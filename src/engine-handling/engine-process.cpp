@@ -20,15 +20,14 @@
 #include "engine-process.h"
 #include "../base-elements/app-error.h"
 
+#include "../base-elements/timer.h"
+
 #include <stdexcept>
-#include <vector>
 #include <cstring>
 #include <chrono>
 #include <thread>
 #include <string>
 #include <cassert>
-#include <ranges>
-#include <format>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -54,8 +53,6 @@
 #endif
 #endif
 
-#include "../base-elements/timer.h"
-#include "../base-elements/logger.h"
 
 namespace QaplaTester {
 

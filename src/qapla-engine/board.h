@@ -255,7 +255,6 @@ namespace QaplaBasics {
 					continue;
 				}
 				bonus += PST::getValue(square, piece);
-				// std::cout << squareToString(square) << " " << pieceToChar(piece) << " " << PST::getValue(square, piece) << std::endl;
 			}
 			return bonus;
 		}
