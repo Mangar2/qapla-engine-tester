@@ -1,6 +1,11 @@
 [each]
 id=sprt-tournament
+dir=.
+proto=uci
 tc=5+0.01
+ponder=false
+trace=none
+restart=auto
 
 [engine]
 id=sprt-tournament
@@ -38,7 +43,7 @@ file=test/opening/8ply-1000+-0,4+.pgn
 
 [pgnoutput]
 id=sprt-tournament
-file=test/integration/log/parameter
+file=test/integration/log/parameter/test.pgn
 
 [draw]
 id=sprt-tournament
