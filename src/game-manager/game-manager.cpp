@@ -186,20 +186,26 @@ void GameManager::handleEngineDisconnect(PlayerContext* player, bool isWhitePlay
     });
 }
 
-void GameManager::clearQueueButHandleDisconnects() {
-    // Process disconnect events even when clearing the queue
-    // This is critical when both engines disconnect - we need to restart both
+void GameManager::handlePersistentEventsAndClearQueue() {
+    // Process disconnect and stop events even when clearing the queue.
+    // StopRunning must be preserved to ensure the manager terminates correctly.
+    std::queue<EngineEvent> retainedEvents;
     while (!eventQueue_.empty()) {
-        auto& event = eventQueue_.front();
-        if (event.type == EngineEvent::Type::EngineDisconnected) {
+        auto event = std::move(eventQueue_.front());
+        eventQueue_.pop();
+
+        if (event.type == EngineEvent::Type::StopRunning) {
+            retainedEvents.push(std::move(event));
+        }
+        else if (event.type == EngineEvent::Type::EngineDisconnected) {
             PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
             if (player != nullptr) {
                 bool isWhitePlayer = player == gameContext_.getWhite();
                 handleEngineDisconnect(player, isWhitePlayer);
             }
         }
-        eventQueue_.pop();
     }
+    eventQueue_ = std::move(retainedEvents);
 }
 
 void GameManager::processEvent(const EngineEvent& event) {
@@ -476,6 +482,9 @@ std::optional<GameTask> GameManager::assignNewProviderAndTask() {
     if (pool_ == nullptr) {
         return std::nullopt;
     }
+    if (managerState_ == ManagerState::NotRunning) {
+        return std::nullopt;
+    }
 
     std::optional<GameTask> task;
     managerState_ = ManagerState::FetchNextTask;
@@ -586,7 +595,7 @@ void GameManager::finalizeTaskAndContinue() {
         // The current game is finished - we ignore all remaining engine events except disconnects
         {
             std::scoped_lock lock(queueMutex_);
-            clearQueueButHandleDisconnects();
+            handlePersistentEventsAndClearQueue();
         }
         
         // Inform the task provider about the finished game
