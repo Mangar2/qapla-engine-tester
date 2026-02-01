@@ -40,7 +40,6 @@
 #include "../mcp/mcp-server.h"
 
 #include <fstream>
-#include <algorithm>
 
 namespace QaplaTester::Settings {
 

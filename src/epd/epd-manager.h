@@ -21,7 +21,6 @@
 
 #include "../opening/epd-reader.h"
 
-#include "../game-manager/game-task.h"
 #include "../engine-handling/engine-config.h"
 #include "../engine-tester/epd-test.h"
 #include "../base-elements/time-control.h"
@@ -31,9 +30,7 @@
 #include <string>
 #include <optional>
 #include <vector>
-#include <mutex>
 #include <iostream>
-#include <iomanip>
 
 namespace QaplaTester {
 
