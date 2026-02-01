@@ -17,13 +17,14 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-#include <sstream>
-#include <iterator>
-#include <ranges>   
-#include <vector>
-
 #include "input-handler.h"
 #include "settings-manager.h"
+
+#include <sstream>
+#include <iterator>
+#include <vector>
+#include <iostream>
+
 
 namespace QaplaTester {
 

@@ -20,14 +20,11 @@
 #pragma once
 
 #include <string>
-#include <stdexcept>
 #include <vector>
 #include <optional>
 #include <utility>
 #include <unordered_map>
 #include <map>
-
-#include "string-helper.h"
 
 namespace QaplaHelpers {
 

@@ -27,10 +27,8 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <unordered_map>
 #include <cassert>
 
@@ -581,7 +579,7 @@ namespace QaplaTester::Settings
                 throw AppError::makeInvalidParameters(
                     std::format("Missing required global parameter \"{}\"", key));
             }
-            else if (def.defaultValue)
+            if (def.defaultValue)
             {
                 values_[key] = *def.defaultValue;
             }
