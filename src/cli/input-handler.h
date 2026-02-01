@@ -22,10 +22,8 @@
 #include <atomic>
 #include <string>
 #include <mutex>
-#include <iostream>
 #include <functional>
 #include <optional>
-#include <variant>
 
 namespace QaplaTester {
 

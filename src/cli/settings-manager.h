@@ -22,7 +22,6 @@
 #include <variant>
 #include <unordered_map>
 #include <optional>
-#include <iostream>
 #include <vector>
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
