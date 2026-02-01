@@ -16,6 +16,7 @@ author=volker boehm
 cmd=test/integration/engines/diagnostic-engine-lossontime.exe
 dir=.
 proto=uci
+gauntlet=false
 trace=none
 restart=auto
 
@@ -28,22 +29,41 @@ author=volker boehm
 cmd=test/integration/engines/diagnostic-engine-lossontime.exe
 dir=.
 proto=uci
+gauntlet=false
 trace=none
 restart=auto
 
 [sprt]
 id=sprt-tournament
+saveinterval=100
+elolower=0
+eloupper=10
 alpha=0.05
 beta=0.05
 maxgames=2
+model=normalized
+pentanomial=true
+montecarlo=false
 
 [openings]
 id=sprt-tournament
 file=test/opening/8ply-1000+-0,4+.pgn
+order=sequential
+srand=5489
+plies=all
+start=1
+policy=default
 
 [pgnoutput]
 id=sprt-tournament
 file=test/integration/log/parameter/test.pgn
+append=false
+finished=true
+min=false
+clock=true
+eval=true
+depth=true
+pv=false
 
 [draw]
 id=sprt-tournament
@@ -51,6 +71,7 @@ active=false
 movenumber=40
 movecount=10
 score=20
+test=false
 
 [resign]
 id=sprt-tournament
@@ -58,3 +79,4 @@ active=false
 movecount=10
 score=600
 twosided=true
+test=false
