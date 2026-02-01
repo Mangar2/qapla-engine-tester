@@ -20,9 +20,9 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <format>
+#include <sstream>
 
 #ifndef _WIN32
 #include <signal.h>
@@ -294,7 +294,9 @@ static AppReturnCode runTournament(AppReturnCode code) {
 
         TournamentFile::save(tournamentFilename, Settings::Manager::instance(), tournament);
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
-        GameManagerPool::getInstance().getAdjudicationManager().printTestResult(std::cout);
+        std::ostringstream oss;
+        GameManagerPool::getInstance().getAdjudicationManager().printTestResult(oss);
+        Logger::reportLogger().log(oss.str());
         std::string resultString = tournament->getResultString();
         Logger::reportLogger().log(resultString, TraceLevel::result);
     }
@@ -403,7 +405,7 @@ int main(int argc, char** argv) {
 		Logger::reportLogger().log("Unknown exception, program terminated.", TraceLevel::error);
 		returnCode = AppReturnCode::GeneralError;
 	}
-	timer.printElapsed("Total runtime: ");
+	Logger::reportLogger().log(timer.getElapsedString("Total runtime"));
 	
     // Unregisters the input handler callback before destruction of the input handler
 	GameManagerPool::resetInstance();

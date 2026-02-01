@@ -37,6 +37,7 @@
 #include "../epd/epd-manager.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../spsa/spsa-optimizer.h"
+#include "../mcp/mcp-server.h"
 
 #include <fstream>
 
@@ -82,6 +83,10 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         applySettingsFromFile(settingsFile);
     }
 
+    if (Manager::instance().get<bool>("mcp")) {
+        Mcp::McpServer::initialize();
+    }
+
     // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
     loadTournamentConfig();
@@ -122,13 +127,28 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     LoggerConfig config = *m_loggerConfig;
     config.reportLogBaseName = reportLogBaseName;
     setLoggerConfig(config);
+    
     auto loggingSetting = Settings::Manager::instance().getGroupInstance("logging");
-    if (loggingSetting && loggingSetting->get<bool>("engine")) {
-        EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
-    } else {
-        EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none);
+    TraceLevel reportLevel = TraceLevel::result;
+    
+    if (loggingSetting) {
+        if (loggingSetting->get<bool>("engine")) {
+            EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
+        } else {
+            EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none);
+        }
+
+        std::string trace = loggingSetting->get<std::string>("trace");
+        if (trace == "none") {
+            reportLevel = TraceLevel::none;
+        } else if (trace == "all") {
+            reportLevel = TraceLevel::info;
+        } else if (trace == "result") {
+            reportLevel = TraceLevel::result;
+        }
     }
-    Logger::reportLogger().setTraceLevel(TraceLevel::result, TraceLevel::result);
+    
+    Logger::reportLogger().setTraceLevel(reportLevel, TraceLevel::info);
 }
 
 std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) { // NOLINT(modernize-avoid-c-arrays)
@@ -145,6 +165,14 @@ void QaplaSettings::init() {
     Manager::instance().registerSetting({
         .name = "interactive", 
         .description = "Enables interactive mode", 
+        .isRequired = false, 
+        .defaultValue = false, 
+        .type = ValueType::Bool
+    });
+
+    Manager::instance().registerSetting({
+        .name = "mcp", 
+        .description = "Enables Model Context Protocol (MCP) server mode", 
         .isRequired = false, 
         .defaultValue = false, 
         .type = ValueType::Bool

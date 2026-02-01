@@ -113,6 +113,11 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
             .isRequired = false, 
             .defaultValue = std::string("one"), 
             .type = ValueType::String }},
+        { "trace",  { 
+            .description = "CLI logging level: none, result, all",
+            .isRequired = false, 
+            .defaultValue = std::string("result"), 
+            .type = ValueType::String }},
     };
 }
 
