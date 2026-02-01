@@ -260,6 +260,16 @@ namespace QaplaTester::Settings {
         }
 
         /**
+         * @brief Checks if a global parameter was provided by the user.
+         * @param name Name of the parameter.
+         * @return True if the parameter was explicitly provided, false otherwise.
+         */
+        [[nodiscard]] bool isKeyProvided(const std::string& name) const {
+            std::string key = QaplaHelpers::to_lowercase(name);
+            return values_.contains(key);
+        }
+
+        /**
          * @brief Get a configuration group by name.
          * @param groupName Name of the group (e.g. "engine").
          * @return List of instances for this group

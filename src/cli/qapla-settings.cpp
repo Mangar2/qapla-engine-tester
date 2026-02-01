@@ -40,6 +40,7 @@
 #include "../mcp/mcp-server.h"
 
 #include <fstream>
+#include <algorithm>
 
 namespace QaplaTester::Settings {
 
@@ -73,19 +74,27 @@ void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool re
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Convert CLI arguments to ConfigData
     auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
-    Manager::instance().parseInput(cliData);
     
-    // Extract settingsfile from CLI global parameters without full parsing
-    auto settingsFile = Manager::instance().get<std::string>("settingsfile");
-    
-    // If settings file specified, load and parse it first
-    if (!settingsFile.empty()) {
-        applySettingsFromFile(settingsFile);
+    try {
+        Manager::instance().parseInput(cliData);
+        
+        // Extract settingsfile from CLI global parameters without full parsing
+        auto settingsFile = Manager::instance().get<std::string>("settingsfile");
+        
+        // If settings file specified, load and parse it first
+        if (!settingsFile.empty()) {
+            applySettingsFromFile(settingsFile);
+        }
+    } catch (...) {
+        // Ensure MCP or welcome message is handled even on parameter errors
+        initializeMcpOrWelcome();
+        throw;
     }
 
-    if (Manager::instance().get<bool>("mcp")) {
-        Mcp::McpServer::initialize();
-    }
+    initializeMcpOrWelcome();
+
+    setLoggerConfiguration();
+    applyLoggerConfig("initial");
 
     // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
@@ -94,7 +103,6 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Validate all settings for completeness after all merging is complete
     Manager::instance().validateCompleteness();
 
-    setLoggerConfiguration();
     setEngineConfig(Manager::instance(), "engine");
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
@@ -120,6 +128,15 @@ const LoggerConfig* QaplaSettings::getLoggerConfig() const {
     return m_loggerConfig.get();
 }
 
+void QaplaSettings::initializeMcpOrWelcome() {
+    if (Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
+        Mcp::McpServer::initialize();
+    } else {
+        Logger::reportLogger().setTraceLevel(TraceLevel::result);
+        Logger::reportLogger().log("Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n");
+    }
+}
+
 void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) const {
     if (!m_loggerConfig) {
         throw AppError::make("Logger configuration not initialized.");
@@ -138,7 +155,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
             EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none);
         }
 
-        std::string trace = loggingSetting->get<std::string>("trace");
+        auto trace = loggingSetting->get<std::string>("trace");
         if (trace == "none") {
             reportLevel = TraceLevel::none;
         } else if (trace == "all") {
