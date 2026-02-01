@@ -215,7 +215,7 @@ namespace QaplaBasics {
 		 * Gets the value of a piece used for move ordering
 		 */
 		[[nodiscard]] auto getPieceValueForMoveSorting(Piece piece) const {
-			return _materialBalance.getPieceValueForMoveSorting(piece);
+			return MaterialBalance::getPieceValueForMoveSorting(piece);
 		}
 
 		/**
@@ -392,11 +392,11 @@ namespace QaplaBasics {
 			return _boardState.pawnHash;
 		}
 
-		void setStartHalfmoves(uint32_t startHalfmoves) {
+		void setStartHalfmoves(int32_t startHalfmoves) {
 			_startHalfmoves = startHalfmoves;
 		}
 
-		[[nodiscard]] uint32_t getStartHalfmoves() const {
+		[[nodiscard]] int32_t getStartHalfmoves() const {
 			return _startHalfmoves;
 		}
 
