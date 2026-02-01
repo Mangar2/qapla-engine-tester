@@ -392,7 +392,7 @@ int main(int argc, char** argv) {
 			
     }
     catch (const AppError& ex) {
-		Logger::reportLogger().log(std::format("Application error: {}", ex.what()), TraceLevel::error);
+		Logger::reportLogger().log(std::format("Error: {}", ex.what()), TraceLevel::error);
         returnCode = ex.getReturnCode();
     }
 	catch (const std::exception& e) {
