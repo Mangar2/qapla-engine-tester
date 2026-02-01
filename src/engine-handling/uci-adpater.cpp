@@ -436,8 +436,6 @@ EngineEvent UciAdapter::readEvent() { // NOLINT(readability-function-cognitive-c
 		return readUciEvent(engineLine);
 	}
 
-	// std::cout << identifier_ << "-> " << line << std::endl; // Debug output
-
     std::istringstream iss(line);
     std::string command;
     iss >> command;
