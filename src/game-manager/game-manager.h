@@ -253,7 +253,7 @@ private:
      * The mutex is not acquired within this method because it needs to be held across
      * the entire clear operation in stop().
      */
-    void clearQueueButHandleDisconnects();
+    void handlePersistentEventsAndClearQueue();
 
     /**
      * @brief Handles the best move event from the engine.

@@ -223,7 +223,7 @@ public:
 	 * @return true if all games have been played, false otherwise.
 	 */
     bool isFinished() const {
-        return isFinished_.load();
+        return isFinished_;
 	}
 
 	/**
@@ -260,8 +260,10 @@ public:
      *
      * Prevents nextTask() from returning further tasks.
      */
-    void stop() {
-        isFinished_ = true;
+    void setFinishedIf(bool is_done = true) {
+        if (is_done) {
+            isFinished_ = true;
+        }
     }
 
 private:

@@ -290,7 +290,7 @@ void SprtManager::finishTournament() {
     }
     
     if (anyHasDecision) {
-        pairing_->stop();
+        pairing_->setFinishedIf();
     }
     
     if (allHaveDecisions) {
@@ -486,6 +486,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
         << " | step: " << step << "\n" << std::flush;
 
     std::vector<std::thread> threads;
+    threads.reserve(eloDiffs.size());
     
     for (float elo : eloDiffs) {
         threads.emplace_back([this, elo]() {

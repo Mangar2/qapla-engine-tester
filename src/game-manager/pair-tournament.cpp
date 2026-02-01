@@ -123,7 +123,7 @@ void PairTournament::updateOpening(uint32_t openingIndex) {
 std::optional<GameTask> PairTournament::nextTask() {
     std::scoped_lock lock(mutex_);
 
-    if (isFinished_ || !initialized_ || !startPositions_ || startPositions_->empty()) {
+    if (isFinished() || !initialized_ || !startPositions_ || startPositions_->empty()) {
         return std::nullopt;
     }
 
@@ -223,7 +223,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
         Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
 
-    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
+    setFinishedIf(std::cmp_greater_equal(duelResult_.total(), config_.games));
 
     if (onGameFinished_){
         onGameFinished_(this);
@@ -235,7 +235,7 @@ void PairTournament::copyResultsFrom(const PairTournament& other) {
     duelResult_ = other.duelResult_;
     results_ = other.results_;
     // Compute isFinished_ based on current configuration, don't copy it from other
-    isFinished_ = std::cmp_greater_equal(duelResult_.total(), config_.games);
+    setFinishedIf(std::cmp_greater_equal(duelResult_.total(), config_.games));
 }
 
 void PairTournament::collectPentanomialStats(uint32_t gameIndex) {
