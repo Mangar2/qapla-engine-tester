@@ -33,6 +33,7 @@
 #include <ctime>
 #include <random>
 #include <format>
+#include <sstream>
 
 namespace QaplaTester {
 
@@ -161,12 +162,16 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
         auto result = getResult();
-        result.printRatingTableUciStyle(std::cout, config_.averageElo);
+        std::ostringstream oss;
+        result.printRatingTableUciStyle(oss, config_.averageElo);
+        Logger::reportLogger().log(oss.str());
     }
     if (config_.outcomeInterval > 0 && outcomeTrigger_ >= config_.outcomeInterval) {
         outcomeTrigger_ = 0;
         auto result = getResult();
-        result.printOutcome(std::cout);
+        std::ostringstream oss;
+        result.printOutcome(oss);
+        Logger::reportLogger().log(oss.str());
     }
     
     if (gameFinishedCallback_) {

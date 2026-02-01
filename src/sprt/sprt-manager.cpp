@@ -133,15 +133,15 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
             result.printOutcome(std::cout);
         });
 	auto duel = pairing_->getResult();
-    std::cout << "sprt engines " 
-        << duel.getEngineA() << " (" << engine0_.getTimeControl().toPgnTimeControlString() << ")"
-        << " vs " 
-        << duel.getEngineB() << " (" << engine1_.getTimeControl().toPgnTimeControlString() << ")"
-        << " elo [" << config_.eloLower << ", " << config_.eloUpper << "]"
-        << " alpha " << config_.alpha << " beta " << config_.beta
-        << " maxgames " << config_.maxGames
-        << " concurrency " << concurrency 
-        << "\n" << std::flush;
+    
+    std::string startMsg = std::format("sprt engines {} ({}) vs {} ({}) elo [{}, {}] alpha {} beta {} maxgames {} concurrency {}\n",
+        duel.getEngineA(), engine0_.getTimeControl().toPgnTimeControlString(),
+        duel.getEngineB(), engine1_.getTimeControl().toPgnTimeControlString(),
+        config_.eloLower, config_.eloUpper,
+        config_.alpha, config_.beta,
+        config_.maxGames,
+        concurrency);
+    Logger::reportLogger().log(startMsg);
 
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
@@ -479,11 +479,9 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     }
 
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::cout << "Running SPRT Monte carlo simulation: "
-        << " | Elo range: [" << config.eloLower << ", " << config.eloUpper << "]"
-        << " | alpha: " << config.alpha << ", beta: " << config.beta
-        << " | maxGames: " << config.maxGames
-        << " | step: " << step << "\n" << std::flush;
+    std::string mcStartMsg = std::format("Running SPRT Monte carlo simulation: | Elo range: [{}, {}] | alpha: {}, beta: {} | maxGames: {} | step: {}",
+        config.eloLower, config.eloUpper, config.alpha, config.beta, config.maxGames, step);
+    Logger::reportLogger().log(mcStartMsg);
 
     std::vector<std::thread> threads;
     threads.reserve(eloDiffs.size());
@@ -532,7 +530,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     }
 
     if (monteCarloShouldStop_.load()) {
-        std::cout << "Monte Carlo test stopped early.\n" << std::flush;
+        Logger::reportLogger().log("Monte Carlo test stopped early.");
     }
 
     // Sort results by eloDifference and output
@@ -540,12 +538,14 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
         std::scoped_lock lock(monteCarloResultMutex_);
 
         for (const auto& row : monteCarloResult_.rows) {
-            std::cout << std::fixed << std::setprecision(1)
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(1)
                 << "Simulated elo difference: " << std::setw(6) << row.eloDifference
                 << "  No Decisions: " << std::setw(6) << row.noDecisionPercent << "%"
                 << "  H0 Accepted: " << std::setw(6) << row.h0AcceptedPercent << "%"
                 << "  H1 Accepted: " << std::setw(6) << row.h1AcceptedPercent << "%"
-                << "  Average Games: " << std::setw(6) << row.avgGames << "\n";
+                << "  Average Games: " << std::setw(6) << row.avgGames;
+            Logger::reportLogger().log(oss.str());
         }
     }
 }

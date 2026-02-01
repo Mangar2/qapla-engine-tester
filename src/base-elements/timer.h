@@ -21,6 +21,7 @@
 #include <iostream>
 #include <chrono>
 #include <iomanip>
+#include <sstream>
 
 namespace QaplaHelpers {
 
@@ -68,15 +69,21 @@ public:
         return started_ ? getCurrentTimeMs() - start_ : end_ - start_;
     }
 
-    void printElapsed(const char* label) const {
-		uint64_t elapsed = elapsedMs();
+    [[nodiscard]] std::string getElapsedString(const char* label) const {
+        uint64_t elapsed = elapsedMs();
         uint64_t sec = (elapsed / 1000) % 60;
-        
-        std::cout << "[Timer] " << label << ": elapsed = " 
-            << std::right 
-			<< elapsed / 1000 / 60 << ":" 
-			<< std::setw(2) << std::setfill('0') << sec << "." 
-            << std::setw(3) << std::setfill('0') << elapsed % 1000 << "\n" << std::flush;
+
+        std::ostringstream oss;
+        oss << "[Timer] " << label << ": elapsed = "
+            << std::right
+            << elapsed / 1000 / 60 << ":"
+            << std::setw(2) << std::setfill('0') << sec << "."
+            << std::setw(3) << std::setfill('0') << elapsed % 1000;
+        return oss.str();
+    }
+
+    void printElapsed(const char* label) const {
+        std::cout << getElapsedString(label) << "\n" << std::flush;
     }
 
 private:
