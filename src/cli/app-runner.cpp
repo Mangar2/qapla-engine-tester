@@ -65,7 +65,7 @@ AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnC
 
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-        const std::string name = engine.getName();
+        const auto& name = engine.getName();
         try {
             EngineReport::reportUnderruns = test.get<bool>("underrun");
             controller.runAllTests(engine, static_cast<int>(test.get<uint32_t>("numgames")));
@@ -100,7 +100,7 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code) {
     auto epdManager = std::make_shared<EpdManager>();
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
-        const std::string name = engine.getName();
+        const auto& name = engine.getName();
         const std::string earlyStop = std::format("Early stop - Seen plies: {} Min time: {}s",
             epdConfig->seenPlies, epdConfig->minTime);
 

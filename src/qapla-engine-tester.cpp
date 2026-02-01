@@ -17,27 +17,16 @@
  * @copyright Copyright (c) 2025 Volker BÃ¶hm
  */
 
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <memory>
-#include <format>
-#include <sstream>
 
-#ifndef _WIN32
-#include <signal.h>
-#endif
 
-#include "engine-tester/engine-report.h"
-#include "engine-tester/engine-test-controller.h"
-#include "engine-handling/engine-worker-factory.h"
 #include "epd/epd-manager.h"
-#include "sprt/sprt-manager.h"
+
+#include "engine-tester/epd-test.h"
+
+
 #include "sprt/sprt-tournament-file.h"
 #include "spsa/spsa-optimizer.h"
-#include "tournament/tournament.h"
 #include "tournament/tournament-file.h"
-#include "opening/pgn-save.h"
 
 #include "cli/input-handler.h"
 #include "cli/settings-manager.h"
@@ -45,13 +34,20 @@
 #include "cli/app-runner.h"
 
 #include "game-manager/game-manager-pool.h"
-#include "game-manager/adjudication-manager.h"
 
 #include "base-elements/app-error.h"
 #include "base-elements/timer.h"
-#include "base-elements/time-control.h"
 #include "base-elements/logger.h"
 #include "mcp/mcp-server.h"
+
+#include <string>
+#include <vector>
+#include <format>
+#include <optional>
+
+#ifndef _WIN32
+#include <signal.h>
+#endif
 
 using namespace QaplaTester;
 using QaplaHelpers::Timer;
@@ -74,7 +70,8 @@ static AppReturnCode run() {
         returnCode = AppRunner::runTest(*test, returnCode);
     }
 
-    if (Settings::QaplaSettings::instance().getEpdConfig()) {
+    std::optional<EpdConfig> epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
+    if (epdConfig) {
         returnCode = AppRunner::runEpd(returnCode);
     }
 
