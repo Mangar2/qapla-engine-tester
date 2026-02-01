@@ -53,6 +53,11 @@ namespace QaplaTester::Settings {
  */
 class QaplaSettings {
 public:
+
+    // Delete copy constructor and assignment operator
+    QaplaSettings(const QaplaSettings&) = delete;
+    QaplaSettings& operator=(const QaplaSettings&) = delete;
+
     /**
      * @brief Gets the static instance of QaplaSettings
      * @return Reference to the static instance
@@ -145,11 +150,13 @@ public:
      */
     [[nodiscard]] const LoggerConfig* getLoggerConfig() const;
 
-    // Delete copy constructor and assignment operator
-    QaplaSettings(const QaplaSettings&) = delete;
-    QaplaSettings& operator=(const QaplaSettings&) = delete;
-
 private:
+    /**
+     * @brief Initializes either MCP mode or displays the welcome message based on settings.
+     * Ensures this happens only once and respects the 'mcp' parameter flag in Settings::Manager.
+     */
+    static void initializeMcpOrWelcome();
+    
     /**
      * @brief Private constructor for singleton pattern
      */
