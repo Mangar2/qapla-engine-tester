@@ -141,7 +141,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
         config_.alpha, config_.beta,
         config_.maxGames,
         concurrency);
-    Logger::reportLogger().log(startMsg);
+    Logger::reportLogger().logStatus(startMsg, "sprt");
 
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
@@ -200,9 +200,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         << " sprt " << configuredResult.info
         << " engines " << duel.toString();
 
-   if (!configuredResult.isFinished()) {
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
-    }
+    Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
 
     if (gameFinishedCallback_) {
         try {
@@ -481,7 +479,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     std::string mcStartMsg = std::format("Running SPRT Monte carlo simulation: | Elo range: [{}, {}] | alpha: {}, beta: {} | maxGames: {} | step: {}",
         config.eloLower, config.eloUpper, config.alpha, config.beta, config.maxGames, step);
-    Logger::reportLogger().log(mcStartMsg);
+    Logger::reportLogger().logStatus(mcStartMsg, "sprt");
 
     std::vector<std::thread> threads;
     threads.reserve(eloDiffs.size());
@@ -530,7 +528,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     }
 
     if (monteCarloShouldStop_.load()) {
-        Logger::reportLogger().log("Monte Carlo test stopped early.");
+        Logger::reportLogger().logStatus("Monte Carlo test stopped early.", "sprt");
     }
 
     // Sort results by eloDifference and output
@@ -545,7 +543,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
                 << "  H0 Accepted: " << std::setw(6) << row.h0AcceptedPercent << "%"
                 << "  H1 Accepted: " << std::setw(6) << row.h1AcceptedPercent << "%"
                 << "  Average Games: " << std::setw(6) << row.avgGames;
-            Logger::reportLogger().log(oss.str());
+            Logger::reportLogger().logStatus(oss.str(), "sprt");
         }
     }
 }
@@ -582,7 +580,7 @@ void SprtManager::logFinalResult() const {
         << " | games: " << (finalResult.winsA + finalResult.draws + finalResult.winsB)
         << " (W:" << finalResult.winsA << " D:" << finalResult.draws << " L:" << finalResult.winsB << ")";
     
-    Logger::reportLogger().log(oss.str(), TraceLevel::result);
+    Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
 }
 
 } // namespace QaplaTester

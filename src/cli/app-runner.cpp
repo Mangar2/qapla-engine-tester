@@ -205,7 +205,7 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code) {
             pool.waitForTask();
 
             SprtTournamentFile::save(sprtfile, Settings::Manager::instance(), manager);
-            Logger::reportLogger().log("sprt all games completed", TraceLevel::result);
+            Logger::reportLogger().logStatus("sprt all games completed", "sprt", TraceLevel::result);
 
             if (code == AppReturnCode::NoError) {
                 auto sprtResults = manager->getSprtResults();

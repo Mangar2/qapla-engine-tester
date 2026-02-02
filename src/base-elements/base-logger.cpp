@@ -117,10 +117,14 @@ void BaseLogger::log(std::string_view message, TraceLevel level) {
 
 void BaseLogger::logStatus(std::string_view message, std::string_view toolName, TraceLevel level, bool overwrite) {
     std::scoped_lock lock(loggingMutex_);
-    
-    // Status messages usually don't go to file, unless desired. 
-    // Here we follow the user's request: CLI and MCP.
-    
+
+    if (level <= fileThreshold_) {
+        ensureFileOpen(logPath_);
+        if (fileStream_.is_open()) {
+            fileStream_ << message << "\n" << std::flush;
+        }
+    }
+
     if (level <= mcpThreshold_ && mcpCallback_) {
         mcpCallback_(message, toolName);
     }
