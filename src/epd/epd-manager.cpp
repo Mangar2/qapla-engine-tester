@@ -19,11 +19,8 @@
 
 #include "epd-manager.h"
 
-#include "../engine-handling/engine-worker-factory.h"
-
 #include "../game-manager/game-manager.h"
 #include "../game-manager/game-manager-pool.h"
-#include "../game-manager/game-state.h"
 #include "../base-elements/string-helper.h"
 
 namespace QaplaTester {

@@ -219,6 +219,14 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
         const auto& arguments = params.at("arguments").asObject();
         auto configData = mapJsonToConfigData(arguments);
         
+        // Always ensure MCP mode is active and CLI output is suppressed
+        configData.addGlobalParameter("mcp", "true");
+        
+        QaplaHelpers::IniFile::Section loggingSection;
+        loggingSection.name = "logging";
+        loggingSection.addEntry("trace", "none");
+        configData.addSection(loggingSection);
+
         // Apply configuration - this performs parsing, validation and internal state sync
         Settings::QaplaSettings::instance().applyConfig(configData, false);
 

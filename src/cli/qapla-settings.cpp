@@ -77,6 +77,7 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
 }
 
 void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial) {
+    Manager::instance().clearValues();
     try {
         Manager::instance().parseInput(configData, !isInitial);
         

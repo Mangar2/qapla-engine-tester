@@ -293,6 +293,10 @@ namespace QaplaTester::Settings {
          */
         SetResult setGlobalValue(const std::string& name, const std::string& value);
 
+        /**
+         * @brief Clears all stored settings and group instances.
+         * Resets the Manager to an empty state.
+         */
         void clearValues() {
             values_.clear();
             groupInstances_.clear();
