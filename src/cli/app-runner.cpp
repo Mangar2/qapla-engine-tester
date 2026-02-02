@@ -132,8 +132,7 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
 
     if (!Settings::QaplaSettings::instance().getOpenings()) {
-        Logger::reportLogger().log("No openings defined for the tournament. Please define an opening, see --help for more info.", TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
+        throw AppError::makeInvalidParameters("No openings defined for the tournament. Please define an opening, see --help for more info.");
     }
 
     checkTimeControl();
@@ -183,8 +182,7 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code) {
     const bool isMontecarlo = sprtGroup->get<bool>("montecarlo");
     
     if (!isMontecarlo && !Settings::QaplaSettings::instance().getOpenings()) {
-        Logger::reportLogger().log("No openings defined for SPRT tests. Please define an opening, see --help for more info.", TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
+        throw AppError::makeInvalidParameters("No openings defined for SPRT tests. Please define an opening, see --help for more info.");
     }
     
     checkTimeControl();
@@ -241,13 +239,11 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code) {
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.empty()) {
-        Logger::reportLogger().log("No engine defined for SPSA optimization.", TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
+        throw AppError::makeInvalidParameters("No engine defined for SPSA optimization.");
     }
 
     if (!Settings::QaplaSettings::instance().getOpenings()) {
-        Logger::reportLogger().log("No openings defined for SPSA optimization. Please define an opening.", TraceLevel::error);
-        return AppReturnCode::InvalidParameters;
+        throw AppError::makeInvalidParameters("No openings defined for SPSA optimization. Please define an opening.");
     }
 
     checkTimeControl();

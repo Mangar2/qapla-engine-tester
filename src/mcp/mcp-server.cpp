@@ -141,15 +141,72 @@ void McpServer::sendNotification(const std::string& method, const JsonValue::Obj
 }
 
 std::optional<JsonValue> McpServer::readMessage() {
-    std::string inputLine;
-    if (!std::getline(std::cin, inputLine)) {
-        return std::nullopt;
+    static std::string accumulated;
+    std::string line;
+
+    while (std::getline(std::cin, line)) {
+        // Handle Content-Length header
+        if (line.starts_with("Content-Length:")) {
+            try {
+                const size_t length = std::stoull(line.substr(15));
+                std::string empty;
+                std::getline(std::cin, empty); // Usually an empty line follows headers
+                
+                std::string content(length, '\0');
+                if (std::cin.read(content.data(), static_cast<std::streamsize>(length))) {
+                    std::string_view contentView = content;
+                    return JsonHelper::parse(contentView);
+                }
+            } catch (...) {
+                // Fallback to normal parsing
+            }
+            continue;
+        }
+
+        if (line.empty() && accumulated.empty()) {
+            continue;
+        }
+
+        accumulated += line;
+        
+        // Simple heuristic for multi-line JSON: count braces/brackets
+        size_t openBraces = 0;
+        size_t closeBraces = 0;
+        bool inString = false;
+        bool escaped = false;
+
+        for (const char character : accumulated) {
+            if (character == '"' && !escaped) {
+                inString = !inString;
+            } else if (!inString) {
+                if (character == '{' || character == '[') {
+                    openBraces++;
+                } else if (character == '}' || character == ']') {
+                    closeBraces++;
+                }
+            }
+            escaped = (character == '\\' && !escaped);
+        }
+
+        if (openBraces > 0 && openBraces == closeBraces) {
+            std::string_view jsonInputView = accumulated;
+            auto result = JsonHelper::parse(jsonInputView);
+            accumulated.clear();
+            return result;
+        }
+
+        // If it's a single line and no braces (might be simple value), return it
+        if (openBraces == 0 && !accumulated.empty()) {
+            std::string_view jsonInputView = accumulated;
+            auto result = JsonHelper::parse(jsonInputView);
+            accumulated.clear();
+            return result;
+        }
+        
+        // Otherwise, keep accumulating lines
     }
-    if (inputLine.empty()) {
-        return readMessage(); // Skip empty lines
-    }
-    std::string_view jsonInputView = inputLine;
-    return JsonHelper::parse(jsonInputView);
+
+    return std::nullopt;
 }
 
 void McpServer::listTools(const JsonValue& requestId) {
@@ -260,7 +317,7 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
     }
 
     for (const auto& [key, def] : it->second.keys) {
-        if (def.isHidden || key == "id") {
+        if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
         
@@ -464,10 +521,13 @@ void McpServer::listResources(const JsonValue& requestId) {
     JsonValue::Object resultData;
     JsonValue::Array resources;
 
-    if (std::filesystem::exists(BaseLogger::logPath_)) {
-        for (const auto& entry : std::filesystem::directory_iterator(BaseLogger::logPath_)) {
-            addResourceIfValid(entry, resources);
+    try {
+        if (!BaseLogger::logPath_.empty() && std::filesystem::exists(BaseLogger::logPath_)) {
+            for (const auto& entry : std::filesystem::directory_iterator(BaseLogger::logPath_)) {
+                addResourceIfValid(entry, resources);
+            }
         }
+    } catch (...) { // NOLINT(bugprone-empty-catch)
     }
 
     resultData["resources"] = JsonValue{ .data = resources };

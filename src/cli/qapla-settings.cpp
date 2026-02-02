@@ -518,12 +518,6 @@ void QaplaSettings::setTournamentConfig(Settings::Manager& manager, const std::s
         return;
     }
 
-    // Tournament needs openings
-    if (!m_openings) {
-        m_tournamentConfig = nullptr;
-        return;
-    }
-
     m_tournamentConfig = std::make_unique<TournamentConfig>(
         TournamentConfigFile::fromManager(manager, groupName));
     
@@ -568,13 +562,6 @@ void QaplaSettings::loadSprtConfig() {
 void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
     auto sprt = manager.getGroupInstance(groupName);
     if (!sprt) {
-        m_sprtConfig = nullptr;
-        return;
-    }
-
-    // SPRT needs openings (unless montecarlo)
-    auto isMontecarlo = sprt->get<bool>("montecarlo");
-    if (!m_openings && !isMontecarlo) {
         m_sprtConfig = nullptr;
         return;
     }
@@ -624,12 +611,6 @@ void QaplaSettings::setSPSAConfig() {
         return;
     }
 
-    // SPSA needs openings
-    if (!m_openings) {
-        m_spsaConfig = nullptr;
-        return;
-    }
-
     m_spsaConfig = std::make_unique<SPSAConfig>();
     
     // Read basic SPSA configuration
@@ -640,7 +621,10 @@ void QaplaSettings::setSPSAConfig() {
     m_spsaConfig->iterations = spsaGroup->get<unsigned int>("iterations");
     m_spsaConfig->openingsSeed = spsaGroup->get<unsigned int>("seed");
     m_spsaConfig->swapColors = !spsaGroup->get<bool>("noswap");
-    m_spsaConfig->openingsFile = m_openings->file;
+    
+    if (m_openings) {
+        m_spsaConfig->openingsFile = m_openings->file;
+    }
     
     // Read all spsavalue groups to build parameter list
     auto spsaValueGroups = Manager::instance().getGroupInstances("spsavalue");
