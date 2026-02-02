@@ -106,10 +106,32 @@ void BaseLogger::log(std::string_view message, TraceLevel level) {
         }
     }
 
-    if (level > cliThreshold_) {
-        return;
+    if (level <= mcpThreshold_ && mcpCallback_) {
+        mcpCallback_(message, "");
     }
-    std::cout << message << "\n" << std::flush;
+
+    if (level <= cliThreshold_) {
+        std::cout << message << "\n" << std::flush;
+    }
+}
+
+void BaseLogger::logStatus(std::string_view message, std::string_view toolName, TraceLevel level, bool overwrite) {
+    std::scoped_lock lock(loggingMutex_);
+    
+    // Status messages usually don't go to file, unless desired. 
+    // Here we follow the user's request: CLI and MCP.
+    
+    if (level <= mcpThreshold_ && mcpCallback_) {
+        mcpCallback_(message, toolName);
+    }
+
+    if (level <= cliThreshold_) {
+        if (overwrite) {
+            std::cout << message << "\r" << std::flush;
+        } else {
+            std::cout << message << "\n" << std::flush;
+        }
+    }
 }
 
 } // namespace QaplaTester

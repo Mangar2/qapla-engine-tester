@@ -153,6 +153,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     
     auto loggingSetting = Settings::Manager::instance().getGroupInstance("logging");
     TraceLevel reportLevel = TraceLevel::result;
+    TraceLevel mcpLevel = TraceLevel::none;
     
     if (loggingSetting) {
         if (loggingSetting->get<bool>("engine")) {
@@ -169,9 +170,18 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
         } else if (trace == "result") {
             reportLevel = TraceLevel::result;
         }
+
+        auto mcpTrace = loggingSetting->get<std::string>("mcp");
+        if (mcpTrace == "none") {
+            mcpLevel = TraceLevel::none;
+        } else if (mcpTrace == "all") {
+            mcpLevel = TraceLevel::info;
+        } else if (mcpTrace == "result") {
+            mcpLevel = TraceLevel::result;
+        }
     }
     
-    Logger::reportLogger().setTraceLevel(reportLevel, TraceLevel::info);
+    Logger::reportLogger().setTraceLevel(reportLevel, TraceLevel::info, mcpLevel);
 }
 
 std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) { // NOLINT(modernize-avoid-c-arrays)

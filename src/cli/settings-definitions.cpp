@@ -118,6 +118,11 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
             .isRequired = false, 
             .defaultValue = std::string("result"), 
             .type = ValueType::String }},
+        { "mcp",    { 
+            .description = "MCP logging level: none, result, all",
+            .isRequired = false, 
+            .defaultValue = std::string("result"), 
+            .type = ValueType::String }},
     };
 }
 

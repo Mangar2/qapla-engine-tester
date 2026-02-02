@@ -22,6 +22,7 @@
 #include <string>
 #include <string_view>
 #include <fstream>
+#include <functional>
 
 namespace QaplaTester {
 
@@ -85,6 +86,15 @@ public:
     void log(std::string_view message, TraceLevel level = TraceLevel::command);
 
     /**
+     * @brief Logs a status message to CLI (potentially overwriting line) and MCP.
+     * @param message The status message.
+     * @param toolName The name of the tool (for MCP JSON-RPC).
+     * @param level The trace level (default: result).
+     * @param overwrite If true, overwrites the current line on CLI using \r.
+     */
+    void logStatus(std::string_view message, std::string_view toolName = "", TraceLevel level = TraceLevel::result, bool overwrite = false);
+
+    /**
      * @brief Returns the base name for log files.
      * 
      * Must be implemented by derived classes to return their static logBaseName_.
@@ -106,10 +116,20 @@ public:
      * 
      * @param cli The minimum trace level for console output.
      * @param file The minimum trace level for file logging (default: info).
+     * @param mcp The minimum trace level for MCP logging (default: none).
      */
-    void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info) {
+    void setTraceLevel(TraceLevel cli, TraceLevel file = TraceLevel::info, TraceLevel mcp = TraceLevel::none) {
         cliThreshold_ = cli;
         fileThreshold_ = file;
+        mcpThreshold_ = mcp;
+    }
+
+    /**
+     * @brief Sets a callback for MCP JSON-RPC logging.
+     * @param callback Function to call for MCP logging.
+     */
+    void setMcpCallback(std::function<void(std::string_view, std::string_view)> callback) {
+        mcpCallback_ = std::move(callback);
     }
 
     /**
@@ -126,6 +146,14 @@ public:
      */
     [[nodiscard]] TraceLevel getFileThreshold() const {
         return fileThreshold_;
+    }
+
+    /**
+     * @brief Returns the current MCP trace level threshold.
+     * @return The trace level threshold for MCP output.
+     */
+    [[nodiscard]] TraceLevel getMcpThreshold() const {
+        return mcpThreshold_;
     }
 
     static inline std::string logPath_ = "./log";               ///< Directory path for log files
@@ -157,6 +185,8 @@ protected:
     std::ofstream fileStream_;                  ///< Output file stream for log file
     TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
+    TraceLevel mcpThreshold_ = TraceLevel::none;  ///< MCP output threshold
+    std::function<void(std::string_view, std::string_view)> mcpCallback_; ///< Callback for MCP logging
     std::string filename_;                      ///< Current log filename
     std::string openedBasename_;                ///< Basename of the currently open log file
     std::string openedLogPath_;                 ///< Directory path of the currently open log file
