@@ -32,6 +32,7 @@
 #include "../game-manager/game-manager-pool.h"
 #include "../game-manager/adjudication-manager.h"
 #include "../base-elements/logger.h"
+#include "settings-manager.h"
 
 #include <format>
 #include <sstream>
@@ -290,29 +291,40 @@ void AppRunner::setPgnConfig() {
 
 AppReturnCode AppRunner::runDispatcher() {
     AppReturnCode returnCode = AppReturnCode::NoError;
+    bool hasTask = false;
 
     setPgnConfig();
     setAdjudicationOptions();
 
-    if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
-        returnCode = runTest(*test, returnCode);
+    if (Settings::Manager::instance().getGroupInstance("test")) {
+        returnCode = runTest(*Settings::Manager::instance().getGroupInstance("test"), returnCode);
+        hasTask = true;
     }
 
-    if (Settings::QaplaSettings::instance().getEpdConfig()) {
+    if (Settings::Manager::instance().getGroupInstance("epd")) {
         returnCode = runEpd(returnCode);
+        hasTask = true;
     }
 
-    if (Settings::QaplaSettings::instance().getTournamentConfig()) {
+    if (Settings::Manager::instance().getGroupInstance("tournament")) {
         returnCode = runTournament(returnCode);
+        hasTask = true;
     }
 
-    if (Settings::QaplaSettings::instance().getSprtConfig()) {
+    if (Settings::Manager::instance().getGroupInstance("sprt")) {
         returnCode = runSprt(returnCode);
+        hasTask = true;
     }
 
-    if (Settings::QaplaSettings::instance().getSPSAConfig()) {
+    if (Settings::Manager::instance().getGroupInstance("spsa")) {
         returnCode = runSpsa(returnCode);
+        hasTask = true;
     }
+
+    if (!hasTask) {
+        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, or --spsa.");
+    }
+
     return returnCode;
 }
 

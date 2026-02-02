@@ -81,6 +81,10 @@ int main(int argc, char** argv) {
         }
         Settings::QaplaSettings::instance().applyArguments(args);
 
+        // Print welcome message to CLI (only log to file if a task starts later)
+        Logger::reportLogger().setTraceLevel(TraceLevel::result);
+        Logger::reportLogger().log(Logger::getWelcomeMessage());
+
         returnCode = run();
 			
     }

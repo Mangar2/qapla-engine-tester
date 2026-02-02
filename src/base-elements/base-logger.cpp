@@ -63,6 +63,10 @@ void BaseLogger::ensureFileOpen(const std::string& logPath) {
     openedBasename_ = basename;
     openedLogPath_ = logPath;
     fileStream_.open(filename_, std::ios::app);
+
+    if (fileStream_.is_open()) {
+        onFileOpened();
+    }
 }
 
 std::string BaseLogger::getFilename() {

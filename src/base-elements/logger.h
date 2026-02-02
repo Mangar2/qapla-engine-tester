@@ -99,8 +99,8 @@ enum class LogFileStrategy : std::uint8_t {
  */
 struct LoggerConfig {
     std::string logPath = "./log";               ///< Directory path for log files
-    std::string reportLogBaseName = "report";    ///< Base name for reporting log files
-    std::string engineLogBaseName = "engine";    ///< Base name for engine log files
+    std::string reportLogBaseName;          ///< Base name for reporting log files
+    std::string engineLogBaseName;          ///< Base name for engine log files
     LogFileStrategy engineLogStrategy = LogFileStrategy::global; ///< Strategy for engine log files
 };
 
@@ -123,6 +123,25 @@ struct EngineLoggerId {
  */
 class Logger : public BaseLogger {
 public:
+    static inline std::string logBaseName_;                    ///< Base name for reporting log files
+
+    /**
+     * @brief Returns the static welcome message for the application.
+     * @return The welcome message string.
+     */
+    static std::string getWelcomeMessage() {
+        return "Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n";
+    }
+
+    /**
+     * @brief Writes the welcome message to the file on opening.
+     */
+    void onFileOpened() override {
+        if (fileStream_.is_open()) {
+            fileStream_ << getWelcomeMessage() << "\n";
+        }
+    }
+
     /**
      * @brief Constructs a logger with default error-level threshold.
      */
@@ -155,8 +174,6 @@ public:
     [[nodiscard]] std::string getBaseName() const override {
         return logBaseName_;
     }
-
-    static inline std::string logBaseName_ = "report";                    ///< Base name for reporting log files
     
 };
 
@@ -167,6 +184,9 @@ public:
  */
 class EngineLogger : public BaseLogger {
 public:
+    static inline LogFileStrategy logStrategy_ = LogFileStrategy::global; ///< Strategy for engine log files
+    static inline std::string logBaseName_;                    ///< Base name for engine log files
+
     /**
      * @brief Constructs an engine logger with default error-level threshold.
      */
@@ -262,9 +282,6 @@ public:
         // For global strategy (or if id_ is not set), return base name as-is
         return logBaseName_;
     }
-
-    static inline LogFileStrategy logStrategy_ = LogFileStrategy::global; ///< Strategy for engine log files
-    static inline std::string logBaseName_ = "engine";                    ///< Base name for eingine log files
 
 private:
     /**
