@@ -72,21 +72,38 @@ void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool re
 
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Convert CLI arguments to ConfigData
-    auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
-    applyConfig(cliData, true);
+    cliConfigData_ = QaplaHelpers::ConfigData::fromArgv(args);
+    
+    applyConfig(*cliConfigData_, true);
 }
 
 void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial) {
     Manager::instance().clearValues();
     try {
-        Manager::instance().parseInput(configData, !isInitial);
-        
-        // Extract settingsfile from global parameters without full parsing
+        // 1. apply cliConfigData if present
+        if (cliConfigData_) {
+            Manager::instance().parseInput(*cliConfigData_, false);
+        }
+
+        // 2. applySettingsFromFile (if settingsfile was provided in cli or tool config)
         auto settingsFile = Manager::instance().get<std::string>("settingsfile");
-        
-        // If settings file specified, load and parse it first
         if (!settingsFile.empty()) {
             applySettingsFromFile(settingsFile);
+        }
+
+        // 3. apply mcp environment layer (suppress cli output in mcp mode)
+        if (Manager::instance().get<bool>("mcp")) {
+            QaplaHelpers::ConfigData mcpEnvLayer;
+            QaplaHelpers::IniFile::Section loggingSection;
+            loggingSection.name = "logging";
+            loggingSection.addEntry("trace", "none");
+            mcpEnvLayer.addSection(loggingSection);
+            Manager::instance().parseInput(mcpEnvLayer, true);
+        }
+
+        // 4. apply mcpConfigData (the configData passed to this method) if not initial
+        if (!isInitial) {
+            Manager::instance().parseInput(configData, true);
         }
     } catch (...) {
         // Ensure MCP or welcome message is handled even on parameter errors

@@ -21,6 +21,9 @@
 #include "json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
+#include <filesystem>
+#include <string_view>
+#include <optional>
 
 namespace QaplaTester::Mcp {
 
@@ -43,9 +46,9 @@ public:
 private:
     /**
      * @brief Lists available resources.
-     * @param id The message ID.
+     * @param requestId The message ID.
      */
-    static void listResources(const JsonValue& id);
+    static void listResources(const JsonValue& requestId);
 
     /**
      * @brief Reads a resource.
@@ -109,6 +112,20 @@ private:
      * @param jsonObject The request object.
      */
     static void callTool(const JsonValue::Object& jsonObject);
+
+    /**
+     * @brief Extracts the tool name from a log filename.
+     * @param filename The filename to analyze.
+     * @return The tool name or "other".
+     */
+    [[nodiscard]] static std::string extractToolName(std::string_view filename);
+
+    /**
+     * @brief Adds a resource description if the file is valid.
+     * @param entry The directory entry to check.
+     * @param resources The target resource array.
+     */
+    static void addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources);
 };
 
 } // namespace QaplaTester::Mcp
