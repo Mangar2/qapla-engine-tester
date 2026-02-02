@@ -159,25 +159,59 @@ void McpServer::listTools(const JsonValue& requestId) {
     JsonValue::Object resultData;
     JsonValue::Array tools;
 
-    // Tool: test-engines
-    {
+    struct ToolInfo {
+        std::string_view name;
+        std::string_view description;
+        std::vector<std::string_view> groups;
+    };
+
+    const auto toolsToRegister = std::vector<ToolInfo>{
+        {
+            .name = "test",
+            .description = "Runs basic engine tests (startup, move generation, etc.)",
+            .groups = {"test", "logging", "each"}
+        },
+        {
+            .name = "sprt",
+            .description = "Runs a Sequential Probability Ratio Test (SPRT) between engines",
+            .groups = {"sprt", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+        },
+        {
+            .name = "turnier",
+            .description = "Runs a tournament between engines",
+            .groups = {"tournament", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+        },
+        {
+            .name = "epd",
+            .description = "Runs an EPD testset against engines",
+            .groups = {"epd", "pgnoutput", "logging", "each"}
+        },
+        {
+            .name = "spsa",
+            .description = "Optimizes engine parameters using SPSA",
+            .groups = {"spsa", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+        }
+    };
+
+    for (const auto& info : toolsToRegister) {
         JsonValue::Object tool;
-        tool["name"] = JsonValue{ .data = std::string("test-engines") };
-        tool["description"] = JsonValue{ .data = std::string("Runs basic engine tests (startup, move generation, etc.)") };
+        tool["name"] = JsonValue{ .data = std::string(info.name) };
+        tool["description"] = JsonValue{ .data = std::string(info.description) };
         
         JsonValue::Object inputSchema;
         inputSchema["type"] = JsonValue{ .data = std::string("object") };
         
         JsonValue::Object properties;
+        
+        // Always add engines parameter
         JsonValue::Object engines;
         engines["type"] = JsonValue{ .data = std::string("string") };
-        engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine names to test") };
+        engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine executable paths") };
         properties["engines"] = JsonValue{ .data = engines };
 
-        JsonValue::Object numGames;
-        numGames["type"] = JsonValue{ .data = std::string("integer") };
-        numGames["description"] = JsonValue{ .data = std::string("Number of games to run (default: 1)") };
-        properties["test_numgames"] = JsonValue{ .data = numGames };
+        for (const auto& group : info.groups) {
+            addParametersFromGroup(group, properties);
+        }
         
         inputSchema["properties"] = JsonValue{ .data = properties };
         JsonValue::Array required;
@@ -193,6 +227,39 @@ void McpServer::listTools(const JsonValue& requestId) {
     response.data = responseBody;
 
     sendMessage(response);
+}
+
+void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties) {
+    const auto& groupDefs = Settings::Manager::instance().getGroupDefinitions();
+    const auto it = groupDefs.find(std::string(groupName));
+    if (it == groupDefs.end()) {
+        return;
+    }
+
+    for (const auto& [key, def] : it->second.keys) {
+        if (def.isHidden || key == "id") {
+            continue;
+        }
+        
+        JsonValue::Object prop;
+        switch (def.type) {
+            case Settings::ValueType::Bool: 
+                prop["type"] = JsonValue{ .data = std::string("boolean") }; 
+                break;
+            case Settings::ValueType::Int:
+            case Settings::ValueType::UInt: 
+                prop["type"] = JsonValue{ .data = std::string("integer") }; 
+                break;
+            case Settings::ValueType::Float: 
+                prop["type"] = JsonValue{ .data = std::string("number") }; 
+                break;
+            default: 
+                prop["type"] = JsonValue{ .data = std::string("string") }; 
+                break;
+        }
+        prop["description"] = JsonValue{ .data = def.description };
+        properties[std::format("{}_{}", groupName, key)] = JsonValue{ .data = prop };
+    }
 }
 
 void McpServer::callTool(const JsonValue::Object& jsonObject) {
@@ -217,8 +284,25 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 
     try {
         const auto& arguments = params.at("arguments").asObject();
+        
+        // Reset state before applying new config
+        Settings::Manager::instance().clearValues();
+
         auto configData = mapJsonToConfigData(arguments);
         
+        // Map tool name to internal flag
+        if (name == "test") {
+            configData.addGlobalParameter("test", "true");
+        } else if (name == "sprt") {
+            configData.addGlobalParameter("sprt", "true");
+        } else if (name == "turnier" || name == "tournament") {
+            configData.addGlobalParameter("tournament", "true");
+        } else if (name == "epd") {
+            configData.addGlobalParameter("epd", "true");
+        } else if (name == "spsa") {
+            configData.addGlobalParameter("spsa", "true");
+        }
+
         // Always ensure MCP mode is active and CLI output is suppressed
         configData.addGlobalParameter("mcp", "true");
         
