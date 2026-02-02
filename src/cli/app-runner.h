@@ -74,6 +74,12 @@ public:
      * @brief Sets PGN configuration based on settings.
      */
     static void setPgnConfig();
+
+    /**
+     * @brief Dispatches execution to the correct mode based on current settings.
+     * @return Application return code.
+     */
+    static AppReturnCode runDispatcher();
 };
 
 } // namespace QaplaTester

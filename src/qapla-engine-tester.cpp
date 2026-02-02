@@ -19,10 +19,7 @@
 
 
 
-#include "epd/epd-manager.h"
-
 #include "engine-tester/epd-test.h"
-
 
 #include "sprt/sprt-tournament-file.h"
 #include "spsa/spsa-optimizer.h"
@@ -43,7 +40,6 @@
 #include <string>
 #include <vector>
 #include <format>
-#include <optional>
 
 #ifndef _WIN32
 #include <signal.h>
@@ -57,36 +53,11 @@ static AppReturnCode run() {
         return Mcp::McpServer::run();
     }
 
-    AppReturnCode returnCode = AppReturnCode::NoError;
-
     InputHandler::inputLoop(
         Settings::QaplaSettings::instance().getArguments().size() == 1 
         || Settings::Manager::instance().get<bool>("interactive"));
 
-    AppRunner::setPgnConfig();
-    AppRunner::setAdjudicationOptions();
-
-    if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
-        returnCode = AppRunner::runTest(*test, returnCode);
-    }
-
-    std::optional<EpdConfig> epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
-    if (epdConfig) {
-        returnCode = AppRunner::runEpd(returnCode);
-    }
-
-    if (Settings::QaplaSettings::instance().getTournamentConfig()) {
-        returnCode = AppRunner::runTournament(returnCode);
-    }
-
-    if (Settings::QaplaSettings::instance().getSprtConfig()) {
-        returnCode = AppRunner::runSprt(returnCode);
-    }
-
-    if (Settings::QaplaSettings::instance().getSPSAConfig()) {
-        returnCode = AppRunner::runSpsa(returnCode);
-    }
-    return returnCode;
+    return AppRunner::runDispatcher();
 }
 
 int main(int argc, char** argv) {

@@ -292,4 +292,32 @@ void AppRunner::setPgnConfig() {
     PgnSave::tournament().setOptions(*pgnOptions);
 }
 
+AppReturnCode AppRunner::runDispatcher() {
+    AppReturnCode returnCode = AppReturnCode::NoError;
+
+    setPgnConfig();
+    setAdjudicationOptions();
+
+    if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
+        returnCode = runTest(*test, returnCode);
+    }
+
+    if (Settings::QaplaSettings::instance().getEpdConfig()) {
+        returnCode = runEpd(returnCode);
+    }
+
+    if (Settings::QaplaSettings::instance().getTournamentConfig()) {
+        returnCode = runTournament(returnCode);
+    }
+
+    if (Settings::QaplaSettings::instance().getSprtConfig()) {
+        returnCode = runSprt(returnCode);
+    }
+
+    if (Settings::QaplaSettings::instance().getSPSAConfig()) {
+        returnCode = runSpsa(returnCode);
+    }
+    return returnCode;
+}
+
 } // namespace QaplaTester

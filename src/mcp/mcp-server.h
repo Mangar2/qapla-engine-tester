@@ -20,6 +20,7 @@
 
 #include "json-helper.h"
 #include "../base-elements/app-error.h"
+#include "../base-elements/ini-file.h"
 
 namespace QaplaTester::Mcp {
 
@@ -69,6 +70,13 @@ private:
      * @param requestId The ID of the request.
      */
     static void listTools(const JsonValue& requestId);
+
+    /**
+     * @brief Maps JSON tool arguments to ConfigData using an underscore naming convention.
+     * @param arguments The JSON arguments from a tool call.
+     * @return ConfigData object prepared for QaplaSettings.
+     */
+    [[nodiscard]] static QaplaHelpers::ConfigData mapJsonToConfigData(const JsonValue::Object& arguments);
 
     /**
      * @brief Executes a tool call.
