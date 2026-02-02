@@ -348,7 +348,7 @@ TestResult runEngineOptionTests(const EngineConfig& engineConfig) // NOLINT(read
         
         int errors = 0;
         
-        std::cout << "Randomizing engine settings, please wait...\r";
+        Logger::reportLogger().logStatus("Randomizing engine settings, please wait...", "test-engines", TraceLevel::result, true);
         for (const auto& opt : options) {
             if (opt.name == "Hash" || opt.type == EngineOption::Type::Button) {
                 continue;
@@ -529,9 +529,7 @@ TestResult runInfiniteAnalyzeTest(const EngineConfig& engineConfig)
         static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
         static constexpr auto NO_BESTMOVE_TIMEOUT = std::chrono::milliseconds(10000);
         
-        std::cout << "Testing infinite mode: takes about 10 seconds, please wait...";
-        std::cout.flush();
-        std::cout << "\r";
+        Logger::reportLogger().logStatus("Testing infinite mode: takes about 10 seconds, please wait...", "test-engines", TraceLevel::result, true);
         
         TimeControl t;
         t.setInfinite();
@@ -756,7 +754,7 @@ TestResult runUciPonderTest(const EngineConfig& engineConfig)
         const std::string testname = "correct-pondering";
         
         try {
-            std::cout << "Testing pondering:\n" << std::flush;
+            Logger::reportLogger().logStatus("Testing pondering:", "test-engines", TraceLevel::result);
             
             GameRecord gameRecord;
             

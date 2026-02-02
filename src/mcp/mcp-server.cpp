@@ -24,11 +24,25 @@
 #include "../cli/app-runner.h"
 #include <iostream>
 #include <sstream>
+#include <filesystem>
+#include <fstream>
 
 namespace QaplaTester::Mcp {
 
 void McpServer::initialize() {
     silenceLoggers();
+
+    // Set up MCP logging callback for report logger
+    Logger::reportLogger().setMcpCallback([](std::string_view message, std::string_view toolName) {
+        JsonValue::Object params;
+        params["level"] = JsonValue{ .data = std::string("info") };
+        params["logger"] = JsonValue{ .data = std::string(toolName.empty() ? "qapla" : toolName) };
+        params["data"] = JsonValue{ .data = std::string(message) };
+        sendNotification("notifications/message", params);
+    });
+
+    // Default MCP trace level to result
+    Logger::reportLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::result);
 }
 
 AppReturnCode McpServer::run() {
@@ -71,6 +85,7 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
 
         JsonValue::Object capabilities;
         capabilities["tools"] = JsonValue{ .data = JsonValue::Object() }; 
+        capabilities["resources"] = JsonValue{ .data = JsonValue::Object() };
         resultData["capabilities"] = JsonValue{ .data = capabilities };
 
         JsonValue::Object serverInformation;
@@ -91,6 +106,14 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
     else if (method == "tools/call") {
         callTool(jsonObject);
     }
+    else if (method == "resources/list") {
+        if (jsonObject.contains("id")) {
+            listResources(jsonObject.at("id"));
+        }
+    }
+    else if (method == "resources/read") {
+        readResource(jsonObject);
+    }
     else if (method == "notifications/initialized") {
         // Client confirmed initialization
     }
@@ -103,6 +126,16 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
 
 void McpServer::sendMessage(const JsonValue& message) {
     std::cout << JsonHelper::serialize(message) << std::endl;
+}
+
+void McpServer::sendNotification(const std::string& method, const JsonValue::Object& params) {
+    JsonValue notification;
+    JsonValue::Object body;
+    body["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+    body["method"] = JsonValue{ .data = method };
+    body["params"] = JsonValue{ .data = params };
+    notification.data = body;
+    sendMessage(notification);
 }
 
 std::optional<JsonValue> McpServer::readMessage() {
@@ -192,9 +225,24 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
         // Run dispatcher - this will decide what to run based on the settings
         AppReturnCode code = AppRunner::runDispatcher();
 
+        std::string summary = std::format("Tool '{}' finished. Result: ", name);
+        switch (code) {
+            case AppReturnCode::NoError: summary += "Success"; break;
+            case AppReturnCode::GeneralError: summary += "General Error"; break;
+            case AppReturnCode::InvalidParameters: summary += "Invalid Parameters"; break;
+            case AppReturnCode::EngineError: summary += "Engine Error (crash or illegal moves)"; break;
+            case AppReturnCode::EngineMissbehaviour: summary += "Engine Misbehavior (hang or protocol violation)"; break;
+            case AppReturnCode::EngineNote: summary += "Completed with engine notes"; break;
+            case AppReturnCode::MissedTarget: summary += "EPD target threshold not reached"; break;
+            case AppReturnCode::H1Accepted: summary += "SPRT H1 accepted (stronger engine)"; break;
+            case AppReturnCode::H0Accepted: summary += "SPRT H0 accepted (no significant difference)"; break;
+            case AppReturnCode::UndefinedResult: summary += "SPRT result undecided"; break;
+            default: summary += std::to_string(static_cast<int>(code)); break;
+        }
+
         JsonValue::Object textContent;
         textContent["type"] = JsonValue{ .data = std::string("text") };
-        textContent["text"] = JsonValue{ .data = std::format("Tool '{}' completed with code: {}", name, static_cast<int>(code)) };
+        textContent["text"] = JsonValue{ .data = summary };
         content.push_back(JsonValue{ .data = textContent });
         
         // Treat codes >= 10 as errors if they are GeneralError, EngineError or EngineMissbehaviour
@@ -276,10 +324,93 @@ void McpServer::silenceLoggers() {
     QaplaHelpers::IniFile::Section loggingSection;
     loggingSection.name = "logging";
     loggingSection.addEntry("trace", "none");
+    loggingSection.addEntry("mcp", "result");
     loggingSection.addEntry("engine", "false");
     mcpConfig.addSection(loggingSection);
 
     Settings::Manager::instance().parseInput(mcpConfig, true);
+}
+
+void McpServer::listResources(const JsonValue& id) {
+    JsonValue response;
+    JsonValue::Object responseBody;
+    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+    responseBody["id"] = id;
+
+    JsonValue::Object resultData;
+    JsonValue::Array resources;
+
+    try {
+        if (std::filesystem::exists("log")) {
+            for (const auto& entry : std::filesystem::directory_iterator("log")) {
+                if (entry.is_regular_file()) {
+                    auto ext = entry.path().extension().string();
+                    if (ext == ".log" || ext == ".pgn") {
+                        JsonValue::Object resource;
+                        resource["uri"] = JsonValue{ .data = std::format("file:///log/{}", entry.path().filename().string()) };
+                        resource["name"] = JsonValue{ .data = entry.path().filename().string() };
+                        resource["mimeType"] = JsonValue{ .data = (ext == ".pgn" ? std::string("text/x-chess-pgn") : std::string("text/plain")) };
+                        resources.push_back(JsonValue{ .data = resource });
+                    }
+                }
+            }
+        }
+    } catch (...) {} // NOLINT(bugprone-empty-catch)
+
+    resultData["resources"] = JsonValue{ .data = resources };
+    responseBody["result"] = JsonValue{ .data = resultData };
+    response.data = responseBody;
+
+    sendMessage(response);
+}
+
+void McpServer::readResource(const JsonValue::Object& jsonObject) {
+    if (!jsonObject.contains("params") || !jsonObject.at("params").isObject()) {
+        return;
+    }
+    const auto& params = jsonObject.at("params").asObject();
+    if (!params.contains("uri")) {
+        return;
+    }
+
+    const std::string& uri = params.at("uri").asString();
+    
+    JsonValue response;
+    JsonValue::Object responseBody;
+    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+    if (jsonObject.contains("id")) {
+        responseBody["id"] = jsonObject.at("id");
+    }
+
+    JsonValue::Object result;
+    JsonValue::Array contents;
+
+    try {
+        // Basic check to ensure it's in the log folder
+        if (uri.starts_with("file:///log/")) {
+            std::string filename = uri.substr(12);
+            std::filesystem::path path = std::filesystem::path("log") / filename;
+            
+            if (std::filesystem::exists(path)) {
+                std::ifstream file(path);
+                if (file.is_open()) {
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    
+                    JsonValue::Object content;
+                    content["uri"] = JsonValue{ .data = uri };
+                    content["text"] = JsonValue{ .data = buffer.str() };
+                    contents.push_back(JsonValue{ .data = content });
+                }
+            }
+        }
+    } catch (...) {} // NOLINT(bugprone-empty-catch)
+
+    result["contents"] = JsonValue{ .data = contents };
+    responseBody["result"] = JsonValue{ .data = result };
+    response.data = responseBody;
+
+    sendMessage(response);
 }
 
 } // namespace QaplaTester::Mcp

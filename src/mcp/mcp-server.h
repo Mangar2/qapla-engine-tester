@@ -42,6 +42,18 @@ public:
 
 private:
     /**
+     * @brief Lists available resources.
+     * @param id The message ID.
+     */
+    static void listResources(const JsonValue& id);
+
+    /**
+     * @brief Reads a resource.
+     * @param jsonObject The request object.
+     */
+    static void readResource(const JsonValue::Object& jsonObject);
+
+    /**
      * @brief Silences loggers to prevent CLI output during MCP sessions.
      */
     static void silenceLoggers();
@@ -51,6 +63,13 @@ private:
      * @return Optional JSON value, nullopt on EOF.
      */
     [[nodiscard]] static std::optional<JsonValue> readMessage();
+
+    /**
+     * @brief Sends a notification message to the client.
+     * @param method The JSON-RPC method name.
+     * @param params The parameters object.
+     */
+    static void sendNotification(const std::string& method, const JsonValue::Object& params);
 
     /**
      * @brief Sends a JSON-RPC message to stdout.
