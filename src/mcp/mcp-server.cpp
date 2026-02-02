@@ -145,22 +145,8 @@ std::optional<JsonValue> McpServer::readMessage() {
     std::string line;
 
     while (std::getline(std::cin, line)) {
-        // Handle Content-Length header
-        if (line.starts_with("Content-Length:")) {
-            try {
-                const size_t length = std::stoull(line.substr(15));
-                std::string empty;
-                std::getline(std::cin, empty); // Usually an empty line follows headers
-                
-                std::string content(length, '\0');
-                if (std::cin.read(content.data(), static_cast<std::streamsize>(length))) {
-                    std::string_view contentView = content;
-                    return JsonHelper::parse(contentView);
-                }
-            } catch (...) {
-                // Fallback to normal parsing
-            }
-            continue;
+        if (const auto val = tryReadByContentLength(line)) {
+            return val;
         }
 
         if (line.empty() && accumulated.empty()) {
@@ -169,41 +155,9 @@ std::optional<JsonValue> McpServer::readMessage() {
 
         accumulated += line;
         
-        // Simple heuristic for multi-line JSON: count braces/brackets
-        size_t openBraces = 0;
-        size_t closeBraces = 0;
-        bool inString = false;
-        bool escaped = false;
-
-        for (const char character : accumulated) {
-            if (character == '"' && !escaped) {
-                inString = !inString;
-            } else if (!inString) {
-                if (character == '{' || character == '[') {
-                    openBraces++;
-                } else if (character == '}' || character == ']') {
-                    closeBraces++;
-                }
-            }
-            escaped = (character == '\\' && !escaped);
+        if (const auto val = tryReadByBraceCounting(accumulated)) {
+            return val;
         }
-
-        if (openBraces > 0 && openBraces == closeBraces) {
-            std::string_view jsonInputView = accumulated;
-            auto result = JsonHelper::parse(jsonInputView);
-            accumulated.clear();
-            return result;
-        }
-
-        // If it's a single line and no braces (might be simple value), return it
-        if (openBraces == 0 && !accumulated.empty()) {
-            std::string_view jsonInputView = accumulated;
-            auto result = JsonHelper::parse(jsonInputView);
-            accumulated.clear();
-            return result;
-        }
-        
-        // Otherwise, keep accumulating lines
     }
 
     return std::nullopt;
@@ -249,6 +203,11 @@ void McpServer::listTools(const JsonValue& requestId) {
             .name = "spsa",
             .description = "Optimizes engine parameters using SPSA",
             .groups = {"spsa", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+        },
+        {
+            .name = "read_report",
+            .description = "Reads the content of a specific report log or PGN file",
+            .groups = {}
         }
     };
 
@@ -275,28 +234,36 @@ void McpServer::listTools(const JsonValue& requestId) {
         
         JsonValue::Object properties;
         
-        // Always add engine parameters
-        JsonValue::Object engines;
-        engines["type"] = JsonValue{ .data = std::string("string") };
-        engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine executable paths") };
-        properties["engines"] = JsonValue{ .data = engines };
+        if (info.name == "read_report") {
+            JsonValue::Object uri;
+            uri["type"] = JsonValue{ .data = std::string("string") };
+            uri["description"] = JsonValue{ .data = std::string("The URI or filename of the report to read (e.g. qapla://reports/sprt/report.log)") };
+            properties["uri"] = JsonValue{ .data = uri };
 
-        JsonValue::Object engineConf;
-        engineConf["type"] = JsonValue{ .data = std::string("string") };
-        engineConf["description"] = JsonValue{ .data = confDescription };
-        properties["engine_conf"] = JsonValue{ .data = engineConf };
+            JsonValue::Array required;
+            required.push_back(JsonValue{ .data = std::string("uri") });
+            inputSchema["required"] = JsonValue{ .data = required };
+        } else {
+            // Always add engine parameters
+            JsonValue::Object engines;
+            engines["type"] = JsonValue{ .data = std::string("string") };
+            engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine executable paths") };
+            properties["engines"] = JsonValue{ .data = engines };
 
-        for (const auto& group : info.groups) {
-            addParametersFromGroup(group, properties);
+            JsonValue::Object engineConf;
+            engineConf["type"] = JsonValue{ .data = std::string("string") };
+            engineConf["description"] = JsonValue{ .data = confDescription };
+            properties["engine_conf"] = JsonValue{ .data = engineConf };
+
+            for (const auto& group : info.groups) {
+                addParametersFromGroup(group, properties);
+            }
+            
+            JsonValue::Array required;
+            inputSchema["required"] = JsonValue{ .data = required };
         }
         
         inputSchema["properties"] = JsonValue{ .data = properties };
-        
-        // At least one of engines or engine_conf should be provided, 
-        // but showing 'engines' as required is a good default hint.
-        JsonValue::Array required;
-        // required.push_back(JsonValue{ .data = std::string("engines") });
-        inputSchema["required"] = JsonValue{ .data = required };
         
         tool["inputSchema"] = JsonValue{ .data = inputSchema };
         tools.push_back(JsonValue{ .data = tool });
@@ -364,59 +331,24 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 
     try {
         const auto& arguments = params.at("arguments").asObject();
-        
-        auto configData = mapJsonToConfigData(arguments);
-        
-        // Ensure the section for the requested tool exists, even if no arguments were provided
-        // This triggers the dispatcher to run the corresponding mode.
-        if (name == "test" || name == "sprt" || name == "turnier" || name == "tournament" || name == "epd" || name == "spsa") {
-            const std::string sectionName = (name == "turnier") ? "tournament" : name;
-            if (!configData.getSectionList(sectionName).has_value()) {
-                QaplaHelpers::IniFile::Section toolSection;
-                toolSection.name = sectionName;
-                configData.addSection(toolSection);
-            }
+
+        if (name == "read_report") {
+            content = handleReadReport(arguments);
+            result["isError"] = JsonValue{ .data = false };
+        } else {
+            auto configData = mapJsonToConfigData(arguments);
+            const AppReturnCode code = executeRunnerTool(name, configData);
+
+            JsonValue::Object textContent;
+            textContent["type"] = JsonValue{ .data = std::string("text") };
+            textContent["text"] = JsonValue{ .data = formatRunSummary(name, code) };
+            content.push_back(JsonValue{ .data = textContent });
+            
+            result["isError"] = JsonValue{ .data = (code == AppReturnCode::GeneralError || 
+                                                  code == AppReturnCode::InvalidParameters || 
+                                                  code == AppReturnCode::EngineError || 
+                                                  code == AppReturnCode::EngineMissbehaviour) };
         }
-
-        // Use tool-specific log names for better resource categorization.
-        // This will cause the loggers to create new files for this specific tool run.
-        Logger::logBaseName_ = std::format("report-{}", name);
-        EngineLogger::logBaseName_ = std::format("engine-{}", name);
-
-        // Apply configuration - this performs parsing, validation and internal state sync
-        // QaplaSettings will handle merging with cliConfigData and settingsfile.
-        Settings::QaplaSettings::instance().applyConfig(configData, false);
-
-        // Run dispatcher - this will decide what to run based on the settings
-        AppReturnCode code = AppRunner::runDispatcher();
-
-        std::string summary = std::format("Tool '{}' finished. Result: ", name);
-        switch (code) {
-            case AppReturnCode::NoError: summary += "Success"; break;
-            case AppReturnCode::GeneralError: summary += "General Error"; break;
-            case AppReturnCode::InvalidParameters: summary += "Invalid Parameters"; break;
-            case AppReturnCode::EngineError: summary += "Engine Error (crash or illegal moves)"; break;
-            case AppReturnCode::EngineMissbehaviour: summary += "Engine Misbehavior (hang or protocol violation)"; break;
-            case AppReturnCode::EngineNote: summary += "Completed with engine notes"; break;
-            case AppReturnCode::MissedTarget: summary += "EPD target threshold not reached"; break;
-            case AppReturnCode::H1Accepted: summary += "SPRT H1 accepted (stronger engine)"; break;
-            case AppReturnCode::H0Accepted: summary += "SPRT H0 accepted (no significant difference)"; break;
-            case AppReturnCode::UndefinedResult: summary += "SPRT result undecided"; break;
-            default: summary += std::to_string(static_cast<int>(code)); break;
-        }
-
-        JsonValue::Object textContent;
-        textContent["type"] = JsonValue{ .data = std::string("text") };
-        textContent["text"] = JsonValue{ .data = summary };
-        content.push_back(JsonValue{ .data = textContent });
-        
-        // Treat codes >= 10 as errors if they are GeneralError, EngineError or EngineMissbehaviour
-        // SPRT results (14, 15) are not errors.
-        bool isError = (code == AppReturnCode::GeneralError || 
-                        code == AppReturnCode::InvalidParameters || 
-                        code == AppReturnCode::EngineError || 
-                        code == AppReturnCode::EngineMissbehaviour);
-        result["isError"] = JsonValue{ .data = isError };
     } catch (const std::exception& e) {
         JsonValue::Object errorContent;
         errorContent["type"] = JsonValue{ .data = std::string("text") };
@@ -432,72 +364,80 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     sendMessage(response);
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
     QaplaHelpers::ConfigData configData;
-    std::unordered_map<std::string, QaplaHelpers::IniFile::Section> groupedSections;
+    std::unordered_map<std::string, QaplaHelpers::IniFile::Section> otherGroupedSections;
+    std::vector<QaplaHelpers::IniFile::Section> engineSections;
 
+    // 1st Pass: Engines
+    parseEngineArguments(arguments, engineSections);
+
+    // 2nd Pass: Parameters
     for (const auto& [key, value] : arguments) {
-        std::string valueStr;
-        if (value.isString()) {
-            valueStr = value.asString();
-        } else if (value.isNumber()) {
-            double d = value.asDouble();
-            if (d == static_cast<double>(static_cast<long long>(d))) {
-                valueStr = std::to_string(static_cast<long long>(d));
-            } else {
-                valueStr = std::format("{}", d);
+        if (key != "engines" && key != "engine_conf") {
+            processParameter(key, value, engineSections, otherGroupedSections, configData);
+        }
+    }
+
+    // Add sections to configData
+    for (auto& s : engineSections) {
+        configData.addSection(s);
+    }
+    for (auto& [name, s] : otherGroupedSections) {
+        configData.addSection(s);
+    }
+
+    return configData;
+}
+
+void McpServer::processParameter(const std::string& key, const JsonValue& value,
+    std::vector<QaplaHelpers::IniFile::Section>& engineSections,
+    std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
+    QaplaHelpers::ConfigData& configData) {
+
+    const std::string valStr = valueToString(value);
+
+    // Disallow ambiguous engine_ prefix
+    if (key.starts_with("engine_")) {
+        throw AppError::makeInvalidParameters(std::format(
+            "Ambiguous parameter '{}'. Use 'each_' for all engines or 'engineN_' for a specific engine (e.g., engine0_{})",
+            key, key.substr(7)));
+    }
+
+    // Handle engineN_ prefix
+    if (key.starts_with("engine")) {
+        if (const size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
+            std::string indexStr = key.substr(6, underscorePos - 6);
+            if (!indexStr.empty() && std::all_of(indexStr.begin(), indexStr.end(), [](unsigned char c) { return std::isdigit(c); })) {
+                const size_t index = std::stoul(indexStr);
+                if (index < engineSections.size()) {
+                    std::string paramKey = key.substr(underscorePos + 1);
+                    if (paramKey.starts_with("option_")) {
+                        paramKey = "option." + paramKey.substr(7);
+                    }
+                    engineSections[index].addEntry(paramKey, valStr);
+                    return;
+                }
+                
+                throw AppError::makeInvalidParameters(std::format(
+                    "Engine index {} out of bounds (found {} engines)", index, engineSections.size()));
             }
-        } else if (value.isBool()) {
-            valueStr = value.asBool() ? "true" : "false";
+        }
+    }
+
+    if (const size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
+        const std::string sectionName = key.substr(0, underscorePos);
+        std::string paramKey = key.substr(underscorePos + 1);
+
+        if (sectionName == "each" && paramKey.starts_with("option_")) {
+            paramKey = "option." + paramKey.substr(7);
         }
 
-        if (key == "engines") {
-            // Special handling for engines: split by comma and create multiple [engine] sections
-            std::stringstream ss(valueStr);
-            std::string enginePath;
-            while (std::getline(ss, enginePath, ',')) {
-                enginePath = QaplaHelpers::trim(enginePath);
-                if (!enginePath.empty()) {
-                    QaplaHelpers::IniFile::Section engineSection;
-                    engineSection.name = "engine";
-                    engineSection.addEntry("cmd", enginePath);
-                    // Name is usually derived from filename in setEngineConfig if missing
-                    configData.addSection(engineSection);
-                }
-            }
-        }
-        else if (key == "engine_conf") {
-            // Special handling for pre-configured engines
-            std::stringstream ss(valueStr);
-            std::string confName;
-            while (std::getline(ss, confName, ',')) {
-                confName = QaplaHelpers::trim(confName);
-                if (!confName.empty()) {
-                    QaplaHelpers::IniFile::Section engineSection;
-                    engineSection.name = "engine";
-                    engineSection.addEntry("conf", confName);
-                    configData.addSection(engineSection);
-                }
-            }
-        }
-        else if (size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
-            std::string sectionName = key.substr(0, underscorePos);
-            std::string paramKey = key.substr(underscorePos + 1);
-            
-            groupedSections[sectionName].name = sectionName;
-            groupedSections[sectionName].addEntry(paramKey, valueStr);
-        }
-        else {
-            configData.addGlobalParameter(key, valueStr);
-        }
+        otherGroupedSections[sectionName].name = sectionName;
+        otherGroupedSections[sectionName].addEntry(paramKey, valStr);
+    } else {
+        configData.addGlobalParameter(key, valStr);
     }
-    
-    for (const auto& [name, section] : groupedSections) {
-        configData.addSection(section);
-    }
-    
-    return configData;
 }
 
 void McpServer::silenceLoggers() {
@@ -521,13 +461,14 @@ void McpServer::listResources(const JsonValue& requestId) {
     JsonValue::Object resultData;
     JsonValue::Array resources;
 
-    try {
-        if (!BaseLogger::logPath_.empty() && std::filesystem::exists(BaseLogger::logPath_)) {
-            for (const auto& entry : std::filesystem::directory_iterator(BaseLogger::logPath_)) {
-                addResourceIfValid(entry, resources);
+    std::error_code ec;
+    if (!BaseLogger::logPath_.empty() && std::filesystem::exists(BaseLogger::logPath_, ec)) {
+        for (const auto& entry : std::filesystem::directory_iterator(BaseLogger::logPath_, ec)) {
+            if (ec) {
+                break;
             }
+            addResourceIfValid(entry, resources);
         }
-    } catch (...) { // NOLINT(bugprone-empty-catch)
     }
 
     resultData["resources"] = JsonValue{ .data = resources };
@@ -612,35 +553,206 @@ void McpServer::readResource(const JsonValue::Object& jsonObject) {
     JsonValue::Object result;
     JsonValue::Array contents;
 
-    try {
-        // Handle qapla://reports/<tool>/<filename>
-        if (uri.starts_with("qapla://reports/")) {
-            size_t lastSlash = uri.find_last_of('/');
-            if (lastSlash != std::string::npos) {
-                std::string filename = uri.substr(lastSlash + 1);
-                std::filesystem::path path = std::filesystem::path(BaseLogger::logPath_) / filename;
-                
-                if (std::filesystem::exists(path)) {
-                    std::ifstream file(path);
-                    if (file.is_open()) {
-                        std::stringstream buffer;
-                        buffer << file.rdbuf();
-                        
-                        JsonValue::Object content;
-                        content["uri"] = JsonValue{ .data = uri };
-                        content["text"] = JsonValue{ .data = buffer.str() };
-                        contents.push_back(JsonValue{ .data = content });
-                    }
+    // Handle qapla://reports/<tool>/<filename>
+    if (uri.starts_with("qapla://reports/")) {
+        size_t lastSlash = uri.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            std::string filename = uri.substr(lastSlash + 1);
+            std::filesystem::path path = std::filesystem::path(BaseLogger::logPath_) / filename;
+            
+            std::error_code ec;
+            if (std::filesystem::exists(path, ec)) {
+                std::ifstream file(path);
+                if (file.is_open()) {
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    
+                    JsonValue::Object content;
+                    content["uri"] = JsonValue{ .data = uri };
+                    content["text"] = JsonValue{ .data = buffer.str() };
+                    contents.push_back(JsonValue{ .data = content });
                 }
             }
         }
-    } catch (...) {} // NOLINT(bugprone-empty-catch)
+    }
 
     result["contents"] = JsonValue{ .data = contents };
     responseBody["result"] = JsonValue{ .data = result };
     response.data = responseBody;
 
     sendMessage(response);
+}
+
+std::optional<JsonValue> McpServer::tryReadByContentLength(const std::string& line) {
+    if (!line.starts_with("Content-Length:")) {
+        return std::nullopt;
+    }
+
+    const auto lengthOpt = QaplaHelpers::to_unsigned_int<uint64_t>(line.substr(15));
+    if (!lengthOpt) {
+        return std::nullopt;
+    }
+
+    const size_t length = static_cast<size_t>(*lengthOpt);
+    std::string empty;
+    std::getline(std::cin, empty); // usually an empty line follows headers
+    
+    std::string content(length, '\0');
+    if (std::cin.read(content.data(), static_cast<std::streamsize>(length))) {
+        std::string_view contentView = content;
+        return JsonHelper::parse(contentView);
+    }
+
+    return std::nullopt;
+}
+
+std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumulated) {
+    size_t openBraces = 0;
+    size_t closeBraces = 0;
+    bool inString = false;
+    bool escaped = false;
+
+    for (const char character : accumulated) {
+        if (character == '"' && !escaped) {
+            inString = !inString;
+        } else if (!inString) {
+            if (character == '{' || character == '[') {
+                openBraces++;
+            } else if (character == '}' || character == ']') {
+                closeBraces++;
+            }
+        }
+        escaped = (character == '\\' && !escaped);
+    }
+
+    if ((openBraces > 0 && openBraces == closeBraces) || (openBraces == 0 && !accumulated.empty())) {
+        std::string_view jsonInputView = accumulated;
+        auto result = JsonHelper::parse(jsonInputView);
+        accumulated.clear();
+        return result;
+    }
+
+    return std::nullopt;
+}
+
+JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments) {
+    if (!arguments.contains("uri")) {
+        throw std::runtime_error("Could not read report file: URI missing.");
+    }
+
+    const std::string& uri = arguments.at("uri").asString();
+    std::string filename;
+    if (uri.starts_with("qapla://reports/")) {
+        size_t lastSlash = uri.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            filename = uri.substr(lastSlash + 1);
+        }
+    } else {
+        filename = uri;
+    }
+
+    if (!filename.empty()) {
+        std::filesystem::path path = std::filesystem::path(BaseLogger::logPath_) / filename;
+        if (std::filesystem::exists(path)) {
+            std::ifstream file(path);
+            if (file.is_open()) {
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                
+                JsonValue::Object textContent;
+                textContent["type"] = JsonValue{ .data = std::string("text") };
+                textContent["text"] = JsonValue{ .data = buffer.str() };
+                
+                JsonValue::Array content;
+                content.push_back(JsonValue{ .data = textContent });
+                return content;
+            }
+        }
+    }
+    throw std::runtime_error("Could not read report file: file not found.");
+}
+
+AppReturnCode McpServer::executeRunnerTool(const std::string& name, QaplaHelpers::ConfigData& configData) {
+    // Ensure the section for the requested tool exists
+    const std::string sectionName = (name == "turnier") ? "tournament" : name;
+    if (!configData.getSectionList(sectionName).has_value()) {
+        QaplaHelpers::IniFile::Section toolSection;
+        toolSection.name = sectionName;
+        configData.addSection(toolSection);
+    }
+
+    // Tool-specific log names
+    Logger::logBaseName_ = std::format("report-{}", name);
+    EngineLogger::logBaseName_ = std::format("engine-{}", name);
+
+    // Apply configuration
+    Settings::QaplaSettings::instance().applyConfig(configData, false);
+
+    // Run dispatcher
+    return AppRunner::runDispatcher();
+}
+
+std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode code) {
+    std::string summary = std::format("Tool '{}' finished. Result: ", name);
+    switch (code) {
+        case AppReturnCode::NoError: summary += "Success"; break;
+        case AppReturnCode::GeneralError: summary += "General Error"; break;
+        case AppReturnCode::InvalidParameters: summary += "Invalid Parameters"; break;
+        case AppReturnCode::EngineError: summary += "Engine Error (crash or illegal moves)"; break;
+        case AppReturnCode::EngineMissbehaviour: summary += "Engine Misbehavior (hang or protocol violation)"; break;
+        case AppReturnCode::EngineNote: summary += "Completed with engine notes"; break;
+        case AppReturnCode::MissedTarget: summary += "EPD target threshold not reached"; break;
+        case AppReturnCode::H1Accepted: summary += "SPRT H1 accepted (stronger engine)"; break;
+        case AppReturnCode::H0Accepted: summary += "SPRT H0 accepted (no significant difference)"; break;
+        case AppReturnCode::UndefinedResult: summary += "SPRT result undecided"; break;
+        default: summary += std::to_string(static_cast<int>(code)); break;
+    }
+
+    const std::string reportFilename = std::filesystem::path(Logger::reportLogger().getFilename()).filename().string();
+    if (!reportFilename.empty()) {
+        summary += std::format("\nReport Log Resource: qapla://reports/{}/{}", name, reportFilename);
+    }
+    return summary;
+}
+
+std::string McpServer::valueToString(const JsonValue& value) {
+    if (value.isString()) {
+        return value.asString();
+    }
+    if (value.isNumber()) {
+        double d = value.asDouble();
+        if (d == static_cast<double>(static_cast<long long>(d))) {
+            return std::to_string(static_cast<long long>(d));
+        }
+        return std::format("{}", d);
+    }
+    if (value.isBool()) {
+        return value.asBool() ? "true" : "false";
+    }
+    return "";
+}
+
+void McpServer::parseEngineArguments(const JsonValue::Object& arguments, 
+    std::vector<QaplaHelpers::IniFile::Section>& engineSections) {
+    
+    auto addEngines = [&](const std::string& key, const std::string& entryKey) {
+        if (auto it = arguments.find(key); it != arguments.end()) {
+            std::stringstream ss(valueToString(it->second));
+            std::string path;
+            while (std::getline(ss, path, ',')) {
+                path = QaplaHelpers::trim(path);
+                if (!path.empty()) {
+                    QaplaHelpers::IniFile::Section s;
+                    s.name = "engine";
+                    s.addEntry(entryKey, path);
+                    engineSections.push_back(std::move(s));
+                }
+            }
+        }
+    };
+
+    addEngines("engines", "cmd");
+    addEngines("engine_conf", "conf");
 }
 
 } // namespace QaplaTester::Mcp
