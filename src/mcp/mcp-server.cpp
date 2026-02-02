@@ -308,9 +308,6 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     try {
         const auto& arguments = params.at("arguments").asObject();
         
-        // Reset state before applying new config
-        Settings::Manager::instance().clearValues();
-
         auto configData = mapJsonToConfigData(arguments);
         
         // Ensure the section for the requested tool exists, even if no arguments were provided
@@ -324,15 +321,13 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             }
         }
 
-        // Always ensure MCP mode is active and CLI output is suppressed
-        configData.addGlobalParameter("mcp", "true");
-        
-        QaplaHelpers::IniFile::Section loggingSection;
-        loggingSection.name = "logging";
-        loggingSection.addEntry("trace", "none");
-        configData.addSection(loggingSection);
+        // Use tool-specific log names for better resource categorization.
+        // This will cause the loggers to create new files for this specific tool run.
+        Logger::logBaseName_ = std::format("report-{}", name);
+        EngineLogger::logBaseName_ = std::format("engine-{}", name);
 
         // Apply configuration - this performs parsing, validation and internal state sync
+        // QaplaSettings will handle merging with cliConfigData and settingsfile.
         Settings::QaplaSettings::instance().applyConfig(configData, false);
 
         // Run dispatcher - this will decide what to run based on the settings
@@ -458,37 +453,71 @@ void McpServer::silenceLoggers() {
     Settings::Manager::instance().parseInput(mcpConfig, true);
 }
 
-void McpServer::listResources(const JsonValue& id) {
+void McpServer::listResources(const JsonValue& requestId) {
     JsonValue response;
     JsonValue::Object responseBody;
     responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
-    responseBody["id"] = id;
+    responseBody["id"] = requestId;
 
     JsonValue::Object resultData;
     JsonValue::Array resources;
 
-    try {
-        if (std::filesystem::exists("log")) {
-            for (const auto& entry : std::filesystem::directory_iterator("log")) {
-                if (entry.is_regular_file()) {
-                    auto ext = entry.path().extension().string();
-                    if (ext == ".log" || ext == ".pgn") {
-                        JsonValue::Object resource;
-                        resource["uri"] = JsonValue{ .data = std::format("file:///log/{}", entry.path().filename().string()) };
-                        resource["name"] = JsonValue{ .data = entry.path().filename().string() };
-                        resource["mimeType"] = JsonValue{ .data = (ext == ".pgn" ? std::string("text/x-chess-pgn") : std::string("text/plain")) };
-                        resources.push_back(JsonValue{ .data = resource });
-                    }
-                }
-            }
+    if (std::filesystem::exists(BaseLogger::logPath_)) {
+        for (const auto& entry : std::filesystem::directory_iterator(BaseLogger::logPath_)) {
+            addResourceIfValid(entry, resources);
         }
-    } catch (...) {} // NOLINT(bugprone-empty-catch)
+    }
 
     resultData["resources"] = JsonValue{ .data = resources };
     responseBody["result"] = JsonValue{ .data = resultData };
     response.data = responseBody;
 
     sendMessage(response);
+}
+
+void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources) {
+    if (!entry.is_regular_file()) {
+        return;
+    }
+
+    const auto filename = entry.path().filename().string();
+    const auto extension = entry.path().extension().string();
+
+    if (extension != ".log" && extension != ".pgn") {
+        return;
+    }
+
+    const std::string tool = extractToolName(filename);
+    const bool isPgn = (extension == ".pgn");
+
+    JsonValue::Object resource;
+    resource["uri"] = JsonValue{ .data = std::format("qapla://reports/{}/{}", tool, filename) };
+    resource["name"] = JsonValue{ .data = filename };
+    resource["description"] = JsonValue{ .data = std::format("{} result for tool {}", isPgn ? "PGN" : "Log", tool) };
+    resource["mimeType"] = JsonValue{ .data = (isPgn ? std::string("text/x-chess-pgn") : std::string("text/plain")) };
+    resources.push_back(JsonValue{ .data = resource });
+}
+
+std::string McpServer::extractToolName(std::string_view filename) {
+    constexpr std::array prefixes = { std::string_view("report-"), std::string_view("engine-") };
+
+    for (const auto& prefix : prefixes) {
+        if (!filename.starts_with(prefix)) {
+            continue;
+        }
+
+        const auto substring = filename.substr(prefix.length());
+        const size_t dash = substring.find('-');
+
+        // If no dash after prefix or it starts with a digit (timestamp), it's a generic log
+        if (dash == std::string_view::npos || isdigit(static_cast<unsigned char>(substring[0])) != 0) {
+            continue;
+        }
+
+        return std::string(substring.substr(0, dash));
+    }
+
+    return "other";
 }
 
 void McpServer::readResource(const JsonValue::Object& jsonObject) {
@@ -513,21 +542,24 @@ void McpServer::readResource(const JsonValue::Object& jsonObject) {
     JsonValue::Array contents;
 
     try {
-        // Basic check to ensure it's in the log folder
-        if (uri.starts_with("file:///log/")) {
-            std::string filename = uri.substr(12);
-            std::filesystem::path path = std::filesystem::path("log") / filename;
-            
-            if (std::filesystem::exists(path)) {
-                std::ifstream file(path);
-                if (file.is_open()) {
-                    std::stringstream buffer;
-                    buffer << file.rdbuf();
-                    
-                    JsonValue::Object content;
-                    content["uri"] = JsonValue{ .data = uri };
-                    content["text"] = JsonValue{ .data = buffer.str() };
-                    contents.push_back(JsonValue{ .data = content });
+        // Handle qapla://reports/<tool>/<filename>
+        if (uri.starts_with("qapla://reports/")) {
+            size_t lastSlash = uri.find_last_of('/');
+            if (lastSlash != std::string::npos) {
+                std::string filename = uri.substr(lastSlash + 1);
+                std::filesystem::path path = std::filesystem::path(BaseLogger::logPath_) / filename;
+                
+                if (std::filesystem::exists(path)) {
+                    std::ifstream file(path);
+                    if (file.is_open()) {
+                        std::stringstream buffer;
+                        buffer << file.rdbuf();
+                        
+                        JsonValue::Object content;
+                        content["uri"] = JsonValue{ .data = uri };
+                        content["text"] = JsonValue{ .data = buffer.str() };
+                        contents.push_back(JsonValue{ .data = content });
+                    }
                 }
             }
         }
