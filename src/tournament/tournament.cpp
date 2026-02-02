@@ -45,8 +45,7 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
 
     if (config.openings.file.empty()) {
-        Logger::reportLogger().log("No openings file provided.", TraceLevel::error);
-        return;
+        throw AppError::makeInvalidParameters("No openings file provided.");
     }
 
     engineConfig_ = engines;
@@ -96,8 +95,7 @@ void Tournament::createRoundRobinPairings(const std::vector<EngineConfig>& engin
     const TournamentConfig& config) {
 
     if (engines.size() < 2) {
-        Logger::reportLogger().log("Round-robin tournament requires at least two engines.", TraceLevel::error);
-        return;
+        throw AppError::makeInvalidParameters("Round-robin tournament requires at least two engines.");
     }
 
 	createPairings(engines, engines, config, true);
