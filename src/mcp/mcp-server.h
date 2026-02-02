@@ -126,6 +126,71 @@ private:
      * @param resources The target resource array.
      */
     static void addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources);
+
+    /**
+     * @brief Tries to read a message based on Content-Length header.
+     * @param line The current header line.
+     * @return Optional JSON value if header was found and content read.
+     */
+    [[nodiscard]] static std::optional<JsonValue> tryReadByContentLength(const std::string& line);
+
+    /**
+     * @brief Tries to read a message by counting braces in accumulated buffer.
+     * @param accumulated The buffered input.
+     * @return Optional JSON value if a complete object/array was formed.
+     */
+    [[nodiscard]] static std::optional<JsonValue> tryReadByBraceCounting(std::string& accumulated);
+
+    /**
+     * @brief Handles the read_report tool.
+     * @param arguments The tool arguments.
+     * @return Result content array.
+     */
+    static JsonValue::Array handleReadReport(const JsonValue::Object& arguments);
+
+    /**
+     * @brief Executes a tool that uses the AppRunner dispatcher.
+     * @param name The tool name.
+     * @param configData The prepared configuration data.
+     * @return Tool return code.
+     */
+    static AppReturnCode executeRunnerTool(const std::string& name, QaplaHelpers::ConfigData& configData);
+
+    /**
+     * @brief Formats the summary text for a tool execution.
+     * @param name The tool name.
+     * @param code The return code.
+     * @return Execution summary string.
+     */
+    [[nodiscard]] static std::string formatRunSummary(const std::string& name, AppReturnCode code);
+
+    /**
+     * @brief Converts a JsonValue to its string representation for configuration.
+     * @param value The value to convert.
+     * @return String representation.
+     */
+    [[nodiscard]] static std::string valueToString(const JsonValue& value);
+
+    /**
+     * @brief Parses engine-related arguments into sections.
+     * @param arguments The tool arguments.
+     * @param engineSections Output vector for engine sections.
+     */
+    static void parseEngineArguments(const JsonValue::Object& arguments, 
+        std::vector<QaplaHelpers::IniFile::Section>& engineSections);
+
+    /**
+     * @brief Processes a single tool parameter and routes it to the correct section.
+     * @param key The parameter key.
+     * @param value The parameter value.
+     * @param engineSections List of already parsed engine sections.
+     * @param otherGroupedSections Map of other section names to sections.
+     * @param configData The target config data for global parameters.
+     */
+    static void processParameter(const std::string& key, const JsonValue& value,
+        std::vector<QaplaHelpers::IniFile::Section>& engineSections,
+        std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
+        QaplaHelpers::ConfigData& configData);
 };
 
 } // namespace QaplaTester::Mcp
