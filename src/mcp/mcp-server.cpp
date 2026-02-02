@@ -400,6 +400,7 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
             std::stringstream ss(valueStr);
             std::string enginePath;
             while (std::getline(ss, enginePath, ',')) {
+                enginePath = QaplaHelpers::trim(enginePath);
                 if (!enginePath.empty()) {
                     QaplaHelpers::IniFile::Section engineSection;
                     engineSection.name = "engine";
@@ -414,6 +415,7 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
             std::stringstream ss(valueStr);
             std::string confName;
             while (std::getline(ss, confName, ',')) {
+                confName = QaplaHelpers::trim(confName);
                 if (!confName.empty()) {
                     QaplaHelpers::IniFile::Section engineSection;
                     engineSection.name = "engine";
@@ -499,22 +501,31 @@ void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry
 }
 
 std::string McpServer::extractToolName(std::string_view filename) {
-    constexpr std::array prefixes = { std::string_view("report-"), std::string_view("engine-") };
+    constexpr std::array prefixes = { 
+        std::string_view("report-"), 
+        std::string_view("engine-"),
+        std::string_view("sprt-"),
+        std::string_view("tournament-"),
+        std::string_view("epd-"),
+        std::string_view("spsa-")
+    };
 
     for (const auto& prefix : prefixes) {
         if (!filename.starts_with(prefix)) {
             continue;
         }
 
-        const auto substring = filename.substr(prefix.length());
-        const size_t dash = substring.find('-');
+        if (prefix == "report-") {
+            const auto substring = filename.substr(prefix.length());
+            const size_t dash = substring.find('-');
 
-        // If no dash after prefix or it starts with a digit (timestamp), it's a generic log
-        if (dash == std::string_view::npos || isdigit(static_cast<unsigned char>(substring[0])) != 0) {
-            continue;
+            // If a dash exists and it's not starting with a digit, use it as tool name
+            if (dash != std::string_view::npos && (substring.length() > 0 && isdigit(static_cast<unsigned char>(substring[0])) == 0)) {
+                return std::string(substring.substr(0, dash));
+            }
         }
 
-        return std::string(substring.substr(0, dash));
+        return std::string(prefix.substr(0, prefix.length() - 1));
     }
 
     return "other";

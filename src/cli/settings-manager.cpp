@@ -111,7 +111,7 @@ namespace QaplaTester::Settings
 
     Value Manager::parseString(const ParsedParameter& arg)
     {
-        return arg.value ? QaplaHelpers::to_lowercase(*arg.value) : std::string();
+        return arg.value ? *arg.value : std::string();
     }
 
     Value Manager::parsePathExists(const ParsedParameter& arg)

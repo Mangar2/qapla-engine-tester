@@ -107,7 +107,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
             .description = "Path to the logging directory", 
             .isRequired = false,
             .defaultValue = std::string(""), 
-            .type = ValueType::String }},
+            .type = ValueType::PathExists }},
         { "mode",   { 
             .description = "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
             .isRequired = false, 
