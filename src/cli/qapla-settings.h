@@ -71,6 +71,14 @@ public:
     void applyArguments(const std::vector<std::string>& args);
 
     /**
+     * @brief Applies configuration data and synchronizes internal state.
+     * This follows the full initialization pipeline: parsing, validation, and internal setter updates.
+     * @param configData The configuration data to apply.
+     * @param isInitial If true, performs first-time initialization (like MCP startup or welcome message).
+     */
+    void applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial = false);
+
+    /**
      * @brief Gets the stored command-line arguments
      * @return Const reference to the arguments vector
      */

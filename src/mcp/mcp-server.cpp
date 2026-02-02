@@ -20,9 +20,10 @@
 #include "mcp-server.h"
 #include "json-helper.h"
 #include "../cli/settings-manager.h"
+#include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
-#include "../engine-handling/engine-worker-factory.h"
 #include <iostream>
+#include <sstream>
 
 namespace QaplaTester::Mcp {
 
@@ -143,7 +144,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         JsonValue::Object numGames;
         numGames["type"] = JsonValue{ .data = std::string("integer") };
         numGames["description"] = JsonValue{ .data = std::string("Number of games to run (default: 1)") };
-        properties["numGames"] = JsonValue{ .data = numGames };
+        properties["test_numgames"] = JsonValue{ .data = numGames };
         
         inputSchema["properties"] = JsonValue{ .data = properties };
         JsonValue::Array required;
@@ -181,69 +182,32 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     JsonValue::Object result;
     JsonValue::Array content;
 
-    if (name == "test-engines") {
-        const auto& args = params.at("arguments").asObject();
-        const std::string& enginesStr = args.at("engines").asString();
+    try {
+        const auto& arguments = params.at("arguments").asObject();
+        auto configData = mapJsonToConfigData(arguments);
         
-        // Split engines by comma
-        std::vector<std::string> enginePaths;
-        size_t start = 0;
-        size_t end = enginesStr.find(',');
-        while (end != std::string::npos) {
-            enginePaths.push_back(enginesStr.substr(start, end - start));
-            start = end + 1;
-            end = enginesStr.find(',', start);
-        }
-        enginePaths.push_back(enginesStr.substr(start));
+        // Apply configuration - this performs parsing, validation and internal state sync
+        Settings::QaplaSettings::instance().applyConfig(configData, false);
 
-        // Setup engines in Factory
-        auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
-        activeEngines.clear();
-        for (const auto& path : enginePaths) {
-            EngineConfig config;
-            config.setCmd(path);
-            config.setName(std::filesystem::path(path).filename().string());
-            activeEngines.push_back(config);
-        }
-
-        // Set numGames if provided
-        if (args.contains("numGames")) {
-            QaplaHelpers::ConfigData testConfig;
-            QaplaHelpers::IniFile::Section testSection;
-            testSection.name = "test";
-            testSection.addEntry("numgames", std::to_string(static_cast<int>(args.at("numGames").asDouble())));
-            testConfig.addSection(testSection);
-            Settings::Manager::instance().parseInput(testConfig, true);
-        }
-
-        // Run tests
-        AppReturnCode code = AppReturnCode::NoError;
-        if (auto test = Settings::Manager::instance().getGroupInstance("test")) {
-            code = AppRunner::runTest(*test, code);
-        } else {
-            // If still no test group, create a minimal one via parseInput then get it
-            QaplaHelpers::ConfigData testConfig;
-            QaplaHelpers::IniFile::Section testSection;
-            testSection.name = "test";
-            testConfig.addSection(testSection);
-            Settings::Manager::instance().parseInput(testConfig, true);
-            
-            if (auto forcedTest = Settings::Manager::instance().getGroupInstance("test")) {
-                code = AppRunner::runTest(*forcedTest, code);
-            } else {
-                code = AppReturnCode::InvalidParameters;
-            }
-        }
+        // Run dispatcher - this will decide what to run based on the settings
+        AppReturnCode code = AppRunner::runDispatcher();
 
         JsonValue::Object textContent;
         textContent["type"] = JsonValue{ .data = std::string("text") };
-        textContent["text"] = JsonValue{ .data = std::format("Tests completed with code: {}", static_cast<int>(code)) };
+        textContent["text"] = JsonValue{ .data = std::format("Tool '{}' completed with code: {}", name, static_cast<int>(code)) };
         content.push_back(JsonValue{ .data = textContent });
-        result["isError"] = JsonValue{ .data = (code != AppReturnCode::NoError) };
-    } else {
+        
+        // Treat codes >= 10 as errors if they are GeneralError, EngineError or EngineMissbehaviour
+        // SPRT results (14, 15) are not errors.
+        bool isError = (code == AppReturnCode::GeneralError || 
+                        code == AppReturnCode::InvalidParameters || 
+                        code == AppReturnCode::EngineError || 
+                        code == AppReturnCode::EngineMissbehaviour);
+        result["isError"] = JsonValue{ .data = isError };
+    } catch (const std::exception& e) {
         JsonValue::Object errorContent;
         errorContent["type"] = JsonValue{ .data = std::string("text") };
-        errorContent["text"] = JsonValue{ .data = std::format("Unknown tool: {}", name) };
+        errorContent["text"] = JsonValue{ .data = std::format("Error executing tool '{}': {}", name, e.what()) };
         content.push_back(JsonValue{ .data = errorContent });
         result["isError"] = JsonValue{ .data = true };
     }
@@ -253,6 +217,58 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     response.data = responseBody;
 
     sendMessage(response);
+}
+
+QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
+    QaplaHelpers::ConfigData configData;
+    std::unordered_map<std::string, QaplaHelpers::IniFile::Section> groupedSections;
+
+    for (const auto& [key, value] : arguments) {
+        std::string valueStr;
+        if (value.isString()) {
+            valueStr = value.asString();
+        } else if (value.isNumber()) {
+            double d = value.asDouble();
+            if (d == static_cast<double>(static_cast<long long>(d))) {
+                valueStr = std::to_string(static_cast<long long>(d));
+            } else {
+                valueStr = std::format("{}", d);
+            }
+        } else if (value.isBool()) {
+            valueStr = value.asBool() ? "true" : "false";
+        }
+
+        if (key == "engines") {
+            // Special handling for engines: split by comma and create multiple [engine] sections
+            std::stringstream ss(valueStr);
+            std::string enginePath;
+            while (std::getline(ss, enginePath, ',')) {
+                if (!enginePath.empty()) {
+                    QaplaHelpers::IniFile::Section engineSection;
+                    engineSection.name = "engine";
+                    engineSection.addEntry("cmd", enginePath);
+                    // Name is usually derived from filename in setEngineConfig if missing
+                    configData.addSection(engineSection);
+                }
+            }
+        }
+        else if (size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
+            std::string sectionName = key.substr(0, underscorePos);
+            std::string paramKey = key.substr(underscorePos + 1);
+            
+            groupedSections[sectionName].name = sectionName;
+            groupedSections[sectionName].addEntry(paramKey, valueStr);
+        }
+        else {
+            configData.addGlobalParameter(key, valueStr);
+        }
+    }
+    
+    for (const auto& [name, section] : groupedSections) {
+        configData.addSection(section);
+    }
+    
+    return configData;
 }
 
 void McpServer::silenceLoggers() {

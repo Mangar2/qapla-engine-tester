@@ -73,11 +73,14 @@ void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool re
 void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
     // Convert CLI arguments to ConfigData
     auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
-    
+    applyConfig(cliData, true);
+}
+
+void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial) {
     try {
-        Manager::instance().parseInput(cliData);
+        Manager::instance().parseInput(configData, !isInitial);
         
-        // Extract settingsfile from CLI global parameters without full parsing
+        // Extract settingsfile from global parameters without full parsing
         auto settingsFile = Manager::instance().get<std::string>("settingsfile");
         
         // If settings file specified, load and parse it first
@@ -86,11 +89,15 @@ void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
         }
     } catch (...) {
         // Ensure MCP or welcome message is handled even on parameter errors
-        initializeMcpOrWelcome();
+        if (isInitial) {
+            initializeMcpOrWelcome();
+        }
         throw;
     }
 
-    initializeMcpOrWelcome();
+    if (isInitial) {
+        initializeMcpOrWelcome();
+    }
 
     setLoggerConfiguration();
     applyLoggerConfig("initial");
