@@ -316,6 +316,9 @@ namespace QaplaTester::Settings {
                 const std::string& id = "default",
                 bool addGlobals = true) const;
 
+        [[nodiscard]] const std::unordered_map<std::string, ParameterDefinition>& getDefinitions() const { return definitions_; }
+        [[nodiscard]] const std::unordered_map<std::string, GroupDefinition>& getGroupDefinitions() const { return groupDefs_; }
+
     private:
 
         /**

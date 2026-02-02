@@ -91,6 +91,13 @@ private:
     static void listTools(const JsonValue& requestId);
 
     /**
+     * @brief Adds all parameters from a registered setting group to the JSON schema.
+     * @param groupName The name of the group to add.
+     * @param properties The JSON object to add the properties to.
+     */
+    static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties);
+
+    /**
      * @brief Maps JSON tool arguments to ConfigData using an underscore naming convention.
      * @param arguments The JSON arguments from a tool call.
      * @return ConfigData object prepared for QaplaSettings.
