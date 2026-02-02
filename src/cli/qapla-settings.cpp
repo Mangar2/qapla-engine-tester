@@ -107,19 +107,18 @@ void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool
             Manager::instance().parseInput(configData, true);
         }
     } catch (...) {
-        // Ensure MCP or welcome message is handled even on parameter errors
-        if (isInitial) {
-            initializeMcpOrWelcome();
+        // Ensure MCP is handled even on parameter errors
+        if (isInitial && Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
+            Mcp::McpServer::initialize();
         }
         throw;
     }
 
-    if (isInitial) {
-        initializeMcpOrWelcome();
+    if (isInitial && Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
+        Mcp::McpServer::initialize();
     }
 
     setLoggerConfiguration();
-    applyLoggerConfig("initial");
 
     // Load and merge settings from an SprtTournamentFile if specified
     loadSprtConfig();
@@ -151,15 +150,6 @@ const std::vector<std::string>& QaplaSettings::getArguments() const {
 
 const LoggerConfig* QaplaSettings::getLoggerConfig() const {
     return m_loggerConfig.get();
-}
-
-void QaplaSettings::initializeMcpOrWelcome() {
-    if (Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
-        Mcp::McpServer::initialize();
-    } else {
-        Logger::reportLogger().setTraceLevel(TraceLevel::result);
-        Logger::reportLogger().log("Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n");
-    }
 }
 
 void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) const {

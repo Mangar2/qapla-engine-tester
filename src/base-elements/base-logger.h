@@ -181,6 +181,13 @@ protected:
      */
     void ensureFileOpen(const std::string& logPath);
 
+    /**
+     * @brief Hook called immediately after a new log file is successfully opened.
+     * 
+     * Derived classes can use this to write headers or initial status information.
+     */
+    virtual void onFileOpened() {}
+
     std::mutex loggingMutex_;                   ///< Mutex for thread-safe logging
     std::ofstream fileStream_;                  ///< Output file stream for log file
     TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold

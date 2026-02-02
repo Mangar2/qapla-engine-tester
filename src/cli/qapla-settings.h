@@ -161,11 +161,6 @@ public:
 private:
     std::vector<std::string> arguments_;
     std::optional<QaplaHelpers::ConfigData> cliConfigData_;
-    /**
-     * @brief Initializes either MCP mode or displays the welcome message based on settings.
-     * Ensures this happens only once and respects the 'mcp' parameter flag in Settings::Manager.
-     */
-    static void initializeMcpOrWelcome();
     
     /**
      * @brief Private constructor for singleton pattern

@@ -593,7 +593,7 @@ std::optional<JsonValue> McpServer::tryReadByContentLength(const std::string& li
         return std::nullopt;
     }
 
-    const size_t length = static_cast<size_t>(*lengthOpt);
+    const auto length = static_cast<size_t>(*lengthOpt);
     std::string empty;
     std::getline(std::cin, empty); // usually an empty line follows headers
     
@@ -681,12 +681,12 @@ AppReturnCode McpServer::executeRunnerTool(const std::string& name, QaplaHelpers
         configData.addSection(toolSection);
     }
 
-    // Tool-specific log names
-    Logger::logBaseName_ = std::format("report-{}", name);
-    EngineLogger::logBaseName_ = std::format("engine-{}", name);
-
     // Apply configuration
     Settings::QaplaSettings::instance().applyConfig(configData, false);
+
+    // Tool-specific log names applied AFTER config (which might have cleared them)
+    Settings::QaplaSettings::instance().applyLoggerConfig(std::format("report-{}", name));
+    EngineLogger::logBaseName_ = std::format("engine-{}", name);
 
     // Run dispatcher
     return AppRunner::runDispatcher();
