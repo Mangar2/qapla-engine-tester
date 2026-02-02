@@ -22,10 +22,12 @@
 #include "../cli/settings-manager.h"
 #include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
+#include "../engine-handling/engine-worker-factory.h"
 #include <iostream>
 #include <sstream>
 #include <filesystem>
 #include <fstream>
+#include <ranges>
 
 namespace QaplaTester::Mcp {
 
@@ -193,6 +195,19 @@ void McpServer::listTools(const JsonValue& requestId) {
         }
     };
 
+    const auto& engineConfigs = EngineWorkerFactory::getConfigManager().getAllConfigs();
+    std::string confDescription = "Comma separated list of pre-configured engine names";
+    if (!engineConfigs.empty()) {
+        std::string names;
+        for (const auto& config : engineConfigs) {
+            if (!names.empty()) {
+                names += ", ";
+            }
+            names += std::format("'{}'", config.getName());
+        }
+        confDescription += std::format(" (Available: {})", names);
+    }
+
     for (const auto& info : toolsToRegister) {
         JsonValue::Object tool;
         tool["name"] = JsonValue{ .data = std::string(info.name) };
@@ -203,19 +218,27 @@ void McpServer::listTools(const JsonValue& requestId) {
         
         JsonValue::Object properties;
         
-        // Always add engines parameter
+        // Always add engine parameters
         JsonValue::Object engines;
         engines["type"] = JsonValue{ .data = std::string("string") };
         engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine executable paths") };
         properties["engines"] = JsonValue{ .data = engines };
+
+        JsonValue::Object engineConf;
+        engineConf["type"] = JsonValue{ .data = std::string("string") };
+        engineConf["description"] = JsonValue{ .data = confDescription };
+        properties["engine_conf"] = JsonValue{ .data = engineConf };
 
         for (const auto& group : info.groups) {
             addParametersFromGroup(group, properties);
         }
         
         inputSchema["properties"] = JsonValue{ .data = properties };
+        
+        // At least one of engines or engine_conf should be provided, 
+        // but showing 'engines' as required is a good default hint.
         JsonValue::Array required;
-        required.push_back(JsonValue{ .data = std::string("engines") });
+        // required.push_back(JsonValue{ .data = std::string("engines") });
         inputSchema["required"] = JsonValue{ .data = required };
         
         tool["inputSchema"] = JsonValue{ .data = inputSchema };
@@ -290,17 +313,15 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 
         auto configData = mapJsonToConfigData(arguments);
         
-        // Map tool name to internal flag
-        if (name == "test") {
-            configData.addGlobalParameter("test", "true");
-        } else if (name == "sprt") {
-            configData.addGlobalParameter("sprt", "true");
-        } else if (name == "turnier" || name == "tournament") {
-            configData.addGlobalParameter("tournament", "true");
-        } else if (name == "epd") {
-            configData.addGlobalParameter("epd", "true");
-        } else if (name == "spsa") {
-            configData.addGlobalParameter("spsa", "true");
+        // Ensure the section for the requested tool exists, even if no arguments were provided
+        // This triggers the dispatcher to run the corresponding mode.
+        if (name == "test" || name == "sprt" || name == "turnier" || name == "tournament" || name == "epd" || name == "spsa") {
+            const std::string sectionName = (name == "turnier") ? "tournament" : name;
+            if (!configData.getSectionList(sectionName).has_value()) {
+                QaplaHelpers::IniFile::Section toolSection;
+                toolSection.name = sectionName;
+                configData.addSection(toolSection);
+            }
         }
 
         // Always ensure MCP mode is active and CLI output is suppressed
@@ -359,6 +380,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     sendMessage(response);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
     QaplaHelpers::ConfigData configData;
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section> groupedSections;
@@ -388,6 +410,19 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
                     engineSection.name = "engine";
                     engineSection.addEntry("cmd", enginePath);
                     // Name is usually derived from filename in setEngineConfig if missing
+                    configData.addSection(engineSection);
+                }
+            }
+        }
+        else if (key == "engine_conf") {
+            // Special handling for pre-configured engines
+            std::stringstream ss(valueStr);
+            std::string confName;
+            while (std::getline(ss, confName, ',')) {
+                if (!confName.empty()) {
+                    QaplaHelpers::IniFile::Section engineSection;
+                    engineSection.name = "engine";
+                    engineSection.addEntry("conf", confName);
                     configData.addSection(engineSection);
                 }
             }
