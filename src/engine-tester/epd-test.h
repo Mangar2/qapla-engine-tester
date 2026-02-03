@@ -29,8 +29,6 @@
 #include <vector>
 #include <mutex>
 #include <atomic>
-#include <iostream>
-#include <iomanip>
 #include <functional>
 
 namespace QaplaTester {

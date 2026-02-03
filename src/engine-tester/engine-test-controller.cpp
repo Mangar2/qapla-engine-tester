@@ -26,8 +26,9 @@
 
 #include "../game-manager/compute-task.h"
 
-
 #include "../cli/settings-manager.h"
+
+#include "../base-elements/logger.h"
 
 #include <cstdint>
 #include <memory>

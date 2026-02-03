@@ -160,8 +160,18 @@ public:
 	 */
     [[nodiscard]] size_t runningGameCount() const;
 
+    /**     * @brief Sets whether rapid mode is enabled.
+     * @param rapid If true, no checklist logging is performed.
+     */
+    void setRapid(bool rapid) { rapid_ = rapid; }
+
     /**
-     * @brief Executes a provided function on the GameRecord of all active GameManagers in a thread-safe manner.
+     * @brief Returns whether rapid mode is enabled.
+     * @return True if rapid mode is enabled.
+     */
+    [[nodiscard]] bool isRapid() const { return rapid_; }
+
+    /**     * @brief Executes a provided function on the GameRecord of all active GameManagers in a thread-safe manner.
      *
      * This method iterates over all active GameManagers in the pool and calls their
      * `withGameRecord` method, passing the provided function. The entire iteration
@@ -252,6 +262,7 @@ private:
     std::vector<std::unique_ptr<GameManager>> managers_;
     uint32_t maxConcurrency_ = 0;
     bool niceMode_ = false;
+    bool rapid_ = false;
     std::mutex taskMutex_;
     std::mutex managerMutex_;
     std::mutex startManagerMutex_;

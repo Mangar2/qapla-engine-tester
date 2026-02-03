@@ -24,6 +24,7 @@
 
 #include "../base-elements/timer.h"
 #include "../base-elements/app-error.h"
+#include "../base-elements/logger.h"
 
 #include <format>
 #include <iostream>
@@ -75,7 +76,7 @@ void PlayerContext::checkPV(const EngineEvent& event) {
             fullPv.pop_back(); 
         }
         std::string stateStr = toString(computeState_);
-        checklist_->logReport("pv", false,
+        logReport("pv", false,
             std::format("Encountered illegal move '{}' in pv while {}: {}", invalidMove, stateStr, fullPv));
         
         EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
@@ -124,7 +125,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
     if (searchInfo.currMove) {
         auto& state = computeState_ == ComputeState::ComputingMove ? gameState_ : ponderState_;
         const auto move = state.stringToMove(*searchInfo.currMove, requireLan_);
-        checklist_->logReport("currmove", !move.isEmpty(),
+        logReport("currmove", !move.isEmpty(),
             std::format("Encountered illegal move {} in currMove, raw info line \"{}\"", *searchInfo.currMove, event.rawLine));
         if (move.isEmpty()) {
             EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
@@ -135,30 +136,30 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 
     checkPV(event);
 
-    if (searchInfo.depth)            { checklist_->report("depth", true); }
-    if (searchInfo.selDepth)         { checklist_->report("seldepth", true); }
-    if (searchInfo.multipv)          { checklist_->report("multipv", true); }
-    if (searchInfo.scoreCp)          { checklist_->report("score cp", true); }
-    if (searchInfo.scoreMate)        { checklist_->report("score mate", true); }
-    if (searchInfo.timeMs)           { checklist_->report("time", true); }
-    if (searchInfo.nodes)            { checklist_->report("nodes", true); }
-    if (searchInfo.nps)              { checklist_->report("nps", true); }
-    if (searchInfo.hashFull)         { checklist_->report("hashfull", true); }
-    if (searchInfo.cpuload)          { checklist_->report("cpuload", true); }
-    if (searchInfo.currMoveNumber)   { checklist_->report("currmovenumber", true); }
+    if (searchInfo.depth)            { report("depth", true); }
+    if (searchInfo.selDepth)         { report("seldepth", true); }
+    if (searchInfo.multipv)          { report("multipv", true); }
+    if (searchInfo.scoreCp)          { report("score cp", true); }
+    if (searchInfo.scoreMate)        { report("score mate", true); }
+    if (searchInfo.timeMs)           { report("time", true); }
+    if (searchInfo.nodes)            { report("nodes", true); }
+    if (searchInfo.nps)              { report("nps", true); }
+    if (searchInfo.hashFull)         { report("hashfull", true); }
+    if (searchInfo.cpuload)          { report("cpuload", true); }
+    if (searchInfo.currMoveNumber)   { report("currmovenumber", true); }
 
 }
 
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     if (computeState_ != ComputeState::ComputingMove) {
         EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-        log(engine_->getIdentifier() + "Received best move while not computing a move, ignoring.", 
+        log(std::format("{} Received best move while not computing a move, ignoring.", engine_->getIdentifier()), 
             TraceLevel::error);
         return {};
     }
     computeState_ = ComputeState::Idle;
     std::scoped_lock stateLock(stateMutex_);
-    if (!checklist_->logReport("legalmove", event.bestMove.has_value())) {
+    if (!logReport("legalmove", event.bestMove.has_value())) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         std::scoped_lock lock(currentMoveMutex_);
@@ -167,7 +168,7 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     }
     
     const auto move = gameState_.stringToMove(*event.bestMove, requireLan_);
-    if (!checklist_->logReport("legalmove", !move.isEmpty(),
+    if (!logReport("legalmove", !move.isEmpty(),
         std::format(R"(Encountered illegal move "{}" in bestmove, raw info line "{}")", *event.bestMove, event.rawLine))) {
         gameState_.setGameResult(GameEndCause::IllegalMove, 
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
@@ -217,7 +218,7 @@ void PlayerContext::handlePonderMove(const EngineEvent& event) {
 bool PlayerContext::setupPonderState(const std::string& move, const std::string& rawLine) {
     // Validate that the ponder move is legal in the current position
     const auto parsedMove = gameState_.stringToMove(move, requireLan_);
-    if (!checklist_->logReport("legal-pondermove", !parsedMove.isEmpty(),
+    if (!logReport("legal-pondermove", !parsedMove.isEmpty(),
         std::format(R"(Received illegal ponder move "{}" from engine, raw line "{}")", 
             move, rawLine))) {
         return false;
@@ -255,7 +256,7 @@ void PlayerContext::checkTime(const EngineEvent& event) {
         + static_cast<int>(goLimits_.nodes.has_value());
 
     if (goLimits_.hasTimeControl) {
-        if (!checklist_->logReport("no-loss-on-time", moveElapsedMs <= timeLeft,
+        if (!logReport("no-loss-on-time", moveElapsedMs <= timeLeft,
             std::format("Timecontrol: {} Used time: {} ms. Available Time: {} ms", 
                 timeControl_.toPgnTimeControlString(), moveElapsedMs, timeLeft))) {
             gameState_.setGameResult(GameEndCause::Timeout, white ? GameResult::BlackWins : GameResult::WhiteWins);
@@ -263,39 +264,38 @@ void PlayerContext::checkTime(const EngineEvent& event) {
     }
 
     if (goLimits_.moveTimeMs.has_value()) {
-        checklist_->logReport("no-movetime-overrun", moveElapsedMs < *goLimits_.moveTimeMs + GRACE_MS,
+        logReport("no-movetime-overrun", moveElapsedMs < *goLimits_.moveTimeMs + GRACE_MS,
             std::format("took {} ms, limit is {} ms", moveElapsedMs, *goLimits_.moveTimeMs), 
             TraceLevel::warning);
         if (numLimits == 1 && EngineReport::reportUnderruns) {
-            checklist_->logReport("no-movetime-underrun", moveElapsedMs > *goLimits_.moveTimeMs * 99 / 100,
-                "The engine should use EXACTLY " + std::to_string(*goLimits_.moveTimeMs) +
-                " ms but took " + std::to_string(moveElapsedMs), 
+            logReport("no-movetime-underrun", moveElapsedMs > *goLimits_.moveTimeMs * 99 / 100,
+                std::format("The engine should use EXACTLY {} ms but took {} ms", *goLimits_.moveTimeMs, moveElapsedMs), 
                 TraceLevel::info);
         }
     }
 
     if (!event.searchInfo.has_value()) { return; }
 
-    if (checklist_->logReport("depth", event.searchInfo->depth.has_value())) {
+    if (logReport("depth", event.searchInfo->depth.has_value())) {
         if (goLimits_.depth.has_value()) {
             uint32_t depth = *event.searchInfo->depth;
-            checklist_->logReport("no-depth-overrun", depth <= *goLimits_.depth,
-                std::to_string(depth) + " > " + std::to_string(*goLimits_.depth));
+            logReport("no-depth-overrun", depth <= *goLimits_.depth,
+                std::format("{} > {}", depth, *goLimits_.depth));
             if (numLimits == 1) {
-                checklist_->logReport("no-depth-underrun", depth >= *goLimits_.depth,
-                    std::to_string(depth) + " > " + std::to_string(*goLimits_.depth));
+                logReport("no-depth-underrun", depth >= *goLimits_.depth,
+                    std::format("{} < {}", depth, *goLimits_.depth));
             }
         }
     }
 
-    if (checklist_->logReport("nodes", event.searchInfo->nodes.has_value())) {
+    if (logReport("nodes", event.searchInfo->nodes.has_value())) {
         if (goLimits_.nodes.has_value()) {
             uint64_t nodes = *event.searchInfo->nodes;
-            checklist_->logReport("no-nodes-overrun", nodes <= *goLimits_.nodes + GRACE_NODES,
-                std::to_string(nodes) + " > " + std::to_string(*goLimits_.nodes));
+            logReport("no-nodes-overrun", nodes <= *goLimits_.nodes + GRACE_NODES,
+                std::format("{} > {}", nodes, *goLimits_.nodes));
             if (numLimits == 1) {
-                checklist_->logReport("no-nodes-underrun", nodes > *goLimits_.nodes * 9 / 10,
-                    std::to_string(nodes) + " > " + std::to_string(*goLimits_.nodes));
+                logReport("no-nodes-underrun", nodes > *goLimits_.nodes * 9 / 10,
+                    std::format("{} < {}", nodes, *goLimits_.nodes));
             }
         }
     }
@@ -327,10 +327,10 @@ bool PlayerContext::checkEngineTimeout() {
             gameState_.setGameResult(restarted ? GameEndCause::Disconnected : GameEndCause::Timeout, 
                 white ? GameResult::BlackWins : GameResult::WhiteWins);
             if (!restarted) {
-                checklist_->logReport("no-loss-on-time", restarted, "Engine timeout and not reacting for a while, but answered isready");
+                logReport("no-loss-on-time", restarted, "Engine timeout and not reacting for a while, but answered isready");
             }
             EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-            log(engine_->getIdentifier() + " Engine timeout or disconnect", 
+            log(std::format("{} Engine timeout or disconnect", engine_->getIdentifier()), 
                 TraceLevel::warning);
 		}
 	} else if ((goLimits_.moveTimeMs.has_value() && *goLimits_.moveTimeMs < moveElapsedMs)) {
@@ -344,14 +344,14 @@ bool PlayerContext::checkEngineTimeout() {
         restarted = true;
 	}
     if (restarted) {
-        checklist_->logReport("no-disconnect", !restarted, "Engine timeout and not reacting to isready, restarted ");
+        logReport("no-disconnect", !restarted, "Engine timeout and not reacting to isready, restarted ");
     }
     return restarted;
 }
 
 void PlayerContext::handleDisconnect(bool isWhitePlayer) {
     gameState_.setGameResult(GameEndCause::Disconnected, isWhitePlayer ? GameResult::BlackWins : GameResult::WhiteWins);
-    checklist_->logReport("no-disconnect", false, "Engine disconnected unexpectedly.");
+    logReport("no-disconnect", false, "Engine disconnected unexpectedly.");
     restartEngine();
 }
 
@@ -419,10 +419,10 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
     if (computeState_ == ComputeState::PonderMiss) {
 		auto success = engine_->handlePonderMiss();
         const auto& eid = engine_->getIdentifier();
-        if (!checklist_->logReport("correct-pondering", success,
+        if (!logReport("correct-pondering", success,
             std::format("handling of ponder miss to engine (uci = stop) {} did not complete successfully", eid))) {
 			EngineLogger::engineLogger({.engineId = eid}).
-            log(eid + " handlePonderMiss did not complete in time", TraceLevel::error);
+            log(std::format("{} handlePonderMiss did not complete in time", eid), TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
         }

@@ -47,8 +47,9 @@ public:
     /**
      * @brief Initializes all players using the provided engine list.
      * @param engines A list of engine instances.
+     * @param rapid If true, no checklist logging is performed.
      */
-    void initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines);
+    void initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines, bool rapid = false);
 
     /**
      * @brief Restarts the player with the given identifier.

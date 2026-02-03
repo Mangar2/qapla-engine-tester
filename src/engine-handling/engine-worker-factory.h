@@ -92,11 +92,11 @@ public:
 	static EngineList createEngines(const std::vector<EngineConfig>& configs, bool noWait = false);
 
 	/**
-	 * @brief Sets whether to suppress info lines from the engine output.
-	 * @param suppress True to suppress info lines, false to allow them.
+	 * @brief Sets whether to operate in rapid mode, e.g. suppressing info lines from engines.
+	 * @param rapid True to set rapid mode (suppress info lines), false otherwise.
 	 */
-	static void setSuppressInfoLines(bool suppress) {
-		suppressInfoLines_ = suppress;
+	static void setRapid(bool rapid) {
+		rapid_ = rapid;
 	}
 
 	/**
@@ -157,7 +157,7 @@ private:
 	static inline EngineConfigManager configManager_; ///> Engine configuration manager
 	static inline ActiveEngines activeEngines_; ///> List of currently active engines
 
-	static inline bool suppressInfoLines_ = false; ///> Flag to ignore any info lines from engines (more performance)
+	static inline bool rapid_ = false; ///> Flag to ignore any info lines from engines (more performance)
 };
 
 } // namespace QaplaTester

@@ -60,13 +60,14 @@ public:
      * @brief Sets the engine worker for this player.
      *
      * @param engineWorker Shared pointer to the EngineWorker.
+     * @param rapid If true, no checklist logging is performed.
      */
-    void setEngine(std::unique_ptr<EngineWorker> engineWorker) {
+    void setEngine(std::unique_ptr<EngineWorker> engineWorker, bool rapid = false) {
         computeState_ = ComputeState::Idle;
 		if (!engineWorker) {
 			throw AppError::makeInvalidParameters("Cannot set a null engine worker");
 		}
-		checklist_ = EngineReport::getChecklist(engineWorker->getConfig().getName());
+		checklist_ = rapid ? nullptr : EngineReport::getChecklist(engineWorker->getConfig().getName());
         engine_ = std::move(engineWorker);
 		requireLan_ = engine_->getConfig().getProtocol() == EngineProtocol::Uci;
     }
@@ -93,6 +94,33 @@ public:
      * Terminates the current engine instance and starts a new one.
      */
     void restartEngine(bool outsideThread = false);
+
+    /**
+     * @brief Reports the result of a check (success or failure).
+     * @param topicId The unique identifier of the topic.
+     * @param passed True if the check passed, false if it failed.
+     */
+    void report(const std::string& topicId, bool passed) {
+        if (checklist_) {
+            checklist_->report(topicId, passed);
+        }
+    }
+
+    /**
+     * @brief Reports a test result and logs details on failure (with early suppression).
+     * @param topicId The topic ID.
+     * @param passed True if the test passed; false if it failed.
+     * @param detail Additional log message (only used on failure).
+     * @param traceLevel Logging level (default is error).
+     * @return True if passed; false otherwise.
+     */
+    bool logReport(const std::string& topicId, bool passed, std::string_view detail = "",
+        TraceLevel traceLevel = TraceLevel::error) {
+        if (checklist_) {
+            return checklist_->logReport(topicId, passed, detail, traceLevel);
+        }
+        return passed;
+    }
 
     /**
      * @brief Returns a raw pointer to the EngineWorker instance.

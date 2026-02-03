@@ -379,7 +379,9 @@ void QaplaSettings::setLoggerConfiguration() {
 }
 
 void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::string& groupName) {
-	EngineWorkerFactory::setSuppressInfoLines(manager.get<bool>("rapid"));
+	m_rapid = manager.get<bool>("rapid");
+    GameManagerPool::getInstance().setRapid(m_rapid);
+	EngineWorkerFactory::setRapid(m_rapid);
     auto enginesFile = manager.get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);

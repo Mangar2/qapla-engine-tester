@@ -19,6 +19,8 @@
 
 #include "compute-task.h"
 
+#include "../base-elements/logger.h"
+
 namespace QaplaTester {
 
 ComputeTask::ComputeTask()
