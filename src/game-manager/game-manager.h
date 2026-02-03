@@ -32,7 +32,6 @@
 #include <memory>
 #include <future>
 #include <mutex>
-#include <utility>
 
 namespace QaplaTester {
 
