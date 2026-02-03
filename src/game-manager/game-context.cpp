@@ -65,7 +65,7 @@ void GameContext::setCurrentPosition()
     }
 }
 
-void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines)
+void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines, bool rapid)
 {
     {
         std::scoped_lock lock(engineMutex_);
@@ -81,7 +81,7 @@ void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines
                 engine->setEventSink(eventCallback_);
             }
             auto player = std::make_unique<PlayerContext>();
-            player->setEngine(std::move(engine));
+            player->setEngine(std::move(engine), rapid);
             players_.emplace_back(std::move(player));
         }
         setCurrentPosition();

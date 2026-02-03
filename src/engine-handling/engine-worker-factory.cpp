@@ -123,7 +123,7 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::createEngine(const EngineConf
     else {
         throw AppError::makeInvalidParameters("Unsupported engine protocol: " + to_string(config.getProtocol()));
     }
-    adapter->setSuppressInfoLines(suppressInfoLines_);
+    adapter->setSuppressInfoLines(rapid_);
     auto worker = std::make_unique<EngineWorker>(std::move(adapter), params.identifierStr, config);
     return worker;
     // guard destructor automatically releases the slot

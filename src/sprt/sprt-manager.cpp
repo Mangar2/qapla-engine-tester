@@ -18,6 +18,7 @@
  */
 
 #include "sprt-manager.h"
+#include "../cli/qapla-settings.h"
 #include "sprt-calculation.h"
 
 #include "../opening/opening-parser.h"

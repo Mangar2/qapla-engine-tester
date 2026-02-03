@@ -193,7 +193,7 @@ private:
      * @param manager The settings manager to read from
      * @param groupName The group instance name
      */
-    static void setEngineConfig(Settings::Manager& manager, const std::string& groupName);
+    void setEngineConfig(Settings::Manager& manager, const std::string& groupName);
 
     /**
      * @brief Reads PGN options from settings manager
@@ -264,7 +264,14 @@ private:
      */
     static void setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& id);
 
+    /**
+     * @brief Gets whether rapid mode is enabled
+     * @return True if rapid mode is enabled
+     */
+    [[nodiscard]] bool isRapid() const { return m_rapid; }
+
     std::vector<std::string> m_arguments; ///< Stored command-line arguments
+    bool m_rapid = false; ///< Rapid mode flag
     std::unique_ptr<PgnSave::Options> m_pgnOptions; ///< PGN output options
     std::unique_ptr<AdjudicationManager::DrawAdjudicationConfig> m_drawConfig; ///< Draw adjudication config
     std::unique_ptr<AdjudicationManager::ResignAdjudicationConfig> m_resignConfig; ///< Resign adjudication config

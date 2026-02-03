@@ -20,6 +20,8 @@
 
 #include "engine-adapter.h"
 
+#include "../base-elements/logger.h"
+
 namespace QaplaTester {
 
 EngineAdapter::EngineAdapter(const EngineStartupParams& params)

@@ -18,23 +18,21 @@
  */
 #pragma once
 
+#include "engine-process.h"
+#include "engine-option.h"
+
+#include "../base-elements/time-control.h"
+#include "../chess-game/game-record.h"
+#include "../chess-game/engine-event.h"
+#include "../base-elements/string-helper.h"
+
 #include <string>
-#include <vector>
 #include <cstdint>
 #include <unordered_map>
 #include <optional>
 #include <functional>
 #include <atomic>
 #include <mutex>
-
-#include "../base-elements/time-control.h"
-#include "engine-process.h"
-#include "../base-elements/game-start-position.h"
-#include "../chess-game/game-record.h"
-#include "../chess-game/engine-event.h"
-#include "../base-elements/logger.h"
-#include "engine-option.h"
-#include "../base-elements/string-helper.h"
 
 namespace QaplaTester {
 

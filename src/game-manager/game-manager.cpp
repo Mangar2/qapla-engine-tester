@@ -62,6 +62,19 @@ GameManager::~GameManager() {
     }
 }
 
+void GameManager::initUniqueEngine(std::unique_ptr<EngineWorker> engine) {
+    std::vector<std::unique_ptr<EngineWorker>> list;
+    list.emplace_back(std::move(engine));
+    gameContext_.initPlayers(std::move(list), pool_ != nullptr ? pool_->isRapid() : false);
+}
+
+void GameManager::initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
+    std::vector<std::unique_ptr<EngineWorker>> list;
+    list.emplace_back(std::move(white));
+    list.emplace_back(std::move(black));
+    gameContext_.initPlayers(std::move(list), pool_ != nullptr ? pool_->isRapid() : false);
+}
+
 void GameManager::enqueueEvent(EngineEvent&& event) {
 	if (managerState_ == ManagerState::None) {
 		// No task to process, ignore the event

@@ -66,23 +66,14 @@ public:
      * @brief sets a new engine to play both sides
 	 * @param engine The new engine to be set.
      */
-    void initUniqueEngine(std::unique_ptr<EngineWorker> engine) {
-        std::vector<std::unique_ptr<EngineWorker>> list;
-        list.emplace_back(std::move(engine));
-        gameContext_.initPlayers(std::move(list));
-    }
+    void initUniqueEngine(std::unique_ptr<EngineWorker> engine);
 
     /**
 	 * @brief sets two engines to play against each other
 	 * @param white The engine to play as white.
 	 * @param black The engine to play as black.
      */
-    void initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black) {
-        std::vector<std::unique_ptr<EngineWorker>> list;
-        list.emplace_back(std::move(white));
-		list.emplace_back(std::move(black));
-        gameContext_.initPlayers(std::move(list));
-    }
+    void initEngines(std::unique_ptr<EngineWorker> white, std::unique_ptr<EngineWorker> black);
 
     /**
      * @brief Returns a future that becomes ready when the game is complete.
