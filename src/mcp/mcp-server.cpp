@@ -682,7 +682,7 @@ AppReturnCode McpServer::executeRunnerTool(const std::string& name, QaplaHelpers
     }
 
     // Apply configuration
-    Settings::QaplaSettings::instance().applyConfig(configData, false);
+    Settings::QaplaSettings::instance().applyConfig(configData);
 
     // Tool-specific log names applied AFTER config (which might have cleared them)
     Settings::QaplaSettings::instance().applyLoggerConfig(std::format("report-{}", name));

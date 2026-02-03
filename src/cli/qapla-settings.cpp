@@ -48,86 +48,109 @@ QaplaSettings& QaplaSettings::instance() {
     return instance;
 }
 
-void QaplaSettings::applySettingsFromFile(std::string_view settingsFile, bool required, bool strict) {
-    const auto *fileName = settingsFile.data();
-    if (fileName == nullptr || *fileName == '\0') {
-        if (required) {
-            throw AppError::makeInvalidParameters("Settings file path is empty.");
-        }
-        return;
-    }
-    std::ifstream file(fileName);
-    if (!file.is_open()) {
-        if (required) {
-            throw AppError::makeInvalidParameters("Failed to open settings file: " + std::string(settingsFile));
-        }
-        return;
-    }
-    QaplaHelpers::ConfigData fileData;
-    fileData.load(file);
+void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
+    configData_.clear();
     
-    // Parse file data
-    Manager::instance().parseInput(fileData, false, strict);
-}
-
-void QaplaSettings::applyArguments(const std::vector<std::string>& args) {
-    // Convert CLI arguments to ConfigData
-    cliConfigData_ = QaplaHelpers::ConfigData::fromArgv(args);
+    // 1. Convert CLI arguments to ConfigData to find other configurations
+    auto cliData = QaplaHelpers::ConfigData::fromArgv(args);
     
-    applyConfig(*cliConfigData_, true);
-}
-
-void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial) {
+    // Temporarily apply to find settings file and mcp flag
     Manager::instance().clearValues();
-    EngineWorkerFactory::getActiveEnginesMutable().clear();
-    try {
-        // 1. apply cliConfigData if present
-        if (cliConfigData_) {
-            Manager::instance().parseInput(*cliConfigData_, false);
-        }
+    Manager::instance().parseInput(cliData, false);
 
-        // 2. applySettingsFromFile (if settingsfile was provided in cli or tool config)
-        auto settingsFile = Manager::instance().get<std::string>("settingsfile");
-        if (!settingsFile.empty()) {
-            applySettingsFromFile(settingsFile);
+    // 2. Load settings file if provided (Settings file is applied before CLI to allow CLI overrides)
+    auto settingsFile = Manager::instance().get<std::string>("settingsfile");
+    if (!settingsFile.empty()) {
+        std::ifstream file(settingsFile);
+        if (!file.is_open()) {
+            throw AppError::makeInvalidParameters(std::format("Failed to open settings file: {}", settingsFile));
         }
-
-        // 3. apply mcp environment layer (suppress cli output in mcp mode)
-        if (Manager::instance().get<bool>("mcp")) {
-            QaplaHelpers::ConfigData mcpEnvLayer;
-            QaplaHelpers::IniFile::Section loggingSection;
-            loggingSection.name = "logging";
-            loggingSection.addEntry("trace", "none");
-            mcpEnvLayer.addSection(loggingSection);
-            Manager::instance().parseInput(mcpEnvLayer, true);
-        }
-
-        // 4. apply mcpConfigData (the configData passed to this method) if not initial
-        if (!isInitial) {
-            Manager::instance().parseInput(configData, true);
-        }
-    } catch (...) {
-        // Ensure MCP is handled even on parameter errors
-        if (isInitial && Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
-            Mcp::McpServer::initialize();
-        }
-        throw;
+        QaplaHelpers::ConfigData fileData;
+        fileData.load(file);
+        configData_.push_back(fileData);
+        // Refresh manager to see if mcp or other files are there
+        Manager::instance().parseInput(fileData, false);
     }
 
-    if (isInitial && Manager::instance().isKeyProvided("mcp") && Manager::instance().get<bool>("mcp")) {
+    // 3. Add CLI arguments to configData_ (CLI overrides settings file)
+    configData_.push_back(cliData);
+
+    // 4. Apply mcp environment layer if needed (MCP layer overrides CLI)
+    bool isMcp = Manager::instance().get<bool>("mcp");
+    if (isMcp) {
+        QaplaHelpers::ConfigData mcpEnvLayer;
+        QaplaHelpers::IniFile::Section loggingSection;
+        loggingSection.name = "logging";
+        loggingSection.addEntry("trace", "none");
+        mcpEnvLayer.addSection(loggingSection);
+        configData_.push_back(mcpEnvLayer);
+    }
+
+    // 5. Load tournament/sprt config files (to continue a run - these override everything)
+    auto sprtGroup = Manager::instance().getGroupInstance("sprt");
+    std::string sprtFile = sprtGroup ? sprtGroup->get<std::string>("file") : "";
+    
+    auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
+    std::string tournamentFile = tournamentGroup ? tournamentGroup->get<std::string>("file") : "";
+
+    if (!sprtFile.empty() || !tournamentFile.empty()) {
+        if (isMcp) {
+            throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
+        }
+        
+        if (!sprtFile.empty()) {
+            std::ifstream file(sprtFile);
+            if (file.is_open()) {
+                QaplaHelpers::ConfigData sprtData;
+                sprtData.load(file);
+                configData_.push_back(sprtData);
+                Manager::instance().parseInput(sprtData, true); // Overwrite to find tournament file if nested
+            }
+        }
+        
+        if (!tournamentFile.empty()) {
+            std::ifstream file(tournamentFile);
+            if (file.is_open()) {
+                QaplaHelpers::ConfigData tourneyData;
+                tourneyData.load(file);
+                configData_.push_back(tourneyData);
+            }
+        }
+    }
+
+    if (isMcp) {
         Mcp::McpServer::initialize();
     }
 
-    setLoggerConfiguration();
+    // Initial apply to populate all internal members
+    applyConfig(std::nullopt);
 
-    // Load and merge settings from an SprtTournamentFile if specified
-    loadSprtConfig();
-    loadTournamentConfig();
+    // 6. Initialize engines only once
+    setEngineConfig(Manager::instance(), "engine");
+}
 
-    // Validate all settings for completeness after all merging is complete
+void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configData) {
+    Manager::instance().clearValues();
+    
+    // Apply initial config vector (later entries override earlier ones)
+    for (const auto& cfg : configData_) {
+        Manager::instance().parseInput(cfg, true);
+    }
+    
+    // Apply dynamic configuration if provided
+    if (configData) {
+        Manager::instance().parseInput(*configData, true);
+    }
+    
+    // Validate all settings for completeness
     Manager::instance().validateCompleteness();
 
-    setEngineConfig(Manager::instance(), "engine");
+    // Check concurrency is not zero
+    if (Manager::instance().get<unsigned int>("concurrency") == 0) {
+        throw AppError::makeInvalidParameters("Concurrency must be at least 1.");
+    }
+
+    setLoggerConfiguration();
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
     setResignAdjudicationConfig(Manager::instance(), "resign");
@@ -137,11 +160,6 @@ void QaplaSettings::applyConfig(const QaplaHelpers::ConfigData& configData, bool
     setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
     setSPSAConfig();
-
-    // Check concurrency is not zero
-    if (Manager::instance().get<unsigned int>("concurrency") == 0) {
-        throw AppError::makeInvalidParameters("Concurrency must be at least 1.");
-    }
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {
@@ -523,32 +541,6 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
         return std::nullopt;
     }
     return *m_tournamentConfig;
-}
-
-void QaplaSettings::loadTournamentConfig() {
-    auto tournament = Manager::instance().getGroupInstance("tournament");
-    if (!tournament) {
-        m_tournamentConfig = nullptr;
-        return;
-    }
-
-    auto tournamentFile = tournament->get<std::string>("file");
-    if (!tournamentFile.empty()) {
-        applySettingsFromFile(tournamentFile, false, false);
-    }
-}
-
-void QaplaSettings::loadSprtConfig() {
-    auto sprt = Manager::instance().getGroupInstance("sprt");
-    if (!sprt) {
-        m_sprtConfig = nullptr;
-        return;
-    }
-
-    auto sprtFile = sprt->get<std::string>("file");
-    if (!sprtFile.empty()) {
-        applySettingsFromFile(sprtFile, false, false);
-    }
 }
 
 void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
