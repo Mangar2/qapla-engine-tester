@@ -233,10 +233,12 @@ void GameManager::processEvent(const EngineEvent& event) {
         }
 
         // Error reporting
-		std::string name = player->getEngine()->getConfig().getName();
-		auto checklist = EngineReport::getChecklist(name);
-        for (const auto& error : event.errors) {
-            checklist->logReport(error.name, false, error.detail, error.level);
+        if (!event.errors.empty()) {
+            const auto& name = player->getEngine()->getConfig().getName();
+            auto checklist = EngineReport::getChecklist(name);
+            for (const auto& error : event.errors) {
+                checklist->logReport(error.name, false, error.detail, error.level);
+            }
         }
 
 
