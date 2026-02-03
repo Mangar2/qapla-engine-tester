@@ -27,8 +27,8 @@
 
 namespace QaplaTester {
 
-TestTournament::TestTournament(uint32_t totalGames, EngineReport* checklist)
-    : maxGames_(totalGames), checklist_(checklist) {
+TestTournament::TestTournament(uint32_t totalGames, std::shared_ptr<EngineReport> checklist)
+    : maxGames_(totalGames), checklist_(std::move(checklist)) {
     timePairs_ = {
         {{.movesToPlay=0, .baseTimeMs=20000, .incrementMs=500}, {.movesToPlay=0, .baseTimeMs=10000, .incrementMs=100}},
         {{.movesToPlay=0, .baseTimeMs=10000, .incrementMs=500}, {.movesToPlay=0, .baseTimeMs=5000, .incrementMs=100}},

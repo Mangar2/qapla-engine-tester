@@ -221,7 +221,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         // Error reporting
 		std::string name = player->getEngine()->getConfig().getName();
-		EngineReport* checklist = EngineReport::getChecklist(name);
+		auto checklist = EngineReport::getChecklist(name);
         for (const auto& error : event.errors) {
             checklist->logReport(error.name, false, error.detail, error.level);
         }

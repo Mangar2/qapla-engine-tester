@@ -135,7 +135,7 @@ std::unique_ptr<EngineWorker> EngineWorkerFactory::restart(const EngineWorker& w
 
 void EngineWorkerFactory::waitUntilAllEnginesStarted(std::vector<std::future<void>>& futures, 
     const EngineConfig& config) {
-    auto* checklist = EngineReport::getChecklist(config.getName());
+    auto checklist = EngineReport::getChecklist(config.getName());
     for (auto& f : futures) {
         try {
             f.get();
@@ -153,20 +153,19 @@ void EngineWorkerFactory::waitUntilAllEnginesStarted(std::vector<std::future<voi
     const std::vector<EngineConfig>& configs) {
     uint32_t index = 0;
     for (auto& f : futures) {
-        EngineReport* checklist;
         const auto& name = configs[index].getName();
         try {
             f.get();
         }
         catch (const std::exception& error) {
             if (!name.empty()) {
-                checklist = EngineReport::getChecklist(name);
+                auto checklist = EngineReport::getChecklist(name);
                 checklist->logReport("starts-and-stops-cleanly", false, std::string(error.what()));
             }
         }
         catch (...) {
             if (!name.empty()) {
-                checklist = EngineReport::getChecklist(name);
+                auto checklist = EngineReport::getChecklist(name);
                 checklist->logReport("starts-and-stops-cleanly", false, "Unknown error");
             }
         }

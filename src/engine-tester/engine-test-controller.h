@@ -139,7 +139,7 @@ private:
 	 */
     void runMultipleGamesTest(uint32_t concurrency, bool checkTimeLimits);
     
-    EngineReport* checklist_;
+    std::shared_ptr<EngineReport> checklist_;
     std::unique_ptr<ComputeTask> computeTask_;
     EngineConfig engineConfig_;
     int numGames_ = 20;

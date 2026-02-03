@@ -50,11 +50,20 @@ void EngineReport::addTopic(const CheckTopic& topic) {
 
 AppReturnCode EngineReport::logAll(TraceLevel traceLevel, const std::optional<TournamentResult>& result) {
     AppReturnCode worst = AppReturnCode::NoError;
-    for (const auto& [name, checklist] : checklists_) {
-        AppReturnCode code = checklist->log(traceLevel, result? result->forEngine(name) : std::nullopt);
-		if (code == AppReturnCode::NoError) {
-			continue;
-		}
+    
+    std::vector<std::shared_ptr<EngineReport>> currentChecklists;
+    {
+        std::lock_guard lock(checklistsMutex_);
+        for (const auto& [name, checklist] : checklists_) {
+            currentChecklists.push_back(checklist);
+        }
+    }
+
+    for (const auto& checklist : currentChecklists) {
+        AppReturnCode code = checklist->log(traceLevel, result ? result->forEngine(checklist->engineName_) : std::nullopt);
+        if (code == AppReturnCode::NoError) {
+            continue;
+        }
         if (worst == AppReturnCode::NoError || static_cast<int>(code) < static_cast<int>(worst)) {
             worst = code;
         }

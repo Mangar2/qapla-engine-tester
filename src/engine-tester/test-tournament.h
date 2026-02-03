@@ -55,9 +55,9 @@ public:
      * Games are evenly distributed across all time control pairs.
      * 
      * @param totalGames Total number of games to play in the tournament
-     * @param checklist Pointer to the engine report for logging test results
+     * @param checklist Shared pointer to the engine report for logging test results
      */
-    explicit TestTournament(uint32_t totalGames, EngineReport* checklist);
+    explicit TestTournament(uint32_t totalGames, std::shared_ptr<EngineReport> checklist);
 
     /**
      * @brief Provides the next available task for game execution.
@@ -152,7 +152,7 @@ private:
     std::vector<GameRecord> gameRecords_;                            ///< Complete results of all finished games
     std::vector<std::pair<TimeSegment, TimeSegment>> timePairs_;     ///< Time control pairs for white and black
     std::vector<int> usageCount_;                                    ///< (Currently unused) Could track time control usage
-    EngineReport* checklist_;                                        ///< Report handler for test validation results
+    std::shared_ptr<EngineReport> checklist_;                                        ///< Report handler for test validation results
 };
 
 } // namespace QaplaTester

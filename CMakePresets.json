@@ -28,6 +28,15 @@
       }
     },
     {
+      "name": "released",
+      "displayName": "Release with Debug Info (Clang + Ninja)",
+      "inherits": "default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-Wall -Wextra"
+      }
+    },
+    {
       "name": "unit",
       "displayName": "Unit Tests (Clang + Ninja)",
       "inherits": "default",
@@ -44,6 +53,10 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "released",
+      "configurePreset": "released"
     },
     {
       "name": "unit",

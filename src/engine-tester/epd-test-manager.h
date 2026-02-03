@@ -47,7 +47,7 @@ struct EpdTest {
  */
 class EpdTestManager : public GameTaskProvider {
 public:
-    EpdTestManager(EngineReport* checklist) : checklist_(checklist) {
+    EpdTestManager(std::shared_ptr<EngineReport> checklist) : checklist_(std::move(checklist)) {
         tests_ = {
             { .fen = "8/8/p1p5/1p5p/1P5p/8/PPP2K1p/4R1rk w - - 0 1", .expectedMove = "e1f1", .topic = "zugzwang", .whiteToPlay = true},
             { .fen = "1q1k4/2Rr4/8/2Q3K1/8/8/8/8 w - - 0 1", .expectedMove = "g5h6", .topic = "zugzwang", .whiteToPlay = true},
@@ -127,7 +127,7 @@ public:
 private:
     std::vector<EpdTest> tests_;
     size_t currentIndex_ = 0;
-    EngineReport* checklist_;
+    std::shared_ptr<EngineReport> checklist_;
 };
 
 } // namespace QaplaTester

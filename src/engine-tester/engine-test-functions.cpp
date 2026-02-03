@@ -70,7 +70,7 @@ TestResult runTest(
             
             // Verify engines respond to UCI isReady command to ensure they are operational
             for (const auto& engine : engines) {
-                auto* checklist = EngineReport::getChecklist(
+                auto checklist = EngineReport::getChecklist(
                     engine->getConfig().getName()); 
                 bool isReady = engine->requestReady();
                 checklist->logReport("starts-and-stops-cleanly", isReady, 
@@ -102,7 +102,7 @@ TestResult runTest(
 TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
 {
     // Cannot use runTest() here because we need to measure startup time before engine is ready
-    auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+    auto checklist = EngineReport::getChecklist(engineConfig.getName());
     
     QaplaHelpers::Timer timer;
     timer.start();
@@ -165,7 +165,7 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
 
 TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint32_t numEngines)
 {
-    auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+    auto checklist = EngineReport::getChecklist(engineConfig.getName());
     
     QaplaHelpers::Timer timer;
     timer.start();
@@ -210,7 +210,7 @@ TestResult runHashTableMemoryTest(const EngineConfig& engineConfig)
         }
         
         auto* engine = engines[0].get();
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         
         // Set Hash to 512MB and measure memory
         engine->setOption("Hash", "512");
@@ -247,7 +247,7 @@ TestResult runLowerCaseOptionTest(const EngineConfig& engineConfig)
         }
         
         auto* engine = engines[0].get();
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         
         // Set lowercase 'hash' to 512 and measure memory
         engine->setOption("hash", "512");
@@ -343,7 +343,7 @@ TestResult runEngineOptionTests(const EngineConfig& engineConfig) // NOLINT(read
         }
         
         auto* engine = engines[0].get();
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         const EngineOptions& options = engine->getSupportedOptions();
         
         int errors = 0;
@@ -434,7 +434,7 @@ TestResult runAnalyzeTest(const EngineConfig& engineConfig)
             return {TestResultEntry("Analyze test", "No engine started", false)};
         }
         
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         
         // Create ComputeTask and initialize with engines
         auto computeTask = std::make_unique<ComputeTask>();
@@ -481,7 +481,7 @@ TestResult runImmediateStopTest(const EngineConfig& engineConfig)
             return {TestResultEntry("Immediate stop test", "No engine started", false)};
         }
         
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         
         // Create ComputeTask and initialize with engines
         auto computeTask = std::make_unique<ComputeTask>();
@@ -520,7 +520,7 @@ TestResult runInfiniteAnalyzeTest(const EngineConfig& engineConfig)
             return {TestResultEntry("Infinite analyze test", "No engine started", false)};
         }
         
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         
         // Create ComputeTask and initialize with engines
         auto computeTask = std::make_unique<ComputeTask>();
@@ -686,7 +686,7 @@ static void testPonderHit(const GameRecord& gameRecord, EngineWorker* engine,
     std::chrono::milliseconds sleep = std::chrono::milliseconds(0)) {
     static constexpr auto TIMEOUT = std::chrono::milliseconds(2000);
 
-    auto* checklist = EngineReport::getChecklist(engine->getConfig().getName());
+    auto checklist = EngineReport::getChecklist(engine->getConfig().getName());
     EventSinkRecorder recorder;
     engine->setEventSink(recorder.getCallback());
     engine->newGame(gameRecord, gameRecord.isWhiteToMove());
@@ -714,7 +714,7 @@ static void testPonderMiss(const GameRecord& gameRecord, EngineWorker* engine,
     const std::string& ponderMove, const std::string& testname,
     std::chrono::milliseconds sleep = std::chrono::milliseconds(100)) {
     static constexpr auto TIMEOUT = std::chrono::milliseconds(5000);
-    auto* checklist = EngineReport::getChecklist(engine->getConfig().getName());
+    auto checklist = EngineReport::getChecklist(engine->getConfig().getName());
 
     EventSinkRecorder recorder;
     engine->setEventSink(recorder.getCallback());
@@ -748,7 +748,7 @@ TestResult runUciPonderTest(const EngineConfig& engineConfig)
             return {TestResultEntry("UCI ponder test", "No engine started", false)};
         }
         
-        auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+        auto checklist = EngineReport::getChecklist(engineConfig.getName());
         auto* engine = engines[0].get();
         
         const std::string testname = "correct-pondering";
@@ -826,7 +826,7 @@ TestResult runPonderGameTest(const EngineConfig& engineConfig, bool logMoves)
 
 TestResult runEpdTest(const EngineConfig& engineConfig)
 {
-    auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+    auto checklist = EngineReport::getChecklist(engineConfig.getName());
     
     try {
         Logger::reportLogger().log("Testing positions, this will take a while...", TraceLevel::command);
@@ -856,7 +856,7 @@ TestResult runMultipleGamesTest(const EngineConfig& engineConfig, uint32_t numGa
 {
     // This test doesn't use runTest() because it needs GameManagerPool
     // which has different lifecycle management than single engines
-    auto* checklist = EngineReport::getChecklist(engineConfig.getName());
+    auto checklist = EngineReport::getChecklist(engineConfig.getName());
     
     try {
         Logger::reportLogger().log("Testing playing " + std::to_string(numGames) + " games...", TraceLevel::command);

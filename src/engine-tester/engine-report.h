@@ -27,6 +27,8 @@
 
 #include <string>
 #include <unordered_map>
+#include <mutex>
+#include <memory>
 
 #include "../game-manager/tournament-result.h"
 
@@ -85,13 +87,14 @@ public:
      * @param engineName The name of the engine to retrieve the checklist for.
      * @return Pointer to the corresponding Checklist instance.
      */
-    [[nodiscard]] static EngineReport* getChecklist(const std::string& engineName) {
+    [[nodiscard]] static std::shared_ptr<EngineReport> getChecklist(const std::string& engineName) {
+        std::lock_guard lock(checklistsMutex_);
         auto& ptr = checklists_[engineName];
         if (!ptr) {
-            ptr = std::make_unique<EngineReport>();
+            ptr = std::make_shared<EngineReport>();
             ptr->engineName_ = engineName;
         }
-        return ptr.get();
+        return ptr;
     }
 
     /**
@@ -164,6 +167,7 @@ private:
     static constexpr uint32_t MAX_CLI_LOGS_PER_ERROR = 4;
     static constexpr uint32_t MAX_FILE_LOGS_PER_ERROR = 10;
     static inline std::mutex statsMutex_;
+    static inline std::mutex checklistsMutex_;
 
     struct CheckEntry {
         uint32_t total = 0;
@@ -171,7 +175,7 @@ private:
     };
 
     static inline std::vector<CheckTopic> registeredTopics_;
-    static inline std::unordered_map<std::string, std::unique_ptr<EngineReport>> checklists_;
+    static inline std::unordered_map<std::string, std::shared_ptr<EngineReport>> checklists_;
     std::string engineName_;
     std::string engineAuthor_;
     std::unordered_map<std::string, CheckEntry> entries_;
