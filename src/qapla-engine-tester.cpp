@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < argc; ++i) {
             args.emplace_back(argv[i]);
         }
-        Settings::QaplaSettings::instance().applyArguments(args);
+        Settings::QaplaSettings::instance().initializeConfigs(args);
 
         Logger::reportLogger().logCli(Logger::getWelcomeMessage());
 

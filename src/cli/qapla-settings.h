@@ -65,18 +65,17 @@ public:
     [[nodiscard]] static QaplaSettings& instance();
 
     /**
-     * @brief Sets the command-line arguments
+     * @brief Initializes the configuration from command-line arguments and files.
      * @param args Vector of command-line arguments
      */
-    void applyArguments(const std::vector<std::string>& args);
+    void initializeConfigs(const std::vector<std::string>& args);
 
     /**
      * @brief Applies configuration data and synchronizes internal state.
      * This follows the full initialization pipeline: parsing, validation, and internal setter updates.
-     * @param configData The configuration data to apply.
-     * @param isInitial If true, performs first-time initialization (like MCP startup or welcome message).
+     * @param configData Optional configuration data to apply on top of the initial configuration.
      */
-    void applyConfig(const QaplaHelpers::ConfigData& configData, bool isInitial = false);
+    void applyConfig(std::optional<QaplaHelpers::ConfigData> configData = std::nullopt);
 
     /**
      * @brief Gets the stored command-line arguments
@@ -160,7 +159,7 @@ public:
 
 private:
     std::vector<std::string> arguments_;
-    std::optional<QaplaHelpers::ConfigData> cliConfigData_;
+    std::vector<QaplaHelpers::ConfigData> configData_;
     
     /**
      * @brief Private constructor for singleton pattern
@@ -174,14 +173,6 @@ private:
      * @return Vector of argument strings
      */
     [[nodiscard]] static std::vector<std::string> argvToVector(int argc, char* argv[]);
-
-    /**
-     * @brief Applies settings from a configuration file
-     * @param settingsFile Path to the settings file
-     * @param required When true, throws an error if the file cannot be opened.
-     * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
-     */
-    static void applySettingsFromFile(std::string_view settingsFile, bool required = true, bool strict = true);
 
     /**
      * @brief Reads logger configuration from CLI settings
@@ -224,21 +215,11 @@ private:
     void setOpenings(Settings::Manager& manager, const std::string& groupName);
 
     /**
-     * @brief Loads tournament configuration, checking for file-based config first
-     */
-    void loadTournamentConfig();
-
-    /**
      * @brief Reads tournament configuration from settings manager
      * @param manager The settings manager to read from
      * @param groupName The group instance name
      */
     void setTournamentConfig(Settings::Manager& manager, const std::string& groupName);
-
-    /**
-     * @brief Loads SPRT configuration, checking for file-based config first
-     */
-    void loadSprtConfig();
 
     /**
      * @brief Reads SPRT configuration from settings manager
