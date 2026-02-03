@@ -86,6 +86,14 @@ public:
     void log(std::string_view message, TraceLevel level = TraceLevel::command);
 
     /**
+     * @brief Logs a message without prefix to cli only
+     * 
+     * @param topic The topic prefix for the message.
+     * @param message The message content to log.
+     */ 
+    void logCli(std::string_view message, TraceLevel level = TraceLevel::command);
+
+    /**
      * @brief Logs a status message to CLI (potentially overwriting line) and MCP.
      * @param message The status message.
      * @param toolName The name of the tool (for MCP JSON-RPC).
@@ -190,7 +198,7 @@ protected:
 
     std::mutex loggingMutex_;                   ///< Mutex for thread-safe logging
     std::ofstream fileStream_;                  ///< Output file stream for log file
-    TraceLevel cliThreshold_ = TraceLevel::error;  ///< Console output threshold
+    TraceLevel cliThreshold_ = TraceLevel::info;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
     TraceLevel mcpThreshold_ = TraceLevel::none;  ///< MCP output threshold
     std::function<void(std::string_view, std::string_view)> mcpCallback_; ///< Callback for MCP logging
