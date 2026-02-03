@@ -100,6 +100,13 @@ std::string BaseLogger::generateTimestampedFilename(const std::string& baseName,
     return (path / oss.str()).string();
 }
 
+void BaseLogger::logCli(std::string_view message, TraceLevel level) {
+    std::scoped_lock lock(loggingMutex_);
+    if (level <= cliThreshold_) {
+        std::cout << message << "\n" << std::flush;
+    }
+}
+
 void BaseLogger::log(std::string_view message, TraceLevel level) {
     // Never used for per-engine loggers, thus no update to engineLogBuffers_
     std::scoped_lock lock(loggingMutex_);
