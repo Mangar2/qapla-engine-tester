@@ -428,7 +428,7 @@ private:
     MoveRecord currentMove_;
     mutable std::mutex currentMoveMutex_;
     mutable std::mutex stateMutex_; // protects gameState_ and ponderState_
-	EngineReport* checklist_ = nullptr; 
+	std::shared_ptr<EngineReport> checklist_ = nullptr; 
 };
 
 } // namespace QaplaTester
