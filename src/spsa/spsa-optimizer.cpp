@@ -29,6 +29,8 @@
 #include <iomanip>
 #include <format>
 #include <algorithm>
+#include <cmath>
+#include <numeric>
 
 namespace QaplaTester {
 
@@ -58,6 +60,8 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
     // Initialize current parameters to default values
     currentParameters_.clear();
     currentParameters_.reserve(config.parameters.size());
+    parameterHistory_.clear();
+    parameterHistory_.resize(config.parameters.size());
     for (const auto& param : config.parameters) {
         currentParameters_.push_back(param.defaultValue);
     }
@@ -278,6 +282,9 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
             config_.parameters[i].minValue,
             config_.parameters[i].maxValue
         );
+
+        // Store history for standard deviation calculation
+        parameterHistory_[i].push_back(currentParameters_[i]);
     }
 
     completedIterations_++;
@@ -331,6 +338,30 @@ std::vector<int> SPSAOptimizer::generatePerturbationDeltas() {
 std::vector<double> SPSAOptimizer::getCurrentParameters() const {
     std::scoped_lock lock(stateMutex_);
     return currentParameters_;
+}
+
+double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
+    if (paramIndex >= parameterHistory_.size()) {
+        return 0.0;
+    }
+
+    const auto& history = parameterHistory_[paramIndex];
+    if (history.empty()) {
+        return 0.0;
+    }
+
+    const size_t count = std::min(history.size(), lastN);
+    const auto startIt = history.end() - static_cast<long long>(count);
+    
+    double sum = std::accumulate(startIt, history.end(), 0.0);
+    double mean = sum / static_cast<double>(count);
+    
+    double sq_sum = std::accumulate(startIt, history.end(), 0.0, 
+        [mean](double acc, double val) {
+            return acc + (val - mean) * (val - mean);
+        });
+    
+    return std::sqrt(sq_sum / static_cast<double>(count));
 }
 
 void SPSAOptimizer::logParameters(const std::string& stage) const {
@@ -393,13 +424,18 @@ void SPSAOptimizer::printStatus(std::ostream& out) const {
     out << "Completed iterations: " << completedIterations_ 
         << " / " << config_.iterations << "\n";
     out << "Active pairs: " << activeCount << "\n";
-    out << "\nCurrent best parameters:\n";
+    out << "\nCurrent best parameters (Value | StdDev 2k | StdDev 5k):\n";
     
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
         const auto& param = config_.parameters[i];
+        const double sd2k = calculateStdDev(i, 2000);
+        const double sd5k = calculateStdDev(i, 5000);
+
         out << std::setw(20) << std::left << param.name << ": "
             << std::setw(10) << std::right << std::fixed << std::setprecision(2)
-            << currentParameters_[i]
+            << currentParameters_[i] << " | "
+            << std::setw(10) << std::fixed << std::setprecision(4) << sd2k << " | "
+            << std::setw(10) << std::fixed << std::setprecision(4) << sd5k
             << " (range: " << param.minValue << " - " << param.maxValue << ")\n";
     }
     out << "================================\n";

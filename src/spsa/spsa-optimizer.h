@@ -23,8 +23,6 @@
 
 #include "../engine-handling/engine-config.h"
 
-#include "../base-elements/game-start-position.h"
-
 #include <vector>
 #include <string>
 #include <memory>
@@ -101,12 +99,12 @@ public:
      * @brief Get current best parameter values
      * @return Vector of current parameter values
      */
-    std::vector<double> getCurrentParameters() const;
+    [[nodiscard]] std::vector<double> getCurrentParameters() const;
 
     /**
      * @brief Get the number of completed iterations
      */
-    size_t getCompletedIterations() const { return completedIterations_; }
+    [[nodiscard]] size_t getCompletedIterations() const { return completedIterations_; }
 
     /**
      * @brief Print current optimization status
@@ -129,7 +127,7 @@ public:
     /**
      * @brief Get the number of perturbations (active and finished)
      */
-    size_t perturbationCount() const {
+    [[nodiscard]] size_t perturbationCount() const {
         std::scoped_lock lock(stateMutex_);
         return perturbations_.size();
     }
@@ -167,6 +165,14 @@ private:
     std::vector<int> generatePerturbationDeltas();
 
     /**
+     * @brief Calculate standard deviation of parameter history
+     * @param paramIndex Index of the parameter
+     * @param lastN Number of last iterations to consider
+     * @return Standard deviation
+     */
+    [[nodiscard]] double calculateStdDev(size_t paramIndex, size_t lastN) const;
+
+    /**
      * @brief Log current parameter values
      * @param stage Description of the current stage (e.g., "Initial", "After iteration 5")
      */
@@ -180,6 +186,7 @@ private:
     EngineConfig baseEngine_;
     SPSAConfig config_;
     std::vector<double> currentParameters_;     // Current best parameters (Î¸)
+    std::vector<std::vector<double>> parameterHistory_; // History of parameters for stddev calculation
     std::shared_ptr<StartPositions> startPositions_;
     GameManagerPool* pool_ = nullptr;           // Pool reference for scheduling
     
