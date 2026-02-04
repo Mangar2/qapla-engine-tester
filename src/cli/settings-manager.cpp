@@ -231,7 +231,14 @@ namespace QaplaTester::Settings
         }
 
         std::string key = QaplaHelpers::to_lowercase(config.name);
-        definitions_[key] = {.description = config.description, .isRequired = config.isRequired, .defaultValue = defaultValue, .type = config.type};
+        definitions_[key] = {
+            .description = config.description,
+            .longDescription = config.longDescription,
+            .isRequired = config.isRequired,
+            .defaultValue = defaultValue,
+            .type = config.type,
+            .isHidden = config.isHidden
+        };
     }
 
     void Manager::registerGroup(const GroupDefinition& config)
@@ -314,7 +321,7 @@ namespace QaplaTester::Settings
     {
         for (const auto& sectionName : configData.getAllSectionNames()) {
             auto sectionMapOpt = configData.getSectionMap(sectionName);
-            if (!sectionMapOpt) {
+            if (!sectionMapOpt.has_value()) {
                 continue;
             }
             
@@ -406,24 +413,21 @@ namespace QaplaTester::Settings
                                     const GroupInstance& instance,
                                     const std::vector<std::string>& primaryKeys)
     {
-        for (const auto& keyName : primaryKeys) {
+        return std::ranges::all_of(primaryKeys, [&](const auto& keyName) {
             const auto sectionValue = section.getValue(keyName);
             if (!sectionValue.has_value() || !instance.isKeyProvided(keyName)) {
                 return false;
             }
-            
+
             const auto lowerKey = QaplaHelpers::to_lowercase(keyName);
             const auto instanceValue = instance.getValues().at(lowerKey);
-            
+
             if (!std::holds_alternative<std::string>(instanceValue)) {
                 return false;
             }
-            
-            if (*sectionValue != std::get<std::string>(instanceValue)) {
-                return false;
-            }
-        }
-        return true;
+
+            return *sectionValue == std::get<std::string>(instanceValue);
+        });
     }
 
     std::optional<size_t> Manager::findInstanceByPrimaryKey(GroupInstances& instances,
@@ -462,7 +466,7 @@ namespace QaplaTester::Settings
             matchingIndex = findInstanceByPrimaryKey(instances, section, groupDefinition.primaryKey);
         }
         
-        if (matchingIndex) {
+        if (matchingIndex.has_value()) {
             const auto mergedValues = parseSectionEntries(section, groupDefinition, overwrite, 
                 &instances[*matchingIndex].getValues());
             validateExclusiveKeys(mergedValues, groupDefinition, section.name);
@@ -708,46 +712,54 @@ namespace QaplaTester::Settings
         }
         
         const auto& instances = groupInstances_.at(lowerGroupName);
-        
+        result.reserve(instances.size());
         for (const auto& instance : instances) {
-            QaplaHelpers::IniFile::Section section;
-            section.name = groupName;
-            
-            const auto& definition = instance.getDefinition();
-            const auto& values = instance.getValues();
-            
-            for (const auto& keyName : definition.getKeyNames()) {
-                if (!definition.keys.contains(keyName)) {
-                    continue;
-                }
-                const auto& keyDef = definition.keys.at(keyName);
-                const auto hasValue = values.contains(keyName);
-                
-                const auto isRequired = keyDef.isRequired;
-                const auto hasDefault = keyDef.defaultValue.has_value();
-                const auto isDifferentFromDefault = hasValue && hasDefault && 
-                        (values.at(keyName) != *keyDef.defaultValue);
-                
-                if (!suppressDefault || isRequired || !hasDefault || isDifferentFromDefault) {
-                    std::string keyToUse = keyName;
-                    constexpr std::string_view suffix = ".[name]";
-                    if (keyName.ends_with(suffix)) {
-                        keyToUse = keyName.substr(0, keyName.size() - suffix.size());
-                    }
-                    
-                    const std::string valueStr = hasValue ? valueToString(values.at(keyName)) : 
-                            (hasDefault ? valueToString(*keyDef.defaultValue) : "");
-                    
-                    if (!valueStr.empty()) {
-                        section.addEntry(keyToUse, valueStr);
-                    }
-                }
-            }
-            
-            result.push_back(std::move(section));
+            result.push_back(instanceToSection(groupName, instance, suppressDefault));
         }
         
         return result;
+    }
+
+    QaplaHelpers::IniFile::Section Manager::instanceToSection(
+            const std::string& groupName, const GroupInstance& instance, bool suppressDefault) {
+        QaplaHelpers::IniFile::Section section;
+        section.name = groupName;
+        
+        const auto& definition = instance.getDefinition();
+        const auto& values = instance.getValues();
+        
+        for (const auto& keyName : definition.getKeyNames()) {
+            if (!definition.keys.contains(keyName)) {
+                continue;
+            }
+            const auto& keyDef = definition.keys.at(keyName);
+            const auto hasValue = values.contains(keyName);
+            
+            const auto isRequired = keyDef.isRequired;
+            const auto hasDefault = keyDef.defaultValue.has_value();
+            const bool isDifferentFromDefault = hasValue && hasDefault && 
+                    (values.at(keyName) != *keyDef.defaultValue);
+            
+            if (!suppressDefault || isRequired || !hasDefault || isDifferentFromDefault) {
+                std::string keyToUse = keyName;
+                constexpr std::string_view suffix = ".[name]";
+                if (keyName.ends_with(suffix)) {
+                    keyToUse = keyName.substr(0, keyName.size() - suffix.size());
+                }
+                
+                std::string valueStr;
+                if (hasValue) {
+                    valueStr = valueToString(values.at(keyName));
+                } else if (hasDefault) {
+                    valueStr = valueToString(*keyDef.defaultValue);
+                }
+                
+                if (!valueStr.empty()) {
+                    section.addEntry(keyToUse, valueStr);
+                }
+            }
+        }
+        return section;
     }
 
     QaplaHelpers::IniFile::KeyValueMap Manager::getFilteredGlobalParameters() const {
@@ -788,7 +800,7 @@ namespace QaplaTester::Settings
         for (const auto& sectionName : sectionsToExport) {
             auto sections = groupInstancesToSectionList(sectionName);
             for (auto& section : sections) {
-                if (!section.getValue("id")) {
+                if (!section.getValue("id").has_value()) {
                     section.insertFirst("id", id);
                 }
                 configData.addSection(section);
