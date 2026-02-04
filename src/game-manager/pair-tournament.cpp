@@ -214,7 +214,7 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
 
     if (verbose_) {
         std::string json = std::format(
-            "{{\"type\":\"gameFinished\",\"round\":{},\"game\":{},\"result\":\"{}\",\"cause\":\"{}\",\"white\":\"{}\",\"black\":\"{}\"}}",
+            R"({{"type":"gameFinished","round":{},"game":{},"result":"{}","cause":"{}","white":"{}","black":"{}"}})",
             config_.round + 1, gameInRound, to_string(result), to_string(cause),
             record.getWhiteEngineName(), record.getBlackEngineName()
         );

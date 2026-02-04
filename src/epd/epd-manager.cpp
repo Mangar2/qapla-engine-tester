@@ -85,11 +85,11 @@ std::string EpdManager::generateResultLine(const EpdTestCase& current, const Tes
 void EpdManager::logResultLine(const EpdTestCase& current) const {
 	auto results = getResultsCopy();
     
-    std::string json = std::format("{{\"type\":\"epdResult\",\"id\":\"{}\",\"bestMoves\":[", current.id);
+    std::string json = std::format(R"({{"type":"epdResult","id":"{}","bestMoves":[)", current.id);
     for (size_t i = 0; i < current.bestMoves.size(); ++i) {
-        json += std::format("\"{}\"{}", current.bestMoves[i], (i + 1 < current.bestMoves.size() ? "," : ""));
+        json += std::format(R"("{}"{})", current.bestMoves[i], (i + 1 < current.bestMoves.size() ? "," : ""));
     }
-    json += "],\"engines\":[";
+    json += R"(],"engines":[)";
 
     bool first = true;
     for (const auto& result : results) {
@@ -97,15 +97,17 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
             return t.id == current.id;
         });
         if (it != result.result.end()) {
-            if (!first) json += ",";
+            if (!first) {
+                json += ",";
+            }
             first = false;
             json += std::format(
-                "{{\"name\":\"{}\",\"correct\":{},\"timeMs\":{},\"depth\":{},\"move\":\"{}\"}}",
+                R"({{"name":"{}","correct":{},"timeMs":{},"depth":{},"move":"{}"}})",
                 result.engineName, it->correct, it->correctAtTimeInMs, it->correctAtDepth, it->playedMove
             );
         }
     }
-    json += "]}}";
+    json += R"(]}})";
 
 	Logger::reportLogger().log(json, TraceLevel::result);
 }
