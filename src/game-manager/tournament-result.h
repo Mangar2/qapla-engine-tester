@@ -313,6 +313,19 @@ public:
     void printRatingTableUciStyle(std::ostream &os, int averageElo);
 
     /**
+     * @brief Returns the rating table as a JSON string.
+     * @param averageElo The base Elo level for scaling rating output.
+     * @return JSON string containing the rating table and statistics.
+     */
+    [[nodiscard]] std::string getRatingTableJson(int averageElo);
+
+    /**
+     * @brief Returns the outcome of the tournament as a JSON string.
+     * @return JSON string containing the outcome / cause statistics.
+     */
+    [[nodiscard]] std::string getOutcomeJson() const;
+
+    /**
      * @brief Computes iterative Elo ratings and error estimates for all engines.
      *
      * Uses opponent-weighted averaging and repeated refinement of Elo values.

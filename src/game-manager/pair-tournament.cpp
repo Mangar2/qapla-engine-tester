@@ -213,14 +213,12 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     collectPentanomialStats(gameInRound - 1);
 
     if (verbose_) {
-        std::ostringstream oss;
-        oss << std::left
-            << "  match round " << std::setw(3) << (config_.round + 1)
-            << " game " << std::setw(3) << gameInRound
-            << " result " << std::setw(7) << to_string(result)
-            << " cause " << std::setw(21) << to_string(cause)
-            << " engines " << record.getWhiteEngineName() << " vs " << record.getBlackEngineName();
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+        std::string json = std::format(
+            "{{\"type\":\"gameFinished\",\"round\":{},\"game\":{},\"result\":\"{}\",\"cause\":\"{}\",\"white\":\"{}\",\"black\":\"{}\"}}",
+            config_.round + 1, gameInRound, to_string(result), to_string(cause),
+            record.getWhiteEngineName(), record.getBlackEngineName()
+        );
+        Logger::reportLogger().log(json, TraceLevel::result);
     }
 
     setFinishedIf(std::cmp_greater_equal(duelResult_.total(), config_.games));

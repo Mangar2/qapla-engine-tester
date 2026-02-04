@@ -84,8 +84,30 @@ std::string EpdManager::generateResultLine(const EpdTestCase& current, const Tes
 
 void EpdManager::logResultLine(const EpdTestCase& current) const {
 	auto results = getResultsCopy();
-    auto line = generateResultLine(current, results);
-	Logger::reportLogger().log(line, TraceLevel::result);
+    
+    std::string json = std::format("{{\"type\":\"epdResult\",\"id\":\"{}\",\"bestMoves\":[", current.id);
+    for (size_t i = 0; i < current.bestMoves.size(); ++i) {
+        json += std::format("\"{}\"{}", current.bestMoves[i], (i + 1 < current.bestMoves.size() ? "," : ""));
+    }
+    json += "],\"engines\":[";
+
+    bool first = true;
+    for (const auto& result : results) {
+        const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
+            return t.id == current.id;
+        });
+        if (it != result.result.end()) {
+            if (!first) json += ",";
+            first = false;
+            json += std::format(
+                "{{\"name\":\"{}\",\"correct\":{},\"timeMs\":{},\"depth\":{},\"move\":\"{}\"}}",
+                result.engineName, it->correct, it->correctAtTimeInMs, it->correctAtDepth, it->playedMove
+            );
+        }
+    }
+    json += "]}}";
+
+	Logger::reportLogger().log(json, TraceLevel::result);
 }
 
 void EpdManager::saveResults(std::ostream& os) const {

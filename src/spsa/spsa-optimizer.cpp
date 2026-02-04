@@ -334,16 +334,18 @@ std::vector<double> SPSAOptimizer::getCurrentParameters() const {
 }
 
 void SPSAOptimizer::logParameters(const std::string& stage) const {
-    std::ostringstream oss;
-    oss << stage << " parameters: ";
+    std::string json = std::format("{{\"type\":\"spsaParameters\",\"stage\":\"{}\",\"parameters\":[", stage);
     
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        if (i > 0) oss << ", ";
-        oss << config_.parameters[i].name << "=" 
-            << std::fixed << std::setprecision(2) << currentParameters_[i];
+        if (i > 0) json += ",";
+        json += std::format(
+            "{{\"name\":\"{}\",\"value\":{:.4f}}}",
+            config_.parameters[i].name, currentParameters_[i]
+        );
     }
+    json += "]}}";
     
-    Logger::reportLogger().log(oss.str(), TraceLevel::error);
+    Logger::reportLogger().log(json, TraceLevel::error);
 }
 
 void SPSAOptimizer::workerThreadFunction() {

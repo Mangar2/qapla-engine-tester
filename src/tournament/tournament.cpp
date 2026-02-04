@@ -160,16 +160,12 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
         auto result = getResult();
-        std::ostringstream oss;
-        result.printRatingTableUciStyle(oss, config_.averageElo);
-        Logger::reportLogger().log(oss.str());
+        Logger::reportLogger().log(result.getRatingTableJson(config_.averageElo));
     }
     if (config_.outcomeInterval > 0 && outcomeTrigger_ >= config_.outcomeInterval) {
         outcomeTrigger_ = 0;
         auto result = getResult();
-        std::ostringstream oss;
-        result.printOutcome(oss);
-        Logger::reportLogger().log(oss.str());
+        Logger::reportLogger().log(result.getOutcomeJson());
     }
     
     if (gameFinishedCallback_) {
