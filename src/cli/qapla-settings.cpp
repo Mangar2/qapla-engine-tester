@@ -255,6 +255,14 @@ void QaplaSettings::init() {
     });
 
     Manager::instance().registerSetting({
+        .name = "engines", 
+        .description = "Comma separated list of engine names to use", 
+        .isRequired = false, 
+        .defaultValue = std::string(""),
+        .type = ValueType::String
+    });
+
+    Manager::instance().registerSetting({
         .name = "enginesfile", 
         .description = "Path to an ini file with engine configurations", 
         .isRequired = false, 
@@ -404,6 +412,25 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
     }
+
+    auto engineNamesStr = manager.get<std::string>("engines");
+    if (!engineNamesStr.empty()) {
+        auto engineNames = QaplaHelpers::split(engineNamesStr, ',');
+        for (auto& name : engineNames) {
+            name = QaplaHelpers::trim(name);
+            if (name.empty()) {
+                continue;
+            }
+            const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(name);
+            if (engineConfig == nullptr) {
+                throw AppError::makeInvalidParameters("Engine configuration '" + name + "' not found.");
+            }
+            EngineWorkerFactory::getActiveEnginesMutable().push_back(*engineConfig);
+        }
+        EngineWorkerFactory::assignUniqueDisplayNames();
+        return;
+    }
+
     auto engineSettings = manager.getGroupInstances(groupName);
 	auto eachSetting = manager.getGroupInstance("each");
     auto loggingSetting = manager.getGroupInstance("logging");
