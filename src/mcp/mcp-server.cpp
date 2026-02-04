@@ -39,7 +39,21 @@ void McpServer::initialize() {
         JsonValue::Object params;
         params["level"] = JsonValue{ .data = std::string("info") };
         params["logger"] = JsonValue{ .data = std::string(toolName.empty() ? "qapla" : toolName) };
-        params["data"] = JsonValue{ .data = std::string(message) };
+        
+        // Try to parse message as JSON if it looks like it
+        std::string_view msgTrimmed = message;
+        while (!msgTrimmed.empty() && std::isspace(msgTrimmed.front())) msgTrimmed.remove_prefix(1);
+        
+        if (!msgTrimmed.empty() && (msgTrimmed.front() == '{' || msgTrimmed.front() == '[')) {
+            try {
+                params["data"] = JsonHelper::parse(msgTrimmed);
+            } catch (...) {
+                params["data"] = JsonValue{ .data = std::string(message) };
+            }
+        } else {
+            params["data"] = JsonValue{ .data = std::string(message) };
+        }
+        
         sendNotification("notifications/message", params);
     });
 
