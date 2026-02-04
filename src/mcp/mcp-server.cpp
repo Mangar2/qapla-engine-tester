@@ -42,7 +42,9 @@ void McpServer::initialize() {
         
         // Try to parse message as JSON if it looks like it
         std::string_view msgTrimmed = message;
-        while (!msgTrimmed.empty() && std::isspace(msgTrimmed.front())) msgTrimmed.remove_prefix(1);
+        while (!msgTrimmed.empty() && std::isspace(msgTrimmed.front())) {
+            msgTrimmed.remove_prefix(1);
+        }
         
         if (!msgTrimmed.empty() && (msgTrimmed.front() == '{' || msgTrimmed.front() == '[')) {
             try {

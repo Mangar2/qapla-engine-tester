@@ -561,11 +561,13 @@ void TournamentResult::printSummary(std::ostream &os) const
 
 std::string TournamentResult::getRatingTableJson(int averageElo) {
     std::vector<Scored> list = computeAllElos(averageElo);
-    std::string json = "{\"type\":\"ratingTable\",\"data\":[";
+    std::string json = R"({"type":"ratingTable","data":[)";
     bool first = true;
     int rank = 1;
     for (const auto& entry : list) {
-        if (!first) json += ",";
+        if (!first) {
+            json += ",";
+        }
         first = false;
         const auto& r = entry.result.aggregate(entry.engineName);
         const int total = r.total();
@@ -573,31 +575,35 @@ std::string TournamentResult::getRatingTableJson(int averageElo) {
         double scorePct = 100.0 * entry.score;
 
         json += std::format(
-            "{{\"rank\":{},\"name\":\"{}\",\"elo\":{:.1f},\"error\":{},\"games\":{},\"score\":{:.2f},\"drawPct\":{:.1f}}}",
+            R"({{"rank":{},"name":"{}","elo":{:.1f},"error":{},"games":{},"score":{:.2f},"drawPct":{:.1f}}})",
             rank++, entry.engineName, entry.elo, entry.error, total, scorePct, drawPct
         );
     }
-    json += "]}";
+    json += R"(]})";
     return json;
 }
 
 std::string TournamentResult::getOutcomeJson() const {
-    std::string json = "{\"type\":\"outcome\",\"data\":[";
+    std::string json = R"({"type":"outcome","data":[)";
     bool first = true;
     for (const auto& name : engineNames()) {
         auto optResult = forEngine(name);
-        if (!optResult) continue;
+        if (!optResult) {
+            continue;
+        }
 
-        if (!first) json += ",";
+        if (!first) {
+            json += ",";
+        }
         first = false;
 
         const auto& agg = optResult->aggregate(name);
         json += std::format(
-            "{{\"name\":\"{}\",\"wins\":{},\"losses\":{},\"draws\":{},\"total\":{}}}",
+            R"({{"name":"{}","wins":{},"losses":{},"draws":{},"total":{}}})",
             name, agg.winsEngineA, agg.winsEngineB, agg.draws, agg.total()
         );
     }
-    json += "]}";
+    json += R"(]})";
     return json;
 }
 

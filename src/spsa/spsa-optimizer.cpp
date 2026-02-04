@@ -334,16 +334,18 @@ std::vector<double> SPSAOptimizer::getCurrentParameters() const {
 }
 
 void SPSAOptimizer::logParameters(const std::string& stage) const {
-    std::string json = std::format("{{\"type\":\"spsaParameters\",\"stage\":\"{}\",\"parameters\":[", stage);
+    std::string json = std::format(R"({{"type":"spsaParameters","stage":"{}","parameters":[)", stage);
     
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        if (i > 0) json += ",";
+        if (i > 0) {
+            json += ",";
+        }
         json += std::format(
-            "{{\"name\":\"{}\",\"value\":{:.4f}}}",
+            R"({{"name":"{}","value":{:.4f}}})",
             config_.parameters[i].name, currentParameters_[i]
         );
     }
-    json += "]}}";
+    json += R"(]}})";
     
     Logger::reportLogger().log(json, TraceLevel::error);
 }
@@ -368,7 +370,7 @@ void SPSAOptimizer::workerThreadFunction() {
         // Create new perturbations while there's room and iterations remain
         while (activePerturbationCount_ < config_.maxActivePairs && 
                nextIteration_ < config_.iterations && 
-               pool_) {
+               pool_ != nullptr) {
             auto newPerturbation = createPairWithPerturbedParameters();
             if (!newPerturbation) {
                 break;
