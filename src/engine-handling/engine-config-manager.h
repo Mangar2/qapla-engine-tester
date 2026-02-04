@@ -80,6 +80,14 @@ public:
     }
 
     /**
+     * Returns all engine configurations as mutable references.
+     * @return A reference to a vector of EngineConfig.
+     */
+    [[nodiscard]] std::vector<EngineConfig>& getAllConfigsMutable() {
+        return configs;
+    }
+
+    /**
      * Retrieves a configuration by engine name.
      * @param name The name of the engine.
      * @return A pointer to the EngineConfig or nullptr if not found.

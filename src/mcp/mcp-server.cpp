@@ -187,22 +187,27 @@ void McpServer::listTools(const JsonValue& requestId) {
         {
             .name = "sprt",
             .description = "Runs a Sequential Probability Ratio Test (SPRT) between engines",
-            .groups = {"sprt", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+            .groups = {"sprt", "openings", "draw", "resign", "pgnoutput", "logging"}
         },
         {
             .name = "turnier",
             .description = "Runs a tournament between engines",
-            .groups = {"tournament", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+            .groups = {"tournament", "openings", "draw", "resign", "pgnoutput", "logging"}
         },
         {
             .name = "epd",
             .description = "Runs an EPD testset against engines",
-            .groups = {"epd", "pgnoutput", "logging", "each"}
+            .groups = {"epd", "pgnoutput", "logging"}
         },
         {
             .name = "spsa",
             .description = "Optimizes engine parameters using SPSA",
-            .groups = {"spsa", "openings", "draw", "resign", "pgnoutput", "logging", "each"}
+            .groups = {"spsa", "openings", "draw", "resign", "pgnoutput", "logging"}
+        },
+        {
+            .name = "manage_engines",
+            .description = "Manage engine configurations in the registry. Use this to list, add, copy, or update engines before running tasks.",
+            .groups = {}
         },
         {
             .name = "read_report",
@@ -212,16 +217,14 @@ void McpServer::listTools(const JsonValue& requestId) {
     };
 
     const auto& engineConfigs = EngineWorkerFactory::getConfigManager().getAllConfigs();
-    std::string confDescription = "Comma separated list of pre-configured engine names";
+    std::string registeredNames;
     if (!engineConfigs.empty()) {
-        std::string names;
         for (const auto& config : engineConfigs) {
-            if (!names.empty()) {
-                names += ", ";
+            if (!registeredNames.empty()) {
+                registeredNames += ", ";
             }
-            names += std::format("'{}'", config.getName());
+            registeredNames += std::format("'{}'", config.getName());
         }
-        confDescription += std::format(" (Available: {})", names);
     }
 
     for (const auto& info : toolsToRegister) {
@@ -243,23 +246,51 @@ void McpServer::listTools(const JsonValue& requestId) {
             JsonValue::Array required;
             required.push_back(JsonValue{ .data = std::string("uri") });
             inputSchema["required"] = JsonValue{ .data = required };
+        } else if (info.name == "manage_engines") {
+            JsonValue::Object command;
+            command["type"] = JsonValue{ .data = std::string("string") };
+            command["enum"] = JsonValue{ .data = JsonValue::Array{ 
+                JsonValue{ .data = std::string("list") }, 
+                JsonValue{ .data = std::string("details") }, 
+                JsonValue{ .data = std::string("add") }, 
+                JsonValue{ .data = std::string("copy") }, 
+                JsonValue{ .data = std::string("update") }, 
+                JsonValue{ .data = std::string("update_all") } 
+            } };
+            command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
+            properties["command"] = JsonValue{ .data = command };
+
+            JsonValue::Object name;
+            name["type"] = JsonValue{ .data = std::string("string") };
+            name["description"] = JsonValue{ .data = std::format("Engine name (Available: {})", registeredNames) };
+            properties["name"] = JsonValue{ .data = name };
+
+            JsonValue::Object newName;
+            newName["type"] = JsonValue{ .data = std::string("string") };
+            newName["description"] = JsonValue{ .data = std::string("New name when copying or adding an engine.") };
+            properties["newName"] = JsonValue{ .data = newName };
+
+            // Allow setting any engine parameter in add/update
+            addParametersFromGroup("engine", properties);
+
+            JsonValue::Array required;
+            required.push_back(JsonValue{ .data = std::string("command") });
+            inputSchema["required"] = JsonValue{ .data = required };
         } else {
-            // Always add engine parameters
+            // All task tools use a simple engine list
             JsonValue::Object engines;
             engines["type"] = JsonValue{ .data = std::string("string") };
-            engines["description"] = JsonValue{ .data = std::string("Comma separated list of engine executable paths") };
+            engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {})", registeredNames) };
             properties["engines"] = JsonValue{ .data = engines };
-
-            JsonValue::Object engineConf;
-            engineConf["type"] = JsonValue{ .data = std::string("string") };
-            engineConf["description"] = JsonValue{ .data = confDescription };
-            properties["engine_conf"] = JsonValue{ .data = engineConf };
 
             for (const auto& group : info.groups) {
                 addParametersFromGroup(group, properties);
             }
             
             JsonValue::Array required;
+            if (info.name != "read_report") {
+                required.push_back(JsonValue{ .data = std::string("engines") });
+            }
             inputSchema["required"] = JsonValue{ .data = required };
         }
         
@@ -335,6 +366,9 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
         if (name == "read_report") {
             content = handleReadReport(arguments);
             result["isError"] = JsonValue{ .data = false };
+        } else if (name == "manage_engines") {
+            content = handleManageEngines(arguments);
+            result["isError"] = JsonValue{ .data = false };
         } else {
             auto configData = mapJsonToConfigData(arguments);
             const AppReturnCode code = executeRunnerTool(name, configData);
@@ -367,22 +401,13 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
     QaplaHelpers::ConfigData configData;
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section> otherGroupedSections;
-    std::vector<QaplaHelpers::IniFile::Section> engineSections;
 
-    // 1st Pass: Engines
-    parseEngineArguments(arguments, engineSections);
-
-    // 2nd Pass: Parameters
+    // Parameters
     for (const auto& [key, value] : arguments) {
-        if (key != "engines" && key != "engine_conf") {
-            processParameter(key, value, engineSections, otherGroupedSections, configData);
-        }
+        processParameter(key, value, otherGroupedSections, configData);
     }
 
     // Add sections to configData
-    for (auto& s : engineSections) {
-        configData.addSection(s);
-    }
     for (auto& [name, s] : otherGroupedSections) {
         configData.addSection(s);
     }
@@ -391,45 +416,16 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
 }
 
 void McpServer::processParameter(const std::string& key, const JsonValue& value,
-    std::vector<QaplaHelpers::IniFile::Section>& engineSections,
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
     QaplaHelpers::ConfigData& configData) {
 
     const std::string valStr = valueToString(value);
 
-    // Disallow ambiguous engine_ prefix
-    if (key.starts_with("engine_")) {
-        throw AppError::makeInvalidParameters(std::format(
-            "Ambiguous parameter '{}'. Use 'each_' for all engines or 'engineN_' for a specific engine (e.g., engine0_{})",
-            key, key.substr(7)));
-    }
-
-    // Handle engineN_ prefix
-    if (key.starts_with("engine")) {
-        if (const size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
-            std::string indexStr = key.substr(6, underscorePos - 6);
-            if (!indexStr.empty() && std::all_of(indexStr.begin(), indexStr.end(), [](unsigned char c) { return std::isdigit(c); })) {
-                const size_t index = std::stoul(indexStr);
-                if (index < engineSections.size()) {
-                    std::string paramKey = key.substr(underscorePos + 1);
-                    if (paramKey.starts_with("option_")) {
-                        paramKey = "option." + paramKey.substr(7);
-                    }
-                    engineSections[index].addEntry(paramKey, valStr);
-                    return;
-                }
-                
-                throw AppError::makeInvalidParameters(std::format(
-                    "Engine index {} out of bounds (found {} engines)", index, engineSections.size()));
-            }
-        }
-    }
-
     if (const size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
         const std::string sectionName = key.substr(0, underscorePos);
         std::string paramKey = key.substr(underscorePos + 1);
 
-        if (sectionName == "each" && paramKey.starts_with("option_")) {
+        if (paramKey.starts_with("option_")) {
             paramKey = "option." + paramKey.substr(7);
         }
 
@@ -715,6 +711,150 @@ std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode c
     return summary;
 }
 
+JsonValue::Array McpServer::handleManageEngines(const JsonValue::Object& arguments) {
+    JsonValue::Array content;
+    JsonValue::Object textContent;
+    textContent["type"] = JsonValue{ .data = std::string("text") };
+
+    const std::string command = arguments.at("command").asString();
+    
+    std::string result;
+    if (command == "list") {
+        result = listEngines();
+    } else if (command == "details") {
+        result = getEngineDetails(arguments);
+    } else if (command == "add") {
+        result = addOrUpdateEngine(arguments, false);
+    } else if (command == "update") {
+        result = addOrUpdateEngine(arguments, true);
+    } else if (command == "copy") {
+        result = copyEngine(arguments);
+    } else if (command == "update_all") {
+        result = updateAllEngines(arguments);
+    } else {
+        throw AppError::makeInvalidParameters(std::format("Unknown engine command '{}'.", command));
+    }
+
+    textContent["text"] = JsonValue{ .data = result };
+    content.push_back(JsonValue{ .data = textContent });
+    return content;
+}
+
+std::string McpServer::listEngines() {
+    std::string list;
+    const auto& manager = EngineWorkerFactory::getConfigManager();
+    for (const auto& config : manager.getAllConfigs()) {
+        if (!list.empty()) {
+            list += ", ";
+        }
+        list += config.getName();
+    }
+    return std::format("Registered engines: {}", list.empty() ? "None" : list);
+}
+
+std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
+    if (!arguments.contains("name")) {
+        throw AppError::makeInvalidParameters("Engine 'name' is required for 'details' command.");
+    }
+    const std::string name = arguments.at("name").asString();
+    const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
+    if (config == nullptr) {
+        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
+    }
+
+    EngineConfiguration engineConfig;
+    engineConfig.config = *config;
+    auto section = EngineConfigFile::toSection(engineConfig, "");
+    
+    std::string details = std::format("Details for engine '{}':\n", name);
+    for (const auto& [key, value] : section.entries) {
+        details += std::format("  {} = {}\n", key, value);
+    }
+    return details;
+}
+
+std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate) {
+    if (!arguments.contains("name")) {
+        throw AppError::makeInvalidParameters("Engine 'name' is required.");
+    }
+    const std::string name = arguments.at("name").asString();
+    auto& manager = EngineWorkerFactory::getConfigManagerMutable();
+    EngineConfig* config = isUpdate ? manager.getConfigMutable(name) : nullptr;
+    
+    if (isUpdate && (config == nullptr)) {
+        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found for update.", name));
+    }
+
+    EngineConfig newConfig;
+    if (config != nullptr) {
+        newConfig = *config;
+    } else {
+        newConfig.setName(name);
+    }
+
+    // Collect all engine_ parameters
+    Settings::ValueMap options;
+    for (const auto& [key, value] : arguments) {
+        if (key.starts_with("engine_")) {
+            std::string paramKey = key.substr(7);
+            if (paramKey.starts_with("option_")) {
+                paramKey = "option." + paramKey.substr(7);
+            }
+            options[paramKey] = valueToString(value);
+        }
+    }
+
+    newConfig.setCommandLineOptions(options, true);
+    if (!isUpdate) {
+        manager.addConfig(newConfig);
+        return std::format("Engine '{}' added successfully.", name);
+    } 
+    
+    *config = newConfig;
+    return std::format("Engine '{}' updated successfully.", name);
+}
+
+std::string McpServer::copyEngine(const JsonValue::Object& arguments) {
+    if (!arguments.contains("name") || !arguments.contains("newName")) {
+        throw AppError::makeInvalidParameters("'name' and 'newName' are required for 'copy' command.");
+    }
+    const std::string name = arguments.at("name").asString();
+    const std::string newName = arguments.at("newName").asString();
+    
+    auto& manager = EngineWorkerFactory::getConfigManagerMutable();
+    const auto* config = manager.getConfig(name);
+    if (config == nullptr) {
+        throw AppError::makeInvalidParameters(std::format("Source engine '{}' not found.", name));
+    }
+
+    EngineConfig copy = *config;
+    copy.setName(newName);
+    manager.addConfig(copy);
+    return std::format("Engine '{}' copied to '{}' successfully.", name, newName);
+}
+
+std::string McpServer::updateAllEngines(const JsonValue::Object& arguments) {
+    Settings::ValueMap options;
+    for (const auto& [key, value] : arguments) {
+        if (key.starts_with("engine_")) {
+            std::string paramKey = key.substr(7);
+            if (paramKey.starts_with("option_")) {
+                paramKey = "option." + paramKey.substr(7);
+            }
+            options[paramKey] = valueToString(value);
+        }
+    }
+
+    if (options.empty()) {
+            throw AppError::makeInvalidParameters("No parameters provided to update all engines.");
+    }
+
+    for (auto& config : EngineWorkerFactory::getConfigManagerMutable().getAllConfigsMutable()) {
+        config.setCommandLineOptions(options, true);
+    }
+    return "All registered engines updated successfully.";
+}
+
 std::string McpServer::valueToString(const JsonValue& value) {
     if (value.isString()) {
         return value.asString();
@@ -730,29 +870,6 @@ std::string McpServer::valueToString(const JsonValue& value) {
         return value.asBool() ? "true" : "false";
     }
     return "";
-}
-
-void McpServer::parseEngineArguments(const JsonValue::Object& arguments, 
-    std::vector<QaplaHelpers::IniFile::Section>& engineSections) {
-    
-    auto addEngines = [&](const std::string& key, const std::string& entryKey) {
-        if (auto it = arguments.find(key); it != arguments.end()) {
-            std::stringstream ss(valueToString(it->second));
-            std::string path;
-            while (std::getline(ss, path, ',')) {
-                path = QaplaHelpers::trim(path);
-                if (!path.empty()) {
-                    QaplaHelpers::IniFile::Section s;
-                    s.name = "engine";
-                    s.addEntry(entryKey, path);
-                    engineSections.push_back(std::move(s));
-                }
-            }
-        }
-    };
-
-    addEngines("engines", "cmd");
-    addEngines("engine_conf", "conf");
 }
 
 } // namespace QaplaTester::Mcp
