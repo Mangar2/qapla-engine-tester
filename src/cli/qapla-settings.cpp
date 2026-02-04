@@ -88,10 +88,10 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
 
     // 5. Load tournament/sprt config files (to continue a run - these override everything)
     auto sprtGroup = Manager::instance().getGroupInstance("sprt");
-    std::string sprtFile = sprtGroup ? sprtGroup->get<std::string>("file") : "";
+    std::string sprtFile = sprtGroup.has_value() ? sprtGroup->get<std::string>("file") : "";
     
     auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
-    std::string tournamentFile = tournamentGroup ? tournamentGroup->get<std::string>("file") : "";
+    std::string tournamentFile = tournamentGroup.has_value() ? tournamentGroup->get<std::string>("file") : "";
 
     if (!sprtFile.empty() || !tournamentFile.empty()) {
         if (isMcp) {
@@ -138,7 +138,7 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     }
     
     // Apply dynamic configuration if provided
-    if (configData) {
+    if (configData.has_value()) {
         Manager::instance().parseInput(*configData, true);
     }
     
@@ -171,7 +171,7 @@ const LoggerConfig* QaplaSettings::getLoggerConfig() const {
 }
 
 void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) const {
-    if (!m_loggerConfig) {
+    if (m_loggerConfig == nullptr) {
         throw AppError::make("Logger configuration not initialized.");
     }
     LoggerConfig config = *m_loggerConfig;
@@ -182,7 +182,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     TraceLevel reportLevel = TraceLevel::result;
     TraceLevel mcpLevel = TraceLevel::none;
     
-    if (loggingSetting) {
+    if (loggingSetting.has_value()) {
         if (loggingSetting->get<bool>("engine")) {
             EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
         } else {
@@ -306,6 +306,9 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup({
         .name = "epd", 
         .description = "Configuration to run an epd testset against engines", 
+        .longDescription = R"(Runs an EPD (Extended Position Description) testset.
+Each engine analyzes a set of positions and its performance is measured by how many 'best moves' it finds within the time limit.
+Results are reported as a success rate and compared against a minimum threshold.)",
         .unique = true, 
         .keys = Settings::getEpdKeys()
     });
@@ -314,6 +317,15 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup({
         .name = "sprt", 
         .description = "Sequential Probability Ratio Test configuration", 
+        .longDescription = R"(Runs a Sequential Probability Ratio Test (SPRT) between two engines. 
+SPRT is an efficient method to determine if one engine is stronger than another with statistical confidence.
+
+Typical SPRT configurations:
+- **Small Improvement**: alpha=0.05, beta=0.05, eloupper=5, elolower=0. Checks if engine 1 is at least 5 Elo stronger.
+- **Strong Improvement**: alpha=0.05, beta=0.05, eloupper=10, elolower=0. Checks if engine 1 is at least 10 Elo stronger.
+- **Regression Testing**: alpha=0.05, beta=0.05, eloupper=0, elolower=-5. Checks if engine 1 is at least not more than 5 Elo weaker.
+
+The test stops as soon as H0 (no difference or weaker) or H1 (stronger) is accepted.)",
         .unique = true, 
         .keys = Settings::getSprtKeys()
     });
@@ -345,6 +357,9 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup({
         .name = "tournament", 
         .description = "Tournament setup and general parameters", 
+        .longDescription = R"(Runs a tournament between multiple engines.
+Pairings are generated based on the tournament type (e.g., round-robin or gauntlet).
+Engines play against each other with color swapping and opening variations.)",
         .unique = true, 
         .keys = Settings::getTournamentKeys()
     });
@@ -369,6 +384,9 @@ void QaplaSettings::init() {
     Manager::instance().registerGroup({
         .name = "spsa", 
         .description = "SPSA parameter optimization configuration", 
+        .longDescription = R"(Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm.
+Parameters are perturbed in multiple iterations to find the optimal values that maximize playing strength.
+Requires defining specific parameters to optimize using the 'spsavalue' group.)",
         .unique = true, 
         .keys = Settings::getSpsaKeys()
     });
@@ -388,7 +406,7 @@ void QaplaSettings::setLoggerConfiguration() {
     std::string logPath = "./log";
     std::string logModeStr = "one";
     
-    if (loggingSetting) {
+    if (loggingSetting.has_value()) {
         logPath = loggingSetting->get<std::string>("path");
         logModeStr = loggingSetting->get<std::string>("mode");
     }
@@ -415,19 +433,7 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
 
     auto engineNamesStr = manager.get<std::string>("engines");
     if (!engineNamesStr.empty()) {
-        auto engineNames = QaplaHelpers::split(engineNamesStr, ',');
-        for (auto& name : engineNames) {
-            name = QaplaHelpers::trim(name);
-            if (name.empty()) {
-                continue;
-            }
-            const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(name);
-            if (engineConfig == nullptr) {
-                throw AppError::makeInvalidParameters("Engine configuration '" + name + "' not found.");
-            }
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(*engineConfig);
-        }
-        EngineWorkerFactory::assignUniqueDisplayNames();
+        applyEngineList(engineNamesStr);
         return;
     }
 
@@ -436,49 +442,72 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
     auto loggingSetting = manager.getGroupInstance("logging");
 
     for (const auto& engine : engineSettings) {
-        // engine.mergeWithDefaults(each) ensures per-engine settings take precedence over global [each] defaults
-        Settings::GroupInstance mergedInstance = eachSetting 
-            ? engine.mergeWithDefaults(*eachSetting) 
-            : engine;
-
-        auto cmd = mergedInstance.get<std::string>("cmd");
-        auto conf = mergedInstance.get<std::string>("conf");
-        auto name = mergedInstance.get<std::string>("name");
-
-        // Logging is configured per engine, requiring global logging settings to be applied individually
-        Settings::ValueMap finalOptions = mergedInstance.getValues();
-        if (loggingSetting && !loggingSetting->get<bool>("engine")) {
-            finalOptions["trace"] = std::string("none");
-        }
-
-        if (!cmd.empty()) {
-            // Using executable path (cmd) to create a new EngineConfig from scratch
-            auto config = EngineConfig::createFromValueMap(finalOptions);
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-        }
-        else if (!conf.empty()) {
-            // Using named configuration reference (conf), loading it and overlaying command-line options
-            const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
-            if (engineConfig == nullptr) {
-                throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
-            }
-            auto config = *engineConfig;
-            config.setCommandLineOptions(finalOptions, true);
-            EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-        }
-        else {
-            std::string engineName = name.empty() ? "" : " (for " + name + ")";
-            throw AppError::makeInvalidParameters("No engine command or configuration provided"
-                + engineName + ". Please specify either 'cmd' or 'conf'.");
-        }
+        applyEngineInstance(engine, eachSetting.has_value() ? &(*eachSetting) : nullptr, 
+            loggingSetting.has_value() ? &(*loggingSetting) : nullptr);
     }
     // Name conflicts would cause ambiguity in tournament results
     EngineWorkerFactory::assignUniqueDisplayNames();
 }
 
+void QaplaSettings::applyEngineList(const std::string& engineNamesStr) {
+    auto engineNames = QaplaHelpers::split(engineNamesStr, ',');
+    for (auto& name : engineNames) {
+        name = QaplaHelpers::trim(name);
+        if (name.empty()) {
+            continue;
+        }
+        const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(name);
+        if (engineConfig == nullptr) {
+            throw AppError::makeInvalidParameters("Engine configuration '" + name + "' not found.");
+        }
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(*engineConfig);
+    }
+    EngineWorkerFactory::assignUniqueDisplayNames();
+}
+
+void QaplaSettings::applyEngineInstance(const Settings::GroupInstance& instance,
+                                         const Settings::GroupInstance* eachSetting,
+                                         const Settings::GroupInstance* loggingSetting) {
+    // instance.mergeWithDefaults(each) ensures per-engine settings take precedence over global [each] defaults
+    Settings::GroupInstance mergedInstance = (eachSetting != nullptr) 
+        ? instance.mergeWithDefaults(*eachSetting) 
+        : instance;
+
+    auto cmd = mergedInstance.get<std::string>("cmd");
+    auto conf = mergedInstance.get<std::string>("conf");
+    auto name = mergedInstance.get<std::string>("name");
+
+    // Logging is configured per engine, requiring global logging settings to be applied individually
+    Settings::ValueMap finalOptions = mergedInstance.getValues();
+    if (loggingSetting != nullptr && !loggingSetting->get<bool>("engine")) {
+        finalOptions["trace"] = std::string("none");
+    }
+
+    if (!cmd.empty()) {
+        // Using executable path (cmd) to create a new EngineConfig from scratch
+        auto config = EngineConfig::createFromValueMap(finalOptions);
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+    }
+    else if (!conf.empty()) {
+        // Using named configuration reference (conf), loading it and overlaying command-line options
+        const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
+        if (engineConfig == nullptr) {
+            throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
+        }
+        auto config = *engineConfig;
+        config.setCommandLineOptions(finalOptions, true);
+        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
+    }
+    else {
+        std::string engineName = name.empty() ? "" : " (for " + name + ")";
+        throw AppError::makeInvalidParameters("No engine command or configuration provided"
+            + engineName + ". Please specify either 'cmd' or 'conf'.");
+    }
+}
+
 void QaplaSettings::setPgnConfig(Settings::Manager& manager, const std::string& groupName) {
     auto pgnOptionInstance = manager.getGroupInstance(groupName);
-    if (!pgnOptionInstance) {
+    if (!pgnOptionInstance.has_value()) {
         m_pgnOptions = nullptr;
         return;
     }
@@ -488,7 +517,7 @@ void QaplaSettings::setPgnConfig(Settings::Manager& manager, const std::string& 
 }
 
 std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
-    if (m_pgnOptions) {
+    if (m_pgnOptions != nullptr) {
         return *m_pgnOptions;
     }
     return std::nullopt;
@@ -496,7 +525,7 @@ std::optional<PgnSave::Options> QaplaSettings::getPgnOptions() const {
 
 void QaplaSettings::setDrawAdjudicationConfig(Settings::Manager& manager, const std::string& groupName) {
     auto draw = manager.getGroupInstance(groupName);
-    if (!draw) {
+    if (!draw.has_value()) {
         m_drawConfig = nullptr;
         return;
     }
@@ -506,7 +535,7 @@ void QaplaSettings::setDrawAdjudicationConfig(Settings::Manager& manager, const 
 }
 
 std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDrawAdjudicationConfig() const {
-    if (m_drawConfig) {
+    if (m_drawConfig != nullptr) {
         return *m_drawConfig;
     }
     return std::nullopt;
@@ -514,7 +543,7 @@ std::optional<AdjudicationManager::DrawAdjudicationConfig> QaplaSettings::getDra
 
 void QaplaSettings::setResignAdjudicationConfig(Settings::Manager& manager, const std::string& groupName) {
     auto resign = manager.getGroupInstance(groupName);
-    if (!resign) {
+    if (!resign.has_value()) {
         m_resignConfig = nullptr;
         return;
     }
@@ -524,7 +553,7 @@ void QaplaSettings::setResignAdjudicationConfig(Settings::Manager& manager, cons
 }
 
 std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getResignAdjudicationConfig() const {
-    if (m_resignConfig) {
+    if (m_resignConfig != nullptr) {
         return *m_resignConfig;
     }
     return std::nullopt;
@@ -532,7 +561,7 @@ std::optional<AdjudicationManager::ResignAdjudicationConfig> QaplaSettings::getR
 
 void QaplaSettings::setOpenings(Settings::Manager& manager, const std::string& groupName) {
     auto opening = manager.getGroupInstance(groupName);
-    if (!opening) {
+    if (!opening.has_value()) {
         m_openings = nullptr;
         return;
     }
@@ -542,7 +571,7 @@ void QaplaSettings::setOpenings(Settings::Manager& manager, const std::string& g
 }
 
 std::optional<Openings> QaplaSettings::getOpenings() const {
-    if (!m_openings) {
+    if (m_openings == nullptr) {
         return std::nullopt;
     }
     return *m_openings;
@@ -550,7 +579,7 @@ std::optional<Openings> QaplaSettings::getOpenings() const {
 
 void QaplaSettings::setTournamentConfig(Settings::Manager& manager, const std::string& groupName) {
     auto tournament = manager.getGroupInstance(groupName);
-    if (!tournament) {
+    if (!tournament.has_value()) {
         m_tournamentConfig = nullptr;
         return;
     }
@@ -558,13 +587,13 @@ void QaplaSettings::setTournamentConfig(Settings::Manager& manager, const std::s
     m_tournamentConfig = std::make_unique<TournamentConfig>(
         TournamentConfigFile::fromManager(manager, groupName));
     
-    if (m_openings) {
+    if (m_openings != nullptr) {
         m_tournamentConfig->openings = *m_openings;
     }
 }
 
 std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
-    if (!m_tournamentConfig) {
+    if (m_tournamentConfig == nullptr) {
         return std::nullopt;
     }
     return *m_tournamentConfig;
@@ -572,7 +601,7 @@ std::optional<TournamentConfig> QaplaSettings::getTournamentConfig() const {
 
 void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string& groupName) {
     auto sprt = manager.getGroupInstance(groupName);
-    if (!sprt) {
+    if (!sprt.has_value()) {
         m_sprtConfig = nullptr;
         return;
     }
@@ -580,13 +609,13 @@ void QaplaSettings::setSprtConfig(Settings::Manager& manager, const std::string&
     m_sprtConfig = std::make_unique<SprtConfig>(
         SprtConfigFile::fromManager(manager, groupName));
     
-    if (m_openings) {
+    if (m_openings != nullptr) {
         m_sprtConfig->openings = *m_openings;
     }
 }
 
 std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
-    if (!m_sprtConfig) {
+    if (m_sprtConfig == nullptr) {
         return std::nullopt;
     }
     return *m_sprtConfig;
@@ -594,7 +623,7 @@ std::optional<SprtConfig> QaplaSettings::getSprtConfig() const {
 
 void QaplaSettings::setEpdConfig() {
     auto epdGroup = Manager::instance().getGroupInstance("epd");
-    if (!epdGroup) {
+    if (!epdGroup.has_value()) {
         m_epdConfig = nullptr;
         return;
     }
@@ -609,7 +638,7 @@ void QaplaSettings::setEpdConfig() {
 }
 
 std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
-    if (!m_epdConfig) {
+    if (m_epdConfig == nullptr) {
         return std::nullopt;
     }
     return *m_epdConfig;
@@ -617,7 +646,7 @@ std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
 
 void QaplaSettings::setSPSAConfig() {
     auto spsaGroup = Manager::instance().getGroupInstance("spsa");
-    if (!spsaGroup) {
+    if (!spsaGroup.has_value()) {
         m_spsaConfig = nullptr;
         return;
     }
@@ -633,7 +662,7 @@ void QaplaSettings::setSPSAConfig() {
     m_spsaConfig->openingsSeed = spsaGroup->get<unsigned int>("seed");
     m_spsaConfig->swapColors = !spsaGroup->get<bool>("noswap");
     
-    if (m_openings) {
+    if (m_openings != nullptr) {
         m_spsaConfig->openingsFile = m_openings->file;
     }
     
@@ -657,7 +686,7 @@ void QaplaSettings::setSPSAConfig() {
 }
 
 std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
-    if (!m_spsaConfig) {
+    if (m_spsaConfig == nullptr) {
         return std::nullopt;
     }
     return *m_spsaConfig;

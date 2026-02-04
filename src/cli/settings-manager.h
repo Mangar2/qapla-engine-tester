@@ -42,6 +42,7 @@ namespace QaplaTester::Settings {
     struct GlobalDefinition {
         std::string name;                    ///< Parameter name, case-insensitive
         std::string description;             ///< Help text shown to users
+        std::string longDescription{};         ///< Detailed AI-oriented description for MCP
         bool isRequired = false;             ///< True if parameter must be provided
         std::optional<Value> defaultValue;   ///< Default value if parameter is not required
         ValueType type;                      ///< Expected value type for validation        
@@ -55,6 +56,7 @@ namespace QaplaTester::Settings {
      */
     struct ParameterDefinition {
         std::string description;             ///< Help text shown to users
+        std::string longDescription{};       ///< Detailed AI-oriented description for MCP
         bool isRequired = false;             ///< True if parameter must be provided within its group
         std::optional<Value> defaultValue;   ///< Default value if parameter is not required
         ValueType type;                      ///< Expected value type for validation
@@ -70,6 +72,7 @@ namespace QaplaTester::Settings {
     struct GroupDefinition {
         std::string name;                                             ///< Group name, case-insensitive (e.g., "engine", "openings")
         std::string description;                                      ///< Help text shown to users
+        std::string longDescription{};                                  ///< Detailed AI-oriented description for MCP
         bool unique;                                                  ///< True if only one instance of this group is allowed
         std::vector<std::string> primaryKey{};                          ///< List of keys that uniquely identify an instance of the group
         QaplaHelpers::StableMap<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions (preserves insertion order)
@@ -491,6 +494,15 @@ namespace QaplaTester::Settings {
          */
         GroupInstancesMap groupInstances_;
 
+        /**
+         * @brief Converts a group instance to an IniFile::Section.
+         * @param groupName The name of the group for the section.
+         * @param instance The group instance to convert.
+         * @param suppressDefault If true, keys that match their default values are omitted.
+         * @return The converted section.
+         */
+        [[nodiscard]] static QaplaHelpers::IniFile::Section instanceToSection(
+            const std::string& groupName, const GroupInstance& instance, bool suppressDefault);
         
     };
-} // namespace QaplaTester::CliSettings
+} // namespace QaplaTester::Settings

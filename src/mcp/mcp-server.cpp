@@ -243,10 +243,19 @@ void McpServer::listTools(const JsonValue& requestId) {
         }
     }
 
+    const auto& groupDefs = Settings::Manager::instance().getGroupDefinitions();
+
     for (const auto& info : toolsToRegister) {
         JsonValue::Object tool;
         tool["name"] = JsonValue{ .data = std::string(info.name) };
-        tool["description"] = JsonValue{ .data = std::string(info.description) };
+        
+        // Use longDescription from main group if available
+        std::string description(info.description);
+        const std::string mainGroupName = (info.name == "turnier") ? "tournament" : std::string(info.name);
+        if (const auto it = groupDefs.find(mainGroupName); it != groupDefs.end() && !it->second.longDescription.empty()) {
+            description = it->second.longDescription;
+        }
+        tool["description"] = JsonValue{ .data = description };
         
         JsonValue::Object inputSchema;
         inputSchema["type"] = JsonValue{ .data = std::string("object") };
@@ -351,7 +360,7 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
                 prop["type"] = JsonValue{ .data = std::string("string") }; 
                 break;
         }
-        prop["description"] = JsonValue{ .data = def.description };
+        prop["description"] = JsonValue{ .data = def.longDescription.empty() ? def.description : def.longDescription };
         properties[std::format("{}_{}", groupName, key)] = JsonValue{ .data = prop };
     }
 }
