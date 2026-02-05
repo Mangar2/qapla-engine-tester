@@ -31,6 +31,8 @@ struct JsonValue {
     [[nodiscard]] double asDouble() const { return std::get<double>(data); }
     [[nodiscard]] bool isBool() const { return std::holds_alternative<bool>(data); }
     [[nodiscard]] bool asBool() const { return std::get<bool>(data); }
+    [[nodiscard]] bool isArray() const { return std::holds_alternative<Array>(data); }
+    [[nodiscard]] const Array& asArray() const { return std::get<Array>(data); }
 };
 
 /**
