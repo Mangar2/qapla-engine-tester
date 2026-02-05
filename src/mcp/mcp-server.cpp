@@ -218,7 +218,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         {
             .name = "spsa",
             .description = "Optimizes engine parameters using SPSA",
-            .groups = {"spsa", "openings", "draw", "resign", "pgnoutput", "logging"}
+            .groups = {"spsa", "spsavalue", "openings", "draw", "resign", "pgnoutput", "logging"}
         },
         {
             .name = "manage_engines",
@@ -339,6 +339,47 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
         return;
     }
 
+    if (!it->second.unique) {
+        // Handle non-unique groups (like spsavalue) as an array of objects
+        JsonValue::Object arrayProp;
+        arrayProp["type"] = JsonValue{ .data = std::string("array") };
+        
+        JsonValue::Object items;
+        items["type"] = JsonValue{ .data = std::string("object") };
+        
+        JsonValue::Object itemProperties;
+        for (const auto& [key, def] : it->second.keys) {
+            if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+                continue;
+            }
+            
+            JsonValue::Object prop;
+            switch (def.type) {
+                case Settings::ValueType::Bool: 
+                    prop["type"] = JsonValue{ .data = std::string("boolean") }; 
+                    break;
+                case Settings::ValueType::Int:
+                case Settings::ValueType::UInt: 
+                    prop["type"] = JsonValue{ .data = std::string("integer") }; 
+                    break;
+                case Settings::ValueType::Float: 
+                    prop["type"] = JsonValue{ .data = std::string("number") }; 
+                    break;
+                default: 
+                    prop["type"] = JsonValue{ .data = std::string("string") }; 
+                    break;
+            }
+            prop["description"] = JsonValue{ .data = def.longDescription.empty() ? std::string(def.description) : def.longDescription };
+            itemProperties[key] = JsonValue{ .data = prop };
+        }
+        items["properties"] = JsonValue{ .data = itemProperties };
+        arrayProp["items"] = JsonValue{ .data = items };
+        arrayProp["description"] = JsonValue{ .data = it->second.longDescription.empty() ? std::string(it->second.description) : it->second.longDescription };
+        
+        properties[std::string(groupName)] = JsonValue{ .data = arrayProp };
+        return;
+    }
+
     for (const auto& [key, def] : it->second.keys) {
         if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
@@ -443,6 +484,20 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
 void McpServer::processParameter(const std::string& key, const JsonValue& value,
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
     QaplaHelpers::ConfigData& configData) {
+
+    if (value.isArray()) {
+        for (const auto& item : value.asArray()) {
+            if (item.isObject()) {
+                QaplaHelpers::IniFile::Section s;
+                s.name = key;
+                for (const auto& [propKey, propVal] : item.asObject()) {
+                    s.addEntry(propKey, valueToString(propVal));
+                }
+                configData.addSection(s);
+            }
+        }
+        return;
+    }
 
     const std::string valStr = valueToString(value);
 

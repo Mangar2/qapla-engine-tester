@@ -386,7 +386,10 @@ Engines play against each other with color swapping and opening variations.)",
         .description = "SPSA parameter optimization configuration", 
         .longDescription = R"(Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm.
 Parameters are perturbed in multiple iterations to find the optimal values that maximize playing strength.
-Requires defining specific parameters to optimize using the 'spsavalue' group.)",
+The process requires two engines; the second engine will be automatically configured with the perturbed parameters.
+Each iteration involves running a set of games with slightly different parameter values to estimate the gradient of the performance.
+IMPORTANT: You MUST define ALL parameters you want to optimize using the 'spsavalue' group. 
+Each 'spsavalue' must be fully defined with name, default, min, max, and step.)",
         .unique = true, 
         .keys = Settings::getSpsaKeys()
     });
@@ -395,6 +398,9 @@ Requires defining specific parameters to optimize using the 'spsavalue' group.)"
     Manager::instance().registerGroup({
         .name = "spsavalue", 
         .description = "Defines a single parameter to optimize with SPSA", 
+        .longDescription = R"(Defines a parameter for SPSA optimization.
+All fields (name, default, min, max, step) are mandatory for the optimization process.
+Multiple 'spsavalue' groups can be defined to optimize several parameters simultaneously.)",
         .unique = false, 
         .keys = Settings::getSpsaValueKeys()
     });
