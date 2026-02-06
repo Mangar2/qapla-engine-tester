@@ -33,6 +33,7 @@
 namespace QaplaTester::Mcp {
 
 void McpServer::initialize() {
+    AppError::setDefaultInvalidParameterUserHint("Please refer to the tool definition schema for supported parameters.");
     silenceLoggers();
 
     // Set up MCP logging callback for report logger
@@ -349,6 +350,12 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         copyName["type"] = JsonValue{ .data = std::string("string") };
         copyName["description"] = JsonValue{ .data = std::string("Target name when copying an engine.") };
         properties["engine_copyName"] = JsonValue{ .data = copyName };
+
+        // Hint for dynamic UCI options
+        JsonValue::Object optionProp;
+        optionProp["type"] = JsonValue{ .data = std::string("string") };
+        optionProp["description"] = JsonValue{ .data = std::string("Set any UCI option. Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128. Use the 'details' command to list available options for a specific engine.") };
+        properties["engine_option_<name>"] = JsonValue{ .data = optionProp };
 
         JsonValue::Array required;
         required.push_back(JsonValue{ .data = std::string("command") });
