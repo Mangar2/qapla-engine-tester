@@ -85,7 +85,7 @@ void EngineCapabilities::storeCapabilities(const std::vector<std::unique_ptr<Eng
         auto* const config = EngineWorkerFactory::getConfigManagerMutable()
             .getConfigMutableByCmdAndProtocol(command, protocol);
         if (config != nullptr && !engine->getEngineName().empty()) {
-            config->setName(engine->getEngineName());
+            config->setReportedName(engine->getEngineName());
             config->setAuthor(engine->getEngineAuthor());
         }
         

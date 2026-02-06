@@ -73,6 +73,12 @@ public:
     void setName(const std::string& engineName) { name_ = engineName; }
 
     /**
+     * @brief Sets the name of the engine as read from the engine itself.
+     * @param originalName The original name to assign.
+     */
+    void setReportedName(const std::string& originalName) { originalName_ = originalName; }
+
+    /**
      * @brief Sets the author of the engine.
      *
      * @param engineAuthor The name of the engine's author.
@@ -125,6 +131,12 @@ public:
      * @return The engine name.
      */
     [[nodiscard]] const std::string& getName() const { return name_; }
+
+    /**
+     * @brief Gets the original engine name as read from the engine itself.
+     * @return The original engine name.
+     */
+    [[nodiscard]] const std::string& getReportedName() const { return originalName_; }
 
     /**
      * @brief Gets the engines author.

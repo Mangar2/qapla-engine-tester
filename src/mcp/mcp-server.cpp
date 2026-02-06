@@ -910,13 +910,31 @@ std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
         throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
     }
 
-    EngineConfiguration engineConfig;
-    engineConfig.config = *config;
-    auto section = EngineConfigFile::toSection(engineConfig, "");
-    
     std::string details = std::format("Details for engine '{}':\n", name);
-    for (const auto& [key, value] : section.entries) {
-        details += std::format("  {} = {}\n", key, value);
+
+    details += std::format("  Configured Name: {}\n", config->getName());
+    details += std::format("  Reported Name:   {}\n", config->getReportedName());
+    details += std::format("  Executable:      {}\n", config->getCmd());
+    details += std::format("  Protocol:        {}\n", QaplaTester::to_string(config->getProtocol()));
+
+    details += "\nConfiguration:\n";
+    if (!config->getDir().empty()) {
+        details += std::format("  dir = {}\n", config->getDir());
+    }
+    if (!config->getArgs().empty()) {
+        details += std::format("  args = {}\n", config->getArgs());
+    }
+    
+    details += std::format("  tc = {}\n", QaplaTester::to_string(config->getTimeControl()));
+    details += std::format("  restart = {}\n", QaplaTester::to_string(config->getRestartOption()));
+    details += std::format("  ponder = {}\n", config->isPonderEnabled() ? "true" : "false");
+    details += std::format("  gauntlet = {}\n", config->isGauntlet() ? "true" : "false");
+
+    const auto options = config->getOptionValues();
+    if (!options.empty()) {
+        for (const auto& [key, value] : options) {
+            details += std::format("  option.{} = {}\n", key, value);
+        }
     }
 
     if (const auto cap = capabilities_.getCapability(config->getCmd(), config->getProtocol())) {
