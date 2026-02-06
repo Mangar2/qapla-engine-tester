@@ -98,9 +98,6 @@ AppReturnCode McpServer::run() {
         }
 
         lastResult = processMessage(jsonObject);
-        if (!isTestMode && (lastResult != AppReturnCode::NoError)) {
-            return lastResult;
-        }
 
         // In test mode, terminate after the first non-handshake message (request or notification)
         if (isTestMode && !method.empty() && (method != "initialize") && (method != "notifications/initialized")) {
@@ -234,7 +231,7 @@ void McpServer::listTools(const JsonValue& requestId) {
             .groups = {"sprt", "openings", "draw", "resign", "pgnoutput", "logging"}
         },
         {
-            .name = "turnier",
+            .name = "tournament",
             .description = "Runs a tournament between engines",
             .groups = {"tournament", "openings", "draw", "resign", "pgnoutput", "logging"}
         },
@@ -279,8 +276,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         
         // Use longDescription from main group if available
         std::string description(info.description);
-        const std::string mainGroupName = (info.name == "turnier") ? "tournament" : std::string(info.name);
-        if (const auto it = groupDefs.find(mainGroupName); it != groupDefs.end() && !it->second.longDescription.empty()) {
+        if (const auto it = groupDefs.find(std::string(info.name)); it != groupDefs.end() && !it->second.longDescription.empty()) {
             description = it->second.longDescription;
         }
         tool["description"] = JsonValue{ .data = description };
@@ -364,14 +360,23 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {})", registeredNames) };
         properties["engines"] = JsonValue{ .data = engines };
 
+        // Global settings
+        JsonValue::Object concurrency;
+        concurrency["type"] = JsonValue{ .data = std::string("integer") };
+        concurrency["description"] = JsonValue{ .data = std::string("Maximal number of in parallel running engines") };
+        properties["concurrency"] = JsonValue{ .data = concurrency };
+
+        JsonValue::Object rapid;
+        rapid["type"] = JsonValue{ .data = std::string("boolean") };
+        rapid["description"] = JsonValue{ .data = std::string("Enables rapid mode (suppresses engine info lines)") };
+        properties["rapid"] = JsonValue{ .data = rapid };
+
         for (const auto& group : info.groups) {
             addParametersFromGroup(group, properties);
         }
         
         JsonValue::Array required;
-        if (info.name != "read_report") {
-            required.push_back(JsonValue{ .data = std::string("engines") });
-        }
+        required.push_back(JsonValue{ .data = std::string("engines") });
         inputSchema["required"] = JsonValue{ .data = required };
     }
     
@@ -484,10 +489,41 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
             content = handleManageEngines(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else {
-            auto configData = mapJsonToConfigData(arguments);
-            returnCode = executeRunnerTool(name, configData);
+            // Handle active engines selection
+            if (arguments.contains("engines")) {
+                const std::string engineList = arguments.at("engines").asString();
+                auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
+                activeEngines.clear();
+                
+                std::stringstream ss(engineList);
+                std::string segment;
+                while (std::getline(ss, segment, ',')) {
+                     std::string name = QaplaHelpers::trim(segment); 
+                     if (name.empty()) {
+                         continue;
+                     }
+                     
+                     const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
+                     if (config != nullptr) {
+                        activeEngines.push_back(*config);
+                     } else {
+                        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry.", name));
+                     }
+                }
+                
+                EngineWorkerFactory::assignUniqueDisplayNames();
+            }
+            
+            JsonValue::Object toolArgs = arguments;
+            if (toolArgs.contains("engines")) {
+                toolArgs.erase("engines");
+            }
+
+            auto configData = mapJsonToConfigData(toolArgs);
+            returnCode = executeRunnerTool(configData);
 
             JsonValue::Object textContent;
+
             textContent["type"] = JsonValue{ .data = std::string("text") };
             textContent["text"] = JsonValue{ .data = formatRunSummary(name, returnCode) };
             content.push_back(JsonValue{ .data = textContent });
@@ -574,6 +610,9 @@ void McpServer::silenceLoggers() {
     loggingSection.addEntry("mcp", "result");
     loggingSection.addEntry("engine", "false");
     mcpConfig.addSection(loggingSection);
+
+    Logger::reportLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::result);
+    EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::error);
 
     Settings::Manager::instance().parseInput(mcpConfig, true);
 }
@@ -816,21 +855,9 @@ JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments)
     throw std::runtime_error("Could not read report file: file not found.");
 }
 
-AppReturnCode McpServer::executeRunnerTool(const std::string& name, QaplaHelpers::ConfigData& configData) {
-    // Ensure the section for the requested tool exists
-    const std::string sectionName = (name == "turnier") ? "tournament" : name;
-    if (!configData.getSectionList(sectionName).has_value()) {
-        QaplaHelpers::IniFile::Section toolSection;
-        toolSection.name = sectionName;
-        configData.addSection(toolSection);
-    }
+AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData) {
 
-    // Apply configuration
     Settings::QaplaSettings::instance().applyConfig(configData);
-
-    // Tool-specific log names applied AFTER config (which might have cleared them)
-    Settings::QaplaSettings::instance().applyLoggerConfig(std::format("report-{}", name));
-    EngineLogger::logBaseName_ = std::format("engine-{}", name);
 
     // Run dispatcher
     return AppRunner::runDispatcher();
@@ -900,24 +927,10 @@ std::string McpServer::listEngines() {
     return std::format("Registered engines: {}", list.empty() ? "None" : list);
 }
 
-std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
-    if (!arguments.contains("engine_name")) {
-        throw AppError::makeInvalidParameters("Engine 'engine_name' is required for 'details' command.");
-    }
-    const std::string name = arguments.at("engine_name").asString();
-    const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
-    if (config == nullptr) {
-        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
-    }
+namespace {
 
-    std::string details = std::format("Details for engine '{}':\n", name);
-
-    details += std::format("  Configured Name: {}\n", config->getName());
-    details += std::format("  Reported Name:   {}\n", config->getReportedName());
-    details += std::format("  Executable:      {}\n", config->getCmd());
-    details += std::format("  Protocol:        {}\n", QaplaTester::to_string(config->getProtocol()));
-
-    details += "\nConfiguration:\n";
+std::string formatEngineConfiguration(const EngineConfig* config) {
+    std::string details = "\nConfiguration:\n";
     if (!config->getDir().empty()) {
         details += std::format("  dir = {}\n", config->getDir());
     }
@@ -936,8 +949,12 @@ std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
             details += std::format("  option.{} = {}\n", key, value);
         }
     }
+    return details;
+}
 
-    if (const auto cap = capabilities_.getCapability(config->getCmd(), config->getProtocol())) {
+std::string formatSupportedOptions(const EngineConfig* config, const QaplaConfiguration::EngineCapabilities& capabilities) {
+    std::string details;
+    if (const auto cap = capabilities.getCapability(config->getCmd(), config->getProtocol())) {
         details += "\nSupported Options:\n";
         for (const auto& opt : cap->getSupportedOptions()) {
             details += std::format("  -- Name: {}\n", opt.name);
@@ -961,6 +978,30 @@ std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
             }
         }
     }
+    return details;
+}
+
+} // namespace
+
+std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
+    if (!arguments.contains("engine_name")) {
+        throw AppError::makeInvalidParameters("Engine 'engine_name' is required for 'details' command.");
+    }
+    const std::string name = arguments.at("engine_name").asString();
+    const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
+    if (config == nullptr) {
+        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
+    }
+
+    std::string details = std::format("Details for engine '{}':\n", name);
+
+    details += std::format("  Configured Name: {}\n", config->getName());
+    details += std::format("  Reported Name:   {}\n", config->getReportedName());
+    details += std::format("  Executable:      {}\n", config->getCmd());
+    details += std::format("  Protocol:        {}\n", QaplaTester::to_string(config->getProtocol()));
+
+    details += formatEngineConfiguration(config);
+    details += formatSupportedOptions(config, capabilities_);
 
     return details;
 }
@@ -969,8 +1010,8 @@ std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, boo
     if (!arguments.contains("engine_name") || arguments.at("engine_name").asString().empty()) {
         throw AppError::makeInvalidParameters("Engine 'engine_name' is required.");
     }
-    if (!arguments.contains("engine_cmd") || arguments.at("engine_cmd").asString().empty()) {
-        throw AppError::makeInvalidParameters("Engine 'engine_cmd' (path to executable) is required for adding or updating an engine via MCP.");
+    if (!isUpdate && (!arguments.contains("engine_cmd") || arguments.at("engine_cmd").asString().empty())) {
+        throw AppError::makeInvalidParameters("Engine 'engine_cmd' (path to executable) is required for adding an engine via MCP.");
     }
     const std::string name = arguments.at("engine_name").asString();
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();

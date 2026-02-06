@@ -194,11 +194,10 @@ private:
 
     /**
      * @brief Executes a tool that uses the AppRunner dispatcher.
-     * @param name The tool name.
      * @param configData The prepared configuration data.
      * @return Tool return code.
      */
-    static AppReturnCode executeRunnerTool(const std::string& name, QaplaHelpers::ConfigData& configData);
+    static AppReturnCode executeRunnerTool(QaplaHelpers::ConfigData& configData);
 
     /**
      * @brief Formats the summary text for a tool execution.
