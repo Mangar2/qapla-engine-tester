@@ -19,6 +19,7 @@
 
 #include "mcp-server.h"
 #include "json-helper.h"
+#include "../cli/settings-definitions.h"
 #include "../cli/settings-manager.h"
 #include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
@@ -59,11 +60,24 @@ void McpServer::initialize() {
         sendNotification("notifications/message", params);
     });
 
+    // Set up MCP notification callback for engine autodetection
+    QaplaConfiguration::EngineCapabilities::setMcpNotificationCallback([](const std::string& message) {
+        JsonValue::Object params;
+        params["level"] = JsonValue{ .data = std::string("info") };
+        params["logger"] = JsonValue{ .data = std::string("autodetect") };
+        params["data"] = JsonValue{ .data = message };
+        sendNotification("notifications/message", params);
+    });
+
     // Default MCP trace level to result
     Logger::reportLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::result);
 }
 
 AppReturnCode McpServer::run() {
+    bool isTest = false;
+    if (auto mcpGroup = Settings::Manager::instance().getGroupInstance("mcp")) {
+        isTest = mcpGroup->get<bool>("test");
+    }
     while (true) {
         const auto message = readMessage();
         if (!message.has_value()) {
@@ -74,8 +88,19 @@ AppReturnCode McpServer::run() {
             continue;
         }
 
-        if (processMessage(message->asObject()) != AppReturnCode::NoError) {
+        const auto& obj = message->asObject();
+        std::string method;
+        if (obj.contains("method")) {
+            method = obj.at("method").asString();
+        }
+
+        if (processMessage(obj) != AppReturnCode::NoError) {
             return AppReturnCode::NoError;
+        }
+
+        // In test mode, terminate after the first non-initialization message
+        if (isTest && !method.empty() && method != "initialize" && method != "notifications/initialized") {
+            break;
         }
     }
 
@@ -158,8 +183,13 @@ void McpServer::sendNotification(const std::string& method, const JsonValue::Obj
 
 std::optional<JsonValue> McpServer::readMessage() {
     static std::string accumulated;
-    std::string line;
+    
+    // Check if we already have a full message in accumulated (from previous over-read)
+    if (auto val = tryReadByBraceCounting(accumulated)) {
+        return val;
+    }
 
+    std::string line;
     while (std::getline(std::cin, line)) {
         if (const auto val = tryReadByContentLength(line)) {
             return val;
@@ -285,28 +315,37 @@ void McpServer::listTools(const JsonValue& requestId) {
             command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
             properties["command"] = JsonValue{ .data = command };
 
-            JsonValue::Object newName;
-            newName["type"] = JsonValue{ .data = std::string("string") };
-            newName["description"] = JsonValue{ .data = std::string("New name when copying or adding an engine.") };
-            properties["newName"] = JsonValue{ .data = newName };
+            JsonValue::Object engine_name;
+            engine_name["type"] = JsonValue{ .data = std::string("string") };
+            engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {})", registeredNames) };
+            properties["engine_name"] = JsonValue{ .data = engine_name };
 
-            // Allow setting any engine parameter in add/update
-            addParametersFromGroup("engine", properties);
-
-            // Enhance engine_name description with available engines
-            const std::string engineNameKey = "engine_name";
-            if (properties.contains(engineNameKey)) {
-                JsonValue engineNameVal = properties.at(engineNameKey);
-                JsonValue::Object engineNameObj = engineNameVal.asObject();
-                engineNameObj["description"] = JsonValue{ .data = std::format("Engine name (Available: {})", registeredNames) };
-                engineNameVal.data = engineNameObj;
-                properties[engineNameKey] = engineNameVal;
+            // Manually add engine parameters with engine_ prefix since the "engine" group is not unique
+            const auto allEngineKeys = Settings::getEngineKeys();
+            for (const auto& [key, def] : allEngineKeys) {
+                if (def.isHidden || key == "id" || key == "name" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+                    continue;
+                }
+                
+                JsonValue::Object prop;
+                switch (def.type) {
+                    case Settings::ValueType::Bool: prop["type"] = JsonValue{ .data = std::string("boolean") }; break;
+                    case Settings::ValueType::Int:
+                    case Settings::ValueType::UInt: prop["type"] = JsonValue{ .data = std::string("integer") }; break;
+                    case Settings::ValueType::Float: prop["type"] = JsonValue{ .data = std::string("number") }; break;
+                    default: prop["type"] = JsonValue{ .data = std::string("string") }; break;
+                }
+                prop["description"] = JsonValue{ .data = def.longDescription.empty() ? def.description : def.longDescription };
+                properties[std::format("engine_{}", key)] = JsonValue{ .data = prop };
             }
+
+            JsonValue::Object copyName;
+            copyName["type"] = JsonValue{ .data = std::string("string") };
+            copyName["description"] = JsonValue{ .data = std::string("Target name when copying an engine.") };
+            properties["engine_copyName"] = JsonValue{ .data = copyName };
 
             JsonValue::Array required;
             required.push_back(JsonValue{ .data = std::string("command") });
-            required.push_back(JsonValue{ .data = std::string("engine_name") });
-            required.push_back(JsonValue{ .data = std::string("engine_cmd") });
             inputSchema["required"] = JsonValue{ .data = required };
         } else {
             // All task tools use a simple engine list
@@ -694,8 +733,10 @@ std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumula
     size_t closeBraces = 0;
     bool inString = false;
     bool escaped = false;
+    size_t pos = 0;
 
     for (const char character : accumulated) {
+        pos++;
         if (character == '"' && !escaped) {
             inString = !inString;
         } else if (!inString) {
@@ -706,13 +747,27 @@ std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumula
             }
         }
         escaped = (character == '\\' && !escaped);
+
+        if (openBraces > 0 && openBraces == closeBraces) {
+            std::string_view jsonInputView(accumulated.data(), pos);
+            try {
+                auto result = JsonHelper::parse(jsonInputView);
+                accumulated.erase(0, pos);
+                return result;
+            } catch (...) {
+                // If it fails, maybe it wasn't a complete JSON yet after all (e.g. malformed)
+                // continue searching
+            }
+        }
     }
 
-    if ((openBraces > 0 && openBraces == closeBraces) || (openBraces == 0 && !accumulated.empty())) {
+    if (openBraces == 0 && !accumulated.empty()) {
         std::string_view jsonInputView = accumulated;
-        auto result = JsonHelper::parse(jsonInputView);
-        accumulated.clear();
-        return result;
+        try {
+            auto result = JsonHelper::parse(jsonInputView);
+            accumulated.clear();
+            return result;
+        } catch (...) {}
     }
 
     return std::nullopt;
@@ -897,19 +952,21 @@ std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, boo
     newConfig.setCommandLineOptions(options, true);
     if (!isUpdate) {
         manager.addConfig(newConfig);
+        capabilities_.autoDetect();
         return std::format("Engine '{}' added successfully.", name);
     } 
     
     *config = newConfig;
+    capabilities_.autoDetect();
     return std::format("Engine '{}' updated successfully.", name);
 }
 
 std::string McpServer::copyEngine(const JsonValue::Object& arguments) {
-    if (!arguments.contains("engine_name") || !arguments.contains("newName")) {
-        throw AppError::makeInvalidParameters("'engine_name' and 'newName' are required for 'copy' command.");
+    if (!arguments.contains("engine_name") || !arguments.contains("engine_copyName")) {
+        throw AppError::makeInvalidParameters("'engine_name' and 'engine_copyName' are required for 'copy' command.");
     }
     const std::string name = arguments.at("engine_name").asString();
-    const std::string newName = arguments.at("newName").asString();
+    const std::string newName = arguments.at("engine_copyName").asString();
     
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     const auto* config = manager.getConfig(name);
@@ -942,6 +999,7 @@ std::string McpServer::updateAllEngines(const JsonValue::Object& arguments) {
     for (auto& config : EngineWorkerFactory::getConfigManagerMutable().getAllConfigsMutable()) {
         config.setCommandLineOptions(options, true);
     }
+    capabilities_.autoDetect();
     return "All registered engines updated successfully.";
 }
 

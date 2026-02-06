@@ -21,6 +21,7 @@
 #include "json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
+#include "../engine-handling/engine-capabilities.h"
 #include <filesystem>
 #include <string_view>
 #include <optional>
@@ -223,6 +224,8 @@ private:
     static void processParameter(const std::string& key, const JsonValue& value,
         std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
         QaplaHelpers::ConfigData& configData);
+
+    inline static QaplaConfiguration::EngineCapabilities capabilities_;
 };
 
 } // namespace QaplaTester::Mcp

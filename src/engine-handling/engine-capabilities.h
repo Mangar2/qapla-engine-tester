@@ -46,6 +46,7 @@ namespace QaplaConfiguration {
     class EngineCapabilities {
     public:
         using NotificationCallback = std::function<void(const std::string& message, const std::string& type)>;
+        using McpNotificationCallback = std::function<void(const std::string& message)>;
 
         /**
          * @brief Registers a callback for notifications (e.g., snackbar in the GUI).
@@ -53,6 +54,14 @@ namespace QaplaConfiguration {
          */
         static void setNotificationCallback(NotificationCallback callback) {
             notificationCallback_ = std::move(callback);
+        }
+
+        /**
+         * @brief Registers a callback for MCP notifications.
+         * @param callback The callback function to register.
+         */
+        static void setMcpNotificationCallback(McpNotificationCallback callback) {
+            mcpNotificationCallback_ = std::move(callback);
         }
         /**
          * @brief Saves all engine capabilities to a stream in INI format.
@@ -135,6 +144,11 @@ namespace QaplaConfiguration {
         void autoDetect();
 
         /**
+         * @brief Synchronously detects missing engine configurations.
+         */
+        void autoDetectSync();
+
+        /**
          * @brief Checks if detection is currently in progress.
          * @return True if detection is ongoing, false otherwise.
          */
@@ -191,6 +205,7 @@ namespace QaplaConfiguration {
         }
 
         inline static NotificationCallback notificationCallback_;
+        inline static McpNotificationCallback mcpNotificationCallback_;
         std::unordered_map<std::string, EngineCapability> capabilities_; ///< Stores EngineCapability objects indexed by a unique key.
         std::atomic<bool> detecting_{false}; ///< True, if detection is currently in progress.
     };
