@@ -285,11 +285,6 @@ void McpServer::listTools(const JsonValue& requestId) {
             command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
             properties["command"] = JsonValue{ .data = command };
 
-            JsonValue::Object name;
-            name["type"] = JsonValue{ .data = std::string("string") };
-            name["description"] = JsonValue{ .data = std::format("Engine name (Available: {})", registeredNames) };
-            properties["name"] = JsonValue{ .data = name };
-
             JsonValue::Object newName;
             newName["type"] = JsonValue{ .data = std::string("string") };
             newName["description"] = JsonValue{ .data = std::string("New name when copying or adding an engine.") };
@@ -298,8 +293,20 @@ void McpServer::listTools(const JsonValue& requestId) {
             // Allow setting any engine parameter in add/update
             addParametersFromGroup("engine", properties);
 
+            // Enhance engine_name description with available engines
+            const std::string engineNameKey = "engine_name";
+            if (properties.contains(engineNameKey)) {
+                JsonValue engineNameVal = properties.at(engineNameKey);
+                JsonValue::Object engineNameObj = engineNameVal.asObject();
+                engineNameObj["description"] = JsonValue{ .data = std::format("Engine name (Available: {})", registeredNames) };
+                engineNameVal.data = engineNameObj;
+                properties[engineNameKey] = engineNameVal;
+            }
+
             JsonValue::Array required;
             required.push_back(JsonValue{ .data = std::string("command") });
+            required.push_back(JsonValue{ .data = std::string("engine_name") });
+            required.push_back(JsonValue{ .data = std::string("engine_cmd") });
             inputSchema["required"] = JsonValue{ .data = required };
         } else {
             // All task tools use a simple engine list
@@ -833,10 +840,10 @@ std::string McpServer::listEngines() {
 }
 
 std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
-    if (!arguments.contains("name")) {
-        throw AppError::makeInvalidParameters("Engine 'name' is required for 'details' command.");
+    if (!arguments.contains("engine_name")) {
+        throw AppError::makeInvalidParameters("Engine 'engine_name' is required for 'details' command.");
     }
-    const std::string name = arguments.at("name").asString();
+    const std::string name = arguments.at("engine_name").asString();
     const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
     if (config == nullptr) {
         throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
@@ -854,10 +861,13 @@ std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
 }
 
 std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate) {
-    if (!arguments.contains("name")) {
-        throw AppError::makeInvalidParameters("Engine 'name' is required.");
+    if (!arguments.contains("engine_name") || arguments.at("engine_name").asString().empty()) {
+        throw AppError::makeInvalidParameters("Engine 'engine_name' is required.");
     }
-    const std::string name = arguments.at("name").asString();
+    if (!arguments.contains("engine_cmd") || arguments.at("engine_cmd").asString().empty()) {
+        throw AppError::makeInvalidParameters("Engine 'engine_cmd' (path to executable) is required for adding or updating an engine via MCP.");
+    }
+    const std::string name = arguments.at("engine_name").asString();
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     EngineConfig* config = isUpdate ? manager.getConfigMutable(name) : nullptr;
     
@@ -895,10 +905,10 @@ std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, boo
 }
 
 std::string McpServer::copyEngine(const JsonValue::Object& arguments) {
-    if (!arguments.contains("name") || !arguments.contains("newName")) {
-        throw AppError::makeInvalidParameters("'name' and 'newName' are required for 'copy' command.");
+    if (!arguments.contains("engine_name") || !arguments.contains("newName")) {
+        throw AppError::makeInvalidParameters("'engine_name' and 'newName' are required for 'copy' command.");
     }
-    const std::string name = arguments.at("name").asString();
+    const std::string name = arguments.at("engine_name").asString();
     const std::string newName = arguments.at("newName").asString();
     
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
