@@ -76,8 +76,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     configData_.push_back(cliData);
 
     // 4. Apply mcp environment layer if needed (MCP layer overrides CLI)
-    bool isMcp = Manager::instance().get<bool>("mcp");
-    if (isMcp) {
+    if (Settings::Manager::instance().getGroupInstance("mcp")) {
         QaplaHelpers::ConfigData mcpEnvLayer;
         QaplaHelpers::IniFile::Section loggingSection;
         loggingSection.name = "logging";
@@ -94,7 +93,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     std::string tournamentFile = tournamentGroup.has_value() ? tournamentGroup->get<std::string>("file") : "";
 
     if (!sprtFile.empty() || !tournamentFile.empty()) {
-        if (isMcp) {
+        if (Settings::Manager::instance().getGroupInstance("mcp")) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
         
@@ -118,7 +117,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
         }
     }
 
-    if (isMcp) {
+    if (Settings::Manager::instance().getGroupInstance("mcp")) {
         Mcp::McpServer::initialize();
     }
 
@@ -230,12 +229,11 @@ void QaplaSettings::init() {
         .type = ValueType::Bool
     });
 
-    Manager::instance().registerSetting({
+    Manager::instance().registerGroup({
         .name = "mcp", 
-        .description = "Enables Model Context Protocol (MCP) server mode", 
-        .isRequired = false, 
-        .defaultValue = false, 
-        .type = ValueType::Bool
+        .description = "Model Context Protocol (MCP) server configuration", 
+        .unique = true, 
+        .keys = Settings::getMcpKeys()
     });
     
     Manager::instance().registerSetting({

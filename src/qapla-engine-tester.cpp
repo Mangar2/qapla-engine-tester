@@ -49,7 +49,7 @@ using namespace QaplaTester;
 using QaplaHelpers::Timer;
 
 static AppReturnCode run() {
-    if (Settings::Manager::instance().get<bool>("mcp")) {
+    if (Settings::Manager::instance().getGroupInstance("mcp")) {
         return Mcp::McpServer::run();
     }
 
@@ -81,7 +81,9 @@ int main(int argc, char** argv) {
         }
         Settings::QaplaSettings::instance().initializeConfigs(args);
 
-        Logger::reportLogger().logCli(Logger::getWelcomeMessage());
+        if (!Settings::Manager::instance().getGroupInstance("mcp")) {
+            Logger::reportLogger().logCli(Logger::getWelcomeMessage());
+        }
 
         returnCode = run();
 			

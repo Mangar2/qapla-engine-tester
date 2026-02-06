@@ -113,39 +113,55 @@ void EngineCapabilities::markAsNotSupported(const std::vector<EngineConfig>& fai
     if (notificationCallback_) {
         notificationCallback_(message, "warning");
     }
+    if (mcpNotificationCallback_) {
+        mcpNotificationCallback_(message);
+    }
+}
+
+void EngineCapabilities::autoDetectSync() {
+    auto configs = collectMissingCapabilities();
+    if (configs.empty()) {
+        if (notificationCallback_) {
+            notificationCallback_("No new engines found.", "note");
+        }
+        if (mcpNotificationCallback_) {
+            mcpNotificationCallback_("No new engines found.");
+        }
+        return;
+    }
+    detecting_ = true;
+    if (notificationCallback_) {
+        notificationCallback_("Starting engine autodetection.\nThis may take a while...", "note");
+    }
+    if (mcpNotificationCallback_) {
+        mcpNotificationCallback_("Starting engine autodetection...");
+    }
+    // First try with the protocol already set in the config
+    configs = detectWithProtocol(configs, std::nullopt);
+
+    // Detect using UCI protocol first then xboard as uci is more common
+    for (const auto protocol : {EngineProtocol::Uci, EngineProtocol::XBoard}) {
+        configs = detectWithProtocol(configs, protocol);
+        if (configs.empty()) {
+            break;
+        }
+    }
+    if (!configs.empty()) {
+        markAsNotSupported(configs);
+    } else {
+        if (notificationCallback_) {
+            notificationCallback_("Engine autodetection completed.", "success");
+        }
+        if (mcpNotificationCallback_) {
+            mcpNotificationCallback_("Engine autodetection completed.");
+        }
+    }
+    detecting_ = false;
 }
 
 void EngineCapabilities::autoDetect() {
     std::thread([this]() {
-        auto configs = collectMissingCapabilities();
-        if (configs.empty()) {
-            if (notificationCallback_) {
-                notificationCallback_("No new engines found.", "note");
-            }
-            return;
-        }
-        detecting_ = true;
-        if (notificationCallback_) {
-            notificationCallback_("Starting engine autodetection.\nThis may take a while...", "note");
-        }
-        // First try with the protocol already set in the config
-        configs = detectWithProtocol(configs, std::nullopt);
-
-        // Detect using UCI protocol first then xboard as uci is more common
-        for (const auto protocol : {EngineProtocol::Uci, EngineProtocol::XBoard}) {
-            configs = detectWithProtocol(configs, protocol);
-            if (configs.empty()) {
-                break;
-            }
-        }
-        if (!configs.empty()) {
-            markAsNotSupported(configs);
-        } else {
-            if (notificationCallback_) {
-                notificationCallback_("Engine autodetection completed.", "success");
-            }
-        }
-        detecting_ = false;
+        autoDetectSync();
     }).detach();
 }
 

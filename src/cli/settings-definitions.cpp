@@ -197,6 +197,15 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys() {
     };
 }
 
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getMcpKeys() {
+    return {
+        { "test",      { .description = "Enables MCP test mode (terminates after first command)",
+                        .isRequired = true, 
+                        .defaultValue = false, 
+                        .type = ValueType::Bool } }
+    };
+}
+
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
