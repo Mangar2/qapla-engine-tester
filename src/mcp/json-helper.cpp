@@ -75,6 +75,9 @@ void JsonHelper::skipWhitespace(std::string_view& jsonText) {
 }
 
 JsonValue JsonHelper::parse(std::string_view& jsonText) {
+    if (jsonText.empty()) {
+        return {};
+    }
     skipWhitespace(jsonText);
     if (jsonText.empty()) {
         return {};
@@ -90,59 +93,90 @@ JsonValue JsonHelper::parse(std::string_view& jsonText) {
     if (firstChar == '"') {
         return parseString(jsonText);
     }
-    if (std::isdigit(static_cast<unsigned char>(firstChar)) != 0 || firstChar == '-') {
+    if ((std::isdigit(static_cast<unsigned char>(firstChar)) != 0) || (firstChar == '-')) {
         return parseNumber(jsonText);
     }
-    return parseConstant(jsonText);
+    if ((firstChar == 't') || (firstChar == 'f') || (firstChar == 'n')) {
+        return parseConstant(jsonText);
+    }
+
+    throw std::runtime_error(std::format("Unexpected character '{}' in JSON", firstChar));
 }
 
 JsonValue JsonHelper::parseObject(std::string_view& jsonText) {
+    if (jsonText.empty() || (jsonText[0] != '{')) {
+        return {};
+    }
     jsonText.remove_prefix(1); // skip '{'
     JsonValue::Object resultObject;
     while (!jsonText.empty()) {
         skipWhitespace(jsonText);
+        if (jsonText.empty()) {
+            throw std::runtime_error("Unexpected end of JSON in object");
+        }
         if (jsonText[0] == '}') {
             jsonText.remove_prefix(1);
             break;
         }
 
         JsonValue keyVal = parseString(jsonText);
-        std::string propertyKey = keyVal.isString() ? keyVal.asString() : "";
+        if (!keyVal.isString()) {
+            throw std::runtime_error("Expected string key in object");
+        }
+        std::string propertyKey = keyVal.asString();
 
         skipWhitespace(jsonText);
-        if (!jsonText.empty() && jsonText[0] == ':') {
+        if (!jsonText.empty() && (jsonText[0] == ':')) {
             jsonText.remove_prefix(1);
+        } else {
+            throw std::runtime_error("Expected ':' after key in object");
         }
 
         resultObject[propertyKey] = parse(jsonText);
 
         skipWhitespace(jsonText);
-        if (!jsonText.empty() && jsonText[0] == ',') {
+        if (!jsonText.empty() && (jsonText[0] == ',')) {
             jsonText.remove_prefix(1);
-        } else if (!jsonText.empty() && jsonText[0] == '}') {
+        } else if (!jsonText.empty() && (jsonText[0] == '}')) {
             jsonText.remove_prefix(1);
             break;
+        } else if (jsonText.empty()) {
+            throw std::runtime_error("Unexpected end of JSON in object after value");
+        } else {
+            throw std::runtime_error(std::format("Expected ',' or '}}' in object, found '{}'", jsonText[0]));
         }
     }
     return { .data = resultObject };
 }
 
 JsonValue JsonHelper::parseArray(std::string_view& jsonText) {
+    if (jsonText.empty() || (jsonText[0] != '[')) {
+        return {};
+    }
     jsonText.remove_prefix(1); // skip '['
     JsonValue::Array resultArray;
     while (!jsonText.empty()) {
         skipWhitespace(jsonText);
+        if (jsonText.empty()) {
+            throw std::runtime_error("Unexpected end of JSON in array");
+        }
         if (jsonText[0] == ']') {
             jsonText.remove_prefix(1);
             break;
         }
+
         resultArray.push_back(parse(jsonText));
+
         skipWhitespace(jsonText);
-        if (!jsonText.empty() && jsonText[0] == ',') {
+        if (!jsonText.empty() && (jsonText[0] == ',')) {
             jsonText.remove_prefix(1);
-        } else if (!jsonText.empty() && jsonText[0] == ']') {
+        } else if (!jsonText.empty() && (jsonText[0] == ']')) {
             jsonText.remove_prefix(1);
             break;
+        } else if (jsonText.empty()) {
+            throw std::runtime_error("Unexpected end of JSON in array after value");
+        } else {
+            throw std::runtime_error(std::format("Expected ',' or ']' in array, found '{}'", jsonText[0]));
         }
     }
     return { .data = resultArray };
@@ -181,6 +215,8 @@ JsonValue JsonHelper::parseNumber(std::string_view& jsonText) {
     const auto [ptr, errorCode] = std::from_chars(jsonText.data(), jsonText.data() + jsonText.size(), numberValue);
     if (errorCode == std::errc()) {
         jsonText.remove_prefix(ptr - jsonText.data());
+    } else {
+        throw std::runtime_error("Invalid number in JSON");
     }
     return { .data = numberValue };
 }
@@ -198,7 +234,7 @@ JsonValue JsonHelper::parseConstant(std::string_view& jsonText) {
         jsonText.remove_prefix(4);
         return {};
     }
-    return {};
+    throw std::runtime_error(std::format("Invalid constant in JSON, found '{}'", jsonText.substr(0, std::min(size_t(5), jsonText.size()))));
 }
 
 std::string JsonHelper::serialize(const JsonValue& value) {
