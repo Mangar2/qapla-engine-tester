@@ -181,7 +181,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     TraceLevel reportLevel = TraceLevel::result;
     TraceLevel mcpLevel = TraceLevel::none;
     
-    if (loggingSetting.has_value()) {
+    if (loggingSetting) {
         if (loggingSetting->get<bool>("engine")) {
             EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info);
         } else {
@@ -250,14 +250,6 @@ void QaplaSettings::init() {
         .isRequired = false, 
         .defaultValue = false, 
         .type = ValueType::Bool
-    });
-
-    Manager::instance().registerSetting({
-        .name = "engines", 
-        .description = "Comma separated list of engine names to use", 
-        .isRequired = false, 
-        .defaultValue = std::string(""),
-        .type = ValueType::String
     });
 
     Manager::instance().registerSetting({
@@ -433,12 +425,6 @@ void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::strin
     auto enginesFile = manager.get<std::string>("enginesfile");
     if (!enginesFile.empty()) {
         EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
-    }
-
-    auto engineNamesStr = manager.get<std::string>("engines");
-    if (!engineNamesStr.empty()) {
-        applyEngineList(engineNamesStr);
-        return;
     }
 
     auto engineSettings = manager.getGroupInstances(groupName);

@@ -90,7 +90,7 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
         json += std::format(R"("{}"{})", current.bestMoves[i], (i + 1 < current.bestMoves.size() ? "," : ""));
     }
     json += R"(],"engines":[)";
-
+    
     bool first = true;
     for (const auto& result : results) {
         const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
