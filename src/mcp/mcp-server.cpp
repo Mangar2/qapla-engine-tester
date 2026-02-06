@@ -74,10 +74,12 @@ void McpServer::initialize() {
 }
 
 AppReturnCode McpServer::run() {
-    bool isTest = false;
+    bool isTestMode = false;
     if (auto mcpGroup = Settings::Manager::instance().getGroupInstance("mcp")) {
-        isTest = mcpGroup->get<bool>("test");
+        isTestMode = mcpGroup->get<bool>("test");
     }
+
+    AppReturnCode lastResult = AppReturnCode::NoError;
     while (true) {
         const auto message = readMessage();
         if (!message.has_value()) {
@@ -88,23 +90,24 @@ AppReturnCode McpServer::run() {
             continue;
         }
 
-        const auto& obj = message->asObject();
+        const auto& jsonObject = message->asObject();
         std::string method;
-        if (obj.contains("method")) {
-            method = obj.at("method").asString();
+        if (jsonObject.contains("method")) {
+            method = jsonObject.at("method").asString();
         }
 
-        if (processMessage(obj) != AppReturnCode::NoError) {
-            return AppReturnCode::NoError;
+        lastResult = processMessage(jsonObject);
+        if (!isTestMode && (lastResult != AppReturnCode::NoError)) {
+            return lastResult;
         }
 
-        // In test mode, terminate after the first non-initialization message
-        if (isTest && !method.empty() && method != "initialize" && method != "notifications/initialized") {
+        // In test mode, terminate after the first non-handshake message (request or notification)
+        if (isTestMode && !method.empty() && (method != "initialize") && (method != "notifications/initialized")) {
             break;
         }
     }
 
-    return AppReturnCode::NoError;
+    return isTestMode ? lastResult : AppReturnCode::NoError;
 }
 
 AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
@@ -147,7 +150,7 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
         }
     }
     else if (method == "tools/call") {
-        callTool(jsonObject);
+        return callTool(jsonObject);
     }
     else if (method == "resources/list") {
         if (jsonObject.contains("id")) {
@@ -452,13 +455,13 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
     }
 }
 
-void McpServer::callTool(const JsonValue::Object& jsonObject) {
+AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
     if (!jsonObject.contains("params") || !jsonObject.at("params").isObject()) {
-        return;
+        return AppReturnCode::NoError;
     }
     const auto& params = jsonObject.at("params").asObject();
     if (!params.contains("name")) {
-        return;
+        return AppReturnCode::NoError;
     }
 
     const std::string& name = params.at("name").asString();
@@ -471,6 +474,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 
     JsonValue::Object result;
     JsonValue::Array content;
+    AppReturnCode returnCode = AppReturnCode::NoError;
 
     try {
         const auto& arguments = params.at("arguments").asObject();
@@ -483,17 +487,17 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             result["isError"] = JsonValue{ .data = false };
         } else {
             auto configData = mapJsonToConfigData(arguments);
-            const AppReturnCode code = executeRunnerTool(name, configData);
+            returnCode = executeRunnerTool(name, configData);
 
             JsonValue::Object textContent;
             textContent["type"] = JsonValue{ .data = std::string("text") };
-            textContent["text"] = JsonValue{ .data = formatRunSummary(name, code) };
+            textContent["text"] = JsonValue{ .data = formatRunSummary(name, returnCode) };
             content.push_back(JsonValue{ .data = textContent });
             
-            result["isError"] = JsonValue{ .data = (code == AppReturnCode::GeneralError || 
-                                                  code == AppReturnCode::InvalidParameters || 
-                                                  code == AppReturnCode::EngineError || 
-                                                  code == AppReturnCode::EngineMissbehaviour) };
+            result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
+                                                  returnCode == AppReturnCode::InvalidParameters || 
+                                                  returnCode == AppReturnCode::EngineError || 
+                                                  returnCode == AppReturnCode::EngineMissbehaviour) };
         }
     } catch (const std::exception& e) {
         JsonValue::Object errorContent;
@@ -501,6 +505,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
         errorContent["text"] = JsonValue{ .data = std::format("Error executing tool '{}': {}", name, e.what()) };
         content.push_back(JsonValue{ .data = errorContent });
         result["isError"] = JsonValue{ .data = true };
+        returnCode = AppReturnCode::GeneralError;
     }
 
     result["content"] = JsonValue{ .data = content };
@@ -508,6 +513,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     response.data = responseBody;
 
     sendMessage(response);
+    return returnCode;
 }
 
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
