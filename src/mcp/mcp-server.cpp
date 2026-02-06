@@ -51,6 +51,7 @@ void McpServer::initialize() {
             try {
                 params["data"] = JsonHelper::parse(msgTrimmed);
             } catch (...) {
+                // Ignore parse errors, treat as plain text
                 params["data"] = JsonValue{ .data = std::string(message) };
             }
         } else {
@@ -221,12 +222,6 @@ void McpServer::listTools(const JsonValue& requestId) {
     JsonValue::Object resultData;
     JsonValue::Array tools;
 
-    struct ToolInfo {
-        std::string_view name;
-        std::string_view description;
-        std::vector<std::string_view> groups;
-    };
-
     const auto toolsToRegister = std::vector<ToolInfo>{
         {
             .name = "test",
@@ -289,88 +284,8 @@ void McpServer::listTools(const JsonValue& requestId) {
             description = it->second.longDescription;
         }
         tool["description"] = JsonValue{ .data = description };
+        tool["inputSchema"] = JsonValue{ .data = createInputSchema(info, registeredNames) };
         
-        JsonValue::Object inputSchema;
-        inputSchema["type"] = JsonValue{ .data = std::string("object") };
-        
-        JsonValue::Object properties;
-        
-        if (info.name == "read_report") {
-            JsonValue::Object uri;
-            uri["type"] = JsonValue{ .data = std::string("string") };
-            uri["description"] = JsonValue{ .data = std::string("The URI or filename of the report to read (e.g. qapla://reports/sprt/report.log)") };
-            properties["uri"] = JsonValue{ .data = uri };
-
-            JsonValue::Array required;
-            required.push_back(JsonValue{ .data = std::string("uri") });
-            inputSchema["required"] = JsonValue{ .data = required };
-        } else if (info.name == "manage_engines") {
-            JsonValue::Object command;
-            command["type"] = JsonValue{ .data = std::string("string") };
-            command["enum"] = JsonValue{ .data = JsonValue::Array{ 
-                JsonValue{ .data = std::string("list") }, 
-                JsonValue{ .data = std::string("details") }, 
-                JsonValue{ .data = std::string("add") }, 
-                JsonValue{ .data = std::string("copy") }, 
-                JsonValue{ .data = std::string("update") }, 
-                JsonValue{ .data = std::string("update_all") } 
-            } };
-            command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
-            properties["command"] = JsonValue{ .data = command };
-
-            JsonValue::Object engine_name;
-            engine_name["type"] = JsonValue{ .data = std::string("string") };
-            engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {})", registeredNames) };
-            properties["engine_name"] = JsonValue{ .data = engine_name };
-
-            // Manually add engine parameters with engine_ prefix since the "engine" group is not unique
-            const auto allEngineKeys = Settings::getEngineKeys();
-            for (const auto& [key, def] : allEngineKeys) {
-                if (def.isHidden || key == "id" || key == "name" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
-                    continue;
-                }
-                
-                JsonValue::Object prop;
-                switch (def.type) {
-                    case Settings::ValueType::Bool: prop["type"] = JsonValue{ .data = std::string("boolean") }; break;
-                    case Settings::ValueType::Int:
-                    case Settings::ValueType::UInt: prop["type"] = JsonValue{ .data = std::string("integer") }; break;
-                    case Settings::ValueType::Float: prop["type"] = JsonValue{ .data = std::string("number") }; break;
-                    default: prop["type"] = JsonValue{ .data = std::string("string") }; break;
-                }
-                prop["description"] = JsonValue{ .data = def.longDescription.empty() ? def.description : def.longDescription };
-                properties[std::format("engine_{}", key)] = JsonValue{ .data = prop };
-            }
-
-            JsonValue::Object copyName;
-            copyName["type"] = JsonValue{ .data = std::string("string") };
-            copyName["description"] = JsonValue{ .data = std::string("Target name when copying an engine.") };
-            properties["engine_copyName"] = JsonValue{ .data = copyName };
-
-            JsonValue::Array required;
-            required.push_back(JsonValue{ .data = std::string("command") });
-            inputSchema["required"] = JsonValue{ .data = required };
-        } else {
-            // All task tools use a simple engine list
-            JsonValue::Object engines;
-            engines["type"] = JsonValue{ .data = std::string("string") };
-            engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {})", registeredNames) };
-            properties["engines"] = JsonValue{ .data = engines };
-
-            for (const auto& group : info.groups) {
-                addParametersFromGroup(group, properties);
-            }
-            
-            JsonValue::Array required;
-            if (info.name != "read_report") {
-                required.push_back(JsonValue{ .data = std::string("engines") });
-            }
-            inputSchema["required"] = JsonValue{ .data = required };
-        }
-        
-        inputSchema["properties"] = JsonValue{ .data = properties };
-        
-        tool["inputSchema"] = JsonValue{ .data = inputSchema };
         tools.push_back(JsonValue{ .data = tool });
     }
 
@@ -379,6 +294,89 @@ void McpServer::listTools(const JsonValue& requestId) {
     response.data = responseBody;
 
     sendMessage(response);
+}
+
+JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::string& registeredNames) {
+    JsonValue::Object inputSchema;
+    inputSchema["type"] = JsonValue{ .data = std::string("object") };
+    
+    JsonValue::Object properties;
+    
+    if (info.name == "read_report") {
+        JsonValue::Object uri;
+        uri["type"] = JsonValue{ .data = std::string("string") };
+        uri["description"] = JsonValue{ .data = std::string("The URI or filename of the report to read (e.g. qapla://reports/sprt/report.log)") };
+        properties["uri"] = JsonValue{ .data = uri };
+
+        JsonValue::Array required;
+        required.push_back(JsonValue{ .data = std::string("uri") });
+        inputSchema["required"] = JsonValue{ .data = required };
+    } else if (info.name == "manage_engines") {
+        JsonValue::Object command;
+        command["type"] = JsonValue{ .data = std::string("string") };
+        command["enum"] = JsonValue{ .data = JsonValue::Array{ 
+            JsonValue{ .data = std::string("list") }, 
+            JsonValue{ .data = std::string("details") }, 
+            JsonValue{ .data = std::string("add") }, 
+            JsonValue{ .data = std::string("copy") }, 
+            JsonValue{ .data = std::string("update") }, 
+            JsonValue{ .data = std::string("update_all") } 
+        } };
+        command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
+        properties["command"] = JsonValue{ .data = command };
+
+        JsonValue::Object engine_name;
+        engine_name["type"] = JsonValue{ .data = std::string("string") };
+        engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {})", registeredNames) };
+        properties["engine_name"] = JsonValue{ .data = engine_name };
+
+        // Manually add engine parameters with engine_ prefix since the "engine" group is not unique
+        const auto allEngineKeys = Settings::getEngineKeys();
+        for (const auto& [key, def] : allEngineKeys) {
+            if (def.isHidden || key == "id" || key == "name" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+                continue;
+            }
+            
+            JsonValue::Object prop;
+            switch (def.type) {
+                case Settings::ValueType::Bool: prop["type"] = JsonValue{ .data = std::string("boolean") }; break;
+                case Settings::ValueType::Int:
+                case Settings::ValueType::UInt: prop["type"] = JsonValue{ .data = std::string("integer") }; break;
+                case Settings::ValueType::Float: prop["type"] = JsonValue{ .data = std::string("number") }; break;
+                default: prop["type"] = JsonValue{ .data = std::string("string") }; break;
+            }
+            prop["description"] = JsonValue{ .data = def.longDescription.empty() ? def.description : def.longDescription };
+            properties[std::format("engine_{}", key)] = JsonValue{ .data = prop };
+        }
+
+        JsonValue::Object copyName;
+        copyName["type"] = JsonValue{ .data = std::string("string") };
+        copyName["description"] = JsonValue{ .data = std::string("Target name when copying an engine.") };
+        properties["engine_copyName"] = JsonValue{ .data = copyName };
+
+        JsonValue::Array required;
+        required.push_back(JsonValue{ .data = std::string("command") });
+        inputSchema["required"] = JsonValue{ .data = required };
+    } else {
+        // All task tools use a simple engine list
+        JsonValue::Object engines;
+        engines["type"] = JsonValue{ .data = std::string("string") };
+        engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {})", registeredNames) };
+        properties["engines"] = JsonValue{ .data = engines };
+
+        for (const auto& group : info.groups) {
+            addParametersFromGroup(group, properties);
+        }
+        
+        JsonValue::Array required;
+        if (info.name != "read_report") {
+            required.push_back(JsonValue{ .data = std::string("engines") });
+        }
+        inputSchema["required"] = JsonValue{ .data = required };
+    }
+    
+    inputSchema["properties"] = JsonValue{ .data = properties };
+    return inputSchema;
 }
 
 void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties) {
@@ -760,7 +758,7 @@ std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumula
                 auto result = JsonHelper::parse(jsonInputView);
                 accumulated.erase(0, pos);
                 return result;
-            } catch (...) {
+            } catch (...) { // NOLINT(bugprone-empty-catch)
                 // If it fails, maybe it wasn't a complete JSON yet after all (e.g. malformed)
                 // continue searching
             }
@@ -773,7 +771,9 @@ std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumula
             auto result = JsonHelper::parse(jsonInputView);
             accumulated.clear();
             return result;
-        } catch (...) {}
+        } catch (...) { // NOLINT(bugprone-empty-catch)
+            // Ignore parse errors at the end of stream
+        }
     }
 
     return std::nullopt;
@@ -918,6 +918,32 @@ std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
     for (const auto& [key, value] : section.entries) {
         details += std::format("  {} = {}\n", key, value);
     }
+
+    if (const auto cap = capabilities_.getCapability(config->getCmd(), config->getProtocol())) {
+        details += "\nSupported Options:\n";
+        for (const auto& opt : cap->getSupportedOptions()) {
+            details += std::format("  -- Name: {}\n", opt.name);
+            details += std::format("     Type: {}\n", QaplaTester::EngineOption::to_string(opt.type));
+            
+            if (!opt.defaultValue.empty()) {
+                details += std::format("     Default: {}\n", opt.defaultValue);
+            }
+            if (opt.min.has_value()) {
+                details += std::format("     Min: {}\n", *opt.min);
+            }
+            if (opt.max.has_value()) {
+                details += std::format("     Max: {}\n", *opt.max);
+            }
+            if (!opt.vars.empty()) {
+                details += "     Vars: ";
+                for (const auto& v : opt.vars) {
+                    details += std::format("'{}' ", v);
+                }
+                details += "\n";
+            }
+        }
+    }
+
     return details;
 }
 

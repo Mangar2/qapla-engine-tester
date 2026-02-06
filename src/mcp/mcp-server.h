@@ -226,6 +226,20 @@ private:
         std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
         QaplaHelpers::ConfigData& configData);
 
+    struct ToolInfo {
+        std::string_view name;
+        std::string_view description;
+        std::vector<std::string_view> groups;
+    };
+
+    /**
+     * @brief Creates the input schema for a specific tool.
+     * @param info The tool information structure.
+     * @param registeredNames A string containing a comma-separated list of registered engine names.
+     * @return The JSON object representing the input schema.
+     */
+    static JsonValue::Object createInputSchema(const ToolInfo& info, const std::string& registeredNames);
+
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
 };
 
