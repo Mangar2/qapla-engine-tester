@@ -7,9 +7,12 @@ Always use english language for any comment in checkin and code.
 ## Extending copilot instructions
 Remember that this text is for you only. Be as brief as ever possible, never waste token.
 
-## Checking in Code for Qapla Chess GUI
+## Checking in Code for Qapla Engine Tester
 If I ask you to checkin:
 - use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
+
+# Generating code for Qapla Engine Tester
+Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the compiler and linters. If you find any, fix them immediately. 
 
 ## Project Overview
 **Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
@@ -57,3 +60,7 @@ Sometimes function return parameters don´t fit to the format or form we need. S
 
 ## Creating tests
 - Never fix a test without having checked before that the problem is not in the main code. Inform me how you verified this.
+
+## Testing the mcp server
+- Never use any other source or tool than the mcp server tools.
+- Report any problem, error, bad description, bad interface design creating problems immediately in the chat. Dont try to work around or fix it. Never ever look into the code neither for hints nor for trying to fix it before we agreend on the problem and the next steps. 

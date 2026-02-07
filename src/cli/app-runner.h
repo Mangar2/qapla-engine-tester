@@ -40,30 +40,34 @@ public:
     /**
      * @brief Runs the EPD test mode.
      * @param code Current application return code.
+     * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runEpd(AppReturnCode code);
+    static AppReturnCode runEpd(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the tournament mode.
      * @param code Current application return code.
+     * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runTournament(AppReturnCode code);
+    static AppReturnCode runTournament(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the SPRT mode.
      * @param code Current application return code.
+     * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runSprt(AppReturnCode code);
+    static AppReturnCode runSprt(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the SPSA mode.
      * @param code Current application return code.
+     * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runSpsa(AppReturnCode code);
+    static AppReturnCode runSpsa(AppReturnCode code, bool background = false);
 
     /**
      * @brief Sets adjudication options based on settings.
@@ -77,9 +81,10 @@ public:
 
     /**
      * @brief Dispatches execution to the correct mode based on current settings.
+     * @param background If true, starts in background and returns immediately.
      * @return Application return code.
      */
-    static AppReturnCode runDispatcher();
+    static AppReturnCode runDispatcher(bool background = false);
 };
 
 } // namespace QaplaTester
