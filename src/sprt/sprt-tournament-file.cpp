@@ -19,13 +19,9 @@
 
 #include "sprt-tournament-file.h"
 #include "sprt-manager.h"
-#include "sprt-config.h"
 
-#include "../config/opening-config.h"
-#include "../config/pgn-config.h"
-#include "../config/adjudication-config.h"
 #include "../cli/settings-manager.h"
-#include "../cli/settings-definitions.h"
+#include "../base-elements/logger.h"
 #include <stdexcept>
 
 namespace QaplaTester {
@@ -40,7 +36,7 @@ namespace QaplaTester {
             [filename,
              configData = Settings::Manager::instance().toConfigData(),
              saveInterval,
-             saveTrigger = 0u,
+             saveTrigger = 0U,
              manager = manager.get()]() mutable 
             {
                 ++saveTrigger;

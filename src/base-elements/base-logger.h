@@ -168,17 +168,6 @@ public:
 
 protected:
     /**
-     * @brief Generates a timestamped filename.
-     * 
-     * Creates a filename in the format: basename-YYYY-MM-DD_HH-MM-SS.mmm.log
-     * 
-     * @param baseName The base name for the file.
-     * @param logPath The directory path for log files.
-     * @return Complete filename with timestamp and .log extension.
-     */
-    static std::string generateTimestampedFilename(const std::string& baseName, const std::string& logPath);
-
-    /**
      * @brief Opens the log file if needed (lazy initialization).
      * 
      * Opens a new file if:

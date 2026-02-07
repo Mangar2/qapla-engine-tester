@@ -254,6 +254,7 @@ private:
     static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
+    static inline std::string lastSprtFile_;
 };
 
 } // namespace QaplaTester::Mcp

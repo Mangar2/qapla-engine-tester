@@ -12,7 +12,7 @@ If I ask you to checkin:
 - use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
 
 # Generating code for Qapla Engine Tester
-Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the compiler and linters. If you find any, fix them immediately. 
+Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the compiler and linters (use the tool get_errors of vscode to identify linter errors). If you find any, fix them immediately. 
 
 ## Project Overview
 **Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
