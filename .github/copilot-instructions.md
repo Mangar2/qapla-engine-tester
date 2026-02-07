@@ -63,4 +63,7 @@ Sometimes function return parameters don´t fit to the format or form we need. S
 
 ## Testing the mcp server
 - Never use any other source or tool than the mcp server tools.
-- Report any problem, error, bad description, bad interface design creating problems immediately in the chat. Dont try to work around or fix it. Never ever look into the code neither for hints nor for trying to fix it before we agreend on the problem and the next steps. 
+- Report any problem, error, bad description, bad interface design creating problems immediately in the chat. Dont try to work around or fix it. 
+- Never ever look into the code neither for hints nor for trying to fix it before we agreend on the problem and the next steps. 
+- Never try to run anything on command line, if I did not explicitely ask to do so.
+- Never immediately retry after compiling the code fixes. I need to restart the mcp server, so you need to inform me to restart it or you will test the unfixed version.
