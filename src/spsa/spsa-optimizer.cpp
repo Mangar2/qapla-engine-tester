@@ -235,7 +235,7 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
         if (completedIterations_ % 10 == 0) {
             std::ostringstream oss;
             printStatus(oss);
-            Logger::reportLogger().log(oss.str(), TraceLevel::info);
+            Logger::reportLogger().log(oss.str(), TraceLevel::result);
         }
     }
 
@@ -244,10 +244,10 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
     
     // Check if optimization is complete
     if (activePerturbationCount_ == 0 && nextIteration_ >= config_.iterations) {
-        Logger::reportLogger().log("SPSA optimization complete!", TraceLevel::info);
+        Logger::reportLogger().log("SPSA optimization complete!", TraceLevel::result);
         std::ostringstream oss;
         printStatus(oss);
-        std::cout << oss.str() << std::endl;
+        Logger::reportLogger().log(oss.str(), TraceLevel::result);
     }
 }
 
