@@ -18,6 +18,7 @@
  */
 
 #include "mcp-server.h"
+#include "mcp-engine-tool.h"
 #include "../base-elements/file-helper.h"
 #include "../base-elements/base-logger.h"
 #include "json-helper.h"
@@ -555,12 +556,12 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
             content = handleControlTool(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else if (name == "manage_engines") {
-            content = handleManageEngines(arguments);
+            content = McpEngineTool::handleManageEngines(arguments, capabilities_);
             result["isError"] = JsonValue{ .data = false };
         } else {
             // Handle active list and execution
             JsonValue::Object toolArgs = arguments;
-            setupActiveEngines(toolArgs);
+            McpEngineTool::setupActiveEngines(toolArgs);
             content = runRunnerTool(name, toolArgs, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
@@ -921,223 +922,6 @@ std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode c
     return summary;
 }
 
-JsonValue::Array McpServer::handleManageEngines(const JsonValue::Object& arguments) {
-    JsonValue::Array content;
-    JsonValue::Object textContent;
-    textContent["type"] = JsonValue{ .data = std::string("text") };
-
-    const std::string command = arguments.at("command").asString();
-    
-    std::string result;
-    if (command == "list") {
-        result = listEngines();
-    } else if (command == "details") {
-        result = getEngineDetails(arguments);
-    } else if (command == "add") {
-        result = addOrUpdateEngine(arguments, false);
-    } else if (command == "update") {
-        result = addOrUpdateEngine(arguments, true);
-    } else if (command == "copy") {
-        result = copyEngine(arguments);
-    } else if (command == "update_all") {
-        result = updateAllEngines(arguments);
-    } else {
-        throw AppError::makeInvalidParameters(std::format("Unknown engine command '{}'.", command));
-    }
-
-    textContent["text"] = JsonValue{ .data = result };
-    content.push_back(JsonValue{ .data = textContent });
-    return content;
-}
-
-std::string McpServer::listEngines() {
-    std::string list;
-    const auto& manager = EngineWorkerFactory::getConfigManager();
-    for (const auto& config : manager.getAllConfigs()) {
-        if (!list.empty()) {
-            list += ", ";
-        }
-        list += config.getName();
-    }
-    return std::format("Registered engines: {}", list.empty() ? "None" : list);
-}
-
-namespace {
-
-std::string formatEngineConfiguration(const EngineConfig* config) {
-    std::string details = "\nConfiguration:\n";
-    if (!config->getDir().empty()) {
-        details += std::format("  dir = {}\n", config->getDir());
-    }
-    if (!config->getArgs().empty()) {
-        details += std::format("  args = {}\n", config->getArgs());
-    }
-    
-    details += std::format("  tc = {}\n", QaplaTester::to_string(config->getTimeControl()));
-    details += std::format("  restart = {}\n", QaplaTester::to_string(config->getRestartOption()));
-    details += std::format("  ponder = {}\n", config->isPonderEnabled() ? "true" : "false");
-    details += std::format("  gauntlet = {}\n", config->isGauntlet() ? "true" : "false");
-
-    const auto options = config->getOptionValues();
-    if (!options.empty()) {
-        for (const auto& [key, value] : options) {
-            details += std::format("  option.{} = {}\n", key, value);
-        }
-    }
-    return details;
-}
-
-std::string formatSupportedOptions(const EngineConfig* config, const QaplaConfiguration::EngineCapabilities& capabilities) {
-    std::string details;
-    if (const auto cap = capabilities.getCapability(config->getCmd(), config->getProtocol())) {
-        details += "\nSupported Options:\n";
-        for (const auto& opt : cap->getSupportedOptions()) {
-            details += std::format("  -- Name: {}\n", opt.name);
-            details += std::format("     Type: {}\n", QaplaTester::EngineOption::to_string(opt.type));
-            
-            if (!opt.defaultValue.empty()) {
-                details += std::format("     Default: {}\n", opt.defaultValue);
-            }
-            if (opt.min.has_value()) {
-                details += std::format("     Min: {}\n", *opt.min);
-            }
-            if (opt.max.has_value()) {
-                details += std::format("     Max: {}\n", *opt.max);
-            }
-            if (!opt.vars.empty()) {
-                details += "     Vars: ";
-                for (const auto& v : opt.vars) {
-                    details += std::format("'{}' ", v);
-                }
-                details += "\n";
-            }
-        }
-    }
-    return details;
-}
-
-} // namespace
-
-std::string McpServer::getEngineDetails(const JsonValue::Object& arguments) {
-    if (!arguments.contains("engine_name")) {
-        throw AppError::makeInvalidParameters("Engine 'engine_name' is required for 'details' command.");
-    }
-    const std::string name = arguments.at("engine_name").asString();
-    const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
-    if (config == nullptr) {
-        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found.", name));
-    }
-
-    std::string details = std::format("Details for engine '{}':\n", name);
-
-    details += std::format("  Configured Name: {}\n", config->getName());
-    details += std::format("  Reported Name:   {}\n", config->getReportedName());
-    details += std::format("  Executable:      {}\n", config->getCmd());
-    details += std::format("  Protocol:        {}\n", QaplaTester::to_string(config->getProtocol()));
-
-    details += formatEngineConfiguration(config);
-    details += formatSupportedOptions(config, capabilities_);
-
-    return details;
-}
-
-std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate) {
-    if (!arguments.contains("engine_name") || arguments.at("engine_name").asString().empty()) {
-        throw AppError::makeInvalidParameters("Engine 'engine_name' is required.");
-    }
-    if (!isUpdate && (!arguments.contains("engine_cmd") || arguments.at("engine_cmd").asString().empty())) {
-        throw AppError::makeInvalidParameters("Engine 'engine_cmd' (path to executable) is required for adding an engine via MCP.");
-    }
-    const std::string name = arguments.at("engine_name").asString();
-
-    if (name.find(' ') != std::string::npos) {
-        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
-    }
-
-    auto& manager = EngineWorkerFactory::getConfigManagerMutable();
-    EngineConfig* config = isUpdate ? manager.getConfigMutable(name) : nullptr;
-    
-    if (isUpdate && (config == nullptr)) {
-        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found for update.", name));
-    }
-
-    EngineConfig newConfig;
-    if (config != nullptr) {
-        newConfig = *config;
-    } else {
-        newConfig.setName(name);
-    }
-
-    // Collect all engine_ parameters
-    Settings::ValueMap options;
-    for (const auto& [key, value] : arguments) {
-        if (key.starts_with("engine_")) {
-            std::string paramKey = key.substr(7);
-            if (paramKey.starts_with("option_")) {
-                paramKey = "option." + paramKey.substr(7);
-            }
-            options[paramKey] = convertJsonToEngineSetting(paramKey, value);
-        }
-    }
-
-    newConfig.setCommandLineOptions(options, true);
-    if (!isUpdate) {
-        manager.addConfig(newConfig);
-        capabilities_.autoDetect();
-        return std::format("Engine '{}' added successfully.", name);
-    } 
-    
-    *config = newConfig;
-    capabilities_.autoDetect();
-    return std::format("Engine '{}' updated successfully.", name);
-}
-
-std::string McpServer::copyEngine(const JsonValue::Object& arguments) {
-    if (!arguments.contains("engine_name") || !arguments.contains("engine_copyName")) {
-        throw AppError::makeInvalidParameters("'engine_name' and 'engine_copyName' are required for 'copy' command.");
-    }
-    const std::string name = arguments.at("engine_name").asString();
-    const std::string newName = arguments.at("engine_copyName").asString();
-    
-    if (newName.find(' ') != std::string::npos) {
-        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
-    }
-
-    auto& manager = EngineWorkerFactory::getConfigManagerMutable();
-    const auto* config = manager.getConfig(name);
-    if (config == nullptr) {
-        throw AppError::makeInvalidParameters(std::format("Source engine '{}' not found.", name));
-    }
-
-    EngineConfig copy = *config;
-    copy.setName(newName);
-    manager.addConfig(copy);
-    return std::format("Engine '{}' copied to '{}' successfully.", name, newName);
-}
-
-std::string McpServer::updateAllEngines(const JsonValue::Object& arguments) {
-    Settings::ValueMap options;
-    for (const auto& [key, value] : arguments) {
-        if (key.starts_with("engine_")) {
-            std::string paramKey = key.substr(7);
-            if (paramKey.starts_with("option_")) {
-                paramKey = "option." + paramKey.substr(7);
-            }
-            options[paramKey] = convertJsonToEngineSetting(paramKey, value);
-        }
-    }
-
-    if (options.empty()) {
-            throw AppError::makeInvalidParameters("No parameters provided to update all engines.");
-    }
-
-    for (auto& config : EngineWorkerFactory::getConfigManagerMutable().getAllConfigsMutable()) {
-        config.setCommandLineOptions(options, true);
-    }
-    capabilities_.autoDetect();
-    return "All registered engines updated successfully.";
-}
-
 JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments) {
     JsonValue::Array content;
     JsonValue::Object textContent;
@@ -1174,38 +958,6 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
     return content;
 }
 
-void McpServer::setupActiveEngines(const JsonValue::Object& arguments) {
-    if (!arguments.contains("engines")) {
-        return;
-    }
-
-    const std::string engineList = arguments.at("engines").asString();
-    auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
-    activeEngines.clear();
-    
-    std::stringstream ss(engineList);
-    std::string segment;
-    while (std::getline(ss, segment, ',')) {
-            std::string name = QaplaHelpers::trim(segment); 
-            if (name.empty()) {
-                continue;
-            }
-            if (name.find(' ') != std::string::npos) {
-            throw AppError::makeInvalidParameters(std::format(
-                "Invalid engine name '{}'. Engine names must not contain spaces. "
-                "Please rename this engine in the registry using a name without spaces.", name));
-            }
-            
-            const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
-            if (config != nullptr) {
-            activeEngines.push_back(*config);
-            } else {
-            throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry.", name));
-            }
-    }
-    
-    EngineWorkerFactory::assignUniqueDisplayNames();
-}
 
 JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode) {
     JsonValue::Object toolArgs = arguments;

@@ -110,48 +110,6 @@ private:
     [[nodiscard]] static QaplaHelpers::ConfigData mapJsonToConfigData(const JsonValue::Object& arguments);
 
     /**
-     * @brief Handles engine management operations.
-     * @param arguments The JSON arguments for the manage_engines tool.
-     * @return Array of response content items.
-     */
-    static JsonValue::Array handleManageEngines(const JsonValue::Object& arguments);
-
-    /**
-     * @brief Formats a list of all registered engines.
-     * @return String containing the names of registered engines.
-     */
-    [[nodiscard]] static std::string listEngines();
-
-    /**
-     * @brief Formats detailed information about a single engine.
-     * @param arguments The tool arguments containing the engine name.
-     * @return Formatted details string.
-     */
-    [[nodiscard]] static std::string getEngineDetails(const JsonValue::Object& arguments);
-
-    /**
-     * @brief Adds a new engine to the registry or updates an existing one.
-     * @param arguments The tool arguments.
-     * @param isUpdate True if updating an existing engine, false if adding a new one.
-     * @return Status message about the operation.
-     */
-    static std::string addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate);
-
-    /**
-     * @brief Copies an existing engine configuration to a new name.
-     * @param arguments The tool arguments.
-     * @return Status message about the operation.
-     */
-    static std::string copyEngine(const JsonValue::Object& arguments);
-
-    /**
-     * @brief Updates common parameters across all registered engines.
-     * @param arguments The tool arguments.
-     * @return Status message about the operation.
-     */
-    static std::string updateAllEngines(const JsonValue::Object& arguments);
-
-    /**
      * @brief Executes a tool call.
      * @param jsonObject The request object.
      * @return Application return code of the executed tool.
@@ -244,7 +202,6 @@ private:
     /**
      * @brief Helpers for callTool to reduce complexity.
      */
-    static void setupActiveEngines(const JsonValue::Object& arguments);
     static JsonValue::Array runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode);
 
     /**
