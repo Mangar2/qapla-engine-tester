@@ -407,6 +407,7 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
         items["type"] = JsonValue{ .data = std::string("object") };
         
         JsonValue::Object itemProperties;
+        JsonValue::Array itemRequired;
         for (const auto& [key, def] : it->second.keys) {
             if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
                 continue;
@@ -430,8 +431,15 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
             }
             prop["description"] = JsonValue{ .data = def.longDescription.empty() ? std::string(def.description) : def.longDescription };
             itemProperties[key] = JsonValue{ .data = prop };
+            
+            if (def.isRequired) {
+                 itemRequired.push_back(JsonValue{ .data = key });
+            }
         }
         items["properties"] = JsonValue{ .data = itemProperties };
+        if (!itemRequired.empty()) {
+            items["required"] = JsonValue{ .data = itemRequired };
+        }
         arrayProp["items"] = JsonValue{ .data = items };
         arrayProp["description"] = JsonValue{ .data = it->second.longDescription.empty() ? std::string(it->second.description) : it->second.longDescription };
         
