@@ -18,6 +18,8 @@
  */
 
 #include "mcp-server.h"
+#include "../base-elements/file-helper.h"
+#include "../base-elements/base-logger.h"
 #include "json-helper.h"
 #include "mcp-converter.h"
 #include "../cli/settings-definitions.h"
@@ -412,6 +414,13 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         background["type"] = JsonValue{ .data = std::string("boolean") };
         background["description"] = JsonValue{ .data = std::string("If true, starts the task in background and returns immediately. Use 'control' tool to monitor.") };
         properties["mcp_background"] = JsonValue{ .data = background };
+
+        if (info.name == "sprt") {
+             JsonValue::Object resume;
+             resume["type"] = JsonValue{ .data = std::string("boolean") };
+             resume["description"] = JsonValue{ .data = std::string("If true, resumes sending results to the last used SPRT file. If false (default), creates a new timestamped file.") };
+             properties["resume"] = JsonValue{ .data = resume };
+        }
 
         for (const auto& group : info.groups) {
             addParametersFromGroup(group, properties);
@@ -1213,6 +1222,23 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
     
     if (toolArgs.contains("engines")) {
         toolArgs.erase("engines");
+    }
+
+    if (name == "sprt") {
+        bool resume = false;
+        if (toolArgs.contains("resume")) {
+            resume = toolArgs.at("resume").asBool();
+            toolArgs.erase("resume");
+        }
+
+        std::string filename;
+        if (resume && !lastSprtFile_.empty()) {
+            filename = lastSprtFile_;
+        } else {
+             filename = QaplaHelpers::generateTimestampedFilename("sprt-tournament", BaseLogger::logPath_, "qsprt");
+             lastSprtFile_ = filename;
+        }
+        toolArgs["sprt_file"] = JsonValue{ .data = filename };
     }
 
     auto configData = mapJsonToConfigData(toolArgs);

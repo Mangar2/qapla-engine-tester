@@ -19,25 +19,13 @@
 
 #pragma once
 
-#include <iostream>
-#include <filesystem>
 #include <string>
-#include <vector>
-#include <algorithm>
-#include <set>
+#include <filesystem>
 
 namespace QaplaHelpers {
 
-/**
- * @brief Validates if the given path is a valid output file path.
- * 
- * Verifies that the path is not empty, not a directory, that the parent
- * directory exists and is writable, and that the filename follows system rules.
- * 
- * @param path The path to validate.
- * @throws QaplaTester::AppError if the path is invalid or unwritable.
- */
-void validateOutputPath(const std::filesystem::path& path);
+    std::string generateTimestampedFilename(const std::string& baseName, const std::string& logPath, const std::string& extension);
+    void validateOutputPath(const std::filesystem::path& path);
 
 } // namespace QaplaHelpers
 

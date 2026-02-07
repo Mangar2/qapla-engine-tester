@@ -20,6 +20,14 @@
 #include "file-helper.h"
 #include "app-error.h"
 #include <format>
+#include <filesystem>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <algorithm>
+#include <set>
+#include <cctype>
 
 namespace QaplaHelpers {
 
@@ -126,5 +134,30 @@ void validateOutputPath(const std::filesystem::path& path) {
     validateCommon(path);
 }
 #endif
+
+std::string generateTimestampedFilename(const std::string& baseName, const std::string& logPath, const std::string& extension) {
+    using namespace std::chrono;
+
+    auto now = system_clock::now();
+    auto now_time_t = system_clock::to_time_t(now);
+    auto now_ms = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+
+    std::tm local_tm;
+#ifdef _WIN32
+    localtime_s(&local_tm, &now_time_t);
+#else
+    localtime_r(&now_time_t, &local_tm);
+#endif
+
+    std::ostringstream oss;
+    oss << baseName << '-'
+        << std::put_time(&local_tm, "%Y-%m-%d_%H-%M-%S")
+        << '.' << std::setw(3) << std::setfill('0') << now_ms.count()
+        << "." << extension;
+    
+    namespace fs = std::filesystem;
+    fs::path path = logPath.empty() ? "" : fs::path(logPath);
+    return (path / oss.str()).string();
+}
 
 }
