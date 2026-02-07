@@ -52,7 +52,14 @@ std::vector<EngineConfig> EngineCapabilities::detectWithProtocol(
             .getConfigMutableByCmdAndProtocol(config.getCmd(), config.getProtocol());
         if (protocol) {
             config.setProtocol(*protocol);
-            mutableConfig->setProtocol(*protocol);
+            if (mutableConfig != nullptr) {
+                mutableConfig->setProtocol(*protocol);
+            }
+        } else if (config.getProtocol() == EngineProtocol::Unknown || config.getProtocol() == EngineProtocol::NotSupported) {
+            config.setProtocol(EngineProtocol::Uci);
+            if (mutableConfig != nullptr) {
+                mutableConfig->setProtocol(EngineProtocol::Uci);
+            }
         }
     }
     
