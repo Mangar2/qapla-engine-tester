@@ -21,6 +21,7 @@
 #include "json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/settings-manager.h"
 #include "../engine-handling/engine-capabilities.h"
 #include <filesystem>
 #include <string_view>
@@ -186,6 +187,13 @@ private:
     [[nodiscard]] static std::optional<JsonValue> tryReadByBraceCounting(std::string& accumulated);
 
     /**
+     * @brief Handles the control tool.
+     * @param arguments The tool arguments.
+     * @return Result content array.
+     */
+    static JsonValue::Array handleControlTool(const JsonValue::Object& arguments);
+
+    /**
      * @brief Handles the read_report tool.
      * @param arguments The tool arguments.
      * @return Result content array.
@@ -195,9 +203,10 @@ private:
     /**
      * @brief Executes a tool that uses the AppRunner dispatcher.
      * @param configData The prepared configuration data.
+     * @param background If true, execution continues in background.
      * @return Tool return code.
      */
-    static AppReturnCode executeRunnerTool(QaplaHelpers::ConfigData& configData);
+    static AppReturnCode executeRunnerTool(QaplaHelpers::ConfigData& configData, bool background = false);
 
     /**
      * @brief Formats the summary text for a tool execution.
@@ -206,13 +215,6 @@ private:
      * @return Execution summary string.
      */
     [[nodiscard]] static std::string formatRunSummary(const std::string& name, AppReturnCode code);
-
-    /**
-     * @brief Converts a JsonValue to its string representation for configuration.
-     * @param value The value to convert.
-     * @return String representation.
-     */
-    [[nodiscard]] static std::string valueToString(const JsonValue& value);
 
     /**
      * @brief Processes a single tool parameter and routes it to the correct section.
@@ -238,6 +240,18 @@ private:
      * @return The JSON object representing the input schema.
      */
     static JsonValue::Object createInputSchema(const ToolInfo& info, const std::string& registeredNames);
+
+    /**
+     * @brief Helpers for callTool to reduce complexity.
+     */
+    static void setupActiveEngines(const JsonValue::Object& arguments);
+    static JsonValue::Array runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode);
+
+    /**
+     * @brief Helpers for schema generation.
+     */
+    static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
+    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
 };

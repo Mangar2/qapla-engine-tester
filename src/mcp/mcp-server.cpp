@@ -19,11 +19,13 @@
 
 #include "mcp-server.h"
 #include "json-helper.h"
+#include "mcp-converter.h"
 #include "../cli/settings-definitions.h"
 #include "../cli/settings-manager.h"
 #include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
 #include "../engine-handling/engine-worker-factory.h"
+#include "../game-manager/game-manager-pool.h"
 #include <iostream>
 #include <sstream>
 #include <filesystem>
@@ -224,7 +226,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         {
             .name = "test",
             .description = "Runs basic engine tests (startup, move generation, etc.)",
-            .groups = {"test", "logging", "each"}
+            .groups = {"test", "logging"}
         },
         {
             .name = "sprt",
@@ -245,6 +247,11 @@ void McpServer::listTools(const JsonValue& requestId) {
             .name = "spsa",
             .description = "Optimizes engine parameters using SPSA",
             .groups = {"spsa", "spsavalue", "openings", "draw", "resign", "pgnoutput", "logging"}
+        },
+        {
+            .name = "control",
+            .description = "Control the execution of running tasks (concurrency, stop)",
+            .groups = {}
         },
         {
             .name = "manage_engines",
@@ -308,6 +315,26 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         JsonValue::Array required;
         required.push_back(JsonValue{ .data = std::string("uri") });
         inputSchema["required"] = JsonValue{ .data = required };
+    } else if (info.name == "control") {
+        JsonValue::Object command;
+        command["type"] = JsonValue{ .data = std::string("string") };
+        command["enum"] = JsonValue{ .data = JsonValue::Array{ 
+            JsonValue{ .data = std::string("status") }, 
+            JsonValue{ .data = std::string("set_concurrency") }, 
+            JsonValue{ .data = std::string("stop") }, 
+            JsonValue{ .data = std::string("stop_nice") } 
+        } };
+        command["description"] = JsonValue{ .data = std::string("The operation to perform.") };
+        properties["command"] = JsonValue{ .data = command };
+
+        JsonValue::Object value;
+        value["type"] = JsonValue{ .data = std::string("integer") };
+        value["description"] = JsonValue{ .data = std::string("Value for the command (e.g. concurrency level).") };
+        properties["value"] = JsonValue{ .data = value };
+
+        JsonValue::Array required;
+        required.push_back(JsonValue{ .data = std::string("command") });
+        inputSchema["required"] = JsonValue{ .data = required };
     } else if (info.name == "manage_engines") {
         JsonValue::Object command;
         command["type"] = JsonValue{ .data = std::string("string") };
@@ -324,13 +351,16 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
 
         JsonValue::Object engine_name;
         engine_name["type"] = JsonValue{ .data = std::string("string") };
-        engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {})", registeredNames) };
+        engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {}). No spaces allowed!", registeredNames) };
         properties["engine_name"] = JsonValue{ .data = engine_name };
 
         // Manually add engine parameters with engine_ prefix since the "engine" group is not unique
         const auto allEngineKeys = Settings::getEngineKeys();
         for (const auto& [key, def] : allEngineKeys) {
-            if (def.isHidden || key == "id" || key == "name" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+            // "conf" translates to --engine.conf which is used in CLI to reference an engine from ini,
+            // but in MCP manage_engines we use engine_name directly.
+            if (def.isHidden || key == "id" || key == "name" || key == "conf" ||
+                key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
                 continue;
             }
             
@@ -364,7 +394,7 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         // All task tools use a simple engine list
         JsonValue::Object engines;
         engines["type"] = JsonValue{ .data = std::string("string") };
-        engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {})", registeredNames) };
+        engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {}). Engine names must not contain spaces.", registeredNames) };
         properties["engines"] = JsonValue{ .data = engines };
 
         // Global settings
@@ -377,6 +407,11 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         rapid["type"] = JsonValue{ .data = std::string("boolean") };
         rapid["description"] = JsonValue{ .data = std::string("Enables rapid mode (suppresses engine info lines)") };
         properties["rapid"] = JsonValue{ .data = rapid };
+
+        JsonValue::Object background;
+        background["type"] = JsonValue{ .data = std::string("boolean") };
+        background["description"] = JsonValue{ .data = std::string("If true, starts the task in background and returns immediately. Use 'control' tool to monitor.") };
+        properties["mcp_background"] = JsonValue{ .data = background };
 
         for (const auto& group : info.groups) {
             addParametersFromGroup(group, properties);
@@ -399,61 +434,29 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
     }
 
     if (!it->second.unique) {
-        // Handle non-unique groups (like spsavalue) as an array of objects
-        JsonValue::Object arrayProp;
-        arrayProp["type"] = JsonValue{ .data = std::string("array") };
-        
-        JsonValue::Object items;
-        items["type"] = JsonValue{ .data = std::string("object") };
-        
-        JsonValue::Object itemProperties;
-        JsonValue::Array itemRequired;
-        for (const auto& [key, def] : it->second.keys) {
-            if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
-                continue;
-            }
-            
-            JsonValue::Object prop;
-            switch (def.type) {
-                case Settings::ValueType::Bool: 
-                    prop["type"] = JsonValue{ .data = std::string("boolean") }; 
-                    break;
-                case Settings::ValueType::Int:
-                case Settings::ValueType::UInt: 
-                    prop["type"] = JsonValue{ .data = std::string("integer") }; 
-                    break;
-                case Settings::ValueType::Float: 
-                    prop["type"] = JsonValue{ .data = std::string("number") }; 
-                    break;
-                default: 
-                    prop["type"] = JsonValue{ .data = std::string("string") }; 
-                    break;
-            }
-            prop["description"] = JsonValue{ .data = def.longDescription.empty() ? std::string(def.description) : def.longDescription };
-            itemProperties[key] = JsonValue{ .data = prop };
-            
-            if (def.isRequired) {
-                 itemRequired.push_back(JsonValue{ .data = key });
-            }
-        }
-        items["properties"] = JsonValue{ .data = itemProperties };
-        if (!itemRequired.empty()) {
-            items["required"] = JsonValue{ .data = itemRequired };
-        }
-        arrayProp["items"] = JsonValue{ .data = items };
-        arrayProp["description"] = JsonValue{ .data = it->second.longDescription.empty() ? std::string(it->second.description) : it->second.longDescription };
-        
-        properties[std::string(groupName)] = JsonValue{ .data = arrayProp };
-        return;
+        addArrayGroupSchema(std::string(groupName), it->second, properties);
+    } else {
+        addSingleGroupSchema(std::string(groupName), it->second, properties);
     }
+}
 
-    for (const auto& [key, def] : it->second.keys) {
-        if (def.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+void McpServer::addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties) {
+    // Handle non-unique groups (like spsavalue) as an array of objects
+    JsonValue::Object arrayProp;
+    arrayProp["type"] = JsonValue{ .data = std::string("array") };
+    
+    JsonValue::Object items;
+    items["type"] = JsonValue{ .data = std::string("object") };
+    
+    JsonValue::Object itemProperties;
+    JsonValue::Array itemRequired;
+    for (const auto& [key, keyDef] : def.keys) {
+        if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
         
         JsonValue::Object prop;
-        switch (def.type) {
+        switch (keyDef.type) {
             case Settings::ValueType::Bool: 
                 prop["type"] = JsonValue{ .data = std::string("boolean") }; 
                 break;
@@ -468,7 +471,46 @@ void McpServer::addParametersFromGroup(std::string_view groupName, JsonValue::Ob
                 prop["type"] = JsonValue{ .data = std::string("string") }; 
                 break;
         }
-        prop["description"] = JsonValue{ .data = def.longDescription.empty() ? def.description : def.longDescription };
+        prop["description"] = JsonValue{ .data = keyDef.longDescription.empty() ? std::string(keyDef.description) : keyDef.longDescription };
+        itemProperties[key] = JsonValue{ .data = prop };
+        
+        if (keyDef.isRequired) {
+                itemRequired.push_back(JsonValue{ .data = key });
+        }
+    }
+    items["properties"] = JsonValue{ .data = itemProperties };
+    if (!itemRequired.empty()) {
+        items["required"] = JsonValue{ .data = itemRequired };
+    }
+    arrayProp["items"] = JsonValue{ .data = items };
+    arrayProp["description"] = JsonValue{ .data = def.longDescription.empty() ? std::string(def.description) : def.longDescription };
+    
+    properties[groupName] = JsonValue{ .data = arrayProp };
+}
+
+void McpServer::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties) {
+    for (const auto& [key, keyDef] : def.keys) {
+        if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
+            continue;
+        }
+        
+        JsonValue::Object prop;
+        switch (keyDef.type) {
+            case Settings::ValueType::Bool: 
+                prop["type"] = JsonValue{ .data = std::string("boolean") }; 
+                break;
+            case Settings::ValueType::Int:
+            case Settings::ValueType::UInt: 
+                prop["type"] = JsonValue{ .data = std::string("integer") }; 
+                break;
+            case Settings::ValueType::Float: 
+                prop["type"] = JsonValue{ .data = std::string("number") }; 
+                break;
+            default: 
+                prop["type"] = JsonValue{ .data = std::string("string") }; 
+                break;
+        }
+        prop["description"] = JsonValue{ .data = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription };
         properties[std::format("{}_{}", groupName, key)] = JsonValue{ .data = prop };
     }
 }
@@ -500,48 +542,17 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
         if (name == "read_report") {
             content = handleReadReport(arguments);
             result["isError"] = JsonValue{ .data = false };
+        } else if (name == "control") {
+            content = handleControlTool(arguments);
+            result["isError"] = JsonValue{ .data = false };
         } else if (name == "manage_engines") {
             content = handleManageEngines(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else {
-            // Handle active engines selection
-            if (arguments.contains("engines")) {
-                const std::string engineList = arguments.at("engines").asString();
-                auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
-                activeEngines.clear();
-                
-                std::stringstream ss(engineList);
-                std::string segment;
-                while (std::getline(ss, segment, ',')) {
-                     std::string name = QaplaHelpers::trim(segment); 
-                     if (name.empty()) {
-                         continue;
-                     }
-                     
-                     const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
-                     if (config != nullptr) {
-                        activeEngines.push_back(*config);
-                     } else {
-                        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry.", name));
-                     }
-                }
-                
-                EngineWorkerFactory::assignUniqueDisplayNames();
-            }
-            
+            // Handle active list and execution
             JsonValue::Object toolArgs = arguments;
-            if (toolArgs.contains("engines")) {
-                toolArgs.erase("engines");
-            }
-
-            auto configData = mapJsonToConfigData(toolArgs);
-            returnCode = executeRunnerTool(configData);
-
-            JsonValue::Object textContent;
-
-            textContent["type"] = JsonValue{ .data = std::string("text") };
-            textContent["text"] = JsonValue{ .data = formatRunSummary(name, returnCode) };
-            content.push_back(JsonValue{ .data = textContent });
+            setupActiveEngines(toolArgs);
+            content = runRunnerTool(name, toolArgs, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
                                                   returnCode == AppReturnCode::InvalidParameters || 
@@ -592,7 +603,7 @@ void McpServer::processParameter(const std::string& key, const JsonValue& value,
                 QaplaHelpers::IniFile::Section s;
                 s.name = key;
                 for (const auto& [propKey, propVal] : item.asObject()) {
-                    s.addEntry(propKey, valueToString(propVal));
+                    s.addEntry(propKey, validateAndToString(propKey, propVal));
                 }
                 configData.addSection(s);
             }
@@ -600,7 +611,7 @@ void McpServer::processParameter(const std::string& key, const JsonValue& value,
         return;
     }
 
-    const std::string valStr = valueToString(value);
+    const std::string valStr = validateAndToString(key, value);
 
     if (const size_t underscorePos = key.find('_'); underscorePos != std::string::npos) {
         const std::string sectionName = key.substr(0, underscorePos);
@@ -870,12 +881,12 @@ JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments)
     throw std::runtime_error("Could not read report file: file not found.");
 }
 
-AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData) {
+AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData, bool background) {
 
     Settings::QaplaSettings::instance().applyConfig(configData);
 
     // Run dispatcher
-    return AppRunner::runDispatcher();
+    return AppRunner::runDispatcher(background);
 }
 
 std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode code) {
@@ -1029,6 +1040,11 @@ std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, boo
         throw AppError::makeInvalidParameters("Engine 'engine_cmd' (path to executable) is required for adding an engine via MCP.");
     }
     const std::string name = arguments.at("engine_name").asString();
+
+    if (name.find(' ') != std::string::npos) {
+        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
+    }
+
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     EngineConfig* config = isUpdate ? manager.getConfigMutable(name) : nullptr;
     
@@ -1051,7 +1067,7 @@ std::string McpServer::addOrUpdateEngine(const JsonValue::Object& arguments, boo
             if (paramKey.starts_with("option_")) {
                 paramKey = "option." + paramKey.substr(7);
             }
-            options[paramKey] = valueToString(value);
+            options[paramKey] = convertJsonToEngineSetting(paramKey, value);
         }
     }
 
@@ -1074,6 +1090,10 @@ std::string McpServer::copyEngine(const JsonValue::Object& arguments) {
     const std::string name = arguments.at("engine_name").asString();
     const std::string newName = arguments.at("engine_copyName").asString();
     
+    if (newName.find(' ') != std::string::npos) {
+        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
+    }
+
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     const auto* config = manager.getConfig(name);
     if (config == nullptr) {
@@ -1094,7 +1114,7 @@ std::string McpServer::updateAllEngines(const JsonValue::Object& arguments) {
             if (paramKey.starts_with("option_")) {
                 paramKey = "option." + paramKey.substr(7);
             }
-            options[paramKey] = valueToString(value);
+            options[paramKey] = convertJsonToEngineSetting(paramKey, value);
         }
     }
 
@@ -1109,21 +1129,102 @@ std::string McpServer::updateAllEngines(const JsonValue::Object& arguments) {
     return "All registered engines updated successfully.";
 }
 
-std::string McpServer::valueToString(const JsonValue& value) {
-    if (value.isString()) {
-        return value.asString();
-    }
-    if (value.isNumber()) {
-        double d = value.asDouble();
-        if (d == static_cast<double>(static_cast<long long>(d))) {
-            return std::to_string(static_cast<long long>(d));
+JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments) {
+    JsonValue::Array content;
+    JsonValue::Object textContent;
+    textContent["type"] = JsonValue{ .data = std::string("text") };
+
+    const std::string command = arguments.at("command").asString();
+    
+    std::string result;
+    GameManagerPool& pool = GameManagerPool::getInstance();
+
+    if (command == "status") {
+        result = std::format("Running games: {}", pool.runningGameCount());
+    } else if (command == "set_concurrency") {
+        if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
+             throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
         }
-        return std::format("{}", d);
+        int value = static_cast<int>(arguments.at("value").asDouble());
+        pool.setConcurrency(value, true, true);
+        result = std::format("Concurrency set to {}.", value);
+    } else if (command == "stop") {
+        pool.stopAll();
+        pool.waitForTask();
+        result = "All tasks stopped.";
+    } else if (command == "stop_nice") {
+        pool.setConcurrency(0, true, false);
+        pool.waitForTask();
+        result = "All tasks stopped gracefully.";
+    } else {
+         throw AppError::makeInvalidParameters(std::format("Unknown control command '{}'.", command));
     }
-    if (value.isBool()) {
-        return value.asBool() ? "true" : "false";
+
+    textContent["text"] = JsonValue{ .data = result };
+    content.push_back(JsonValue{ .data = textContent });
+    return content;
+}
+
+void McpServer::setupActiveEngines(const JsonValue::Object& arguments) {
+    if (!arguments.contains("engines")) {
+        return;
     }
-    return "";
+
+    const std::string engineList = arguments.at("engines").asString();
+    auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
+    activeEngines.clear();
+    
+    std::stringstream ss(engineList);
+    std::string segment;
+    while (std::getline(ss, segment, ',')) {
+            std::string name = QaplaHelpers::trim(segment); 
+            if (name.empty()) {
+                continue;
+            }
+            if (name.find(' ') != std::string::npos) {
+            throw AppError::makeInvalidParameters(std::format(
+                "Invalid engine name '{}'. Engine names must not contain spaces. "
+                "Please rename this engine in the registry using a name without spaces.", name));
+            }
+            
+            const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);
+            if (config != nullptr) {
+            activeEngines.push_back(*config);
+            } else {
+            throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry.", name));
+            }
+    }
+    
+    EngineWorkerFactory::assignUniqueDisplayNames();
+}
+
+JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode) {
+    JsonValue::Object toolArgs = arguments;
+    bool background = false;
+    
+    // Check for background execution parameter
+    if (toolArgs.contains("mcp_background")) {
+        background = toolArgs.at("mcp_background").asBool();
+        toolArgs.erase("mcp_background"); // Remove so it doesn't fail settings parsing
+    } else if (toolArgs.contains("background")) {
+        background = toolArgs.at("background").asBool();
+        toolArgs.erase("background");
+    }
+    
+    if (toolArgs.contains("engines")) {
+        toolArgs.erase("engines");
+    }
+
+    auto configData = mapJsonToConfigData(toolArgs);
+    returnCode = executeRunnerTool(configData, background);
+
+    JsonValue::Array content;
+    JsonValue::Object textContent;
+
+    textContent["type"] = JsonValue{ .data = std::string("text") };
+    textContent["text"] = JsonValue{ .data = formatRunSummary(name, returnCode) };
+    content.push_back(JsonValue{ .data = textContent });
+    return content;
 }
 
 } // namespace QaplaTester::Mcp

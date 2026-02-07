@@ -90,7 +90,7 @@ AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnC
     return code;
 }
 
-AppReturnCode AppRunner::runEpd(AppReturnCode code) {
+AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
     const auto& epdConfig = Settings::QaplaSettings::instance().getEpdConfig();
     if (!epdConfig) {
         return code;
@@ -112,6 +112,12 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code) {
 
         pool.setConcurrency(concurrency, true);
         epdManager->schedule(engine, pool);
+        
+        if (background) {
+            Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+            return code;
+        }
+
         pool.waitForTask();
         Logger::reportLogger().log(std::format("Finished EPD test for engine: {}, success rate: {:.2f}%", 
             name, epdManager->getSuccessRate() * 100.0));
@@ -123,7 +129,7 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code) {
     return code;
 }
 
-AppReturnCode AppRunner::runTournament(AppReturnCode code) {
+AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
     const auto& tournamentConfig = Settings::QaplaSettings::instance().getTournamentConfig();
     if (!tournamentConfig) {
         return code;
@@ -149,8 +155,14 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code) {
     try {
         GameManagerPool& pool = GameManagerPool::getInstance();
         tournament->scheduleAll(concurrency, true, pool);
-        pool.waitForTask();
 
+        if (background) {
+            Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+            return code;
+        }
+
+        pool.waitForTask();
+        
         TournamentFile::save(tfile, Settings::Manager::instance(), tournament);
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
         
@@ -172,7 +184,7 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code) {
     return code;
 }
 
-AppReturnCode AppRunner::runSprt(AppReturnCode code) {
+AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
     const auto& sprtConfig = Settings::QaplaSettings::instance().getSprtConfig();
     if (!sprtConfig) {
         return code;
@@ -203,6 +215,12 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code) {
             const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
+
+            if (background) {
+                Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+                return code;
+            }
+
             pool.waitForTask();
 
             SprtTournamentFile::save(sprtfile, Settings::Manager::instance(), manager);
@@ -232,7 +250,7 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code) {
     return code;
 }
 
-AppReturnCode AppRunner::runSpsa(AppReturnCode code) {
+AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
     const auto& spsaConfig = Settings::QaplaSettings::instance().getSPSAConfig();
     if (!spsaConfig) {
         return code;
@@ -257,6 +275,12 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code) {
         const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
         GameManagerPool& pool = GameManagerPool::getInstance();
         optimizer->scheduleSPSA(concurrency, pool);
+        
+        if (background) {
+            Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+            return code;
+        }
+
         pool.waitForTask();
         
         Logger::reportLogger().log("SPSA optimization completed.", TraceLevel::result);
@@ -289,7 +313,7 @@ void AppRunner::setPgnConfig() {
     PgnSave::tournament().setOptions(*pgnOptions);
 }
 
-AppReturnCode AppRunner::runDispatcher() {
+AppReturnCode AppRunner::runDispatcher(bool background) {
     AppReturnCode returnCode = AppReturnCode::NoError;
     bool hasTask = false;
 
@@ -302,22 +326,22 @@ AppReturnCode AppRunner::runDispatcher() {
     }
 
     if (Settings::Manager::instance().getGroupInstance("epd")) {
-        returnCode = runEpd(returnCode);
+        returnCode = runEpd(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("tournament")) {
-        returnCode = runTournament(returnCode);
+        returnCode = runTournament(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("sprt")) {
-        returnCode = runSprt(returnCode);
+        returnCode = runSprt(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("spsa")) {
-        returnCode = runSpsa(returnCode);
+        returnCode = runSpsa(returnCode, background);
         hasTask = true;
     }
 
