@@ -212,6 +212,7 @@ private:
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
     static inline std::string lastSprtFile_;
+    static inline std::string lastTournamentFile_;
 };
 
 } // namespace QaplaTester::Mcp

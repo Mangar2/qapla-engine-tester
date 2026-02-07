@@ -416,10 +416,10 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         background["description"] = JsonValue{ .data = std::string("If true, starts the task in background and returns immediately. Use 'control' tool to monitor.") };
         properties["mcp_background"] = JsonValue{ .data = background };
 
-        if (info.name == "sprt") {
+        if (info.name == "sprt" || info.name == "tournament") {
              JsonValue::Object resume;
              resume["type"] = JsonValue{ .data = std::string("boolean") };
-             resume["description"] = JsonValue{ .data = std::string("If true, resumes sending results to the last used SPRT file. If false (default), creates a new timestamped file.") };
+             resume["description"] = JsonValue{ .data = std::string("If true, resumes sending results to the last used file. If false (default), creates a new timestamped file.") };
              properties["resume"] = JsonValue{ .data = resume };
         }
 
@@ -991,6 +991,21 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
              lastSprtFile_ = filename;
         }
         toolArgs["sprt_file"] = JsonValue{ .data = filename };
+    } else if (name == "tournament") {
+        bool resume = false;
+        if (toolArgs.contains("resume")) {
+            resume = toolArgs.at("resume").asBool();
+            toolArgs.erase("resume");
+        }
+
+        std::string filename;
+        if (resume && !lastTournamentFile_.empty()) {
+            filename = lastTournamentFile_;
+        } else {
+             filename = QaplaHelpers::generateTimestampedFilename("tournament-outcome", BaseLogger::logPath_, "qtour");
+             lastTournamentFile_ = filename;
+        }
+        toolArgs["tournament_file"] = JsonValue{ .data = filename };
     }
 
     auto configData = mapJsonToConfigData(toolArgs);
