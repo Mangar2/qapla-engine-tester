@@ -140,11 +140,15 @@ public:
     void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     /**
-     * @brief Sets a callback to be invoked after each game is recorded.
-     * @param callback Function to call after game record processing.
+     * @brief Sets a callback to be invoked when a save operation is required.
+     * @details The manager controls when to save (Start, End, Interval).
+     *          The callback itself should always perform the save.
+     * @param callback Function to call to perform the save.
+     * @param interval Number of games between periodic saves.
      */
-    void setGameFinishedCallback(std::function<void()> callback) {
-        gameFinishedCallback_ = std::move(callback);
+    void setSaveCallback(std::function<void()> callback, uint32_t interval) {
+        saveCallback_ = std::move(callback);
+        saveInterval_ = interval;
     }
 
     /**
@@ -310,7 +314,9 @@ private:
 
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
-    std::function<void()> gameFinishedCallback_;
+    std::function<void()> saveCallback_;
+    uint32_t saveInterval_ = 0;
+    uint32_t gamesSinceSave_ = 0;
 
     // Monte Carlo test thread management
     std::thread monteCarloThread_;
@@ -323,5 +329,6 @@ private:
     SprtResultsAllTournaments sprtResults_;
     mutable std::mutex sprtResultsMutex_;
 
+    void checkAutoSave(const SprtResult& result);
 };
 } // namespace QaplaTester

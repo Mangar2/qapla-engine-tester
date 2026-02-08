@@ -144,6 +144,10 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
         concurrency);
     Logger::reportLogger().logStatus(startMsg, "sprt");
 
+    if (saveCallback_) {
+        saveCallback_();
+    }
+
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
     pool.startManagers();
@@ -203,16 +207,35 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 
     Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
 
-    if (gameFinishedCallback_) {
-        try {
-            gameFinishedCallback_();
-        } catch (const std::exception& ex) {
-            Logger::reportLogger().log("Error in game finished callback: " + 
-                std::string(ex.what()), TraceLevel::error);
+    checkAutoSave(configuredResult);
+
+    finishTournament();
+}
+
+void SprtManager::checkAutoSave(const SprtResult& result) {
+    if (!saveCallback_) {
+        return;
+    }
+
+    bool save = false;
+    // Check interval
+    if (saveInterval_ > 0) {
+        gamesSinceSave_++;
+        if (gamesSinceSave_ >= saveInterval_) {
+            save = true;
+            gamesSinceSave_ = 0;
         }
     }
 
-    finishTournament();
+    // Check decision or finished state
+    if (result.decision.has_value() || (pairing_ && pairing_->isFinished())) {
+        save = true;
+        gamesSinceSave_ = 0;
+    }
+
+    if (save) {
+        saveCallback_();
+    }
 }
 
 std::optional<QaplaHelpers::IniFile::Section> SprtManager::getSection() const {

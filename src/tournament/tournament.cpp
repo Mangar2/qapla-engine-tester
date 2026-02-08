@@ -167,8 +167,37 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
         Logger::reportLogger().log(result.getOutcomeJson());
     }
     
-    if (gameFinishedCallback_) {
-        gameFinishedCallback_();
+    checkAutoSave();
+}
+
+void Tournament::checkAutoSave() {
+    if (!saveCallback_) {
+        return;
+    }
+
+    bool save = false;
+
+    if (config_.saveInterval > 0 && saveTrigger_ >= config_.saveInterval) {
+        saveTrigger_ = 0;
+        save = true;
+    }
+
+    if (!save) {
+        bool allFinished = true;
+        for (const auto& pairing : pairings_) {
+            if (!pairing->isFinished()) {
+                allFinished = false;
+                break;
+            }
+        }
+        if (allFinished) {
+            save = true;
+            saveTrigger_ = 0;
+        }
+    }
+
+    if (save) {
+        saveCallback_();
     }
 }
 
@@ -184,6 +213,10 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
 	}
 	PgnSave::tournament().initialize(config_.event, isResumingTournament);
 	
+    if (saveCallback_) {
+        saveCallback_();
+    }
+
 	pool.setConcurrency(concurrency, true);
     if (registerToInputhandler) {
         tournamentCallback_ = InputHandler::getInstance().registerCommandCallback(
