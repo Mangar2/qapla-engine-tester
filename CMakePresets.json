@@ -62,5 +62,18 @@
       "name": "unit",
       "configurePreset": "unit"
     }
+  ],
+  "testPresets": [
+    {
+      "name": "unit",
+      "configurePreset": "unit",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": false
+      }
+    }
   ]
 }
