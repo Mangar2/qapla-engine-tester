@@ -151,7 +151,7 @@ public:
      * @brief Gets the time segments.
      * @return The vector of time segments.
      */
-	[[nodiscard]] std::vector<TimeSegment> timeSegments() const { return timeSegments_; }
+	[[nodiscard]] const std::vector<TimeSegment>& timeSegments() const { return timeSegments_; }
 
     /**
      * @brief Converts the time control to PGN time control string.

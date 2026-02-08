@@ -27,6 +27,50 @@
 #include <sstream>
 #include <iomanip>
 #include <format>
+#include <cctype>
+
+namespace {
+
+[[nodiscard]] bool isTimeFormatColon(const std::string& str, size_t index) {
+    if (index == 0 || std::isdigit(static_cast<unsigned char>(str[index - 1])) == 0) {
+        return false;
+    }
+
+    // Check for exactly 2 digits after colon
+    if (index + 2 >= str.length()) { // Not enough chars for 2 digits
+        return false;
+    }
+
+    if (std::isdigit(static_cast<unsigned char>(str[index + 1])) == 0 ||
+        std::isdigit(static_cast<unsigned char>(str[index + 2])) == 0) {
+        return false;
+    }
+
+    // Check if there is a 3rd digit (then it's not a time format XX:XX but maybe infinite time or seconds)
+    if (index + 3 < str.length() && std::isdigit(static_cast<unsigned char>(str[index + 3])) != 0) {
+        return false;
+    }
+
+    return true;
+}
+
+[[nodiscard]] std::vector<std::string> splitPgnTimeControlString(const std::string& pgnString) {
+    std::vector<std::string> parts;
+    size_t lastPos = 0;
+
+    for (size_t i = 0; i < pgnString.length(); ++i) {
+        if (pgnString[i] == ':') {
+            if (!isTimeFormatColon(pgnString, i)) {
+                parts.push_back(pgnString.substr(lastPos, i - lastPos));
+                lastPos = i + 1;
+            }
+        }
+    }
+    parts.push_back(pgnString.substr(lastPos));
+    return parts;
+}
+
+} // namespace
 
 namespace QaplaTester {
 
@@ -175,54 +219,17 @@ void TimeControl::fromPgnTimeControlString(const std::string& pgnString) {
         return;
     }
 
-    // Try parsing as a single segment first to support "MM:SS" formats which contain colon
-    // If we can successfully parse duration from the string (or parts), we prefer that over splitting by colon.
-    bool parsedAsSingle = false;
-    {
-        // Check if parsing as single segment makes sense
-        // Just try it.
-        TimeSegment seg = TimeSegment::fromString(pgnString);
-        // How to know if it succeeded fully?
-        // We check if re-exporting it matches roughly? No.
-        
-        // Key marker: If the string has ONE colon and it's surrounded by digits, treat as single.
-        // If it has multiple colons, or colon not surrounded by digits, treat as multi.
-        // Or if it fits "moves/time+inc" pattern.
-        
-        // Let's count colons.
-        size_t colons = std::ranges::count(pgnString, ':');
-        bool likelyTime = false;
-        if (colons == 1) {
-             // check if it looks like time
-             // simple regex-ish check
-             size_t pos = pgnString.find(':');
-             if (pos > 0 && pos + 1 < pgnString.size() && 
-                 std::isdigit(static_cast<unsigned char>(pgnString[pos-1])) != 0 && 
-                 std::isdigit(static_cast<unsigned char>(pgnString[pos+1])) != 0) {
-                 likelyTime = true;
-             }
+    // Heuristic: A colon is a segment separator UNLESS it looks like part of a time
+    // (follows digits, followed by exactly 2 digits and then NOT a digit).
+    // This distinguishes "0:01" (Time) from "7200:3600" (Separator).
+
+    const std::vector<std::string> parts = splitPgnTimeControlString(pgnString);
+
+    for (const auto& part : parts) {
+        if (part.empty()) {
+            continue;
         }
-        else if (colons == 2) {
-             // H:M:S ?
-             // verify both colons surrounded
-             likelyTime = true; // simplifying
-        }
-        
-        if (likelyTime) {
-            timeSegments_.push_back(seg);
-            parsedAsSingle = true;
-        }
-    }
-    
-    if (!parsedAsSingle) {
-        // Parse standard time control segments by splitting at ':'
-        // NOTE: This will break if a segment contains ':' (e.g. MM:SS format) and we didn't catch it above.
-        // This is the fallback for PGN compatibility.
-        std::istringstream iss(pgnString);
-        std::string segmentStr;
-        while (std::getline(iss, segmentStr, ':')) {
-             timeSegments_.push_back(TimeSegment::fromString(segmentStr));
-        }
+        timeSegments_.push_back(TimeSegment::fromString(part));
     }
 }
 
@@ -232,16 +239,16 @@ QaplaHelpers::IniFile::Section TimeControl::toSection(const std::string& name) c
     section.name = "timecontrol";
     section.addEntry("name", name);
     if (movetimeMs_) {
-        section.addEntry("movetime", std::to_string(*movetimeMs_));
+        section.addEntry("movetime", std::format("{}", *movetimeMs_));
     }
     if (depth_) {
-        section.addEntry("depth", std::to_string(*depth_));
+        section.addEntry("depth", std::format("{}", *depth_));
     }
     if (nodes_) {
-        section.addEntry("nodes", std::to_string(*nodes_));
+        section.addEntry("nodes", std::format("{}", *nodes_));
     }
     if (mateIn_) {
-        section.addEntry("matein", std::to_string(*mateIn_));
+        section.addEntry("matein", std::format("{}", *mateIn_));
     }
     if (infinite_) {
         section.addEntry("infinite", (*infinite_ ? "true" : "false"));
