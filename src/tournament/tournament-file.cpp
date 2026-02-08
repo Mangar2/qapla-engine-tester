@@ -84,7 +84,7 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
             [filename,
              configData = Settings::Manager::instance().toConfigData({}, TournamentFile::id),
              saveInterval,
-             saveTrigger = 0u,
+             saveTrigger = 0U,
              tournament = tournament.get()]() mutable 
             {
                 ++saveTrigger;

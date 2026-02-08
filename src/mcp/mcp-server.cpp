@@ -20,6 +20,8 @@
 #include "mcp-server.h"
 #include "mcp-engine-tool.h"
 #include "../base-elements/file-helper.h"
+#include "../sprt/sprt-tournament-file.h"
+#include "../tournament/tournament-file.h"
 #include "../base-elements/base-logger.h"
 #include "json-helper.h"
 #include "mcp-converter.h"
@@ -586,7 +588,8 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
     return returnCode;
 }
 
-QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object& arguments) {
+QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
+    const JsonValue::Object& arguments, const std::string& defaultId) {
     QaplaHelpers::ConfigData configData;
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section> otherGroupedSections;
 
@@ -597,6 +600,19 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(const JsonValue::Object&
 
     // Add sections to configData
     for (auto& [name, s] : otherGroupedSections) {
+        // Ensure every configuration group has its ID set to ensure persistence
+        bool hasId = false;
+        for (const auto& [key, val] : s.entries) {
+            if (key == "id") {
+                hasId = true;
+                break;
+            }
+        }
+
+        if (!hasId) {
+            s.addEntry("id", defaultId.empty() ? name : defaultId);
+        }
+        
         configData.addSection(s);
     }
 
@@ -1008,7 +1024,15 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
         toolArgs["tournament_file"] = JsonValue{ .data = filename };
     }
 
-    auto configData = mapJsonToConfigData(toolArgs);
+    std::string configId;
+    if (name == "sprt") {
+        configId = SprtTournamentFile::id;
+    } else if (name == "tournament") {
+        configId = TournamentFile::id;
+    }
+
+    auto configData = mapJsonToConfigData(toolArgs, configId);
+    
     returnCode = executeRunnerTool(configData, background);
 
     JsonValue::Array content;
