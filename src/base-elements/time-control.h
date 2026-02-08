@@ -18,16 +18,12 @@
  */
 #pragma once
 
-#include "string-helper.h"
 #include "ini-file.h"
 
 #include <optional>
 #include <vector>
 #include <cstdint>
 #include <string>
-#include <sstream>
-#include <unordered_map>
-#include <iomanip>
 
 namespace QaplaTester {
 
@@ -173,13 +169,7 @@ public:
     static TimeControl parse(const std::string& tc);
 
     /**
-     * @brief Parses a PGN time control string and sets up the time control.
-     * @param pgnString The PGN string to parse.
-     */
-    void fromPgnTimeControlString(const std::string& pgnString);
-
-    /**
-     * @brief Parses a cutechess-cli-style time control string and sets up the time control.
+     * @brief Parses a PGN time control string or CLI time control string and sets up the time control.
      *
      * Supported formats:
      * - "moves/time+increment", e.g. "40/300+2" (40 moves in 300 seconds with 2s increment)
@@ -189,9 +179,9 @@ public:
      *
      * Time and increment are interpreted as seconds and can include decimals (e.g. "0.5").
      *
-     * @param cliString The time control string to parse.
+     * @param pgnString The PGN/CLI time control string to parse.
      */
-    void fromCliTimeControlString(const std::string& cliString);
+    void fromPgnTimeControlString(const std::string& pgnString);
 
     /**
      * @brief Converts the time control to an INI section.
