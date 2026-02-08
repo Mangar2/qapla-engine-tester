@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <format>
 
 namespace QaplaTester {
 

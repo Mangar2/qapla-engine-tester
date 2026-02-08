@@ -25,8 +25,8 @@
 #include <cstdint>
 #include <string>
 #include <sstream>
-#include <unordered_map>
 #include <iomanip>
+#include <format>
 
 namespace QaplaTester {
 
@@ -37,16 +37,31 @@ TimeSegment TimeSegment::fromString(std::string str) {
     }
     size_t slashPos = str.find('/');
     if (slashPos != std::string::npos) {
-        segment.movesToPlay = std::stoi(str.substr(0, slashPos));
+        auto moves = QaplaHelpers::to_int(str.substr(0, slashPos));
+        if (moves) {
+            segment.movesToPlay = *moves;
+        }
         str = str.substr(slashPos + 1);
     }
+    
     size_t plusPos = str.find('+');
+    std::optional<double> baseTime;
+    std::optional<double> increment;
+
     if (plusPos != std::string::npos) {
-        segment.baseTimeMs = static_cast<uint64_t>(std::stod(str.substr(0, plusPos)) * 1000);
-        segment.incrementMs = static_cast<uint64_t>(std::stod(str.substr(plusPos + 1)) * 1000);
+        baseTime = QaplaHelpers::parseDuration(str.substr(0, plusPos));
+        increment = QaplaHelpers::parseDuration(str.substr(plusPos + 1));
     } else {
-        segment.baseTimeMs = static_cast<uint64_t>(std::stod(str) * 1000);
+        baseTime = QaplaHelpers::parseDuration(str);
     }
+
+    if (baseTime) {
+        segment.baseTimeMs = static_cast<uint64_t>(*baseTime * 1000.0);
+    }
+    if (increment) {
+        segment.incrementMs = static_cast<uint64_t>(*increment * 1000.0);
+    }
+
     return segment;
 }
 
@@ -103,6 +118,45 @@ TimeControl TimeControl::parse(const std::string& tc) {
 	return timeControl;
 }
 
+namespace {
+    bool tryParseSpecial(const std::string& pgnString, TimeControl& tc) {
+        using namespace QaplaHelpers;
+        if (pgnString == "inf") {
+            tc.setInfinite(true);
+            return true;
+        }
+        if (pgnString.starts_with("movetime(ms):")) {
+            auto value = to_unsigned_int<uint64_t>(pgnString.substr(13)); // length of "movetime(ms):" is 13
+            if (value) {
+                tc.setMoveTime(*value);
+            }
+            return true;
+        }
+        if (pgnString.starts_with("depth:")) {
+            auto value = to_unsigned_int<uint32_t>(pgnString.substr(6));
+            if (value) {
+                tc.setDepth(*value);
+            }
+            return true;
+        }
+        if (pgnString.starts_with("nodes:")) {
+            auto value = to_unsigned_int<uint64_t>(pgnString.substr(6));
+            if (value) {
+                tc.setNodes(*value);
+            }
+            return true;
+        }
+        if (pgnString.starts_with("mate:")) {
+            auto value = to_unsigned_int<uint32_t>(pgnString.substr(5));
+            if (value) {
+                tc.setMateIn(*value);
+            }
+            return true;
+        }
+        return false;
+    }
+}
+
 void TimeControl::fromPgnTimeControlString(const std::string& pgnString) {
     using namespace QaplaHelpers;
     
@@ -117,116 +171,61 @@ void TimeControl::fromPgnTimeControlString(const std::string& pgnString) {
         return;
     }
     
-    // Check for infinite
-    if (pgnString == "inf") {
-        infinite_ = true;
+    if (tryParseSpecial(pgnString, *this)) {
         return;
     }
-    
-    // Check for engine-specific formats
-    if (pgnString.starts_with("movetime(ms):")) {
-        auto value = to_unsigned_int<uint64_t>(pgnString.substr(12));
-        if (value) {
-            movetimeMs_ = *value;
+
+    // Try parsing as a single segment first to support "MM:SS" formats which contain colon
+    // If we can successfully parse duration from the string (or parts), we prefer that over splitting by colon.
+    bool parsedAsSingle = false;
+    {
+        // Check if parsing as single segment makes sense
+        // Just try it.
+        TimeSegment seg = TimeSegment::fromString(pgnString);
+        // How to know if it succeeded fully?
+        // We check if re-exporting it matches roughly? No.
+        
+        // Key marker: If the string has ONE colon and it's surrounded by digits, treat as single.
+        // If it has multiple colons, or colon not surrounded by digits, treat as multi.
+        // Or if it fits "moves/time+inc" pattern.
+        
+        // Let's count colons.
+        size_t colons = std::ranges::count(pgnString, ':');
+        bool likelyTime = false;
+        if (colons == 1) {
+             // check if it looks like time
+             // simple regex-ish check
+             size_t pos = pgnString.find(':');
+             if (pos > 0 && pos + 1 < pgnString.size() && 
+                 std::isdigit(static_cast<unsigned char>(pgnString[pos-1])) != 0 && 
+                 std::isdigit(static_cast<unsigned char>(pgnString[pos+1])) != 0) {
+                 likelyTime = true;
+             }
         }
-        return;
-    }
-    
-    if (pgnString.starts_with("depth:")) {
-        auto value = to_unsigned_int<uint32_t>(pgnString.substr(6));
-        if (value) {
-            depth_ = *value;
-        }
-        return;
-    }
-    
-    if (pgnString.starts_with("nodes:")) {
-        auto value = to_unsigned_int<uint64_t>(pgnString.substr(6));
-        if (value) {
-            nodes_ = *value;
-        }
-        return;
-    }
-    
-    if (pgnString.starts_with("mate:")) {
-        auto value = to_unsigned_int<uint32_t>(pgnString.substr(5));
-        if (value) {
-            mateIn_ = *value;
-        }
-        return;
-    }
-    
-    // Parse standard time control segments
-    std::istringstream iss(pgnString);
-    std::string segmentStr;
-    while (std::getline(iss, segmentStr, ':')) {
-        TimeSegment segment;
-        size_t slashPos = segmentStr.find('/');
-        if (slashPos != std::string::npos) {
-            auto movesToPlay = to_unsigned_int<uint32_t>(segmentStr.substr(0, slashPos));
-            if (!movesToPlay) {
-                break; // Stop parsing on error, keep what we have
-            }
-            segment.movesToPlay = *movesToPlay;
-            segmentStr = segmentStr.substr(slashPos + 1);
+        else if (colons == 2) {
+             // H:M:S ?
+             // verify both colons surrounded
+             likelyTime = true; // simplifying
         }
         
-        size_t plusPos = segmentStr.find('+');
-        if (plusPos != std::string::npos) {
-            auto baseTime = to_double(segmentStr.substr(0, plusPos));
-            auto increment = to_double(segmentStr.substr(plusPos + 1));
-            if (!baseTime || !increment) {
-                break; // Stop parsing on error, keep what we have
-            }
-            segment.baseTimeMs = static_cast<uint64_t>(*baseTime * 1000);
-            segment.incrementMs = static_cast<uint64_t>(*increment * 1000);
+        if (likelyTime) {
+            timeSegments_.push_back(seg);
+            parsedAsSingle = true;
         }
-        else {
-            auto baseTime = to_double(segmentStr);
-            if (!baseTime) {
-                break; // Stop parsing on error, keep what we have
-            }
-            segment.baseTimeMs = static_cast<uint64_t>(*baseTime * 1000);
+    }
+    
+    if (!parsedAsSingle) {
+        // Parse standard time control segments by splitting at ':'
+        // NOTE: This will break if a segment contains ':' (e.g. MM:SS format) and we didn't catch it above.
+        // This is the fallback for PGN compatibility.
+        std::istringstream iss(pgnString);
+        std::string segmentStr;
+        while (std::getline(iss, segmentStr, ':')) {
+             timeSegments_.push_back(TimeSegment::fromString(segmentStr));
         }
-        timeSegments_.push_back(segment);
     }
 }
 
-void TimeControl::fromCliTimeControlString(const std::string& cliString) {
-    timeSegments_.clear();
-	if (cliString.empty()) {
-		return;
-	}
-
-    if (cliString == "inf") {
-        setInfinite(true);
-        return;
-    }
-
-    TimeSegment segment;
-
-    size_t slashPos = cliString.find('/');
-    size_t plusPos = cliString.find('+');
-
-    if (slashPos != std::string::npos) {
-        segment.movesToPlay = std::stoi(cliString.substr(0, slashPos));
-    }
-
-    std::string timePart = (slashPos != std::string::npos) ? cliString.substr(slashPos + 1) : cliString;
-
-    if (plusPos != std::string::npos) {
-        segment.baseTimeMs = static_cast<uint64_t>(
-            std::stof(timePart.substr(0, plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0))) * 1000);
-        segment.incrementMs = static_cast<uint64_t>(
-            std::stof(timePart.substr(plusPos - (slashPos != std::string::npos ? slashPos + 1 : 0) + 1)) * 1000);
-    }
-    else {
-        segment.baseTimeMs = static_cast<uint64_t>(std::stof(timePart) * 1000);
-    }
-
-    timeSegments_.push_back(segment);
-    setInfinite(false);
-}
 
 QaplaHelpers::IniFile::Section TimeControl::toSection(const std::string& name) const {
     QaplaHelpers::IniFile::Section section;

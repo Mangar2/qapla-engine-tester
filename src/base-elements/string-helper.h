@@ -423,4 +423,53 @@ namespace QaplaHelpers {
         return { str.begin(), str.end() };
     }
 
+    /**
+     * @brief Parses a duration string in formats "S", "M:S", or "H:M:S".
+     * @param s The string to parse.
+     * @return Optional duration in seconds as double.
+     */
+    inline std::optional<double> parseDuration(std::string_view s) {
+        auto parts = split(std::string(s), ':');
+        if (parts.empty() || parts.size() > 3) {
+            return std::nullopt;
+        }
+
+        double seconds = 0.0;
+        
+        if (parts.size() == 3) {
+             // H:M:S
+            auto h = to_unsigned_int<uint32_t>(parts[0]);
+            auto m = to_unsigned_int<uint32_t>(parts[1]);
+            auto sec = to_double(parts[2]);
+            
+            if (!h || !m || !sec) {
+                return std::nullopt;
+            }
+            
+            seconds += *h * 3600.0;
+            seconds += *m * 60.0;
+            seconds += *sec;
+        } else if (parts.size() == 2) {
+            // M:S
+            auto m = to_unsigned_int<uint32_t>(parts[0]);
+            auto sec = to_double(parts[1]);
+
+            if (!m || !sec) {
+                return std::nullopt;
+            }
+
+            seconds += *m * 60.0;
+            seconds += *sec;
+        } else {
+            // S
+            auto sec = to_double(parts[0]);
+            if (!sec) {
+                return std::nullopt;
+            }
+            seconds += *sec;
+        }
+        
+        return seconds;
+    }
+
 } // namespace QaplaHelpers

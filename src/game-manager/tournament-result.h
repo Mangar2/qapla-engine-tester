@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include "../chess-game/game-result.h"
+#include "../chess-game/game-record.h"
+
 #include <vector>
 #include <optional>
 #include <string>
@@ -26,9 +29,8 @@
 #include <iomanip>
 #include <array>
 #include <sstream>
+#include <format>
 
-#include "../chess-game/game-result.h"
-#include "../chess-game/game-record.h"
 
 namespace QaplaTester {
 
