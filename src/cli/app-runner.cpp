@@ -163,7 +163,6 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
 
         pool.waitForTask();
         
-        TournamentFile::save(tfile, Settings::Manager::instance(), tournament);
         Logger::reportLogger().log("tournament all games completed", TraceLevel::result);
         
         std::ostringstream oss;
@@ -223,7 +222,6 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
 
             pool.waitForTask();
 
-            SprtTournamentFile::save(sprtfile, Settings::Manager::instance(), manager);
             Logger::reportLogger().logStatus("sprt all games completed", "sprt", TraceLevel::result);
 
             if (code == AppReturnCode::NoError) {

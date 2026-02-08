@@ -78,30 +78,23 @@ void TournamentFile::save(const std::string& filename,
 
 void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
                                      const std::shared_ptr<Tournament>& tournament) {
-    // Setup autosave callback if file and interval are specified
-    if (!filename.empty() && saveInterval > 0) {
-        tournament->setGameFinishedCallback(
+    // Setup autosave callback if file is specified
+    if (!filename.empty()) {
+        tournament->setSaveCallback(
             [filename,
              configData = Settings::Manager::instance().toConfigData({}, TournamentFile::id),
-             saveInterval,
-             saveTrigger = 0U,
              tournament = tournament.get()]() mutable 
             {
-                ++saveTrigger;
-                if (saveTrigger >= saveInterval) {
-                    saveTrigger = 0;
-                    
-                    auto sections = tournament->getSections();
-                    if (!sections.empty()) {
-                        auto saveData = configData;
-                        for (const auto& section : sections) {
-                            saveData.addSection(section);
-                        }
-                        TournamentFile::save(filename, saveData, TournamentFile::id);
-                        Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
+                auto sections = tournament->getSections();
+                if (!sections.empty()) {
+                    auto saveData = configData;
+                    for (const auto& section : sections) {
+                        saveData.addSection(section);
                     }
+                    TournamentFile::save(filename, saveData, TournamentFile::id);
+                    Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
                 }
-            }
+            }, saveInterval
         );
     }
 }

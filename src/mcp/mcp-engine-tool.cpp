@@ -156,10 +156,6 @@ std::string McpEngineTool::addOrUpdateEngine(const JsonValue::Object& arguments,
     }
     const std::string name = arguments.at("engine_name").asString();
 
-    if (name.find(' ') != std::string::npos) {
-        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
-    }
-
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     EngineConfig* config = isUpdate ? manager.getConfigMutable(name) : nullptr;
     
@@ -205,10 +201,6 @@ std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
     const std::string name = arguments.at("engine_name").asString();
     const std::string newName = arguments.at("engine_copyName").asString();
     
-    if (newName.find(' ') != std::string::npos) {
-        throw AppError::makeInvalidParameters("Engine names must not contain spaces.");
-    }
-
     auto& manager = EngineWorkerFactory::getConfigManagerMutable();
     const auto* config = manager.getConfig(name);
     if (config == nullptr) {
@@ -259,11 +251,6 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments) {
             std::string name = QaplaHelpers::trim(segment); 
             if (name.empty()) {
                 continue;
-            }
-            if (name.find(' ') != std::string::npos) {
-            throw AppError::makeInvalidParameters(std::format(
-                "Invalid engine name '{}'. Engine names must not contain spaces. "
-                "Please rename this engine in the registry using a name without spaces.", name));
             }
             
             const auto* config = EngineWorkerFactory::getConfigManager().getConfig(name);

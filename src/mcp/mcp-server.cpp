@@ -399,7 +399,7 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         // All task tools use a simple engine list
         JsonValue::Object engines;
         engines["type"] = JsonValue{ .data = std::string("string") };
-        engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {}). Engine names must not contain spaces.", registeredNames) };
+        engines["description"] = JsonValue{ .data = std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames) };
         properties["engines"] = JsonValue{ .data = engines };
 
         // Global settings

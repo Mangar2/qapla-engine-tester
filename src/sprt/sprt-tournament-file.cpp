@@ -29,30 +29,22 @@ namespace QaplaTester {
  void SprtTournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
     const std::shared_ptr<SprtManager>& manager) {
     
-    // Setup autosave callback if file and interval are specified
-    if (!filename.empty() && saveInterval > 0) {
+    // Setup autosave callback if file is specified
+    if (!filename.empty()) {
         
-        manager->setGameFinishedCallback(
+        manager->setSaveCallback(
             [filename,
              configData = Settings::Manager::instance().toConfigData(),
-             saveInterval,
-             saveTrigger = 0U,
              manager = manager.get()]() mutable 
             {
-                ++saveTrigger;
-                if (saveTrigger >= saveInterval) {
-                    saveTrigger = 0;
-                    
-                    auto section = manager->getSection();
-                    if (section) {
-                        auto saveData = configData;
-                        saveData.addSection(*section);
-                        SprtTournamentFile::save(filename, saveData);
-                        Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
-                    }
+                auto section = manager->getSection();
+                if (section) {
+                    auto saveData = configData;
+                    saveData.addSection(*section);
+                    SprtTournamentFile::save(filename, saveData);
+                    Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
                 }
-            }
-        );
+            }, saveInterval);
     }
 }
 

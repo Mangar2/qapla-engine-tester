@@ -176,8 +176,16 @@ public:
      * @brief Sets a callback to be executed after each game completion.
      * @param callback Function to call.
      */
-    void setGameFinishedCallback(std::function<void()> callback) {
-        gameFinishedCallback_ = std::move(callback);
+    /**
+     * @brief Sets a callback to be invoked when a save operation is required.
+     * @details The manager controls when to save (Start, End, Interval).
+     *          The callback itself should always perform the save.
+     * @param callback Function to call to perform the save.
+     * @param interval Number of games between periodic saves.
+     */
+    void setSaveCallback(std::function<void()> callback, uint32_t interval) {
+        saveCallback_ = std::move(callback);
+        config_.saveInterval = interval;
     }
 
 private:
@@ -192,6 +200,7 @@ private:
     * @param sender Pointer to the PairTournament that just completed a game.
     */
     void onGameFinished(PairTournament* sender);
+    void checkAutoSave();
 
     void createGauntletPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
@@ -226,7 +235,7 @@ private:
     
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;
-    std::function<void()> gameFinishedCallback_;
+    std::function<void()> saveCallback_;
 };
 
 } // namespace QaplaTester
