@@ -41,7 +41,24 @@ public:
          */
         void addEntry(const std::string& key, const std::string& value) {
             entries.emplace_back(key, value);
-        }   
+        }
+
+        /**
+         * @brief Updates an existing entry or adds a new one if it doesn't exist.
+         * Only the first occurrence of the key is updated if multiple exist.
+         * @param key The key of the entry.
+         * @param value The new value.
+         */
+        void changeOrAddEntry(const std::string& key, const std::string& value) {
+            for (auto& entry : entries) {
+                if (entry.first == key) {
+                    entry.second = value;
+                    return;
+                }
+            }
+            addEntry(key, value);
+        }
+
         /**
          * @brief Inserts an entry at the beginning of the section.
          * @param key The key of the entry.

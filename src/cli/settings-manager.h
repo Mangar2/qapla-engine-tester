@@ -155,9 +155,17 @@ namespace QaplaTester::Settings {
             return definition_;
         }
 
-		[[nodiscard]] const ValueMap& getValues() const {
+        [[nodiscard]] const ValueMap& getValues() const {
 			return values_;
 		}
+
+        /**
+         * @brief Sets a value in the group instance.
+         */
+        void setValue(const std::string& key, const std::string& value) {
+            std::string k = QaplaHelpers::to_lowercase(key);
+            values_[k] = value;
+        }
 
         /**
          * @brief Merges another GroupInstance into this one, using it as default values.
@@ -280,6 +288,8 @@ namespace QaplaTester::Settings {
          */
         [[nodiscard]] GroupInstances getGroupInstances(const std::string& groupName);
 
+        [[nodiscard]] GroupInstances& getGroupInstancesMutable(const std::string& groupName);
+        void setGroupInstances(const std::string& groupName, const GroupInstances& instances);
 
         [[nodiscard]] std::optional<GroupInstance> getGroupInstance(const std::string& groupName);
 
@@ -304,6 +314,39 @@ namespace QaplaTester::Settings {
             values_.clear();
             groupInstances_.clear();
         }
+
+        /**
+         * @brief Clears all instances of a specific group.
+         * Useful for resetting active configurations (e.g. engines) without affecting globals.
+         * @param groupName Name of the group to clear.
+         */
+        void clearGroup(const std::string& groupName) {
+            auto name = QaplaHelpers::to_lowercase(groupName);
+            groupInstances_.erase(name);
+        }
+
+        /**
+         * @brief Modifies or duplicates an existing group instance.
+         * Finds a group instance matching the 'search' criteria, creates a copy of its data,
+         * applies the changes from 'replace', and re-submits it for parsing/validation.
+         * If 'replace' contains new primary keys, this acts as a 'Copy'.
+         * If 'replace' keeps primary keys, this acts as an 'Update'.
+         * 
+         * @param search Section defining the group name and criteria to find the source instance.
+         * @param replace Section containing values to overwrite in the source data.
+         * @throws AppError if the source instance cannot be found.
+         */
+        void modifyGroupInstance(const QaplaHelpers::IniFile::Section& search,
+                                 const QaplaHelpers::IniFile::Section& replace);
+
+        /**
+         * @brief Removes group instances that match the specified criteria.
+         * @param groupName Name of the group.
+         * @param criteria Key-value pairs to match against.
+         * @return Number of removed instances.
+         */
+        size_t removeGroupInstances(const std::string& groupName, 
+                                    const QaplaHelpers::IniFile::KeyValueMap& criteria);
 
         /**
          * @brief Converts settings to ConfigData for a specific set of section names.
@@ -401,6 +444,14 @@ namespace QaplaTester::Settings {
          * @param strict When true, unknown sections throw errors. When false, unknown sections are silently ignored.
          */
         void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite, bool strict);
+
+        static std::string valueToString(const Value& value);
+
+        [[nodiscard]] const GroupInstance* findGroupInstance(const std::string& groupName, 
+                                                            const QaplaHelpers::IniFile::KeyValueMap& criteria) const;
+        
+        [[nodiscard]] static QaplaHelpers::IniFile::Section groupInstanceToSection(const std::string& sectionName, 
+                                                                           const GroupInstance& instance);
 
         /**
          * @brief Looks up a key definition in a group, supporting suffix wildcard match like option.X.
