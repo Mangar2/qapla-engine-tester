@@ -138,7 +138,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
     std::string startMsg = std::format("sprt engines {} ({}) vs {} ({}) elo [{}, {}] alpha {} beta {} maxgames {} concurrency {}\n",
         duel.getEngineA(), engine0_.getTimeControl().toPgnTimeControlString(),
         duel.getEngineB(), engine1_.getTimeControl().toPgnTimeControlString(),
-        config_.eloLower, config_.eloUpper,
+        config_.eloH0, config_.eloH1,
         config_.alpha, config_.beta,
         config_.maxGames,
         concurrency);
@@ -280,8 +280,8 @@ SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optio
         .winsB = duel.winsEngineB,
         .engineA = duel.getEngineA(),
         .engineB = duel.getEngineB(),
-        .eloLower = config_.eloLower,
-        .eloUpper = config_.eloUpper,
+        .eloH0 = config_.eloH0,
+        .eloH1 = config_.eloH1,
         .alpha = config_.alpha,
         .beta = config_.beta,
         .maxGames = config_.maxGames,
@@ -381,8 +381,8 @@ SprtResult SprtManager::computeSprt(
         .winsB = result.winsB,
         .engineA = engineA,
         .engineB = engineB,
-        .eloLower = config_.eloLower,
-        .eloUpper = config_.eloUpper,
+        .eloH0 = config_.eloH0,
+        .eloH1 = config_.eloH1,
         .alpha = config_.alpha,
         .beta = config_.beta,
         .maxGames = config_.maxGames,
@@ -480,12 +480,12 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     constexpr float drawRate = 0.4F;
     
     // Calculate dynamic step size rounded to one decimal place
-    float rawStep = std::abs(config.eloUpper - config.eloLower) / 5.0F;
+    float rawStep = std::abs(config.eloH1 - config.eloH0) / 5.0F;
     float step = std::round(rawStep * 10.0F) / 10.0F;
     
-    // Generate test range: 2 steps below eloLower to 2 steps above eloUpper
-    float startElo = config.eloLower - 2.0F * step;
-    float endElo = config.eloUpper + 2.0F * step;
+    // Generate test range: 2 steps below eloH0 to 2 steps above eloH1
+    float startElo = config.eloH0 - 2.0F * step;
+    float endElo = config.eloH1 + 2.0F * step;
     
     std::vector<float> eloDiffs;
     int numSteps = static_cast<int>(std::round((endElo - startElo) / step)) + 1;
@@ -502,7 +502,7 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
 
     std::srand(static_cast<unsigned>(std::time(nullptr)));
     std::string mcStartMsg = std::format("Running SPRT Monte carlo simulation: | Elo range: [{}, {}] | alpha: {}, beta: {} | maxGames: {} | step: {}",
-        config.eloLower, config.eloUpper, config.alpha, config.beta, config.maxGames, step);
+        config.eloH0, config.eloH1, config.alpha, config.beta, config.maxGames, step);
     Logger::reportLogger().logStatus(mcStartMsg, "sprt");
 
     std::vector<std::thread> threads;

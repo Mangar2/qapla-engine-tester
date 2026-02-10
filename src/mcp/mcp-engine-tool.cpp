@@ -82,7 +82,10 @@ namespace {
     }
 }
 
-JsonValue::Array McpEngineTool::handleManageEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities) {
+JsonValue::Array McpEngineTool::handleManageEngines(
+    const JsonValue::Object& arguments, 
+    QaplaConfiguration::EngineCapabilities& capabilities) 
+{
     std::string command;
     if (const auto it = arguments.find("command"); it != arguments.end() && it->second.isString()) {
         command = it->second.asString();
@@ -172,7 +175,11 @@ std::string McpEngineTool::getEngineDetails(const JsonValue::Object& arguments, 
     return ss.str();
 }
 
-std::string McpEngineTool::addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate, QaplaConfiguration::EngineCapabilities& capabilities) {
+std::string McpEngineTool::addOrUpdateEngine(
+    const JsonValue::Object& arguments, 
+    bool isUpdate, 
+    QaplaConfiguration::EngineCapabilities& capabilities) 
+{
     std::string name;
     if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
         name = it->second.asString();
@@ -231,7 +238,10 @@ std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
     return std::format("Engine '{}' copied to '{}'.", srcName, destName);
 }
 
-std::string McpEngineTool::updateAllEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities) {
+std::string McpEngineTool::updateAllEngines(
+    const JsonValue::Object& arguments, 
+    QaplaConfiguration::EngineCapabilities& capabilities) 
+{
      auto& configManager = EngineWorkerFactory::getConfigManagerMutable();
      auto engines = configManager.getAllConfigs(); // Copy list to iterate
      
@@ -253,7 +263,7 @@ std::string McpEngineTool::updateAllEngines(const JsonValue::Object& arguments, 
      return std::format("Updated {} engines.", count);
 }
 
-void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType) {
+void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities) {
     if (!arguments.contains("engines")) {
         return; 
     }
@@ -267,6 +277,10 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::
 
     auto names = QaplaHelpers::split(engineList, ',');
     
+    if (arguments.contains("engine_tc")) {
+        applyGlobalTimeControl(names, arguments.at("engine_tc"), capabilities);
+    }
+
     // 1. Clear previous engine selections to avoid task pollution
     EngineWorkerFactory::getActiveEnginesMutable().clear();
     // THE OLD WAY WAS BAD: Settings::Manager::instance().clearGroup("engine");
@@ -326,6 +340,26 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::
     }
 }
 
+
+void McpEngineTool::applyGlobalTimeControl(
+    const std::vector<std::string>& engineNames, 
+    const JsonValue& tcValue, 
+    QaplaConfiguration::EngineCapabilities& capabilities)
+{
+    for (const auto& rawName : engineNames) {
+        std::string name = QaplaHelpers::trim(rawName);
+        if (name.empty()) {
+            continue;
+        }
+
+        JsonValue::Object updateArgs;
+        updateArgs["engine_name"] = JsonValue{ .data = name };
+        updateArgs["engine_tc"] = tcValue;
+        
+        // Use standard update mechanism
+        addOrUpdateEngine(updateArgs, true, capabilities);
+    }
+}
 
 void McpEngineTool::syncToEngineRegistry(const std::string& engineName) {
     auto instances = Settings::Manager::instance().getGroupInstances("engine");

@@ -116,9 +116,9 @@ Results are reported as a success rate and compared against a minimum threshold.
 SPRT is an efficient method to determine if one engine is stronger than another with statistical confidence.
 
 Typical SPRT configurations:
-- **Small Improvement**: alpha=0.05, beta=0.05, eloupper=5, elolower=0. Checks if engine 1 is at least 5 Elo stronger.
-- **Strong Improvement**: alpha=0.05, beta=0.05, eloupper=10, elolower=0. Checks if engine 1 is at least 10 Elo stronger.
-- **Regression Testing**: alpha=0.05, beta=0.05, eloupper=0, elolower=-5. Checks if engine 1 is at least not more than 5 Elo weaker.
+- **Small Improvement**: alpha=0.05, beta=0.05, eloH1=5, eloH0=0. Checks if engine 1 is at least 5 Elo stronger.
+- **Strong Improvement**: alpha=0.05, beta=0.05, eloH1=10, eloH0=0. Checks if engine 1 is at least 10 Elo stronger.
+- **Regression Testing**: alpha=0.05, beta=0.05, eloH1=0, eloH0=-5. Checks if engine 1 is at least not more than 5 Elo weaker.
 
 The test stops as soon as H0 (no difference or weaker) or H1 (stronger) is accepted.)",
         .unique = true, 
@@ -407,15 +407,15 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
                             .isRequired = false, 
                             .defaultValue = 100, 
                             .type = ValueType::UInt } },
-        { "elolower",  { .description = "Lower ELO bound for H1 (Engine 1 is considered stronger if at least eloLower Elo ahead)", 
-                        .longDescription = "The Elo difference at which H1 (Engine 1 is stronger) is accepted. Use 0 for positive tests, or -5 for regression testing.",
+        { "eloH0",  { .description = "H0: If accepted, not stronger by at least eloH0 elo", 
+                        .longDescription = "The Elo parameter for the null hypothesis (H0). If the result supports this hypothesis, we conclude that Engine 1's advantage is at most 'eloH0' Elo.",
                         .isRequired = false, 
                         .defaultValue = 0.0, 
                         .type = ValueType::Float } },
-        { "eloupper",  { .description = "Upper ELO bound for H0 (Test may stop early if Engine 1 is not stronger by at least eloUpper Elo)", 
-                        .longDescription = "The Elo difference at which H0 (No significant difference) is accepted. Use 5 for small improvement tests, or 0 for regression testing.",
+        { "eloH1",  { .description = "H1: If accepted, stronger by at least eloH1 elo", 
+                        .longDescription = "The Elo parameter for the alternative hypothesis (H1). If the result supports this hypothesis, we conclude that Engine 1's advantage is at least 'eloH1' Elo.",
                         .isRequired = false, 
-                        .defaultValue = 10.0, 
+                        .defaultValue = 5.0, 
                         .type = ValueType::Float } },
         { "alpha", { .description = "Type I error threshold", 
                     .isRequired = false, 
