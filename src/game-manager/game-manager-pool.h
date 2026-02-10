@@ -47,6 +47,12 @@ public:
     GameManagerPool();
 
     /**
+     * @brief Ensures safe shutdown by waiting for all currently running games to 
+     * finish and preventing new tasks from starting.
+     */
+    void shutdown();
+
+    /**
      * @brief Adds a new task with one engine per manager.
      *
      * @param taskProvider Task source

@@ -120,9 +120,6 @@ void EngineCapabilities::markAsNotSupported(const std::vector<EngineConfig>& fai
     if (notificationCallback_) {
         notificationCallback_(message, "warning");
     }
-    if (mcpNotificationCallback_) {
-        mcpNotificationCallback_(message);
-    }
 }
 
 void EngineCapabilities::autoDetectSync() {
@@ -131,17 +128,10 @@ void EngineCapabilities::autoDetectSync() {
         if (notificationCallback_) {
             notificationCallback_("No new engines found.", "note");
         }
-        if (mcpNotificationCallback_) {
-            mcpNotificationCallback_("No new engines found.");
-        }
         return;
     }
-    detecting_ = true;
     if (notificationCallback_) {
-        notificationCallback_("Starting engine autodetection.\nThis may take a while...", "note");
-    }
-    if (mcpNotificationCallback_) {
-        mcpNotificationCallback_("Starting engine autodetection...");
+        notificationCallback_("Starting engine autodetection...", "note");
     }
     // First try with the protocol already set in the config
     configs = detectWithProtocol(configs, std::nullopt);
@@ -159,17 +149,31 @@ void EngineCapabilities::autoDetectSync() {
         if (notificationCallback_) {
             notificationCallback_("Engine autodetection completed.", "success");
         }
-        if (mcpNotificationCallback_) {
-            mcpNotificationCallback_("Engine autodetection completed.");
-        }
     }
-    detecting_ = false;
 }
 
 void EngineCapabilities::autoDetect() {
+    if (detecting_.exchange(true)) {
+        return;
+    }
+
     std::thread([this]() {
         autoDetectSync();
+        {
+            std::lock_guard<std::mutex> lock(detectionMutex_);
+            detecting_ = false;
+        }
+        detectionCv_.notify_all();
     }).detach();
+}
+
+void EngineCapabilities::waitForDetection() const {
+    std::unique_lock<std::mutex> lock(detectionMutex_);
+    detectionCv_.wait(lock, [this] { return !detecting_.load(); });
+}
+
+void EngineCapabilities::shutdown() const {
+    waitForDetection();
 }
 
 bool EngineCapabilities::areAllEnginesDetected() const {

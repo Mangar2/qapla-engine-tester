@@ -57,6 +57,12 @@ GameManagerPool::GameManagerPool() {
         });
 }
 
+void GameManagerPool::shutdown() {
+    clearAll(); // WAITS for all current tasks (futures) to finish logic
+    std::scoped_lock lock(managerMutex_);
+    managers_.clear(); // Destroys managers explicitly
+}
+
 void GameManagerPool::updateConcurrency(InputHandler::CommandValue &value)
 {
     if (value)

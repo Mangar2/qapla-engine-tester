@@ -32,6 +32,8 @@
 #include <memory>
 #include <functional>
 #include <format>
+#include <mutex>
+#include <condition_variable>
 
 namespace QaplaTester {
     class EngineConfig;
@@ -56,13 +58,6 @@ namespace QaplaConfiguration {
             notificationCallback_ = std::move(callback);
         }
 
-        /**
-         * @brief Registers a callback for MCP notifications.
-         * @param callback The callback function to register.
-         */
-        static void setMcpNotificationCallback(McpNotificationCallback callback) {
-            mcpNotificationCallback_ = std::move(callback);
-        }
         /**
          * @brief Saves all engine capabilities to a stream in INI format.
          * @param out The output stream to write the data to.
@@ -149,6 +144,16 @@ namespace QaplaConfiguration {
         void autoDetectSync();
 
         /**
+         * @brief Waits for the completion of any ongoing engine detection.
+         */
+        void waitForDetection() const;
+
+        /**
+         * @brief Shuts down engine detection activities, waiting for completion if necessary.
+         */
+        void shutdown() const;
+
+        /**
          * @brief Checks if detection is currently in progress.
          * @return True if detection is ongoing, false otherwise.
          */
@@ -205,9 +210,10 @@ namespace QaplaConfiguration {
         }
 
         inline static NotificationCallback notificationCallback_;
-        inline static McpNotificationCallback mcpNotificationCallback_;
         std::unordered_map<std::string, EngineCapability> capabilities_; ///< Stores EngineCapability objects indexed by a unique key.
         std::atomic<bool> detecting_{false}; ///< True, if detection is currently in progress.
+        mutable std::mutex detectionMutex_; ///< Mutex for synchronization of engine detection.
+        mutable std::condition_variable detectionCv_; ///< Condition variable to notify about completion of engine detection.
     };
 
 }

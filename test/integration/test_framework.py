@@ -210,6 +210,22 @@ def validate_file_append_only(
         return False
 
 
+def validate_stdout(actual_stdout: str, pattern: str, is_regex: bool = False) -> bool:
+    """Validate that stdout contains the expected pattern."""
+    found = False
+    if is_regex:
+        found = re.compile(pattern).search(actual_stdout) is not None
+    else:
+        found = pattern in actual_stdout
+
+    if found:
+        print(f"  {Colors.GREEN}[OK]{Colors.RESET} stdout has expected content")
+        return True
+    else:
+        print(f"  {Colors.RED}[FAIL]{Colors.RESET} stdout missing pattern: '{pattern}'")
+        return False
+
+
 def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     """Execute a single test and validate results."""
     print()
@@ -253,14 +269,26 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
 
     # Run command
     exit_code = -1
+    stdout_output = ""
     try:
         process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="ignore", bufsize=1
+            cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="ignore", bufsize=1
         )
         
-        if process.stdout:
-            for line in iter(process.stdout.readline, ""):
-                print(f"    {line.rstrip()}")
+        input_data = test.get("input")
+        if input_data:
+            if isinstance(input_data, list):
+                input_str = "\n".join(input_data) + "\n"
+            else:
+                input_str = input_data
+            stdout_output, _ = process.communicate(input=input_str)
+            for line in stdout_output.splitlines():
+                print(f"    {line}")
+        else:
+            if process.stdout:
+                for line in iter(process.stdout.readline, ""):
+                    print(f"    {line.rstrip()}")
+                    stdout_output += line
         
         process.wait()
         exit_code = process.returncode
@@ -279,6 +307,12 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
         if validator_type == "exitCode":
             result = validate_exit_code(
                 exit_code, validator["expected"], test["name"]
+            )
+        elif validator_type == "stdout":
+            result = validate_stdout(
+                stdout_output,
+                validator["content"],
+                validator.get("isRegex", False)
             )
         elif validator_type == "logFiles":
             full_path = os.path.join(log_path, validator.get("path", ""))

@@ -103,7 +103,9 @@ int main(int argc, char** argv) {
 	Logger::reportLogger().log(timer.getElapsedString("Total runtime"));
 	
     // Unregisters the input handler callback before destruction of the input handler
+    GameManagerPool::getInstance().shutdown(); 
 	GameManagerPool::resetInstance();
+    
     return static_cast<int>(returnCode);
 }
 
