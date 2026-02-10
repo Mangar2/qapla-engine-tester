@@ -18,6 +18,7 @@
  */
 
 #include "qapla-settings.h"
+#include "engine-settings-helper.h"
 
 #include "settings-manager.h"
 #include "settings-definitions.h"
@@ -35,7 +36,6 @@
 #include "../config/adjudication-config.h"
 #include "../config/engine-config.h"
 #include "../epd/epd-manager.h"
-#include "../engine-handling/engine-worker-factory.h"
 #include "../spsa/spsa-optimizer.h"
 #include "../mcp/mcp-server.h"
 
@@ -61,10 +61,13 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     // 2. Load settings file if provided (Settings file is applied before CLI to allow CLI overrides)
     loadFromFile(Manager::instance().get<std::string>("settingsfile"), true, false);
 
-    // 3. Add CLI arguments to configData_ (CLI overrides settings file)
+    // 3. Load engines file. CLI overrides this, but this file overrides settings file.
+    loadFromFile(Manager::instance().get<std::string>("enginesfile"), true, false, "config");
+
+    // 4. Add CLI arguments to configData_ (CLI overrides settings file and engines file)
     configData_.push_back(cliData);
 
-    // 4. Apply mcp environment layer if needed (MCP layer overrides CLI)
+    // 5. Apply mcp environment layer if needed (MCP layer overrides CLI)
     if (Settings::Manager::instance().getGroupInstance("mcp")) {
         QaplaHelpers::ConfigData mcpEnvLayer;
         QaplaHelpers::IniFile::Section loggingSection;
@@ -98,7 +101,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     applyConfig(std::nullopt);
 
     // 6. Initialize engines only once
-    setEngineConfig(Manager::instance(), "engine");
+    m_rapid = Helper::applyEngineSettings(Manager::instance(), "engine");
 }
 
 void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite, std::optional<std::string> id) {
@@ -173,6 +176,7 @@ void QaplaSettings::applyLoggerConfig(const std::string& reportLogBaseName) cons
     auto loggingSetting = Settings::Manager::instance().getGroupInstance("logging");
     TraceLevel reportLevel = TraceLevel::result;
     TraceLevel mcpLevel = TraceLevel::none;
+    EngineLogger::engineLogger().setTraceLevel(TraceLevel::error, TraceLevel::info); 
     
     if (loggingSetting) {
         if (loggingSetting->get<bool>("engine")) {
@@ -236,83 +240,6 @@ void QaplaSettings::setLoggerConfiguration() {
         .engineLogStrategy = logMode
     });
     setLoggerConfig(*m_loggerConfig);
-}
-
-void QaplaSettings::setEngineConfig(Settings::Manager& manager, const std::string& groupName) {
-	m_rapid = manager.get<bool>("rapid");
-    GameManagerPool::getInstance().setRapid(m_rapid);
-	EngineWorkerFactory::setRapid(m_rapid);
-    auto enginesFile = manager.get<std::string>("enginesfile");
-    if (!enginesFile.empty()) {
-        EngineWorkerFactory::getConfigManagerMutable().loadFromFile(enginesFile);
-    }
-
-    auto engineSettings = manager.getGroupInstances(groupName);
-	auto eachSetting = manager.getGroupInstance("each");
-    auto loggingSetting = manager.getGroupInstance("logging");
-
-    for (const auto& engine : engineSettings) {
-        applyEngineInstance(engine, eachSetting.has_value() ? &(*eachSetting) : nullptr, 
-            loggingSetting.has_value() ? &(*loggingSetting) : nullptr);
-    }
-    // Name conflicts would cause ambiguity in tournament results
-    EngineWorkerFactory::assignUniqueDisplayNames();
-}
-
-void QaplaSettings::applyEngineList(const std::string& engineNamesStr) {
-    auto engineNames = QaplaHelpers::split(engineNamesStr, ',');
-    for (auto& name : engineNames) {
-        name = QaplaHelpers::trim(name);
-        if (name.empty()) {
-            continue;
-        }
-        const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(name);
-        if (engineConfig == nullptr) {
-            throw AppError::makeInvalidParameters("Engine configuration '" + name + "' not found.");
-        }
-        EngineWorkerFactory::getActiveEnginesMutable().push_back(*engineConfig);
-    }
-    EngineWorkerFactory::assignUniqueDisplayNames();
-}
-
-void QaplaSettings::applyEngineInstance(const Settings::GroupInstance& instance,
-                                         const Settings::GroupInstance* eachSetting,
-                                         const Settings::GroupInstance* loggingSetting) {
-    // instance.mergeWithDefaults(each) ensures per-engine settings take precedence over global [each] defaults
-    Settings::GroupInstance mergedInstance = (eachSetting != nullptr) 
-        ? instance.mergeWithDefaults(*eachSetting) 
-        : instance;
-
-    auto cmd = mergedInstance.get<std::string>("cmd");
-    auto conf = mergedInstance.get<std::string>("conf");
-    auto name = mergedInstance.get<std::string>("name");
-
-    // Logging is configured per engine, requiring global logging settings to be applied individually
-    Settings::ValueMap finalOptions = mergedInstance.getValues();
-    if (loggingSetting != nullptr && !loggingSetting->get<bool>("engine")) {
-        finalOptions["trace"] = std::string("none");
-    }
-
-    if (!cmd.empty()) {
-        // Using executable path (cmd) to create a new EngineConfig from scratch
-        auto config = EngineConfig::createFromValueMap(finalOptions);
-        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-    }
-    else if (!conf.empty()) {
-        // Using named configuration reference (conf), loading it and overlaying command-line options
-        const auto* engineConfig = EngineWorkerFactory::getConfigManager().getConfig(conf);
-        if (engineConfig == nullptr) {
-            throw AppError::makeInvalidParameters("Engine configuration '" + conf + "' not found.");
-        }
-        auto config = *engineConfig;
-        config.setCommandLineOptions(finalOptions, true);
-        EngineWorkerFactory::getActiveEnginesMutable().push_back(config);
-    }
-    else {
-        std::string engineName = name.empty() ? "" : " (for " + name + ")";
-        throw AppError::makeInvalidParameters("No engine command or configuration provided"
-            + engineName + ". Please specify either 'cmd' or 'conf'.");
-    }
 }
 
 void QaplaSettings::setPgnConfig(Settings::Manager& manager, const std::string& groupName) {

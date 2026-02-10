@@ -201,6 +201,16 @@ Multiple 'spsavalue' groups can be defined to optimize several parameters simult
         .unique = false, 
         .keys = Settings::getSpsaValueKeys()
     });
+
+    // Round Group
+    Manager::instance().registerGroup({
+        .name = "round", 
+        .description = "Information about played rounds", 
+        .longDescription = "",
+        .unique = false, 
+        .keys = {},
+        .ignore = true
+    });
 }
 
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {

@@ -69,6 +69,7 @@ namespace QaplaHelpers {
         }
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     ConfigData ConfigData::fromArgv(const std::vector<std::string>& args) {
         ConfigData configData;
         IniFile::Section currentSection{.name = "", .entries = {}};
