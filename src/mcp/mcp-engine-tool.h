@@ -20,6 +20,7 @@
 
 #include "json-helper.h"
 #include "../engine-handling/engine-capabilities.h"
+#include "../cli/task-types.h"
 #include <string>
 
 namespace QaplaTester::Mcp {
@@ -27,7 +28,7 @@ namespace QaplaTester::Mcp {
 class McpEngineTool {
 public:
     static JsonValue::Array handleManageEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
-    static void setupActiveEngines(const JsonValue::Object& arguments);
+    static void setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType);
 
 private:
     [[nodiscard]] static std::string listEngines();
@@ -35,6 +36,8 @@ private:
     static std::string addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate, QaplaConfiguration::EngineCapabilities& capabilities);
     static std::string copyEngine(const JsonValue::Object& arguments);
     static std::string updateAllEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
+
+    static void syncToEngineRegistry(const std::string& engineName);
 };
 
 } // namespace QaplaTester::Mcp

@@ -29,6 +29,7 @@
 #include "../cli/settings-manager.h"
 #include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
+#include "../cli/task-types.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../game-manager/game-manager-pool.h"
 #include <iostream>
@@ -563,7 +564,9 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
         } else {
             // Handle active list and execution
             JsonValue::Object toolArgs = arguments;
-            McpEngineTool::setupActiveEngines(toolArgs);
+            const Cli::TaskType taskType = Cli::getTaskType(name);
+
+            McpEngineTool::setupActiveEngines(toolArgs, taskType);
             content = runRunnerTool(name, toolArgs, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 

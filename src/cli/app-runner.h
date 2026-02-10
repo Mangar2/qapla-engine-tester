@@ -21,6 +21,7 @@
 
 #include "../base-elements/app-error.h"
 #include "settings-manager.h"
+#include "task-types.h"
 
 namespace QaplaTester {
 
@@ -29,6 +30,11 @@ namespace QaplaTester {
  */
 class AppRunner {
 public:
+    /**
+     * @brief Collects engines marked with the task ID and sets them as active.
+     */
+    static void collectActiveEngines(Cli::TaskType taskType);
+
     /**
      * @brief Runs the engine testing mode.
      * @param test The settings for the test.

@@ -12,7 +12,7 @@ If I ask you to checkin:
 - use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
 
 # Generating code for Qapla Engine Tester
-Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the compiler and linters (use the tool get_errors of vscode to identify linter errors). If you find any, fix them immediately. 
+Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the linters by using the tool get_errors of vscode. If you find any, fix them immediately. Only thereafter compile and fix the code until it compiles without warnings.
 
 ## Project Overview
 **Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
@@ -26,8 +26,8 @@ Never rename symbols in c++ that are heavily used across files. Ask the user to 
 - Only "why" comments (no comments describing what the code lines does); Still JSDoc for method declarations
 - Max complexity: 20, max nesting: 3
 - Prevent implicit conversions, use same types
-- **Explicit bool conversions**: Never rely on implicit int→bool. Use `!= 0` (preferred) or `static_cast<bool>()`
-- Always use curly braces for control statements
+- **Explicit bool conversions**: Never rely on implicit int→bool. Use `!= 0`, != nullptr ... (preferred) or `static_cast<bool>()`
+- Always use curly braces for control statements. if (a) b; is strictly forbitten. Always use if (a) { b; }
 - Use `auto` when type is already visible in the line
 - Do not return data via reference or pointer parameters. Use return values instead. Remember that the compiler will optimize return value copies via RVO.
 - Only comment inside methods to explain why something is done - never what is done

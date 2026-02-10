@@ -272,7 +272,7 @@ void QaplaSettings::init() {
         .name = "engine", 
         .description = "Defines an engine configuration", 
         .unique = false, 
-        .primaryKey = {"name", "conf"},
+        .primaryKey = {"id", "name", "conf"},
         .keys = Settings::getEngineKeys()}
     );
 
@@ -281,6 +281,7 @@ void QaplaSettings::init() {
         .name = "logging", 
         .description = "Logger configuration", 
         .unique = true, 
+        .primaryKey = {"id"},
         .keys = Settings::getLoggingKeys()
     });
 
@@ -289,6 +290,7 @@ void QaplaSettings::init() {
         .name = "each", 
         .description = "Defines configuration options for all engines", 
         .unique = true, 
+        .primaryKey = {"id"},
         .keys = Settings::getEachKeys()
     });
 
@@ -340,6 +342,7 @@ The test stops as soon as H0 (no difference or weaker) or H1 (stronger) is accep
         .name = "pgnoutput", 
         .description = "PGN output settings", 
         .unique = true, 
+        .primaryKey = {"id"},
         .keys = Settings::getPgnOutputKeys()
     });
 
@@ -359,6 +362,7 @@ Engines play against each other with color swapping and opening variations.)",
         .name = "draw", 
         .description = "Draw adjudication settings", 
         .unique = true, 
+        .primaryKey = {"id"},
         .keys = Settings::getDrawAdjudicationKeys()
     });
 
@@ -367,6 +371,7 @@ Engines play against each other with color swapping and opening variations.)",
         .name = "resign", 
         .description = "Resign adjudication settings", 
         .unique = true, 
+        .primaryKey = {"id"},
         .keys = Settings::getResignAdjudicationKeys()
     });
 

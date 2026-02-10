@@ -60,6 +60,31 @@ static void checkTimeControl() {
     }
 }
 
+void AppRunner::collectActiveEngines(Cli::TaskType taskType) {
+    const auto taskId = Cli::getTaskId(taskType);
+    const auto& instances = Settings::Manager::instance().getGroupInstances("engine");
+    
+    auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
+    activeEngines.clear(); 
+
+    const auto& configManager = EngineWorkerFactory::getConfigManager();
+
+    for (const auto& instance : instances) {
+        const auto& values = instance.getValues();
+        auto itId = values.find("id");
+        if (itId != values.end() && std::holds_alternative<std::string>(itId->second) && 
+            std::get<std::string>(itId->second) == taskId) {
+             auto itName = values.find("name");
+             if (itName != values.end() && std::holds_alternative<std::string>(itName->second)) {
+                 const auto* config = configManager.getConfig(std::get<std::string>(itName->second));
+                 if (config != nullptr) {
+                     activeEngines.push_back(*config);
+                 }
+             }
+        }
+    }
+}
+
 AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("engine-report");
     Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());

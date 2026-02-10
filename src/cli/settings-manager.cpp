@@ -31,22 +31,33 @@
 #include <filesystem>
 #include <unordered_map>
 #include <cassert>
+#include <ranges>
 
 
 namespace QaplaTester::Settings
 {
     namespace
     {
-        /**
-         * @brief Converts a Setting::Value variant to a string.
-         * @param value The value to convert.
-         * @return The string representation of the value.
-         */
-        [[nodiscard]] std::string valueToString(const Value& value)
-        {
+        std::string valueToStringHelper(const Value& value) {
             return std::visit([](auto&& val) {
                 return std::format("{}", val);
             }, value);
+        }
+
+        bool matchesCriteria(const GroupInstance& instance, const QaplaHelpers::IniFile::KeyValueMap& criteria) {
+            using QaplaHelpers::to_lowercase;
+            const auto& values = instance.getValues();
+
+            return std::ranges::all_of(criteria, [&](const auto& entry) {
+                const auto& [key, val] = entry; 
+                const auto it = values.find(to_lowercase(key));
+                if (it == values.end()) {
+                    return false;
+                }
+                
+                const std::string instanceValStr = valueToStringHelper(it->second);
+                return to_lowercase(instanceValStr) == to_lowercase(val);
+            });
         }
     }
 
@@ -278,6 +289,18 @@ namespace QaplaTester::Settings
             return {};
         }
         return it->second;
+    }
+
+    GroupInstances& Manager::getGroupInstancesMutable(const std::string &groupName)
+    {
+        std::string key = QaplaHelpers::to_lowercase(groupName);
+        return groupInstances_[key];
+    }
+
+    void Manager::setGroupInstances(const std::string &groupName, const GroupInstances &instances)
+    {
+        std::string key = QaplaHelpers::to_lowercase(groupName);
+        groupInstances_[key] = instances;
     }
 
     std::optional<GroupInstance> Manager::getGroupInstance(const std::string &groupName)
@@ -815,6 +838,84 @@ namespace QaplaTester::Settings
         }
         
         return configData;
+    }
+
+    std::string Manager::valueToString(const Value& value)
+    {
+        return std::visit([](auto&& val) {
+            return std::format("{}", val);
+        }, value);
+    }
+
+    const GroupInstance* Manager::findGroupInstance(const std::string& groupName, 
+                                                    const QaplaHelpers::IniFile::KeyValueMap& criteria) const
+    {
+        using QaplaHelpers::to_lowercase;
+        auto lcGroup = to_lowercase(groupName);
+        if (!groupInstances_.contains(lcGroup)) {
+            return nullptr;
+        }
+
+        const auto& instances = groupInstances_.at(lcGroup);
+        for (const auto& instance : instances) {
+            if (matchesCriteria(instance, criteria)) {
+                return &instance;
+            }
+        }
+        return nullptr;
+    }
+
+    size_t Manager::removeGroupInstances(const std::string& groupName, 
+                                         const QaplaHelpers::IniFile::KeyValueMap& criteria)
+    {
+        auto lcGroup = QaplaHelpers::to_lowercase(groupName);
+        if (!groupInstances_.contains(lcGroup)) {
+            return 0;
+        }
+
+        auto& instances = groupInstances_[lcGroup];
+        auto oldSize = instances.size();
+        
+        std::erase_if(instances, [&](const GroupInstance& instance) {
+            return matchesCriteria(instance, criteria);
+        });
+        
+        return oldSize - instances.size();
+    }
+
+    QaplaHelpers::IniFile::Section Manager::groupInstanceToSection(const std::string& sectionName, 
+                                                                   const GroupInstance& instance)
+    {
+        QaplaHelpers::IniFile::Section section;
+        section.name = sectionName;
+        
+        for (const auto& [key, val] : instance.getValues()) {
+            section.addEntry(key, valueToString(val));
+        }
+        
+        return section;
+    }
+
+    void Manager::modifyGroupInstance(const QaplaHelpers::IniFile::Section& search,
+                                      const QaplaHelpers::IniFile::Section& replace)
+    {
+         std::string groupName = search.name;
+         
+         const GroupInstance* instance = findGroupInstance(groupName, search.entries);
+         if (instance == nullptr) {
+             throw AppError::makeInvalidParameters("Could not find group instance to modify: " + groupName);
+         }
+         
+         // Convert back to section
+         QaplaHelpers::IniFile::Section newSection = groupInstanceToSection(groupName, *instance);
+         
+         // Apply edits
+         for (const auto& [key, val] : replace.entries) {
+             newSection.changeOrAddEntry(key, val);
+         }
+         
+         // re-parse (update existing)
+         parseGroupedParameter(newSection, true, true);
     }
 
 } // namespace QaplaTester::CliSettings
