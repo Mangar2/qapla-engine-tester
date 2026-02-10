@@ -84,12 +84,6 @@ void McpServer::initialize() {
 }
 
 AppReturnCode McpServer::run() {
-    bool isTestMode = false;
-    if (auto mcpGroup = Settings::Manager::instance().getGroupInstance("mcp")) {
-        isTestMode = mcpGroup->get<bool>("test");
-    }
-
-    AppReturnCode lastResult = AppReturnCode::NoError;
     while (true) {
         const auto message = readMessage();
         if (!message.has_value()) {
@@ -101,20 +95,12 @@ AppReturnCode McpServer::run() {
         }
 
         const auto& jsonObject = message->asObject();
-        std::string method;
-        if (jsonObject.contains("method")) {
-            method = jsonObject.at("method").asString();
-        }
-
-        lastResult = processMessage(jsonObject);
-
-        // In test mode, terminate after the first non-handshake message (request or notification)
-        if (isTestMode && !method.empty() && (method != "initialize") && (method != "notifications/initialized")) {
+        if (processMessage(jsonObject) != AppReturnCode::NoError) {
             break;
         }
     }
 
-    return isTestMode ? lastResult : AppReturnCode::NoError;
+    return AppReturnCode::NoError;
 }
 
 AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {

@@ -67,7 +67,7 @@ std::string EngineConfig::toString(const Value& value) {
 
 void EngineConfig::setTimeControl(const std::string& tc) {
 	if (tc.empty()) {
-		throw AppError::makeInvalidParameters("Time control cannot be empty for engine " + getName());
+		return;
 	}
 	try {
 		tc_ = TimeControl::parse(tc);
