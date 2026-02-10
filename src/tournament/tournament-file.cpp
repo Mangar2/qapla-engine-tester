@@ -44,6 +44,9 @@ void TournamentFile::save(const std::string& filename,
     // Save each section type with the specified id
     for (const auto& sectionName : sectionNames) {
         auto sections = configData.getSectionList(sectionName, id);
+        if (!sections || sections->empty()) {
+            sections = configData.getSectionList(sectionName, "all");
+        }
         if (sections && !sections->empty()) {
             for (auto& section : *sections) {
                 auto name = section.name;
@@ -68,7 +71,7 @@ void TournamentFile::save(const std::string& filename,
                           const std::string& id) {
     if (!filename.empty()) {
         auto sections = tournament->getSections();
-        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({}, id);
+        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({});
         for (const auto& section : sections) {
             configData.addSection(section);
         }
@@ -82,7 +85,7 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
     if (!filename.empty()) {
         tournament->setSaveCallback(
             [filename,
-             configData = Settings::Manager::instance().toConfigData({}, TournamentFile::id),
+             configData = Settings::Manager::instance().toConfigData({}),
              tournament = tournament.get()]() mutable 
             {
                 auto sections = tournament->getSections();

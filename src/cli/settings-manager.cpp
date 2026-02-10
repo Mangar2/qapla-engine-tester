@@ -809,7 +809,6 @@ namespace QaplaTester::Settings
 
     QaplaHelpers::ConfigData Manager::toConfigData(
             const std::vector<std::string>& sectionNames,
-            const std::string& id,
             bool addGlobals) const {
         QaplaHelpers::ConfigData configData;
         
@@ -823,9 +822,6 @@ namespace QaplaTester::Settings
         for (const auto& sectionName : sectionsToExport) {
             auto sections = groupInstancesToSectionList(sectionName);
             for (auto& section : sections) {
-                if (!section.getValue("id").has_value()) {
-                    section.insertFirst("id", id);
-                }
                 configData.addSection(section);
             }
         }

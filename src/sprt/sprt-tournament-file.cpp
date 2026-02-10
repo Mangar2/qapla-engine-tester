@@ -48,8 +48,6 @@ namespace QaplaTester {
     }
 }
 
-
-
 void SprtTournamentFile::save(const std::string& filename,
     const QaplaHelpers::ConfigData& configData,
     const std::string& id) 
@@ -66,6 +64,9 @@ void SprtTournamentFile::save(const std::string& filename,
     // Save each section type with the specified id
     for (const auto& sectionName : sectionNames) {
         auto sections = configData.getSectionList(sectionName, id);
+        if (!sections || sections->empty()) {
+            sections = configData.getSectionList(sectionName, "all");
+        }
         if (sections && !sections->empty()) {
             for (auto& section : *sections) {
                 auto name = section.name;
@@ -92,7 +93,7 @@ void SprtTournamentFile::save(
 {
     if (!filename.empty()) {
         auto section = sprtManager->getSection();
-        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({}, id);
+        QaplaHelpers::ConfigData configData = settingsManager.toConfigData();
         if (section) {
             configData.addSection(*section);
         }

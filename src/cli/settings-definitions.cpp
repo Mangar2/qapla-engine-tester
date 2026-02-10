@@ -25,7 +25,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "all", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "conf",      { .description = "Name of an engine from the configuration file", 
@@ -97,7 +97,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
         { "id",     { 
             .description = "Identifier for the configuration", 
             .isRequired = false, 
-            .defaultValue = "", 
+            .defaultValue = "default", 
             .type = ValueType::String,
             .isHidden = true }},
         { "engine", { 
@@ -108,7 +108,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
         { "path",   { 
             .description = "Path to the logging directory", 
             .isRequired = false,
-            .defaultValue = std::string(""), 
+            .defaultValue = std::string("."), 
             .type = ValueType::PathExists }},
         { "mode",   { 
             .description = "Engine log file strategy: one (single file for all engines), each (separate file per engine)",
@@ -132,7 +132,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "all", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "dir",       { .description = "Working directory", 
@@ -170,7 +170,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "epd", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "file",      { .description = "Path and file name to the epd file", 
@@ -210,7 +210,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
-                    .defaultValue = "", 
+                    .defaultValue = "sprt", 
                     .type = ValueType::String,
                     .isHidden = true } },
         { "file", { .description = "File to load/save tournament outcome", 
@@ -264,7 +264,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getOpeningsKeys() {
     return {
         { "id",    { .description = "Identifier for the configuration", 
                     .isRequired = false, 
-                    .defaultValue = "", 
+                    .defaultValue = "all", 
                     .type = ValueType::String,
                     .isHidden = true } },
         { "file",  { .description = "Path to file with opening positions", 
@@ -298,7 +298,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
     return {
         { "id",         { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "test", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "underrun",   { .description = "Check for movetime underruns", 
@@ -360,7 +360,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getPgnOutputKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
-                    .defaultValue = "", 
+                    .defaultValue = "all", 
                     .type = ValueType::String,
                     .isHidden = true } },
         { "file", { .description = "Path to the output PGN file", 
@@ -402,7 +402,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
     return {
         { "id",   { .description = "Identifier for the configuration", 
                     .isRequired = false, 
-                    .defaultValue = "", 
+                    .defaultValue = "tournament", 
                     .type = ValueType::String,
                     .isHidden = true } },
         { "type", { .description = "Tournament type: gauntlet/round-robin", 
@@ -460,7 +460,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getDrawAdjudicationKey
     return {
         { "id",         { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "all", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "active",   { .description = "Enable draw adjudication", 
@@ -491,7 +491,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getResignAdjudicationK
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "all", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "active",   { .description = "Enable resignation adjudication", 
@@ -522,7 +522,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys() {
     return {
         { "id",            { .description = "Identifier for the configuration", 
                             .isRequired = false, 
-                            .defaultValue = "", 
+                            .defaultValue = "spsa", 
                             .type = ValueType::String,
                             .isHidden = true } },
         { "activepairs",   { .description = "Maximum number of concurrent unfinished tournament pairs", 
@@ -556,7 +556,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration", 
                         .isRequired = false, 
-                        .defaultValue = "", 
+                        .defaultValue = "spsa", 
                         .type = ValueType::String,
                         .isHidden = true } },
         { "name",      { .description = "UCI parameter name to optimize", 
