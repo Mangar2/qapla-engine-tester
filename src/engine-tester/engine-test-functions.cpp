@@ -572,20 +572,36 @@ TestResult runGoLimitsTest(const EngineConfig& engineConfig)
         
         struct TestCase {
             std::string name;
+            std::string fen{};
             TimeControl timeControl;
         };
         
         std::vector<TestCase> testCases = {
-            {.name="no-loss-on-time", 
-                .timeControl=[] { TimeControl t; t.addTimeSegment({.movesToPlay=0, .baseTimeMs=1000, .incrementMs=500}); return t; }()},
-            {.name="no-loss-on-time", 
-                .timeControl=[] { TimeControl t; t.addTimeSegment({.movesToPlay=0, .baseTimeMs=100, .incrementMs=2000}); return t; }()},
-            {.name="supports-movetime", 
+            {
+                .name="no-loss-on-time", 
+                .timeControl=[] { 
+                    TimeControl t; t.addTimeSegment({.movesToPlay=0, .baseTimeMs=1000, .incrementMs=500}); return t; }()
+            },
+            {
+                .name="no-loss-on-time", 
+                .timeControl=[] { TimeControl t; t.addTimeSegment({.movesToPlay=0, .baseTimeMs=100, .incrementMs=2000}); return t; }()
+            },
+            {
+                .name="supports-movetime", 
                 .timeControl=[] { TimeControl t; t.setMoveTime(1000); return t; }()},
-            {.name="supports-depth-limit", 
-                .timeControl=[] { TimeControl t; t.setDepth(4); return t; }()},
-            {.name="supports-node-limit", 
-                .timeControl=[] { TimeControl t; t.setNodes(10000); return t; }()}
+            {
+                .name="supports-movetime-2", 
+                .fen="1k1r4/pp1b1R2/3q2pp/4p3/2B5/4Q3/PPP2B2/2K5 b - - 0 1",
+                .timeControl=[] { TimeControl t; t.setMoveTime(1000); return t; }()
+            },
+            {
+                .name="supports-depth-limit", 
+                .timeControl=[] { TimeControl t; t.setDepth(4); return t; }()
+            },
+            {
+                .name="supports-node-limit", 
+                .timeControl=[] { TimeControl t; t.setNodes(10000); return t; }()
+            }
         };
         
         TestResult results;
@@ -594,7 +610,12 @@ TestResult runGoLimitsTest(const EngineConfig& engineConfig)
         for (const auto& testCase : testCases) {
             computeTask->newGame();
             computeTask->setTimeControl(testCase.timeControl);
-            computeTask->setPosition(true);
+            if (!testCase.fen.empty()) {
+                computeTask->setPosition(false, testCase.fen);
+            } 
+            else {
+                computeTask->setPosition(true);
+            }
             computeTask->computeMove();
             bool success = computeTask->getFinishedFuture().wait_for(GO_TIMEOUT) == std::future_status::ready;
             

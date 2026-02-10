@@ -31,11 +31,12 @@ void initSettings() {
         .type = ValueType::Bool
     });
 
-    Manager::instance().registerGroup({
+    Manager::instance().registerSetting({
         .name = "mcp", 
-        .description = "Model Context Protocol (MCP) server configuration", 
-        .unique = true, 
-        .keys = Settings::getMcpKeys()
+        .description = "Enables Model Context Protocol (MCP) server mode", 
+        .isRequired = false, 
+        .defaultValue = false, 
+        .type = ValueType::Bool
     });
     
     Manager::instance().registerSetting({
@@ -389,14 +390,6 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys() {
     };
 }
 
-QaplaHelpers::StableMap<std::string, ParameterDefinition> getMcpKeys() {
-    return {
-        { "test",      { .description = "Enables MCP test mode (terminates after first command)",
-                        .isRequired = true, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
-    };
-}
 
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
     return {

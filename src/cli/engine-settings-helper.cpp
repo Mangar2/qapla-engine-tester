@@ -86,6 +86,19 @@ namespace {
     }
 
     /**
+     * @brief Registers an engine defined with id="config" in the ConfigManager.
+     */
+    void registerBaseConfiguration(
+        const GroupInstance& instance,
+        const GroupInstance* eachDefault,
+        const GroupInstance* globalLogging) {
+
+        const ValueMap options = determineFinalOptions(instance, eachDefault, globalLogging);
+        const auto config = EngineConfig::createFromValueMap(options);
+        EngineWorkerFactory::getConfigManagerMutable().getAllConfigsMutable().push_back(config);
+    }
+
+    /**
      * @brief Processes a single engine group instance from settings.
      */
     void processEngineInstance(
@@ -127,11 +140,24 @@ bool applyEngineSettings(Manager& manager, const std::string& groupName) {
     const auto eachDefault = manager.getGroupInstance("each");
     const auto globalLogging = manager.getGroupInstance("logging");
 
+    // 1. First pass: Register base configurations (id="config")
     for (const auto& instance : engineInstances) {
-        processEngineInstance(
-            instance,
-            eachDefault.has_value() ? &(*eachDefault) : nullptr,
-            globalLogging.has_value() ? &(*globalLogging) : nullptr);
+        if (QaplaHelpers::to_lowercase(instance.get<std::string>("id")) == "config") {
+            registerBaseConfiguration(
+                instance,
+                eachDefault.has_value() ? &(*eachDefault) : nullptr,
+                globalLogging.has_value() ? &(*globalLogging) : nullptr);
+        }
+    }
+
+    // 2. Second pass: Process active engines (id!="config")
+    for (const auto& instance : engineInstances) {
+        if (QaplaHelpers::to_lowercase(instance.get<std::string>("id")) != "config") {
+            processEngineInstance(
+                instance,
+                eachDefault.has_value() ? &(*eachDefault) : nullptr,
+                globalLogging.has_value() ? &(*globalLogging) : nullptr);
+        }
     }
 
     EngineWorkerFactory::assignUniqueDisplayNames();
