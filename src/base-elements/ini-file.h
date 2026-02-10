@@ -227,6 +227,13 @@ public:
     [[nodiscard]] std::vector<std::string> getAllSectionNames() const;
 
     /**
+     * @brief Sets a key-value pair in all sections of the configuration data.
+     * @param key The key to set.
+     * @param value The value to set.
+     */
+    void setKeyInAllSections(const std::string& key, const std::string& value);
+
+    /**
      * @brief Checks if the configuration data has been modified since the last load or save operation.
      * @return true if the configuration data has been modified, false otherwise.
      */
