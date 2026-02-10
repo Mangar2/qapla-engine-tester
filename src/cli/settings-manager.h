@@ -76,6 +76,7 @@ namespace QaplaTester::Settings {
         bool unique;                                                  ///< True if only one instance of this group is allowed
         std::vector<std::string> primaryKey{};                          ///< List of keys that uniquely identify an instance of the group
         QaplaHelpers::StableMap<std::string, ParameterDefinition> keys;   ///< Map of parameter names to their definitions (preserves insertion order)
+        bool ignore = false;                                          ///< True if this group should be ignored during parsing and validation
 
         /**
          * @brief Returns all defined keys in the order they were registered.

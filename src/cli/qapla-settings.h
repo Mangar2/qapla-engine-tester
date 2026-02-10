@@ -190,29 +190,6 @@ private:
     void setLoggerConfiguration();
 
     /**
-     * @brief Reads engine options from CLI settings
-     * @param manager The settings manager to read from
-     * @param groupName The group instance name
-     */
-    void setEngineConfig(Settings::Manager& manager, const std::string& groupName);
-
-    /**
-     * @brief Reads a list of engines from a comma-separated string
-     * @param engineNamesStr Comma-separated engine names
-     */
-    static void applyEngineList(const std::string& engineNamesStr);
-
-    /**
-     * @brief Applies a single engine group configuration
-     * @param instance The engine group instance settings
-     * @param eachSetting Optional global engine settings to merge
-     * @param loggingSetting Optional global logging settings
-     */
-    static void applyEngineInstance(const Settings::GroupInstance& instance,
-                                    const Settings::GroupInstance* eachSetting,
-                                    const Settings::GroupInstance* loggingSetting);
-
-    /**
      * @brief Reads PGN options from settings manager
      * @param manager The settings manager to read from
      * @param groupName The group instance name

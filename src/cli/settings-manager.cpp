@@ -358,8 +358,13 @@ namespace QaplaTester::Settings
             if (!sectionList.empty()) {
                 const auto groupName = QaplaHelpers::to_lowercase(sectionList[0].name);
                 const auto defIt = groupDefs_.find(groupName);
-                if (defIt != groupDefs_.end() && defIt->second.unique && sectionList.size() > 1) {
-                    throw AppError::makeInvalidParameters("\"" + sectionList[0].name + "\" may only be specified once");
+                if (defIt != groupDefs_.end()) {
+                    if (defIt->second.ignore) {
+                        continue;
+                    }
+                    if (defIt->second.unique && sectionList.size() > 1) {
+                        throw AppError::makeInvalidParameters("\"" + sectionList[0].name + "\" may only be specified once");
+                    }
                 }
             }
             
@@ -477,6 +482,11 @@ namespace QaplaTester::Settings
             throw AppError::makeInvalidParameters("\"" + section.name + "\" is not a valid parameter group");
         }
         const auto& groupDefinition = defIt->second;
+
+        if (groupDefinition.ignore) {
+            return;
+        }
+
         std::optional<size_t> matchingIndex;
         auto& instances = groupInstances_[groupName];
 
