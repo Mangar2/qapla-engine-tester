@@ -235,4 +235,15 @@ namespace QaplaHelpers {
         return names;
     }
 
+    void ConfigData::setKeyInAllSections(const std::string& key, const std::string& value) {
+        for (auto& [name, sectionMap] : sectionTree_) {
+            for (auto& [id, sectionList] : sectionMap) {
+                for (auto& section : sectionList) {
+                    section.changeOrAddEntry(key, value);
+                }
+            }
+        }
+        setDirty(true);
+    }
+
 } // namespace QaplaHelpers

@@ -66,6 +66,13 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys();
 
 /// Returns key definitions for spsavalue group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys();
+
+/**
+ * @brief Initializes all CLI settings by registering them with the Manager
+ * 
+ */
+void initSettings();
+
 } // namespace QaplaTester::Settings
 
 #endif // SETTINGS_DEFINITIONS_H

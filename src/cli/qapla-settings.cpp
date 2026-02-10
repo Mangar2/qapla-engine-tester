@@ -59,18 +59,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     Manager::instance().parseInput(cliData, false);
 
     // 2. Load settings file if provided (Settings file is applied before CLI to allow CLI overrides)
-    auto settingsFile = Manager::instance().get<std::string>("settingsfile");
-    if (!settingsFile.empty()) {
-        std::ifstream file(settingsFile);
-        if (!file.is_open()) {
-            throw AppError::makeInvalidParameters(std::format("Failed to open settings file: {}", settingsFile));
-        }
-        QaplaHelpers::ConfigData fileData;
-        fileData.load(file);
-        configData_.push_back(fileData);
-        // Refresh manager to see if mcp or other files are there
-        Manager::instance().parseInput(fileData, false);
-    }
+    loadFromFile(Manager::instance().get<std::string>("settingsfile"), true, false);
 
     // 3. Add CLI arguments to configData_ (CLI overrides settings file)
     configData_.push_back(cliData);
@@ -97,24 +86,8 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
         
-        if (!sprtFile.empty()) {
-            std::ifstream file(sprtFile);
-            if (file.is_open()) {
-                QaplaHelpers::ConfigData sprtData;
-                sprtData.load(file);
-                configData_.push_back(sprtData);
-                Manager::instance().parseInput(sprtData, true); // Overwrite to find tournament file if nested
-            }
-        }
-        
-        if (!tournamentFile.empty()) {
-            std::ifstream file(tournamentFile);
-            if (file.is_open()) {
-                QaplaHelpers::ConfigData tourneyData;
-                tourneyData.load(file);
-                configData_.push_back(tourneyData);
-            }
-        }
+        loadFromFile(sprtFile, false, true);
+        loadFromFile(tournamentFile, false, true);
     }
 
     if (Settings::Manager::instance().getGroupInstance("mcp")) {
@@ -126,6 +99,26 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
 
     // 6. Initialize engines only once
     setEngineConfig(Manager::instance(), "engine");
+}
+
+void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite, std::optional<std::string> id) {
+    if (fileName.empty()) {
+        return;
+    }
+    std::ifstream file(fileName);
+    if (!file.is_open()) {
+        if (throwOnError) {
+            throw AppError::makeInvalidParameters(std::format("Failed to open file: {}", fileName));
+        }
+        return;
+    }
+    QaplaHelpers::ConfigData fileData;
+    fileData.load(file);
+    if (id.has_value()) {
+        fileData.setKeyInAllSections("id", *id);
+    }
+    configData_.push_back(fileData);
+    Manager::instance().parseInput(fileData, overwrite);
 }
 
 void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configData) {
@@ -220,185 +213,7 @@ std::vector<std::string> QaplaSettings::argvToVector(int argc, char* argv[]) { /
 }
 
 void QaplaSettings::init() {
-    // Global settings
-    Manager::instance().registerSetting({
-        .name = "interactive", 
-        .description = "Enables interactive mode", 
-        .isRequired = false, 
-        .defaultValue = false, 
-        .type = ValueType::Bool
-    });
-
-    Manager::instance().registerGroup({
-        .name = "mcp", 
-        .description = "Model Context Protocol (MCP) server configuration", 
-        .unique = true, 
-        .keys = Settings::getMcpKeys()
-    });
-    
-    Manager::instance().registerSetting({
-        .name = "concurrency", 
-        .description = "Maximal number of in parallel running engines", 
-        .isRequired = true, 
-        .defaultValue = 10,
-        .type = ValueType::UInt
-    });
-    
-    Manager::instance().registerSetting({
-        .name = "rapid", 
-        .description = "Enables rapid mode (suppresses engine info lines)",
-        .isRequired = false, 
-        .defaultValue = false, 
-        .type = ValueType::Bool
-    });
-
-    Manager::instance().registerSetting({
-        .name = "enginesfile", 
-        .description = "Path to an ini file with engine configurations", 
-        .isRequired = false, 
-        .defaultValue = "",
-        .type = ValueType::PathExists
-    });
-
-    Manager::instance().registerSetting({
-        .name = "settingsfile", 
-        .description = "Path to a settings file in INI-style format", 
-        .isRequired = false, 
-        .defaultValue = std::string(""),
-        .type = ValueType::PathExists
-    });
-
-    Manager::instance().registerGroup({
-        .name = "engine", 
-        .description = "Defines an engine configuration", 
-        .unique = false, 
-        .primaryKey = {"id", "name", "conf"},
-        .keys = Settings::getEngineKeys()}
-    );
-
-    // Logging group
-    Manager::instance().registerGroup({
-        .name = "logging", 
-        .description = "Logger configuration", 
-        .unique = true, 
-        .primaryKey = {"id"},
-        .keys = Settings::getLoggingKeys()
-    });
-
-    // Each group
-    Manager::instance().registerGroup({
-        .name = "each", 
-        .description = "Defines configuration options for all engines", 
-        .unique = true, 
-        .primaryKey = {"id"},
-        .keys = Settings::getEachKeys()
-    });
-
-    // EPD group
-    Manager::instance().registerGroup({
-        .name = "epd", 
-        .description = "Configuration to run an epd testset against engines", 
-        .longDescription = R"(Runs an EPD (Extended Position Description) testset.
-Each engine analyzes a set of positions and its performance is measured by how many 'best moves' it finds within the time limit.
-Results are reported as a success rate and compared against a minimum threshold.)",
-        .unique = true, 
-        .keys = Settings::getEpdKeys()
-    });
-
-    // SPRT group
-    Manager::instance().registerGroup({
-        .name = "sprt", 
-        .description = "Sequential Probability Ratio Test configuration", 
-        .longDescription = R"(Runs a Sequential Probability Ratio Test (SPRT) between two engines. 
-SPRT is an efficient method to determine if one engine is stronger than another with statistical confidence.
-
-Typical SPRT configurations:
-- **Small Improvement**: alpha=0.05, beta=0.05, eloupper=5, elolower=0. Checks if engine 1 is at least 5 Elo stronger.
-- **Strong Improvement**: alpha=0.05, beta=0.05, eloupper=10, elolower=0. Checks if engine 1 is at least 10 Elo stronger.
-- **Regression Testing**: alpha=0.05, beta=0.05, eloupper=0, elolower=-5. Checks if engine 1 is at least not more than 5 Elo weaker.
-
-The test stops as soon as H0 (no difference or weaker) or H1 (stronger) is accepted.)",
-        .unique = true, 
-        .keys = Settings::getSprtKeys()
-    });
-    // Openings group
-    Manager::instance().registerGroup({
-        .name = "openings", 
-        .description = "Defines how start positions are selected", 
-        .unique = true, 
-        .keys = Settings::getOpeningsKeys()
-    });
-
-    // Test group
-    Manager::instance().registerGroup({
-        .name = "test", 
-        .description = "Test the engine", 
-        .unique = true, 
-        .keys = Settings::getTestKeys()
-    });
-
-    // PGN output group
-    Manager::instance().registerGroup({
-        .name = "pgnoutput", 
-        .description = "PGN output settings", 
-        .unique = true, 
-        .primaryKey = {"id"},
-        .keys = Settings::getPgnOutputKeys()
-    });
-
-    // Tournament group
-    Manager::instance().registerGroup({
-        .name = "tournament", 
-        .description = "Tournament setup and general parameters", 
-        .longDescription = R"(Runs a tournament between multiple engines.
-Pairings are generated based on the tournament type (e.g., round-robin or gauntlet).
-Engines play against each other with color swapping and opening variations.)",
-        .unique = true, 
-        .keys = Settings::getTournamentKeys()
-    });
-
-    // Draw adjudication group
-    Manager::instance().registerGroup({
-        .name = "draw", 
-        .description = "Draw adjudication settings", 
-        .unique = true, 
-        .primaryKey = {"id"},
-        .keys = Settings::getDrawAdjudicationKeys()
-    });
-
-    // Resign adjudication group
-    Manager::instance().registerGroup({
-        .name = "resign", 
-        .description = "Resign adjudication settings", 
-        .unique = true, 
-        .primaryKey = {"id"},
-        .keys = Settings::getResignAdjudicationKeys()
-    });
-
-    // SPSA optimization group
-    Manager::instance().registerGroup({
-        .name = "spsa", 
-        .description = "SPSA parameter optimization configuration", 
-        .longDescription = R"(Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm.
-Parameters are perturbed in multiple iterations to find the optimal values that maximize playing strength.
-The process requires two engines; the second engine will be automatically configured with the perturbed parameters.
-Each iteration involves running a set of games with slightly different parameter values to estimate the gradient of the performance.
-IMPORTANT: You MUST define ALL parameters you want to optimize using the 'spsavalue' group. 
-Each 'spsavalue' must be fully defined with name, default, min, max, and step.)",
-        .unique = true, 
-        .keys = Settings::getSpsaKeys()
-    });
-
-    // SPSA parameter value group
-    Manager::instance().registerGroup({
-        .name = "spsavalue", 
-        .description = "Defines a single parameter to optimize with SPSA", 
-        .longDescription = R"(Defines a parameter for SPSA optimization.
-All fields (name, default, min, max, step) are mandatory for the optimization process.
-Multiple 'spsavalue' groups can be defined to optimize several parameters simultaneously.)",
-        .unique = false, 
-        .keys = Settings::getSpsaValueKeys()
-    });
+   initSettings();
 }
 
 void QaplaSettings::setLoggerConfiguration() {
@@ -695,6 +510,6 @@ const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfiguration
     return m_allEngineConfigurations;
 }
 
-} // namespace QaplaTester::CliSettings
+} // namespace QaplaTester::Settings
 
 

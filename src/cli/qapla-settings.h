@@ -175,6 +175,16 @@ private:
     [[nodiscard]] static std::vector<std::string> argvToVector(int argc, char* argv[]);
 
     /**
+     * @brief Loads configuration from a file and updates the manager
+     * @param fileName Path to the settings file
+     * @param throwOnError If true, throws an error if the file cannot be opened
+     * @param overwrite If true, existing values in the manager are overwritten
+     * @param id Optional identifier to set in all loaded sections
+     */
+    void loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite, 
+        std::optional<std::string> id = std::nullopt);
+
+    /**
      * @brief Reads logger configuration from CLI settings
      */
     void setLoggerConfiguration();
