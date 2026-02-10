@@ -368,11 +368,6 @@ private:
     void executeTask(std::optional<GameTask> task);
 
     /**
-     * @brief Players and GameRecord coordination
-     */
-    GameContext gameContext_;
-
-    /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
      */
     bool finishedPromiseValid_ = false;
@@ -398,6 +393,13 @@ private:
     std::queue<EngineEvent> eventQueue_;
 
     GameManagerPool* pool_;
+
+    /**
+     * @brief Players and GameRecord coordination
+     * IMPORTANT, must be last to ensure proper destruction order (engines must be destroyed before game record)
+     */
+    GameContext gameContext_;
+
 };
 
 } // namespace QaplaTester

@@ -20,6 +20,9 @@ Strictly follow the coding style. Check after that you did after generating code
 ## Renaming symbols in c++
 Never rename symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
 
+## Keep Methods short
+Whenever you add code to an existing method, first try to create a helper method instead of extending the current method. Only if this really does not fit, extend the current method.
+
 ## C++ Code Style
 - C++20 - use ranges, format, nodiscard
 - Min identifier length: 3 chars

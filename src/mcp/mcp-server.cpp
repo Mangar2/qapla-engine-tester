@@ -71,7 +71,8 @@ void McpServer::initialize() {
     });
 
     // Set up MCP notification callback for engine autodetection
-    QaplaConfiguration::EngineCapabilities::setMcpNotificationCallback([](const std::string& message) {
+    QaplaConfiguration::EngineCapabilities::setNotificationCallback(
+        [](const std::string& message, [[maybe_unused]] const std::string& type) {
         JsonValue::Object params;
         params["level"] = JsonValue{ .data = std::string("info") };
         params["logger"] = JsonValue{ .data = std::string("autodetect") };
@@ -155,9 +156,6 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
     }
     else if (method == "notifications/initialized") {
         // Client confirmed initialization
-    }
-    else if (method == "exit") {
-        return AppReturnCode::GeneralError; // Signal exit
     }
 
     return AppReturnCode::NoError;
