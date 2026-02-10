@@ -28,8 +28,8 @@ std::vector<QaplaHelpers::IniFile::Section> SprtConfigFile::toSections(
     
     QaplaHelpers::IniFile::KeyValueMap entries{
         {"id", id},
-        {"eloLower", std::to_string(config.eloLower)},
-        {"eloUpper", std::to_string(config.eloUpper)},
+        {"eloH0", std::to_string(config.eloH0)},
+        {"eloH1", std::to_string(config.eloH1)},
         {"alpha", std::to_string(config.alpha)},
         {"beta", std::to_string(config.beta)},
         {"maxGames", std::to_string(config.maxGames)},
@@ -50,13 +50,13 @@ SprtConfig SprtConfigFile::fromSections(
     }
 
     for (const auto& [key, value] : sections[0].entries) {
-        if (key == "eloLower") {
-            config.eloLower = QaplaHelpers::to_float(value).value_or(0.0F);
-            config.eloLower = std::clamp(config.eloLower, -1000.0F, 1000.0F);
+        if (key == "eloH0") {
+            config.eloH0 = QaplaHelpers::to_float(value).value_or(0.0F);
+            config.eloH0 = std::clamp(config.eloH0, -1000.0F, 1000.0F);
         }
-        else if (key == "eloUpper") {
-            config.eloUpper = QaplaHelpers::to_float(value).value_or(5.0F);
-            config.eloUpper = std::clamp(config.eloUpper, -1000.0F, 1000.0F);
+        else if (key == "eloH1") {
+            config.eloH1 = QaplaHelpers::to_float(value).value_or(5.0F);
+            config.eloH1 = std::clamp(config.eloH1, -1000.0F, 1000.0F);
         }
         else if (key == "alpha") {
             config.alpha = QaplaHelpers::to_float(value).value_or(0.05);
@@ -105,8 +105,8 @@ SprtConfig SprtConfigFile::fromManager(
     }
 
     return SprtConfig{
-        .eloUpper = static_cast<float>(sprt->get<double>("eloUpper")),
-        .eloLower = static_cast<float>(sprt->get<double>("eloLower")),
+        .eloH1 = static_cast<float>(sprt->get<double>("eloH1")),
+        .eloH0 = static_cast<float>(sprt->get<double>("eloH0")),
         .alpha = sprt->get<double>("alpha"),
         .beta = sprt->get<double>("beta"),
         .maxGames = sprt->get<unsigned int>("maxgames"),

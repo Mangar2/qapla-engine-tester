@@ -28,7 +28,7 @@ namespace QaplaTester::Mcp {
 class McpEngineTool {
 public:
     static JsonValue::Array handleManageEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
-    static void setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType);
+    static void setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities);
 
 private:
     [[nodiscard]] static std::string listEngines();
@@ -37,6 +37,7 @@ private:
     static std::string copyEngine(const JsonValue::Object& arguments);
     static std::string updateAllEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
 
+    static void applyGlobalTimeControl(const std::vector<std::string>& engineNames, const JsonValue& tcValue, QaplaConfiguration::EngineCapabilities& capabilities);
     static void syncToEngineRegistry(const std::string& engineName);
 };
 

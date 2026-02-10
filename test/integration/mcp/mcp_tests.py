@@ -69,7 +69,12 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "Command: test/integration/engines/stockfish-windows-x86-64-avx2.exe",
+                    "content": "stockfish-windows-x86-64-avx2.exe",
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "Protocol: UCI",
                     "isRegex": False
                 }
             ]
@@ -78,7 +83,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "name": "mcp-engine-add",
             "description": "Add a new engine",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "TestEngine", "engine_cmd": "echo.exe"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "TestEngine", "engine_cmd": "test/engines/Qapla0.4.0.exe"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {

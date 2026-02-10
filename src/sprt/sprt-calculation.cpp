@@ -23,7 +23,6 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
-#include <compare>
 
 namespace QaplaTester {
 
@@ -46,11 +45,11 @@ double logisticScore(double elo) {
 std::string formatInfo(const SprtResult& result) {
     if (result.decision.has_value()) {
         if (*result.decision) {
-            return "H1 accepted, " + result.engineA + " is at least " + std::to_string(result.eloUpper)
+            return "H1 accepted, " + result.engineA + " is at least " + std::to_string(result.eloH1)
                 + " elo stronger than " + result.engineB;
         }
         return "H0 accepted, " + result.engineA + " is not stronger than " + result.engineB
-            + " by at least " + std::to_string(result.eloLower) + " elo.";
+            + " by at least " + std::to_string(result.eloH0) + " elo.";
     }
     
     // Check if max games limit reached without decision
@@ -116,7 +115,7 @@ double computeLLR(double wins, double draws, double losses,
 SprtResult compute(
     int winsA, int draws, int winsB,
     const std::string& engineA, const std::string& engineB,
-    float eloLower, float eloUpper,
+    float eloH0, float eloH1,
     double alpha, double beta,
     uint32_t maxGames) {
 
@@ -126,8 +125,8 @@ SprtResult compute(
 	const double xSquare = (x + 1.0) * (x + 1.0); 
     const double scale = 4.0 * x / xSquare;
 
-    const auto p0 = computeProbabilities(static_cast<double>(eloLower) / scale, drawElo);
-    const auto p1 = computeProbabilities(static_cast<double>(eloUpper) / scale, drawElo);
+    const auto p0 = computeProbabilities(static_cast<double>(eloH0) / scale, drawElo);
+    const auto p1 = computeProbabilities(static_cast<double>(eloH1) / scale, drawElo);
 
     const double llr = computeLLR(winsA, draws, winsB, p0, p1);
     const auto [lBound, uBound] = SprtBase::computeBounds(alpha, beta);
@@ -142,8 +141,8 @@ SprtResult compute(
         .winsB = winsB,
         .engineA = engineA,
         .engineB = engineB,
-        .eloLower = eloLower,
-        .eloUpper = eloUpper,
+        .eloH0 = eloH0,
+        .eloH1 = eloH1,
         .decision = llr >= uBound ? std::optional<bool>(true) :
                      llr <= lBound ? std::optional<bool>(false) : std::nullopt,
         .reachedMaxGames = std::cmp_greater_equal(totalGames, maxGames),
@@ -167,9 +166,9 @@ namespace FastchessSprt {
 SprtResult compute(SprtParameters params) {
 
 
-    fastchess::SPRT sprt(params.alpha, params.beta, params.eloLower, params.eloUpper, params.model, true);
+    fastchess::SPRT sprt(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, true);
     bool report_penta = params.pentanomial;
-    sprt.isValid(params.alpha, params.beta, params.eloLower, params.eloUpper, params.model, report_penta);
+    sprt.isValid(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, report_penta);
     
     fastchess::Stats stats {
         .wins = params.winsA,
@@ -196,8 +195,8 @@ SprtResult compute(SprtParameters params) {
         .winsB = params.winsB,
         .engineA = params.engineA,
         .engineB = params.engineB,
-        .eloLower = params.eloLower,
-        .eloUpper = params.eloUpper,
+        .eloH0 = params.eloH0,
+        .eloH1 = params.eloH1,
         .decision = result == fastchess::SPRT_H1 ? std::optional<bool>(true) :
                      result == fastchess::SPRT_H0 ? std::optional<bool>(false) : std::nullopt,
         .reachedMaxGames = result == fastchess::SPRT_CONTINUE && 

@@ -100,7 +100,7 @@ AppReturnCode McpServer::run() {
             break;
         }
     }
-
+    capabilities_.shutdown();
     return AppReturnCode::NoError;
 }
 
@@ -410,6 +410,13 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
              properties["resume"] = JsonValue{ .data = resume };
         }
 
+        if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" || info.name == "spsa") {
+            JsonValue::Object engineTc;
+            engineTc["type"] = JsonValue{ .data = std::string("string") };
+            engineTc["description"] = JsonValue{ .data = std::string("Set the time control (engine_tc) for all participating engines. This permanently updates the engine configuration.") };
+            properties["engine_tc"] = JsonValue{ .data = engineTc };
+        }
+
         for (const auto& group : info.groups) {
             addParametersFromGroup(group, properties);
         }
@@ -550,7 +557,7 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
             JsonValue::Object toolArgs = arguments;
             const Cli::TaskType taskType = Cli::getTaskType(name);
 
-            McpEngineTool::setupActiveEngines(toolArgs, taskType);
+            McpEngineTool::setupActiveEngines(toolArgs, taskType, capabilities_);
             content = runRunnerTool(name, toolArgs, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 

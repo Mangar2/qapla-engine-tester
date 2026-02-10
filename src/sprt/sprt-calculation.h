@@ -38,8 +38,8 @@ struct SprtParameters {
     int winsB = 0;          ///> Wins for engine B
     std::string engineA;    ///> Name of engine A
     std::string engineB;    ///> Name of engine B
-    float eloLower = 0.0F;  ///> Lower bound of H0 hypothesis
-    float eloUpper = 3.0F;  ///> Upper bound of H1 hypothesis
+    float eloH0 = 0.0F;  ///> Lower bound of H0 hypothesis
+    float eloH1 = 3.0F;  ///> Upper bound of H1 hypothesis
     double alpha = 0.05;    ///> Type I error probability
     double beta = 0.05;     ///> Type II error probability
     uint32_t maxGames = 200000; ///> Maximum number of games before stopping
@@ -68,8 +68,8 @@ struct SprtResult {
     int winsB;                      // Wins for engine B
     std::string engineA;           // Name of engine A
     std::string engineB;           // Name of engine B
-    float eloLower;                // Lower elo bound from config
-    float eloUpper;                // Upper elo bound from config
+    float eloH0;                // Lower elo bound from config
+    float eloH1;                // Upper elo bound from config
     std::optional<bool> decision;  // true if H1 accepted, false if H0 accepted, nullopt if inconclusive
     bool reachedMaxGames = false;  // true if max games limit was reached without decision
     std::string model;           // Model used: "normalized", "logistic", "bayesian"

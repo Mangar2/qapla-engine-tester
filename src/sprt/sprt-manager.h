@@ -61,8 +61,8 @@ struct SprtEnginesResult {
  * @brief Configuration parameters for a SPRT test run.
  */
 struct SprtConfig {
-    float eloUpper;
-    float eloLower;
+    float eloH1;
+    float eloH0;
     double alpha;
     double beta;
     uint32_t maxGames;
