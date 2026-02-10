@@ -354,12 +354,10 @@ namespace QaplaTester::Settings {
          * Only outputs entries that are mandatory or differ from their default values.
          * @param sectionNames Names of sections to include. Empty vector means all sections.
          * @param addGlobals If true, includes global parameters in the result.
-         * @param id The identifier to use for grouped sections, if none is provided.
          * @return ConfigData instance containing the filtered settings.
          */
         [[nodiscard]] QaplaHelpers::ConfigData toConfigData(
                 const std::vector<std::string>& sectionNames = {},
-                const std::string& id = "default",
                 bool addGlobals = true) const;
 
         [[nodiscard]] const std::unordered_map<std::string, ParameterDefinition>& getDefinitions() const { return definitions_; }
