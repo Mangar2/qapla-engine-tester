@@ -43,6 +43,11 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
+                    "content": "Starting engine autodetection...",
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
                     "content": "Registered Engines:",
                     "isRegex": False
                 },
@@ -188,7 +193,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "Verify that an SPRT test can be started and engine activation works",
             "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/sprt",
             "log_path": "test/integration/log/mcp/sprt",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.3.0", "sprt_maxgames": 1, "engine_tc": "40/1+0.1"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.4.0", "sprt_maxgames": 1, "engine_tc": "40/1+0.1"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
@@ -198,10 +203,49 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "Result of SPRT between Stockfish and Qapla 0.3.0",
+                    "content": "Tool 'sprt' finished. Result: ",
                     "isRegex": False
                 }
             ],
             "cleanup": "test/integration/log/mcp/sprt",
+        },
+        {
+            "name": "mcp-sprt-missing-tc",
+            "description": "Call sprt with missing TC and expect an error message but no process exit code error. Further check that server is still alive.",
+            "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/sprt-missing-tc",
+            "log_path": "test/integration/log/mcp/sprt-missing-tc",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.4.0", "sprt_maxgames": 1}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "list"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    "type": "stdout",
+                    "content": '"id":1',
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "No valid time control defined",
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "engine_tc",
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": '"id":2',
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "Registered Engines:",
+                    "isRegex": False
+                }
+            ],
+            "cleanup": "test/integration/log/mcp/sprt-missing-tc",
         }
     ]
