@@ -58,7 +58,7 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "- Qapla 0.3.0",
+                    "content": "- Qapla 0.4.0",
                     "isRegex": False
                 }
             ],
@@ -140,7 +140,7 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "tc: 3.0+0.02",
+                    "content": "Time Control: 3.0+0.02",
                     "isRegex": False
                 }
             ],
@@ -247,5 +247,51 @@ def get_tests() -> List[Dict[str, Any]]:
                 }
             ],
             "cleanup": "test/integration/log/mcp/sprt-missing-tc",
+        },
+        {
+            "name": "mcp-engine-delete",
+            "description": "Add an engine and then delete it",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/delete",
+            "log_path": "test/integration/log/mcp/delete",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "ToDeepDelete", "engine_cmd": "test/integration/engines/stockfish-windows-x86-64-avx2.exe"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "delete", "engine_name": "ToDeepDelete"}}}',
+                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "list"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Engine 'ToDeepDelete' added successfully", "isRegex": False},
+                {"type": "stdout", "content": "Engine 'ToDeepDelete' deleted successfully", "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/delete",
+        },
+        {
+            "name": "mcp-engine-copy-inline",
+            "description": "Copy an engine and set a UCI option simultaneously",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy-inline",
+            "log_path": "test/integration/log/mcp/copy-inline",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-64", "engine_option_Hash": "64"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-64"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Engine 'Stockfish' copied to 'Stockfish-64'", "isRegex": False},
+                {"type": "stdout", "content": "hash = 64", "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/copy-inline",
+        },
+        {
+            "name": "mcp-engine-invalid-path",
+            "description": "Try to add an engine with a non-existent path",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/invalid-path",
+            "log_path": "test/integration/log/mcp/invalid-path",
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "NoExist", "engine_cmd": "this/path/does/not/exist.exe"}}}',
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Engine executable not found at path", "isRegex": False},
+                {"type": "stdout", "content": '"isError":true', "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/invalid-path",
         }
     ]

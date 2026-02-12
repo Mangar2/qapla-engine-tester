@@ -29,6 +29,7 @@
 
 #include <format>
 #include <sstream>
+#include <filesystem>
 
 namespace QaplaTester::Mcp {
 
@@ -73,7 +74,7 @@ namespace {
             
             std::string keyName;
             
-            if (key == "engine_name" || key == "command") {
+            if (key == "engine_name" || key == "command" || key == "engine_copyName") {
                 continue;
             }
             
@@ -116,6 +117,8 @@ JsonValue::Array McpEngineTool::handleManageEngines(
         output = addOrUpdateEngine(arguments, true, capabilities);
     } else if (command == "copy") {
         output = copyEngine(arguments);
+    } else if (command == "delete") {
+        output = deleteEngine(arguments);
     } else if (command == "update_all") {
         output = updateAllEngines(arguments, capabilities);
     } else {
@@ -206,6 +209,14 @@ std::string McpEngineTool::addOrUpdateEngine(
         throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry. Cannot update.", name));
     }
 
+    // Path validation
+    if (const auto it = arguments.find("engine_cmd"); it != arguments.end() && it->second.isString()) {
+        const std::string path = it->second.asString();
+        if (!path.empty() && !std::filesystem::exists(path)) {
+             throw AppError::makeInvalidParameters(std::format("Engine executable not found at path: '{}'", path));
+        }
+    }
+
     // 1. Build configuration for Settings::Manager
     QaplaHelpers::IniFile::Section section;
     section.name = "engine"; 
@@ -249,6 +260,9 @@ std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
     QaplaHelpers::IniFile::Section replace;
     replace.addEntry("name", destName);
     
+    // Support inline options during copy
+    populateSectionFromArgs(replace, arguments);
+    
     // Perform Copy via Manager mechanism
     Settings::Manager::instance().modifyGroupInstance(search, replace);
     
@@ -256,6 +270,31 @@ std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
     syncToEngineRegistry(destName);
 
     return std::format("Engine '{}' copied to '{}'.", srcName, destName);
+}
+
+std::string McpEngineTool::deleteEngine(const JsonValue::Object& arguments) {
+    std::string name;
+    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
+        name = it->second.asString();
+    } else {
+        throw AppError::makeInvalidParameters("Command 'delete' requires 'engine_name'.");
+    }
+
+    auto& configManager = EngineWorkerFactory::getConfigManagerMutable();
+    const auto* config = configManager.getConfig(name);
+    if (config == nullptr) {
+        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry.", name));
+    }
+
+    // 1. Remove from Registry
+    configManager.removeConfig(*config);
+
+    // 2. Remove from Settings Manager
+    QaplaHelpers::IniFile::KeyValueMap criteria;
+    criteria.emplace_back("name", name);
+    Settings::Manager::instance().removeGroupInstances("engine", criteria);
+
+    return std::format("Engine '{}' deleted successfully.", name);
 }
 
 std::string McpEngineTool::updateAllEngines(
