@@ -21,7 +21,7 @@
 
 #include "../engine-handling/engine-worker-factory.h"
 #include "../cli/settings-manager.h"
-#include "../cli/app-runner.h"
+#include "../cli/engine-settings-helper.h"
 #include "../engine-handling/engine-config.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/app-error.h"
@@ -279,7 +279,7 @@ std::string McpEngineTool::updateAllEngines(
      return std::format("Updated {} engines.", count);
 }
 
-void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities) {
+void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, [[maybe_unused]] Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities) {
     if (!arguments.contains("engines")) {
         return; 
     }
@@ -298,11 +298,7 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::
     }
 
     EngineWorkerFactory::getActiveEnginesMutable().clear();
-    AppRunner::collectActiveEngines(taskType);
-    
-    if (EngineWorkerFactory::getActiveEngines().empty() && !names.empty()) {
-        throw AppError::makeInvalidParameters("No valid engines could be activated from the list.");
-    }
+    Settings::Helper::addEnginesFromList(engineList);
 }
 
 

@@ -182,5 +182,26 @@ def get_tests() -> List[Dict[str, Any]]:
                 }
             ],
             "cleanup": "test/integration/log/mcp/error",
+        },
+        {
+            "name": "mcp-sprt-start",
+            "description": "Verify that an SPRT test can be started and engine activation works",
+            "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/sprt",
+            "log_path": "test/integration/log/mcp/sprt",
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.3.0", "sprt_maxgames": 1, "engine_tc": "40/1+0.1"}}}',
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    "type": "stdout",
+                    "content": '"isError":false',
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "Result of SPRT between Stockfish and Qapla 0.3.0",
+                    "isRegex": False
+                }
+            ],
+            "cleanup": "test/integration/log/mcp/sprt",
         }
     ]
