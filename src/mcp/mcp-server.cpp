@@ -249,7 +249,7 @@ void McpServer::listTools(const JsonValue& requestId) {
             .name = "manage_engines",
             .description = "Manage engine configurations in the registry. Use this to manage the "
                         "engine registry. Supports individual management (list, details, add, "
-                        "copy, update) and bulk operations (update_all) for global settings "
+                        "copy, update, delete) and bulk operations (update_all) for global settings "
                         "like time control or UCI options.",
             .groups = {}
         },
@@ -339,6 +339,7 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
             JsonValue{ .data = std::string("add") }, 
             JsonValue{ .data = std::string("copy") }, 
             JsonValue{ .data = std::string("update") }, 
+            JsonValue{ .data = std::string("delete") }, 
             JsonValue{ .data = std::string("update_all") } 
         } };
         command["description"] = JsonValue{ .data = std::string("The operation to perform on engines.") };
@@ -418,7 +419,7 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
         if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" || info.name == "spsa") {
             JsonValue::Object engineTc;
             engineTc["type"] = JsonValue{ .data = std::string("string") };
-            engineTc["description"] = JsonValue{ .data = std::string("Set the time control (engine_tc) for all participating engines. This permanently updates the engine configuration.") };
+            engineTc["description"] = JsonValue{ .data = std::string("Set the time control (engine_tc) for all participating engines. This also updates the engine configuration until the service is restarted.") };
             properties["engine_tc"] = JsonValue{ .data = engineTc };
         }
 
