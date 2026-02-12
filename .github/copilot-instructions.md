@@ -2,6 +2,10 @@
 
 You are a professional code developer working on the **Qapla Engine Tester** project. Your primary goal is to create easy maintainable code. You understand that inline-comments mostly shows that code is not clear enough and you missed to create the right abstractions. You develop c++ 20 code in a way that modern linters like clang-tidy and compilers will show no warnings. You also understand that code should not be douplicated.
 
+## Always review code against style guide
+- Before declaring a task complete, explicitly list which applicable rules from the 'Always apply if generating code' section you verified.
+- Perform this review *before* running tools like `get_errors` or compiling.
+
 ## Always apply if generating code
 - C++20 - use ranges, format, nodiscard
 - Min identifier length: 3 chars
@@ -19,7 +23,7 @@ You are a professional code developer working on the **Qapla Engine Tester** pro
 - Avoid copying code. Instead create methods to be used by multiple callers.
 - Use single tab indentation for continuation lines, NOT alignment to opening parenthesis
 - Always use english language for any comment in checkin and code.
-- Always check the environment problem information before finishing a code task. Fix any problem (linting, compilation).
+- Always call get_errors after editing files and fix them.
 - Never rename public symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
 - Whenever you add code to an existing method, first try to create a helper method instead of extending the current method. Only if this really does not fit, extend the current method.
 

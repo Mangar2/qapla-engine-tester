@@ -53,6 +53,17 @@ namespace {
         return ""; 
     }
 
+    std::string getReadableLabel(const std::string& key) {
+        if (key == "cmd") { return "Executable"; }
+        if (key == "dir") { return "Working Directory"; }
+        if (key == "proto") { return "Protocol"; }
+        if (key == "tc") { return "Time Control"; }
+        if (key == "args") { return "Arguments"; }
+        if (key == "whitepov") { return "White POV"; }
+        if (key == "originalName") { return "Reported Name"; }
+        return key;
+    }
+
     void populateSectionFromArgs(QaplaHelpers::IniFile::Section& section, const JsonValue::Object& arguments) {
         for (const auto& [key, val] : arguments) {
             // Mapping rules:
@@ -152,9 +163,10 @@ std::string McpEngineTool::getEngineDetails(const JsonValue::Object& arguments, 
     ss << std::format("Details for '{}':\n", config->getName());
     
     config->visitProperties([&ss](const std::string& key, const std::string& value) {
-        if (!value.empty()) {
-            ss << std::format("  {}: {}\n", key, value);
+        if (value.empty()) {
+             return;
         }
+        ss << std::format("  {}: {}\n", getReadableLabel(key), value);
     });
     
     const auto options = config->getOptionValues();
