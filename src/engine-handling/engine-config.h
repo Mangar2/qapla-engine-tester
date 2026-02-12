@@ -256,6 +256,35 @@ public:
 
 
     /**
+     * @brief Visits all configuration properties with a callable visitor.
+     * @tparam Visitor A generic callable accepting (const std::string& key, const std::string& value).
+     * @param visitor The visitor to invoke for each property.
+     */
+    template <typename Visitor>
+    void visitProperties(Visitor&& visitor) const {
+        visitor("name", name_);
+        visitor("originalName", originalName_);
+        visitor("author", author_);
+        visitor("cmd", cmd_);
+        visitor("dir", dir_);
+        visitor("args", args_);
+        visitor("proto", to_string(protocol_));
+        visitor("trace", to_string(traceLevel_));
+        visitor("restart", to_string(restart_));
+        
+        const std::string tcStr = tc_.toPgnTimeControlString();
+        visitor("tc", tcStr.empty() ? "" : tcStr);
+
+        visitor("ponder", ponder_ ? "true" : "false");
+        visitor("gauntlet", gauntlet_ ? "true" : "false");
+        visitor("whitepov", scoreFromWhitePov_ ? "true" : "false");
+
+        for (const auto& [key, value] : internalKeys_) {
+            visitor(key, value);
+        }
+    }
+
+    /**
      * @brief Gets the current option values.
      * @return A map of option names to their values.
      */

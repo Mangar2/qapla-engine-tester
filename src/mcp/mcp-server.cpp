@@ -555,7 +555,7 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
         } else {
             // Handle active list and execution
             JsonValue::Object toolArgs = arguments;
-            const Cli::TaskType taskType = Cli::getTaskType(name);
+            const Cli::TaskType taskType = Cli::TaskType::All;
 
             McpEngineTool::setupActiveEngines(toolArgs, taskType, capabilities_);
             content = runRunnerTool(name, toolArgs, returnCode);

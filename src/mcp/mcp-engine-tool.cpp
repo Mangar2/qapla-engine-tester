@@ -150,9 +150,12 @@ std::string McpEngineTool::getEngineDetails(const JsonValue::Object& arguments, 
 
     std::stringstream ss;
     ss << std::format("Details for '{}':\n", config->getName());
-    ss << std::format("  Command: {}\n", config->getCmd());
-    ss << std::format("  Directory: {}\n", config->getDir());
-    ss << std::format("  Protocol: {}\n", config->getProtocol() == EngineProtocol::Uci ? "UCI" : "XBoard");
+    
+    config->visitProperties([&ss](const std::string& key, const std::string& value) {
+        if (!value.empty()) {
+            ss << std::format("  {}: {}\n", key, value);
+        }
+    });
     
     const auto options = config->getOptionValues();
     if (!options.empty()) {
@@ -191,6 +194,7 @@ std::string McpEngineTool::addOrUpdateEngine(
     QaplaHelpers::IniFile::Section section;
     section.name = "engine"; 
     section.addEntry("name", name);
+    section.addEntry("id", "config");
     populateSectionFromArgs(section, arguments);
 
     QaplaHelpers::ConfigData configData;
@@ -281,58 +285,7 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, Cli::
         applyGlobalTimeControl(names, arguments.at("engine_tc"), capabilities);
     }
 
-    // 1. Clear previous engine selections to avoid task pollution
     EngineWorkerFactory::getActiveEnginesMutable().clear();
-    // THE OLD WAY WAS BAD: Settings::Manager::instance().clearGroup("engine");
-    
-    const auto taskId = Cli::getTaskId(taskType);
-
-    // 2. Clean up previous task-specific instances
-    Settings::Manager::instance().removeGroupInstances("engine", { {"id", taskId} });
-
-    // 3. Setup new active engines
-    QaplaHelpers::ConfigData configData;
-
-    for (const auto& rawName : names) {
-        std::string name = QaplaHelpers::trim(rawName);
-        if (name.empty()) {
-            continue;
-        }
-        
-        // Strategy: Try to clone from Settings Manager first (if loaded from file)
-        // If not found, create a new entry referencing the Registry (conf=name).
-        
-        try {
-             QaplaHelpers::IniFile::Section search;
-             search.name = "engine";
-             search.addEntry("name", name);
-             // We look for the "template" which ideally has no ID or empty ID.
-             // If we don't specify ID in search, findGroupInstance might find *any* instance. 
-             // To be safe, we rely on the fact that templates are loaded first and usually don't have IDs.
-             // However, findGroupInstance returns the *first* match.
-             
-             QaplaHelpers::IniFile::Section replace;
-             replace.addEntry("id", taskId);
-             // We keep the name same.
-             
-             // This attempts to find an existing 'name' and create a copy/update with 'id=taskId'
-             Settings::Manager::instance().modifyGroupInstance(search, replace);
-        } catch (...) {
-            // Fallback: Engine not in Settings Manager (only in Registry?)
-            // Create a reference entry.
-            QaplaHelpers::IniFile::Section section;
-            section.name = "engine";
-            section.addEntry("conf", name); 
-            section.addEntry("id", taskId);
-            configData.addSection(section);
-        }
-    }
-    
-    if (!configData.getAllSectionNames().empty()) {
-        Settings::Manager::instance().parseInput(configData, true);
-    }
-    
-    // 4. Trigger AppRunner to populate Active Engines
     AppRunner::collectActiveEngines(taskType);
     
     if (EngineWorkerFactory::getActiveEngines().empty() && !names.empty()) {
@@ -384,7 +337,14 @@ void McpEngineTool::syncToEngineRegistry(const std::string& engineName) {
     auto finalValues = matchedInstance->getValues();
     EngineConfig config = EngineConfig::createFromValueMap(finalValues);
     
-    EngineWorkerFactory::getConfigManagerMutable().addConfig(config);
+    auto& configManager = EngineWorkerFactory::getConfigManagerMutable();
+    
+    // Check if updating existing or adding new
+    if (auto* existing = configManager.getConfigMutable(config.getName())) {
+        *existing = config;
+    } else {
+        configManager.addConfig(config);
+    }
 }
 
 } // namespace QaplaTester::Mcp

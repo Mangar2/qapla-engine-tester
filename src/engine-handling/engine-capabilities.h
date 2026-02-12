@@ -119,8 +119,14 @@ namespace QaplaConfiguration {
          * @return True if any capability exists for path and protocol, false otherwise.
          */
         bool hasAnyCapability(const std::string& path, QaplaTester::EngineProtocol protocol) const {
-            return std::ranges::any_of(capabilities_, [&](const auto& pair) {
+            const bool found = std::ranges::any_of(capabilities_, [&](const auto& pair) {
                 return pair.second.getPath() == path && pair.second.getProtocol() == protocol;
+            });
+            if (found) {
+                return true;
+            }
+            return std::ranges::any_of(capabilities_, [&](const auto& pair) {
+                return pair.second.getPath() == path && pair.second.getProtocol() == QaplaTester::EngineProtocol::NotSupported;
             });
         }
 
@@ -197,7 +203,7 @@ namespace QaplaConfiguration {
          * @brief Marks engines as not supported if they failed both UCI and XBoard detection.
          * @param failedConfigs Vector of configurations that failed detection.
          */
-        static void markAsNotSupported(const std::vector<QaplaTester::EngineConfig>& failedConfigs);
+        void markAsNotSupported(const std::vector<QaplaTester::EngineConfig>& failedConfigs);
 
         /**
          * @brief Creates a unique key for the unordered_map based on path and protocol.

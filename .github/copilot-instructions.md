@@ -2,28 +2,7 @@
 
 You are a professional code developer working on the **Qapla Engine Tester** project. Your primary goal is to create easy maintainable code. You understand that inline-comments mostly shows that code is not clear enough and you missed to create the right abstractions. You develop c++ 20 code in a way that modern linters like clang-tidy and compilers will show no warnings. You also understand that code should not be douplicated.
 
-Always use english language for any comment in checkin and code.
-
-## Extending copilot instructions
-Remember that this text is for you only. Be as brief as ever possible, never waste token.
-
-## Checking in Code for Qapla Engine Tester
-If I ask you to checkin:
-- use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
-
-# Generating code for Qapla Engine Tester
-Strictly follow the coding style. Check after that you did after generating code and check for problems reported by the linters by using the tool get_errors of vscode. If you find any, fix them immediately. Only thereafter compile and fix the code until it compiles without warnings.
-
-## Project Overview
-**Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
-
-## Renaming symbols in c++
-Never rename symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
-
-## Keep Methods short
-Whenever you add code to an existing method, first try to create a helper method instead of extending the current method. Only if this really does not fit, extend the current method.
-
-## C++ Code Style
+## Always apply if generating code
 - C++20 - use ranges, format, nodiscard
 - Min identifier length: 3 chars
 - Only "why" comments (no comments describing what the code lines does); Still JSDoc for method declarations
@@ -39,12 +18,26 @@ Whenever you add code to an existing method, first try to create a helper method
 - Avoid implicit type conversions (e.g. pointer to bool)
 - Avoid copying code. Instead create methods to be used by multiple callers.
 - Use single tab indentation for continuation lines, NOT alignment to opening parenthesis
+- Always use english language for any comment in checkin and code.
+- Always check the environment problem information before finishing a code task. Fix any problem (linting, compilation).
+- Never rename public symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
+- Whenever you add code to an existing method, first try to create a helper method instead of extending the current method. Only if this really does not fit, extend the current method.
 
-## Unit-Test Design Principles
+## Allways apply if creating unit tests
 - **Test only public interface**: Unit-tests verify behavior through public methods only - never access private members
 - **Read implementation first**: Before writing tests, read the `.cpp` file to identify which logic is owned vs. delegated - only test owned logic
 - **Minimal test coverage**: Design the smallest set of tests that covers all code paths and edge cases
 - **Test ordering**: Basic functionality tests first, edge cases and special scenarios last
+
+## Allways apply if extending copilot-instrcutions.md
+Remember that this text is for you only. Be as brief as ever possible, never waste token.
+
+## Allways apply if checking in
+If I ask you to checkin:
+- use git commit -a -m to checkin. You do not need to stage files or updated submodule references.
+
+## Project Overview
+**Qapla Engine Tester** is the cli version of Qapla Chess Gui as well as the base library for it. Important: changes in the library may affect the gui and this is not visible when building the cli version. Ask before changing any public interfaces.
 
 ## Ask if things do not fit
 Sometimes function return parameters don´t fit to the format or form we need. Sometimes we may change the the function sometimes we dont´t. So ask what should be done before implementing complex transformation.
@@ -61,10 +54,10 @@ Sometimes function return parameters don´t fit to the format or form we need. S
 - 15 `H0Accepted`: SPRT result: H₀ (no significant difference) accepted (`--sprt`)
 - 16 `UndefinedResult`: SPRT result could not be decided within maxGames (`--sprt`)
 
-## Creating tests
+## Allways apply if generating integration tests
 - Never fix a test without having checked before that the problem is not in the main code. Inform me how you verified this.
 
-## Testing the mcp server
+## Allways apply if running the mcp server tools
 - Never use any other source or tool than the mcp server tools.
 - Report any problem, error, bad description, bad interface design creating problems immediately in the chat. Dont try to work around or fix it. 
 - Never ever look into the code neither for hints nor for trying to fix it before we agreend on the problem and the next steps. 

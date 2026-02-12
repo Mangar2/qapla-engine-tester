@@ -115,6 +115,12 @@ void EngineCapabilities::markAsNotSupported(const std::vector<EngineConfig>& fai
         if (mutableConfig != nullptr) {
             mutableConfig->setProtocol(EngineProtocol::NotSupported);
         }
+
+        EngineCapability capability;
+        capability.setPath(config.getCmd());
+        capability.setProtocol(EngineProtocol::NotSupported);
+        addOrReplace(capability);
+
         message += std::format(" - {}\n", config.getCmd());
     }
     if (notificationCallback_) {
