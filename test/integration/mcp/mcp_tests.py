@@ -107,7 +107,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/mcp/add",
         },
         {
-            "name": "mcp-engine-copy",
+            "name": "mcp-engine-copy-basic",
             "description": "Copy an existing engine configuration",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy",
             "log_path": "test/integration/log/mcp/copy",
@@ -266,6 +266,24 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/mcp/delete",
         },
         {
+            "name": "mcp-engine-copy-with-tc",
+            "description": "Copy an engine and verify that settings like TC are preserved",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy-verify",
+            "log_path": "test/integration/log/mcp/copy-verify",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "Stockfish", "engine_tc": "5+0.05"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-Copy"}}}',
+                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-Copy"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Engine 'Stockfish' updated successfully", "isRegex": False},
+                {"type": "stdout", "content": "Engine 'Stockfish' copied to 'Stockfish-Copy'", "isRegex": False},
+                {"type": "stdout", "content": "Time Control: 5.0+0.05", "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/copy-verify",
+        },
+        {
             "name": "mcp-engine-copy-inline",
             "description": "Copy an engine and set a UCI option simultaneously",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy-inline",
@@ -293,5 +311,39 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "stdout", "content": '"isError":true', "isRegex": False}
             ],
             "cleanup": "test/integration/log/mcp/invalid-path",
+        },
+        {
+            "name": "mcp-engine-update-all-custom",
+            "description": "Verify that update_all also affects dynamically added/copied engines",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/update-all-custom",
+            "log_path": "test/integration/log/mcp/update-all-custom",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "CustomCopy"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update_all", "engine_option_Hash": "256"}}}',
+                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "CustomCopy"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Updated 4 engines", "isRegex": False},
+                {"type": "stdout", "content": "hash = 256", "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/update-all-custom",
+        },
+        {
+            "name": "mcp-engine-update-all-after-sprt",
+            "description": "Verify that update_all still works after engines have been used in a tournament",
+            "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/update-all-after-sprt",
+            "log_path": "test/integration/log/mcp/update-all-after-sprt",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-Copy"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Stockfish-Copy", "sprt_maxgames": 1, "engine_tc": "3+0.01"}}}',
+                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update_all", "engine_tc": "10/10+1"}}}',
+                '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-Copy"}}}'
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Time Control: 10/10.0+1.00", "isRegex": False}
+            ],
+            "cleanup": "test/integration/log/mcp/update-all-after-sprt",
         }
     ]

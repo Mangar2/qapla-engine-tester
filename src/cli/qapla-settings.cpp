@@ -125,7 +125,6 @@ void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError,
 }
 
 void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configData) {
-    Manager::instance().clearValues();
     
     // Apply initial config vector (later entries override earlier ones)
     for (const auto& cfg : configData_) {
