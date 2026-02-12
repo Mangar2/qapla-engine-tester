@@ -61,31 +61,6 @@ static void checkTimeControl() {
     }
 }
 
-void AppRunner::collectActiveEngines(Cli::TaskType taskType) {
-    const auto taskId = Cli::getTaskId(taskType);
-    const auto& instances = Settings::Manager::instance().getGroupInstances("engine");
-    
-    auto& activeEngines = EngineWorkerFactory::getActiveEnginesMutable();
-    activeEngines.clear(); 
-
-    const auto& configManager = EngineWorkerFactory::getConfigManager();
-
-    for (const auto& instance : instances) {
-        const auto& values = instance.getValues();
-        auto itId = values.find("id");
-        if (itId != values.end() && std::holds_alternative<std::string>(itId->second) && 
-            std::get<std::string>(itId->second) == taskId) {
-             auto itName = values.find("name");
-             if (itName != values.end() && std::holds_alternative<std::string>(itName->second)) {
-                 const auto* config = configManager.getConfig(std::get<std::string>(itName->second));
-                 if (config != nullptr) {
-                     activeEngines.push_back(*config);
-                 }
-             }
-        }
-    }
-}
-
 AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("engine-report");
     Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
@@ -124,7 +99,7 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
 
     const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
     Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
-    auto epdManager = std::make_shared<EpdManager>();
+    epdManager_ = std::make_shared<EpdManager>();
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         const auto& name = engine.getName();
@@ -133,11 +108,11 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
 
         Logger::reportLogger().log(std::format("Using engine: {} Concurrency: {} Max Time: {}s {}",
             name, concurrency, epdConfig->maxTime, earlyStop));
-        epdManager->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies);
+        epdManager_->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies);
         GameManagerPool& pool = GameManagerPool::getInstance();
 
         pool.setConcurrency(concurrency, true);
-        epdManager->schedule(engine, pool);
+        epdManager_->schedule(engine, pool);
         
         if (background) {
             Logger::reportLogger().log("Task started in background.", TraceLevel::result);
@@ -146,9 +121,9 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
 
         pool.waitForTask();
         Logger::reportLogger().log(std::format("Finished EPD test for engine: {}, success rate: {:.2f}%", 
-            name, epdManager->getSuccessRate() * 100.0));
+            name, epdManager_->getSuccessRate() * 100.0));
         if (code == AppReturnCode::NoError) {
-            const bool success = epdManager->getSuccessRate() >= epdConfig->minSuccess / 100.0;
+            const bool success = epdManager_->getSuccessRate() >= epdConfig->minSuccess / 100.0;
             code = success ? code : AppReturnCode::MissedTarget;
         }
     }
@@ -170,17 +145,17 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
 
     checkTimeControl();
 
-    auto tournament = std::make_shared<Tournament>();
+    tournament_ = std::make_shared<Tournament>();
     auto tGroup = Settings::Manager::instance().getGroupInstance("tournament");
     auto tfile = tGroup->get<std::string>("file");
-    TournamentFile::setSaveCallback(tfile, tGroup->get<uint32_t>("saveinterval"), tournament);
+    TournamentFile::setSaveCallback(tfile, tGroup->get<uint32_t>("saveinterval"), tournament_);
 
-    tournament->createTournament(EngineWorkerFactory::getActiveEngines(), *tournamentConfig);
-    TournamentFile::loadGameResults(tfile, tournament);
+    tournament_->createTournament(EngineWorkerFactory::getActiveEngines(), *tournamentConfig);
+    TournamentFile::loadGameResults(tfile, tournament_);
 
     try {
         GameManagerPool& pool = GameManagerPool::getInstance();
-        tournament->scheduleAll(concurrency, true, pool);
+        tournament_->scheduleAll(concurrency, true, pool);
 
         if (background) {
             Logger::reportLogger().log("Task started in background.", TraceLevel::result);
@@ -194,7 +169,7 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
         std::ostringstream oss;
         GameManagerPool::getInstance().getAdjudicationManager().printTestResult(oss);
         Logger::reportLogger().log(oss.str());
-        std::string resultString = tournament->getResultString();
+        std::string resultString = tournament_->getResultString();
         Logger::reportLogger().log(resultString, TraceLevel::result);
     }
     catch (const std::exception& e) {
@@ -227,7 +202,8 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
     Settings::QaplaSettings::instance().applyLoggerConfig("sprt-report");
     
     try {
-        auto manager = std::make_shared<SprtManager>();
+        sprtManager_ = std::make_shared<SprtManager>();
+        auto manager = sprtManager_;
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
         } else {
@@ -293,12 +269,12 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
     Settings::QaplaSettings::instance().applyLoggerConfig("spsa-report");
 
     try {
-        auto optimizer = std::make_shared<SPSAOptimizer>();
-        optimizer->createSPSA(activeEngines.front(), *spsaConfig);
+        spsaOptimizer_ = std::make_shared<SPSAOptimizer>();
+        spsaOptimizer_->createSPSA(activeEngines.front(), *spsaConfig);
         
         const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
         GameManagerPool& pool = GameManagerPool::getInstance();
-        optimizer->scheduleSPSA(concurrency, pool);
+        spsaOptimizer_->scheduleSPSA(concurrency, pool);
         
         if (background) {
             Logger::reportLogger().log("Task started in background.", TraceLevel::result);

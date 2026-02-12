@@ -624,11 +624,13 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
                     .isRequired = false, 
                     .defaultValue = false, 
                     .type = ValueType::Bool } },
-        { "event", { .description = "Optional event name for PGN or logging", 
+        { "event", { 
+                    .description = "Optional event name for PGN or logging", 
                     .isRequired = false, 
                     .defaultValue = "", 
                     .type = ValueType::String } },
-        { "games", { .description = "Number of games per pairing (total games = games * rounds)", 
+        { "games", { 
+                    .description = "Number of games per pairing (total games = games * rounds)", 
                     .isRequired = false, 
                     .defaultValue = 2, 
                     .type = ValueType::UInt } },
