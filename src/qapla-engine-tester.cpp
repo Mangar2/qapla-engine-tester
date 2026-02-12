@@ -57,7 +57,7 @@ static AppReturnCode run() {
         Settings::QaplaSettings::instance().getArguments().size() == 1 
         || Settings::Manager::instance().get<bool>("interactive"));
 
-    return AppRunner::runDispatcher();
+    return AppRunner::instance().runDispatcher();
 }
 
 int main(int argc, char** argv) {

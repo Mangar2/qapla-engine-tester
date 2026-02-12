@@ -26,7 +26,6 @@
 #include "../base-elements/string-helper.h"
 
 #include <random>
-#include <iomanip>
 #include <format>
 
 namespace QaplaTester {
@@ -171,12 +170,9 @@ std::optional<GameTask> PairTournament::nextTask() {
         nextIndex_ = i + 1;
 
         if (verbose_) {
-            std::cout << std::left
-                << "started round " << std::setw(3) << (config_.round + 1)
-                << " game " << std::setw(3) << i + 1
-                << " opening " << std::setw(6) << openingIndex_
-                << " engines " << white.getName() << " vs " << black.getName()
-                << "\n" << std::flush;
+            std::string msg = std::format("started round {:<3} game {:<3} opening {:<6} engines {} vs {}",
+                config_.round + 1, i + 1, openingIndex_, white.getName(), black.getName());
+            Logger::reportLogger().log(msg, TraceLevel::result);
         }
 
         return task;

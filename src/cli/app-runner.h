@@ -21,19 +21,28 @@
 
 #include "../base-elements/app-error.h"
 #include "settings-manager.h"
-#include "task-types.h"
+
+#include <memory>
 
 namespace QaplaTester {
+
+class Tournament;
+class EpdManager;
+class SprtManager;
+class SPSAOptimizer;
 
 /**
  * @brief Handles the execution of different application modes.
  */
 class AppRunner {
 public:
-    /**
-     * @brief Collects engines marked with the task ID and sets them as active.
-     */
-    static void collectActiveEngines(Cli::TaskType taskType);
+    static AppRunner& instance() {
+        static AppRunner instance;
+        return instance;
+    }
+
+    AppRunner(const AppRunner&) = delete;
+    AppRunner& operator=(const AppRunner&) = delete;
 
     /**
      * @brief Runs the engine testing mode.
@@ -41,7 +50,7 @@ public:
      * @param code Current application return code.
      * @return Updated application return code.
      */
-    static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code);
+    [[nodiscard]] static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code);
 
     /**
      * @brief Runs the EPD test mode.
@@ -49,7 +58,7 @@ public:
      * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runEpd(AppReturnCode code, bool background = false);
+    [[nodiscard]] AppReturnCode runEpd(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the tournament mode.
@@ -57,7 +66,7 @@ public:
      * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runTournament(AppReturnCode code, bool background = false);
+    [[nodiscard]] AppReturnCode runTournament(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the SPRT mode.
@@ -65,7 +74,7 @@ public:
      * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runSprt(AppReturnCode code, bool background = false);
+    [[nodiscard]] AppReturnCode runSprt(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the SPSA mode.
@@ -73,7 +82,7 @@ public:
      * @param background If true, starts in background and returns immediately.
      * @return Updated application return code.
      */
-    static AppReturnCode runSpsa(AppReturnCode code, bool background = false);
+    [[nodiscard]] AppReturnCode runSpsa(AppReturnCode code, bool background = false);
 
     /**
      * @brief Sets adjudication options based on settings.
@@ -90,7 +99,20 @@ public:
      * @param background If true, starts in background and returns immediately.
      * @return Application return code.
      */
-    static AppReturnCode runDispatcher(bool background = false);
+    [[nodiscard]] AppReturnCode runDispatcher(bool background = false);
+
+    [[nodiscard]] std::shared_ptr<Tournament> getTournament() const { return tournament_; }
+    [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }
+    [[nodiscard]] std::shared_ptr<SprtManager> getSprtManager() const { return sprtManager_; }
+    [[nodiscard]] std::shared_ptr<SPSAOptimizer> getSPSAOptimizer() const { return spsaOptimizer_; }
+
+private:
+    AppRunner() = default;
+
+    std::shared_ptr<Tournament> tournament_;
+    std::shared_ptr<EpdManager> epdManager_;
+    std::shared_ptr<SprtManager> sprtManager_;
+    std::shared_ptr<SPSAOptimizer> spsaOptimizer_;
 };
 
 } // namespace QaplaTester

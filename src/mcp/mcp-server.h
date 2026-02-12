@@ -21,7 +21,6 @@
 #include "json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
-#include "../cli/settings-manager.h"
 #include "../engine-handling/engine-capabilities.h"
 #include <filesystem>
 #include <string_view>
@@ -94,13 +93,6 @@ private:
      * @param requestId The ID of the request.
      */
     static void listTools(const JsonValue& requestId);
-
-    /**
-     * @brief Adds all parameters from a registered setting group to the JSON schema.
-     * @param groupName The name of the group to add.
-     * @param properties The JSON object to add the properties to.
-     */
-    static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties);
 
     /**
      * @brief Maps JSON tool arguments to ConfigData using an underscore naming convention.
@@ -186,30 +178,10 @@ private:
         std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
         QaplaHelpers::ConfigData& configData);
 
-    struct ToolInfo {
-        std::string_view name;
-        std::string_view description;
-        std::vector<std::string_view> groups;
-    };
-
-    /**
-     * @brief Creates the input schema for a specific tool.
-     * @param info The tool information structure.
-     * @param registeredNames A string containing a comma-separated list of registered engine names.
-     * @return The JSON object representing the input schema.
-     */
-    static JsonValue::Object createInputSchema(const ToolInfo& info, const std::string& registeredNames);
-
     /**
      * @brief Helpers for callTool to reduce complexity.
      */
     static JsonValue::Array runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode);
-
-    /**
-     * @brief Helpers for schema generation.
-     */
-    static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
-    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
     static inline std::string lastSprtFile_;
