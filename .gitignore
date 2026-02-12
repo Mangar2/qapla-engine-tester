@@ -15,6 +15,7 @@
 *.DS_Store
 *.qsprt
 /.vscode/
+/.VSCodeCounter/
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
