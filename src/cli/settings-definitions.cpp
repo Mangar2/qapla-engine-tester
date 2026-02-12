@@ -663,63 +663,80 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
 
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getDrawAdjudicationKeys() {
     return {
-        { "id",         { .description = "Identifier for the configuration", 
-                        .isRequired = false, 
-                        .defaultValue = "all", 
-                        .type = ValueType::String,
-                        .isHidden = true } },
-        { "active",   { .description = "Enable draw adjudication", 
-                    .isRequired = false, 
-                    .defaultValue = true, 
-                    .type = ValueType::Bool,
-                    .isHidden = true } },                    
-        { "movenumber", { .description = "Minimum number of full moves before draw adjudication can occur", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "movecount",  { .description = "Required number of consecutive moves with evaluation in range", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "score",      { .description = "Centipawn score range (+/-) around zero for draw adjudication", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::Int } },
-        { "test",       { .description = "If true, only reports what would be adjudicated without taking action", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
+        { "id",         { 
+            .description = "Identifier for the configuration", 
+            .isRequired = false, 
+            .defaultValue = "all", 
+            .type = ValueType::String,
+            .isHidden = true } },
+        { "active",   { 
+            .description = "Enable draw adjudication", 
+            .isRequired = false, 
+            .defaultValue = true, 
+            .type = ValueType::Bool,
+            .isHidden = true } },                    
+        { "movenumber", { 
+            .description = "Minimum number of full moves before draw adjudication can occur", 
+            .isRequired = false, 
+            .defaultValue = 60, 
+            .type = ValueType::UInt } },
+        { "movecount",  { 
+            .description = "Required number of consecutive moves with evaluation in range", 
+            .isRequired = false, 
+            .defaultValue = 20, 
+            .type = ValueType::UInt } },
+        { "score",      { 
+            .description = "Centipawn score range (+/-) around zero for draw adjudication", 
+            .isRequired = false, 
+            .defaultValue = 20, 
+            .type = ValueType::Int } },
+        { "test",       { 
+            .description = "If true, only reports what would be adjudicated without taking action", 
+            .isRequired = false, 
+            .defaultValue = false, 
+            .type = ValueType::Bool } }
     };
 }
 
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getResignAdjudicationKeys() {
     return {
-        { "id",        { .description = "Identifier for the configuration", 
-                        .isRequired = false, 
-                        .defaultValue = "all", 
-                        .type = ValueType::String,
-                        .isHidden = true } },
-        { "active",   { .description = "Enable resignation adjudication", 
-                        .isRequired = false, 
-                        .defaultValue = true, 
-                        .type = ValueType::Bool,
-                        .isHidden = true } },
-        { "movecount", { .description = "Required number of consecutive moves with score below threshold for resignation", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::UInt } },
-        { "score",     { .description = "Centipawn score below zero that triggers resignation", 
-                        .isRequired = true, 
-                        .defaultValue = 0, 
-                        .type = ValueType::Int } },
-        { "twosided",  { .description = "If true, both sides must meet respective score conditions", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } },
-        { "test",      { .description = "If true, only reports what would be adjudicated without taking action", 
-                        .isRequired = false, 
-                        .defaultValue = false, 
-                        .type = ValueType::Bool } }
+        { "id", { 
+            .description = "Identifier for the configuration", 
+            .isRequired = false, 
+            .defaultValue = "all", 
+            .type = ValueType::String,
+            .isHidden = true } },
+        { "active",   { 
+            .description = "Enable resignation adjudication", 
+            .isRequired = false, 
+            .defaultValue = true, 
+            .type = ValueType::Bool,
+            .isHidden = true } },
+        { "movecount", { 
+            .description = "Required number of consecutive moves with score below threshold for resignation", 
+            .longDescription = "Number of consecutive moves that must be below the specified score threshold"
+                "to trigger resignation. Typical value is 5. 0 disables the adjudication.",   
+            .isRequired = true, 
+            .defaultValue = 5, 
+            .type = ValueType::UInt } },
+        { "score",     { 
+            .description = "Centipawn score below zero that triggers resignation", 
+            .isRequired = false, 
+            .defaultValue = 500, 
+            .type = ValueType::Int } },
+        { "twosided",  { 
+            .description = "If true, both sides must meet respective score conditions", 
+            .isRequired = false, 
+            .defaultValue = false, 
+            .type = ValueType::Bool } },
+        { "test", { 
+            .description = "If true, only reports what would be adjudicated without taking action", 
+            .longDescription = "When enabled, the system will create a statistic of how many games would have been"
+                "resigned, the amount of time safed and the amount of wrong adjudications, without actually terminating any games."
+                " This is useful for analyzing the impact of different resignation settings before applying them.", 
+            .isRequired = false, 
+            .defaultValue = false, 
+            .type = ValueType::Bool } }
     };
 }
 
