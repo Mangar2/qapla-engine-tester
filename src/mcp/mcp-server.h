@@ -114,9 +114,8 @@ private:
     /**
      * @brief Executes a tool call.
      * @param jsonObject The request object.
-     * @return Application return code of the executed tool.
      */
-    static AppReturnCode callTool(const JsonValue::Object& jsonObject);
+    static void callTool(const JsonValue::Object& jsonObject);
 
     /**
      * @brief Extracts the tool name from a log filename.

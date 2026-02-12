@@ -53,9 +53,10 @@ static auto logChecklist(AppReturnCode code, TraceLevel traceLevel = TraceLevel:
 static void checkTimeControl() {
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         if (!engine.getTimeControl().isValid()) {
+            auto isMcp = Settings::Manager::instance().get<bool>("mcp");
             throw AppError::makeInvalidParameters(std::format(
-                "No valid time control defined for engine '{}'. Please specify a time control using 'tc' option.",
-                engine.getName()));
+                "No valid time control defined for engine '{}'. Please specify a time control using '{}' option.",
+                engine.getName(), isMcp ? "engine_tc" : "tc"));
         }
     }
 }

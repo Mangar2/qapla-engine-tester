@@ -85,6 +85,8 @@ void McpServer::initialize() {
 }
 
 AppReturnCode McpServer::run() {
+    capabilities_.autoDetect();
+    
     while (true) {
         const auto message = readMessage();
         if (!message.has_value()) {
@@ -144,7 +146,7 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
         }
     }
     else if (method == "tools/call") {
-        return callTool(jsonObject);
+        callTool(jsonObject);
     }
     else if (method == "resources/list") {
         if (jsonObject.contains("id")) {
@@ -522,13 +524,13 @@ void McpServer::addSingleGroupSchema(const std::string& groupName, const Setting
     }
 }
 
-AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
+void McpServer::callTool(const JsonValue::Object& jsonObject) {
     if (!jsonObject.contains("params") || !jsonObject.at("params").isObject()) {
-        return AppReturnCode::NoError;
+        return;
     }
     const auto& params = jsonObject.at("params").asObject();
     if (!params.contains("name")) {
-        return AppReturnCode::NoError;
+        return;
     }
 
     const std::string& name = params.at("name").asString();
@@ -582,7 +584,6 @@ AppReturnCode McpServer::callTool(const JsonValue::Object& jsonObject) {
     response.data = responseBody;
 
     sendMessage(response);
-    return returnCode;
 }
 
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(

@@ -202,6 +202,10 @@ std::string McpEngineTool::addOrUpdateEngine(
         throw AppError::makeInvalidParameters("Command requires 'engine_name'.");
     }
 
+    if (isUpdate && EngineWorkerFactory::getConfigManager().getConfig(name) == nullptr) {
+        throw AppError::makeInvalidParameters(std::format("Engine '{}' not found in registry. Cannot update.", name));
+    }
+
     // 1. Build configuration for Settings::Manager
     QaplaHelpers::IniFile::Section section;
     section.name = "engine"; 
