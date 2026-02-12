@@ -251,23 +251,19 @@ void EngineConfig::save(std::ostream& out, const std::string& section) const {
      if (!out) { throw std::runtime_error("Invalid output stream"); }
 
     if (!section.empty()) { out << "[" << section << "]\n"; }
-	out << "name=" << name_ << '\n';
-    out << "author=" << author_ << '\n';
-    out << "cmd=" << cmd_ << '\n';
-    out << "dir=" << dir_ << '\n';
-    out << "args=" << args_ << '\n';
-    out << "proto=" << to_string(protocol_) << '\n';
-    out << "trace=" << to_string(traceLevel_) << '\n';
-    out << "restart=" << to_string(restart_) << '\n';
-	auto timeControl = tc_.toPgnTimeControlString();
-    if (!timeControl.empty()) {
-        out << "tc=" << tc_.toPgnTimeControlString() << '\n';
-    }
-	if (ponder_) { out << "ponder=" << (ponder_ ? "true" : "false") << '\n'; }
-	if (scoreFromWhitePov_) { out << "whitepov=" << (scoreFromWhitePov_ ? "true" : "false") << '\n'; }
-    for (const auto& [key, value] : internalKeys_) {
+
+    visitProperties([&out](const std::string& key, const std::string& value) {
+        if (value.empty()) { return; }
+        // Skip default boolean values to keep config clean
+        if ((key == "ponder" || key == "whitepov" || key == "gauntlet") && value == "false") {
+             return;
+        }
+        // Don't save originalName as it is discovered from the engine executable
+        if (key == "originalName") { return; }
+
         out << key << "=" << value << '\n';
-    }
+    });
+
     for (const auto& [_, value] : optionValues_) {
         out << value.originalName << "=" << value.value << '\n';
     }

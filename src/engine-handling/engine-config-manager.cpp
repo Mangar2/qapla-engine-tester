@@ -31,7 +31,7 @@ void EngineConfigManager::loadFromStream(std::istream& input) {
         EngineConfig config;
 
         input >> config;
-        addOrReplaceConfig(config);
+        addOrReplaceByCmd(config);
     }
 }
 
@@ -80,7 +80,7 @@ EngineConfig* EngineConfigManager::getConfigMutableByCmdAndProtocol(
     return nullptr;
 }
 
-void EngineConfigManager::addOrReplaceConfig(const EngineConfig& config, bool replaceOnDifferentProtocol) {
+void EngineConfigManager::addOrReplaceByCmd(const EngineConfig& config, bool replaceOnDifferentProtocol) {
     for (auto& existing : configs) {
         if (existing.getCmd() == config.getCmd()) {
             if (existing.getProtocol() == config.getProtocol() || replaceOnDifferentProtocol) {

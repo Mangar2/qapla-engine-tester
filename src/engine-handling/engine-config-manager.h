@@ -124,7 +124,7 @@ public:
      * Adds a new configuration or replaces the existing one with the same name.
      * @param config The EngineConfig to add or update.
      */
-    void addOrReplaceConfig(const EngineConfig& config, bool replaceOnDifferentProtocol = false);
+    void addOrReplaceByCmd(const EngineConfig& config, bool replaceOnDifferentProtocol = false);
 
     /**
      * Adds a new configuration without checking for duplicates.
@@ -157,7 +157,7 @@ public:
         for (const auto& instance : instances) {
 			const auto& map = instance.getValues();
             EngineConfig config = EngineConfig::createFromValueMap(map);
-            addOrReplaceConfig(config);
+            addOrReplaceByCmd(config);
         }
     }
 
@@ -167,7 +167,7 @@ public:
 	 */
     void addOrReplaceConfig(const Settings::ValueMap& valueMap) {
 		EngineConfig config = EngineConfig::createFromValueMap(valueMap);
-		addOrReplaceConfig(config);
+		addOrReplaceByCmd(config);
 	}
 
     /**

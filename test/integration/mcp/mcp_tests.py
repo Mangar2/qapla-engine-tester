@@ -111,12 +111,20 @@ def get_tests() -> List[Dict[str, Any]]:
             "name": "mcp-engine-update",
             "description": "Update an existing engine configuration",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "Stockfish", "engine_option_Hash": "128"}}}',
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "Stockfish", "engine_tc": "3+0.02"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish"}}}'
+            ],
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
                     "content": "Engine 'Stockfish' updated successfully.",
+                    "isRegex": False
+                },
+                {
+                    "type": "stdout",
+                    "content": "Time Control = 3+0.02",
                     "isRegex": False
                 }
             ]

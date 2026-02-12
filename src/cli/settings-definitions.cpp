@@ -75,7 +75,7 @@ void initSettings() {
         .name = "engine", 
         .description = "Defines an engine configuration", 
         .unique = false, 
-        .primaryKey = {"id", "name", "conf"},
+        .primaryKey = {"id", "name"},
         .keys = Settings::getEngineKeys()}
     );
 

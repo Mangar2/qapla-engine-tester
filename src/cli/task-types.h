@@ -14,7 +14,8 @@ namespace QaplaTester::Cli {
         Tournament,
         Epd,
         Spsa,
-        Test
+        Test,
+        All
     };
 
     inline std::string getTaskId(TaskType type) {
@@ -24,6 +25,7 @@ namespace QaplaTester::Cli {
             case TaskType::Epd: return EpdFile::id;
             case TaskType::Spsa: return SpsaFile::id;
             case TaskType::Test: return "test";
+            case TaskType::All: return "all";
             default: throw std::runtime_error("Unknown task type");
         }
     }
@@ -41,6 +43,9 @@ namespace QaplaTester::Cli {
         if (name == "spsa") {
             return TaskType::Spsa;
         }
-        return TaskType::Test;
+        if (name == "test") {
+            return TaskType::Test;
+        }
+        return TaskType::All;
     }
 }
