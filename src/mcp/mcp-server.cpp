@@ -245,7 +245,10 @@ void McpServer::listTools(const JsonValue& requestId) {
         },
         {
             .name = "manage_engines",
-            .description = "Manage engine configurations in the registry. Use this to list, add, copy, or update engines before running tasks.",
+            .description = "Manage engine configurations in the registry. Use this to manage the "
+                        "engine registry. Supports individual management (list, details, add, "
+                        "copy, update) and bulk operations (update_all) for global settings "
+                        "like time control or UCI options.",
             .groups = {}
         },
         {
@@ -341,7 +344,7 @@ JsonValue::Object McpServer::createInputSchema(const ToolInfo& info, const std::
 
         JsonValue::Object engine_name;
         engine_name["type"] = JsonValue{ .data = std::string("string") };
-        engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {}). No spaces allowed!", registeredNames) };
+        engine_name["description"] = JsonValue{ .data = std::format("Primary engine name (Available: {})", registeredNames) };
         properties["engine_name"] = JsonValue{ .data = engine_name };
 
         // Manually add engine parameters with engine_ prefix since the "engine" group is not unique

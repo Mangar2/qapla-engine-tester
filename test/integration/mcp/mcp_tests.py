@@ -79,7 +79,7 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "Protocol: UCI",
+                    "content": "Protocol: uci",
                     "isRegex": False
                 }
             ],
