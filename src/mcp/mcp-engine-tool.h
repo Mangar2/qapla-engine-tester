@@ -35,6 +35,7 @@ private:
     [[nodiscard]] static std::string getEngineDetails(const JsonValue::Object& arguments, const QaplaConfiguration::EngineCapabilities& capabilities);
     static std::string addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate, QaplaConfiguration::EngineCapabilities& capabilities);
     static std::string copyEngine(const JsonValue::Object& arguments);
+    static std::string deleteEngine(const JsonValue::Object& arguments);
     static std::string updateAllEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
 
     static void applyGlobalTimeControl(const std::vector<std::string>& engineNames, const JsonValue& tcValue, QaplaConfiguration::EngineCapabilities& capabilities);
