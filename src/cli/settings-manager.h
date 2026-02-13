@@ -34,7 +34,7 @@ namespace QaplaTester::Settings {
     using Value = std::variant<std::string, int, unsigned int, bool, double>;
     using ValueMap = std::unordered_map<std::string, Value>;
 
-    std::string value_to_string(const Value& value);
+    std::string to_string(const Value& value);
     
     /**
      * @brief Definition of a global setting parameter.

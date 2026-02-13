@@ -36,7 +36,7 @@
 
 namespace QaplaTester::Settings
 {
-    std::string value_to_string(const Value& value) {
+    std::string to_string(const Value& value) {
         return std::visit([](auto&& val) {
             return std::format("{}", val);
         }, value);
@@ -55,7 +55,7 @@ namespace QaplaTester::Settings
                     return false;
                 }
                 
-                const std::string instanceValStr = value_to_string(it->second);
+                const std::string instanceValStr = to_string(it->second);
                 return to_lowercase(instanceValStr) == to_lowercase(val);
             });
         }
