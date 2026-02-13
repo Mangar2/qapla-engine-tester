@@ -19,6 +19,7 @@
 
 #include "mcp-schema-builder.h"
 #include "../cli/settings-definitions.h"
+#include "../base-elements/oss-tools.h"
 #include <format>
 
 namespace QaplaTester::Mcp {
@@ -196,7 +197,12 @@ void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const S
         itemProperties[key] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
         
         if (keyDef.isRequired) {
-            itemRequired.push_back(JsonValue{ .data = key });
+            bool canBeGlobal = (keyDef.type == Settings::ValueType::PathExists || 
+                              keyDef.type == Settings::ValueType::ValidateOutputPath);
+            
+            if (!canBeGlobal) {
+                itemRequired.push_back(JsonValue{ .data = key });
+            }
         }
     }
     
@@ -228,7 +234,12 @@ void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const 
         properties[paramName] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
         
         if (keyDef.isRequired) {
-            required.push_back(JsonValue{ .data = paramName });
+            bool canBeGlobal = (keyDef.type == Settings::ValueType::PathExists || 
+                              keyDef.type == Settings::ValueType::ValidateOutputPath);
+            
+            if (!canBeGlobal) {
+                required.push_back(JsonValue{ .data = paramName });
+            }
         }
     }
 }
@@ -242,6 +253,14 @@ void McpSchemaBuilder::addGlobalParameterSchema(const std::string& key, JsonValu
     const auto& def = it->second;
     
     std::string desc = def.longDescription.empty() ? def.description : def.longDescription;
+    
+    if (key == "concurrency") {
+        const int cores = QaplaHelpers::getPhysicalCoreCount();
+        if (cores > 0) {
+            desc += std::format(" (Detected physical cores: {})", cores);
+        }
+    }
+
     properties[key] = JsonValue{ .data = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue)) };
 }
 

@@ -1,9 +1,30 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
-#include "oss-tools.h"
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ */
+
+ #include "oss-tools.h"
 
 #ifdef _WIN32
 #include <windows.h>
 #include <vector>
+
+namespace QaplaHelpers {
+
 
 int getPhysicalCoreCount() {
     DWORD length = 0;
@@ -24,10 +45,14 @@ int getPhysicalCoreCount() {
     return 0;
 }
 
+}
+
 // --- APPLE Implementation ---
 #elif defined(__APPLE__)
 #include <sys/sysctl.h>
 #include <cstddef>
+
+namespace QaplaHelpers {
 
 int getPhysicalCoreCount() {
     int count = 0;
@@ -38,6 +63,8 @@ int getPhysicalCoreCount() {
     return 0;
 }
 
+}
+
 // --- LINUX Implementation ---
 #elif defined(__linux__)
 #include <fstream>
@@ -45,7 +72,9 @@ int getPhysicalCoreCount() {
 #include <utility>
 #include <string>
 
-int getPhysicalCoreCount() {
+namespace QaplaHelpers {
+
+    int getPhysicalCoreCount() {
     std::ifstream file("/proc/cpuinfo");
     if (!file.is_open()) {
         return 0;
@@ -87,9 +116,20 @@ int getPhysicalCoreCount() {
     return static_cast<int>(core_identifiers.size());
 }
 
+}
+
+
 // --- FALLBACK (Other OS) ---
 #else
+
+namespace QaplaHelpers {
+
 int getPhysicalCoreCount() {
     return 0;
 }
+
+}
+
+
 #endif
+
