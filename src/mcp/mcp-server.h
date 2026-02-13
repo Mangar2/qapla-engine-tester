@@ -23,7 +23,7 @@
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
 #include "../engine-handling/engine-capabilities.h"
-#include "../cli/settings-manager.h"
+
 #include <filesystem>
 #include <string_view>
 #include <optional>
@@ -152,10 +152,6 @@ private:
      * @return Result content array.
      */
     static JsonValue::Array handleListSettings(const JsonValue::Object& arguments);
-
-    static void appendGlobalSettingsReport(std::string& report);
-    static void appendGroupSettingsReport(std::string& report);
-    static std::string formatSettingValue(const Settings::Value& v);
 
     /**
      * @brief Handles the read_report tool.

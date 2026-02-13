@@ -36,14 +36,14 @@
 
 namespace QaplaTester::Settings
 {
+    std::string value_to_string(const Value& value) {
+        return std::visit([](auto&& val) {
+            return std::format("{}", val);
+        }, value);
+    } 
+
     namespace
     {
-        std::string valueToStringHelper(const Value& value) {
-            return std::visit([](auto&& val) {
-                return std::format("{}", val);
-            }, value);
-        }
-
         bool matchesCriteria(const GroupInstance& instance, const QaplaHelpers::IniFile::KeyValueMap& criteria) {
             using QaplaHelpers::to_lowercase;
             const auto& values = instance.getValues();
@@ -55,7 +55,7 @@ namespace QaplaTester::Settings
                     return false;
                 }
                 
-                const std::string instanceValStr = valueToStringHelper(it->second);
+                const std::string instanceValStr = value_to_string(it->second);
                 return to_lowercase(instanceValStr) == to_lowercase(val);
             });
         }

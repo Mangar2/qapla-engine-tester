@@ -20,18 +20,21 @@
 #include "mcp-server.h"
 #include "mcp-schema-builder.h"
 #include "mcp-engine-tool.h"
+#include "json-helper.h"
+#include "mcp-converter.h"
+#include "settings-reporter.h"
+
 #include "../base-elements/file-helper.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../tournament/tournament-file.h"
 #include "../base-elements/base-logger.h"
-#include "json-helper.h"
-#include "mcp-converter.h"
 #include "../cli/settings-manager.h"
 #include "../cli/qapla-settings.h"
 #include "../cli/app-runner.h"
 #include "../cli/task-types.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../game-manager/game-manager-pool.h"
+
 #include <iostream>
 #include <sstream>
 #include <filesystem>
@@ -504,170 +507,35 @@ void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry
     resources.push_back(JsonValue{ .data = resource });
 }
 
-JsonValue::Array McpServer::handleListSettings([[maybe_unused]] const JsonValue::Object& arguments) {
+JsonValue::Array McpServer::handleListSettings(const JsonValue::Object& arguments) {
+    std::optional<std::vector<std::string>> groups;
+
+    if (arguments.contains("groups") && arguments.at("groups").isArray()) {
+        const auto& groupArray = arguments.at("groups").asArray();
+        std::vector<std::string> groupList;
+        for (const auto& g : groupArray) {
+            if (g.isString()) {
+                groupList.push_back(g.asString());
+            }
+        }
+        groups = groupList;
+    }
+
+    // Currently exposing limited columns parametrization or just default if not specified
+    // But requirement says: "welche werte je parameter angezeigt werden"
+    // So let's check for columns argument
+    std::optional<std::vector<SettingsReporter::Column>> columns;
+    // Parsing columns from string names would be needed here if we expose it fully to JSON
+    // For now assuming default columns for list_settings unless specialized logic is added.
+    
+    std::string report = SettingsReporter::generateReport(groups, columns);
+
     JsonValue::Array content;
-    std::string report;
-
-    appendGlobalSettingsReport(report);
-    appendGroupSettingsReport(report);
-
     JsonValue::Object contentObj;
     contentObj["type"] = JsonValue{ .data = std::string("text") };
     contentObj["text"] = JsonValue{ .data = report };
     content.push_back(JsonValue{ .data = contentObj });
     return content;
-}
-
-std::string McpServer::formatSettingValue(const Settings::Value& v) {
-    if (std::holds_alternative<std::string>(v)) {
-        return std::get<std::string>(v);
-    }
-    if (std::holds_alternative<int>(v)) {
-        return std::to_string(std::get<int>(v));
-    }
-    if (std::holds_alternative<unsigned int>(v)) {
-        return std::to_string(std::get<unsigned int>(v));
-    }
-    if (std::holds_alternative<bool>(v)) {
-        return std::get<bool>(v) ? "true" : "false";
-    }
-    if (std::holds_alternative<double>(v)) {
-        return std::format("{}", std::get<double>(v));
-    }
-    return "";
-}
-
-void McpServer::appendGlobalSettingsReport(std::string& report) {
-    const auto& manager = Settings::Manager::instance();
-    auto formatDefValue = [&](const std::optional<Settings::Value>& v) -> std::string {
-        if (!v.has_value()) {
-            return "-";
-        }
-        return formatSettingValue(v.value());
-    };
-
-    report += "# Global Settings\n\n";
-    report += "| Name | Value | Default | Required | Description |\n";
-    report += "|---|---|---|---|---|\n";
-    
-    std::vector<std::string> keys;
-    for(const auto& [name, _] : manager.getDefinitions()) {
-        keys.push_back(name);
-    }
-    std::ranges::sort(keys);
-
-    for (const auto& name : keys) {
-        const auto& def = manager.getDefinitions().at(name);
-        std::string currentVal = "-";
-        bool isSet = manager.isKeyProvided(name);
-        
-        try {
-             // Manager is const here, but get template method is not marked const in Settings::Manager
-             // We need to cast away constness to call get or use a different method. 
-             // However, let's check Settings::Manager::get signature from provided file content previously.
-             // It was: template<typename T> T get(const std::string& name) { ... }
-             // It is NOT const.
-             // So we should get a mutable reference to manager.
-             auto& mutManager = const_cast<Settings::Manager&>(manager);
-
-             if (def.type == Settings::ValueType::String || 
-                 def.type == Settings::ValueType::PathExists || 
-                 def.type == Settings::ValueType::ValidateOutputPath) {
-                 currentVal = mutManager.get<std::string>(name);
-             } else if (def.type == Settings::ValueType::Int) {
-                 currentVal = std::to_string(mutManager.get<int>(name));
-             } else if (def.type == Settings::ValueType::UInt) {
-                 currentVal = std::to_string(mutManager.get<unsigned int>(name));
-             } else if (def.type == Settings::ValueType::Float) {
-                 currentVal = std::format("{}", mutManager.get<double>(name));
-             } else if (def.type == Settings::ValueType::Bool) {
-                 currentVal = mutManager.get<bool>(name) ? "true" : "false";
-             }
-        } catch (...) {
-            currentVal = "Error";
-        }
-
-        std::string status = "OK";
-        if (def.isRequired && !isSet && !def.defaultValue.has_value()) {
-            status = "MISSING";
-        } else if (!isSet) {
-            status = "Default";
-        } else {
-            status = "Set";
-        }
-
-        // if missing mark value as missing
-        if (status == "MISSING") {
-            currentVal = "**MISSING**";
-        }
-
-        report += std::format("| **{}** | {} | {} | {} | {} |\n", 
-            name, currentVal, formatDefValue(def.defaultValue), def.isRequired ? "Yes" : "No", def.description);
-    }
-}
-
-void McpServer::appendGroupSettingsReport(std::string& report) {
-    auto& manager = Settings::Manager::instance();
-    auto formatDefValue = [&](const std::optional<Settings::Value>& v) -> std::string {
-        if (!v.has_value()) {
-            return "-";
-        }
-        return formatSettingValue(v.value());
-    };
-
-    report += "\n# Group Settings\n";
-    
-    // Groups to show
-    std::vector<std::string> groups = {"openings", "epd", "sprt", "tournament", "spsa", "pgnoutput", "test", "draw", "resign", "logging"};
-    
-    for (const auto& groupName : groups) {
-        if (!manager.getGroupDefinitions().contains(groupName)) {
-            continue;
-        }
-        
-        report += std::format("\n## Group: {}\n\n", groupName);
-        report += "| Parameter | Full Name | Value | Default | Required | Description |\n";
-        report += "|---|---|---|---|---|---|\n";
-
-        const auto& groupDef = manager.getGroupDefinitions().at(groupName);
-        auto instanceList = manager.getGroupInstances(groupName);
-        
-        // Use first instance if any, otherwise dummy
-        const Settings::GroupInstance* instance = nullptr;
-        if (!instanceList.empty()) {
-            instance = instanceList.data();
-        }
-
-        std::vector<std::string> paramKeys = groupDef.getKeyNames();
-        // getKeyNames returns unsorted, might want to sort?
-         std::ranges::sort(paramKeys);
-
-        for (const auto& key : paramKeys) {
-            const auto& paramDef = groupDef.keys.at(key);
-            std::string currentVal = "-";
-            if (instance != nullptr && instance->isKeyProvided(key)) {
-                const auto& valMap = instance->getValues();
-                if (valMap.contains(key)) {
-                    currentVal = formatSettingValue(valMap.at(key));
-                }
-            } else if (paramDef.defaultValue.has_value()) {
-                 currentVal = formatSettingValue(paramDef.defaultValue.value());
-            } else {
-                 currentVal = "**MISSING**";
-            }
-            
-            // Reconstruct full MCP param name (e.g. openings_file)
-            // But wait, group params are usually group_key in MCP except for some cases.
-            // In C++ they are group "openings", key "file".
-            // The MCP mapping uses group_key by convention.
-            
-            std::string fullName = std::format("{}_{}", groupName, key);
-
-            report += std::format("| {} | **{}** | {} | {} | {} | {} |\n", 
-                key, fullName, currentVal, formatDefValue(paramDef.defaultValue), 
-                paramDef.isRequired ? "Yes" : "No", paramDef.description);
-        }
-    }
 }
 
 std::string McpServer::extractToolName(std::string_view filename) {
@@ -1065,7 +933,31 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
          // Note: We cannot provide exact filename as it is generated by the background thread.
          textContent["text"] = JsonValue{ .data = summary };
     } else {
-         textContent["text"] = JsonValue{ .data = formatRunSummary(name, returnCode) };
+         std::string runSummary = formatRunSummary(name, returnCode);
+         
+         // Determine relevant groups for this tool to show configuration used
+         std::vector<std::string> reportGroups = { "global" }; 
+         if (name == "sprt") {
+             reportGroups.insert(reportGroups.end(), {"sprt", "openings", "pgnoutput"});
+         } else if (name == "tournament") {
+             reportGroups.insert(reportGroups.end(), {"tournament", "openings", "pgnoutput"});
+         } else if (name == "epd") {
+             reportGroups.insert(reportGroups.end(), {"epd", "pgnoutput"});
+         } else if (name == "spsa") {
+             reportGroups.insert(reportGroups.end(), {"spsa", "spsavalue", "openings", "pgnoutput"});
+         } else if (name == "test") {
+             reportGroups.insert(reportGroups.end(), {"test"});
+         }
+
+         // Show limited columns for run summary (Name and Value mainly)
+         std::vector<SettingsReporter::Column> reportColumns = {
+             SettingsReporter::Column::FullName, 
+             SettingsReporter::Column::Value
+         };
+         
+         std::string settingsReport = SettingsReporter::generateReport(reportGroups, reportColumns);
+         
+         textContent["text"] = JsonValue{ .data = runSummary + "\n\n" + settingsReport };
     }
 
     content.push_back(JsonValue{ .data = textContent });
