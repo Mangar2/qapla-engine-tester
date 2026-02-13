@@ -97,61 +97,42 @@ std::string SettingsReporter::getGlobalValue(QaplaTester::Settings::Manager& man
 
 void SettingsReporter::appendGlobalSettingsReport(std::string& report, const std::vector<Column>& columns) {
     auto& manager = Settings::Manager::instance();
-    auto formatDefValueGlob = [&](const std::optional<Settings::Value>& v) -> std::string {
-        if (!v.has_value()) {
-            return "-";
-        }
-        return formatSettingValue(v.value());
-    };
 
     if (!report.empty()) {
         report += "\n\n";
     }
-    report += "# Global Settings\n\n";
+    report += "Global Settings\n";
 
-    // Build Header
-    report += "|";
-    for (const auto& col : columns) {
-        report += " " + getColumnHeader(col) + " |";
-    }
-    report += "\n|";
-    for (size_t i = 0; i < columns.size(); ++i) {
-        report += "---|";
-    }
-    report += "\n";
-    
     std::vector<std::string> keys;
-    for(const auto& [name, _] : manager.getDefinitions()) {
+    for (const auto& [name, _] : manager.getDefinitions()) {
         keys.push_back(name);
     }
     std::ranges::sort(keys);
 
+    const bool simpleFormat = columns.size() <= 2;
+
     for (const auto& name : keys) {
         const auto& def = manager.getDefinitions().at(name);
-        std::string currentVal = "-";
-        bool isSet = manager.isKeyProvided(name);
-        
-        auto& mutManager = const_cast<Settings::Manager&>(manager);
-        currentVal = getGlobalValue(mutManager, name, def);
+        std::string currentVal = getGlobalValue(manager, name, def);
 
-        std::string status = "OK";
-        if (def.isRequired && !isSet && !def.defaultValue.has_value()) {
-            status = "MISSING";
-        } else if (!isSet) {
-            status = "Default";
-        } else {
-            status = "Set";
+        const bool isSet = manager.isKeyProvided(name);
+        if (!isSet && def.isRequired && !def.defaultValue.has_value()) {
+            currentVal = "MISSING";
         }
 
-        if (status == "MISSING") {
-            currentVal = "**MISSING**";
-        }
-
-        report += "|";
+        // Determine key string (Name or FullName)
+        std::string keyStr = name;
         for (const auto& col : columns) {
-            report += " " + getColumnValue(col, name, name, currentVal, formatDefValueGlob(def.defaultValue), def.isRequired, def.description) + " |";
+            if (col == Column::FullName) {
+                // Global settings usually have same name and fullname
+                keyStr = name;
+                break;
+            }
         }
-        report += "\n";
+
+        appendFormattedRow(report, keyStr, currentVal, name, name, 
+            def.defaultValue.has_value() ? formatSettingValue(def.defaultValue.value()) : "-", 
+            def.isRequired, def.description, columns, simpleFormat);
     }
 }
 
@@ -159,82 +140,104 @@ void SettingsReporter::processGroupSection(
     const std::string& groupName,
     QaplaTester::Settings::Manager& manager,
     std::string& report,
-    const std::vector<SettingsReporter::Column>& columns,
-    const std::function<std::string(const std::optional<QaplaTester::Settings::Value>&)>& formatDefValueLoc
-) {
+    const std::vector<SettingsReporter::Column>& columns) {
     if (!manager.getGroupDefinitions().contains(groupName)) {
         return;
     }
-    
-    report += std::format("\n## Group: {}\n\n", groupName);
-    
-    // Build Header
-    report += "|";
-    for (const auto& col : columns) {
-        report += " " + SettingsReporter::getColumnHeader(col) + " |";
-    }
-    report += "\n|";
-    for (size_t i = 0; i < columns.size(); ++i) {
-        report += "---|";
-    }
-    report += "\n";
 
-    const auto& groupDef = manager.getGroupDefinitions().at(groupName);
-    auto instanceList = manager.getGroupInstances(groupName);
-    
-    // Use first instance if any
+    report += std::format("\nSettings Group: {}\n", groupName);
+
+    // Use first instance if any (simplification for reporting)
+    const std::vector<QaplaTester::Settings::GroupInstance>& instanceList = manager.getGroupInstances(groupName);
     const QaplaTester::Settings::GroupInstance* instance = nullptr;
     if (!instanceList.empty()) {
         instance = instanceList.data();
     }
 
-    std::vector<std::string> paramKeys = groupDef.getKeyNames();
+    // Get keys
+    const auto& groupDef = manager.getGroupDefinitions().at(groupName);
+    std::vector<std::string> paramKeys;
+    for (const auto& [k, v] : groupDef.keys) {
+        paramKeys.push_back(k);
+    }
     std::ranges::sort(paramKeys);
+
+    const bool simpleFormat = columns.size() <= 2;
 
     for (const auto& key : paramKeys) {
         const auto& paramDef = groupDef.keys.at(key);
-        std::string currentVal = "**MISSING**";
-        
-        bool isProvided = (instance != nullptr && instance->isKeyProvided(key));
-        
-        if (isProvided) {
-             const auto& valMap = instance->getValues();
-             if (valMap.contains(key)) {
-                 currentVal = formatSettingValue(valMap.at(key));
-             }
-        } else if (paramDef.defaultValue.has_value()) {
-             currentVal = formatSettingValue(paramDef.defaultValue.value());
-        } 
-        
-        std::string fullName = std::format("{}_{}", groupName, key);
+        std::string currentVal = "MISSING";
 
-        report += "|";
-        for (const auto& col : columns) {
-            report += " " + SettingsReporter::getColumnValue(col, key, fullName, currentVal, formatDefValueLoc(paramDef.defaultValue), paramDef.isRequired, paramDef.description) + " |";
+        const bool isProvided = (instance != nullptr && instance->isKeyProvided(key));
+
+        if (isProvided) {
+            if (instance->getValues().contains(key)) {
+                currentVal = formatSettingValue(instance->getValues().at(key));
+            }
+        } else if (paramDef.defaultValue.has_value()) {
+            currentVal = formatSettingValue(paramDef.defaultValue.value());
         }
-        report += "\n";
+
+        const std::string fullName = std::format("{}_{}", groupName, key);
+        std::string keyStr = key;
+
+        // If FullName column is present, use fullName as key
+        for (const auto& c : columns) {
+            if (c == Column::FullName) {
+                keyStr = fullName;
+                break;
+            }
+        }
+
+        appendFormattedRow(report, keyStr, currentVal, key, fullName, 
+             paramDef.defaultValue.has_value() ? formatSettingValue(paramDef.defaultValue.value()) : "-", 
+             paramDef.isRequired, paramDef.description, columns, simpleFormat);
+    }
+}
+
+void SettingsReporter::appendFormattedRow(std::string& report, const std::string& keyStr, 
+        const std::string& currentVal, const std::string& name, const std::string& fullName,
+        const std::string& defaultVal, bool isRequired, const std::string& description,
+        const std::vector<Column>& columns, bool simpleFormat) {
+    
+    report += std::format("  {}: {}\n", keyStr, currentVal);
+
+    if (!simpleFormat) {
+        for (const auto& col : columns) {
+            // Skip primary key and value, show others nested
+            if (col == Column::Name || col == Column::FullName || col == Column::Value) {
+                continue;
+            }
+
+            std::string val = getColumnValue(col, name, fullName, currentVal,
+                                                 defaultVal,
+                                                 isRequired, description);
+
+            // Remove Markdown formatting for plain text output if necessary
+            if (col == Column::Required) {
+                val = (isRequired ? "Yes" : "No");
+            }
+
+            if (col == Column::FullName) {
+                // Remove markdown bold
+                if (val.size() > 4) {
+                    val = val.substr(2, val.size() - 4);
+                }
+            }
+
+            report += std::format("    {}: {}\n", getColumnHeader(col), val);
+        }
     }
 }
 
 void SettingsReporter::appendGroupSettingsReport(std::string& report, const std::vector<std::string>& groupFilter, const std::vector<Column>& columns) {
     auto& manager = QaplaTester::Settings::Manager::instance();
-    auto formatDefValueLoc = [&](const std::optional<QaplaTester::Settings::Value>& v) -> std::string {
-        if (!v.has_value()) {
-            return "-";
-        }
-        return formatSettingValue(v.value());
-    };
 
-    if (!report.empty()) {
-        report += "\n";
-    }
-    report += "\n# Group Settings\n";
-    
     for (const auto& groupName : groupFilter) {
         if (groupName == "global") {
-            continue; 
+            continue;
         }
-        processGroupSection(groupName, manager, report, columns, formatDefValueLoc);
+        processGroupSection(groupName, manager, report, columns);
     }
 }
 

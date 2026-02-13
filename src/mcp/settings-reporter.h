@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <optional>
-#include <functional>
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester::Mcp {
@@ -34,7 +33,7 @@ public:
 private:
    static void appendGlobalSettingsReport(std::string& report, const std::vector<Column>& columns);
    static void appendGroupSettingsReport(std::string& report, const std::vector<std::string>& groupFilter, const std::vector<Column>& columns);
-   static std::string formatSettingValue(const Settings::Value& v);
+   static std::string formatSettingValue(const std::variant<std::string, int, unsigned int, bool, double>& v);
    static std::string getColumnHeader(Column col);
    static std::string getColumnValue(Column col, const std::string& name, const std::string& fullName, 
                                      const std::string& value, const std::string& defaultValue, 
@@ -45,8 +44,7 @@ private:
         const std::string& groupName,
         QaplaTester::Settings::Manager& manager,
         std::string& report,
-        const std::vector<Column>& columns,
-        const std::function<std::string(const std::optional<QaplaTester::Settings::Value>&)>& formatDefValueLoc
+        const std::vector<Column>& columns
    );
    
    static std::string getGlobalValue(
@@ -54,6 +52,11 @@ private:
        const std::string& name, 
        const QaplaTester::Settings::ParameterDefinition& def
     );
+
+   static void appendFormattedRow(std::string& report, const std::string& keyStr, 
+        const std::string& currentVal, const std::string& name, const std::string& fullName,
+        const std::string& defaultVal, bool isRequired, const std::string& description,
+        const std::vector<Column>& columns, bool simpleFormat);
 };
 
 } // namespace QaplaTester::Mcp
