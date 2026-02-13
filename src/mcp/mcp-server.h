@@ -190,7 +190,7 @@ private:
     /**
      * @brief Helpers for callTool to reduce complexity.
      */
-    static JsonValue::Array runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode);
+    static JsonValue::Array runRunnerTool(const std::string& name, const JsonValue::Object& arguments, AppReturnCode& returnCode);
 
     static void mergeGlobalConfig(QaplaHelpers::ConfigData& target, const QaplaHelpers::ConfigData& source);
     static std::pair<std::string, std::string> getTaskConfigInfo(const std::string& name);

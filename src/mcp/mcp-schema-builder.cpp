@@ -153,9 +153,12 @@ void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, Jso
     }
 
     properties["engine_copyName"] = JsonValue{ .data = createProperty("string", "Target name when copying an engine.") };
-    properties["engine_option_<name>"] = JsonValue{ .data = createProperty("string", "Set any UCI option. Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128. Use the 'details' command to list available options for a specific engine.") };
+    properties["engine_option_<name>"] = JsonValue{ .data = createProperty("string", 
+        "Set one or more UCI options. You can pass multiple arguments matching "
+        "the pattern 'engine_option_<Name>' in a single call to update several options simultaneously. "
+        "Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128."
+        "Use the 'details' command to list available options for a specific engine.") };
 }
-
 void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames) {
     properties["engines"] = JsonValue{ .data = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames)) };
     required.push_back(JsonValue{ .data = std::string("engines") });

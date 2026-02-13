@@ -350,11 +350,10 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             result["isError"] = JsonValue{ .data = false };
         } else {
             // Handle active list and execution
-            JsonValue::Object toolArgs = arguments;
             const Cli::TaskType taskType = Cli::TaskType::All;
 
-            McpEngineTool::setupActiveEngines(toolArgs, taskType, capabilities_);
-            content = runRunnerTool(name, toolArgs, returnCode);
+            McpEngineTool::setupActiveEngines(arguments, taskType, capabilities_);
+            content = runRunnerTool(name, arguments, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
                                                   returnCode == AppReturnCode::InvalidParameters || 
@@ -378,31 +377,31 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
 }
 
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
-    const JsonValue::Object& arguments, const std::string& defaultId) {
+    const JsonValue::Object& arguments, const std::string& defaultId) 
+{
     QaplaHelpers::ConfigData configData;
-    std::unordered_map<std::string, QaplaHelpers::IniFile::Section> otherGroupedSections;
+    std::unordered_map<std::string, QaplaHelpers::IniFile::Section> sections;
 
-    // Parameters
+    // Process all arguments into globals or sections
     for (const auto& [key, value] : arguments) {
-        processParameter(key, value, otherGroupedSections, configData);
+        processParameter(key, value, sections, configData);
     }
 
-    // Add sections to configData
-    for (auto& [name, s] : otherGroupedSections) {
-        // Ensure every configuration group has its ID set to ensure persistence
-        bool hasId = false;
-        for (const auto& [key, val] : s.entries) {
-            if (key == "id") {
-                hasId = true;
-                break;
-            }
+    // Post-process sections: ensure IDs exist and add to config
+    for (auto& [name, section] : sections) {
+        if (name == "engine") {
+            // Engines are managed by the engine tool, we only get names here.
+            continue;
         }
+        const bool hasId = std::ranges::any_of(section.entries, [](const auto& entry) {
+            return entry.first == "id";
+        });
 
         if (!hasId) {
-            s.addEntry("id", defaultId.empty() ? name : defaultId);
+            section.addEntry("id", defaultId.empty() ? "all" : defaultId);
         }
         
-        configData.addSection(s);
+        configData.addSection(section);
     }
 
     return configData;
@@ -891,8 +890,9 @@ void McpServer::prepareTaskFile(const std::string& name, JsonValue::Object& tool
     }
 }
 
-JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode) {
-    JsonValue::Object toolArgs = arguments;
+JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonValue::Object& arguments, 
+    AppReturnCode& returnCode) {
+    auto toolArgs = arguments;  // Create a copy to modify
     bool background = false;
     
     // Check for background execution parameter
@@ -910,11 +910,11 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
 
     prepareTaskFile(name, toolArgs);
 
-    auto [configId, reportBaseName] = getTaskConfigInfo(name);
+    auto [_, reportBaseName] = getTaskConfigInfo(name);
 
     Logger::logBaseName_ = reportBaseName;
     
-    auto paramsConfig = mapJsonToConfigData(toolArgs, configId);
+    auto paramsConfig = mapJsonToConfigData(toolArgs);
     QaplaHelpers::ConfigData configData = globalAdjudicationConfig_;
     
     // Copy paramsConfig into configData

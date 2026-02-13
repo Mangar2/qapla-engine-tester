@@ -284,14 +284,17 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {
                         .isRequired = false, 
                         .defaultValue = std::nullopt, 
                         .type = ValueType::String}},
-        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
-                        .isRequired = false, 
-                        .defaultValue = std::nullopt, 
-                        .type = ValueType::String }},
-        { "option.[name]",  { .description = "UCI engine option", 
-                        .isRequired = false, 
-                        .defaultValue = "", 
-                        .type = ValueType::String } }
+        { "restart",   { 
+            .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
+            .isRequired = false, 
+            .defaultValue = std::nullopt, 
+            .type = ValueType::String }},
+        { "option.[name]",  { 
+            .description = "UCI engine option", 
+            .longDescription = "",
+            .isRequired = false, 
+            .defaultValue = "", 
+            .type = ValueType::String } }
     };
 }
 
