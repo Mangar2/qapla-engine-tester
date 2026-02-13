@@ -329,6 +329,12 @@ private:
     SprtResultsAllTournaments sprtResults_;
     mutable std::mutex sprtResultsMutex_;
 
-    void checkAutoSave(const SprtResult& result);
+    /**
+     * @brief Performs an auto-save of the SPRT tournament state if conditions are met. 
+     * 
+     * @param result The latest SPRT result to check for decision or finished state. 
+     * @param force If true, forces a save regardless of interval or decision state. 
+     */
+    void autoSave(const SprtResult& result, bool force = false);
 };
 } // namespace QaplaTester
