@@ -1,3 +1,22 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2025 Volker Böhm
+ */
+
 #pragma once
 
 #include "json-helper.h"
@@ -32,6 +51,7 @@ private:
     static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties, JsonValue::Array& required);
     static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
     static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties, JsonValue::Array& required);
+    static void addGlobalParameterSchema(const std::string& key, JsonValue::Object& properties);
     
     // Specific tool helpers
     static void addReadReportSchema(JsonValue::Object& properties, JsonValue::Array& required);

@@ -169,6 +169,7 @@ Engines play against each other with color swapping and opening variations.)",
     Manager::instance().registerGroup({
         .name = "draw", 
         .description = "Draw adjudication settings", 
+        .longDescription = "Configures global draw adjudication rules. These settings apply to all tournament modes (SPRT, Tournament, SPSA) unless explicitly overridden.",
         .unique = true, 
         .primaryKey = {"id"},
         .keys = Settings::getDrawAdjudicationKeys()
@@ -178,6 +179,7 @@ Engines play against each other with color swapping and opening variations.)",
     Manager::instance().registerGroup({
         .name = "resign", 
         .description = "Resign adjudication settings", 
+        .longDescription = "Configures global resignation adjudication rules. These settings apply to all tournament modes (SPRT, Tournament, SPSA) unless explicitly overridden.",
         .unique = true, 
         .primaryKey = {"id"},
         .keys = Settings::getResignAdjudicationKeys()
@@ -677,21 +679,25 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getDrawAdjudicationKey
             .isHidden = true } },                    
         { "movenumber", { 
             .description = "Minimum number of full moves before draw adjudication can occur", 
+            .longDescription = "The specific move number where draw adjudication becomes active. Before this move number, no draw adjudication will occur.",
             .isRequired = false, 
             .defaultValue = 60, 
             .type = ValueType::UInt } },
         { "movecount",  { 
             .description = "Required number of consecutive moves with evaluation in range", 
+            .longDescription = "The number of consecutive moves where the evaluation must remain distinctively within the draw score range to trigger a draw adjudication.",
             .isRequired = false, 
             .defaultValue = 20, 
             .type = ValueType::UInt } },
         { "score",      { 
             .description = "Centipawn score range (+/-) around zero for draw adjudication", 
+            .longDescription = "The score threshold in centipawns. If the evaluation of both engines stays within +/- this score for 'movecount' moves, the game is adjudicated as a draw.",
             .isRequired = false, 
             .defaultValue = 20, 
             .type = ValueType::Int } },
         { "test",       { 
             .description = "If true, only reports what would be adjudicated without taking action", 
+            .longDescription = "When enabled, it reports potential draw adjudications without terminating the game. Useful for tuning draw settings.",
             .isRequired = false, 
             .defaultValue = false, 
             .type = ValueType::Bool } }
@@ -714,26 +720,25 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getResignAdjudicationK
             .isHidden = true } },
         { "movecount", { 
             .description = "Required number of consecutive moves with score below threshold for resignation", 
-            .longDescription = "Number of consecutive moves that must be below the specified score threshold"
-                "to trigger resignation. Typical value is 5. 0 disables the adjudication.",   
+            .longDescription = "Number of consecutive moves that must maintain a score below the specified threshold to trigger a resignation. A typical value is 5. Setting this to 0 disables resignation adjudication.",   
             .isRequired = true, 
             .defaultValue = 5, 
             .type = ValueType::UInt } },
         { "score",     { 
             .description = "Centipawn score below zero that triggers resignation", 
+            .longDescription = "The evaluation threshold in centipawns that triggers a resignation. This value describes the margin by which a side must be falling behind. For example, a value of 500 means the evaluation must be <= -500 cp.",
             .isRequired = false, 
             .defaultValue = 500, 
             .type = ValueType::Int } },
         { "twosided",  { 
             .description = "If true, both sides must meet respective score conditions", 
+            .longDescription = "If enabled, both engines must agree on the resignation condition (i.e. one sees itself losing, the other sees itself winning). This reduces false positives but may delay adjudication.",
             .isRequired = false, 
             .defaultValue = false, 
             .type = ValueType::Bool } },
         { "test", { 
             .description = "If true, only reports what would be adjudicated without taking action", 
-            .longDescription = "When enabled, the system will create a statistic of how many games would have been"
-                "resigned, the amount of time safed and the amount of wrong adjudications, without actually terminating any games."
-                " This is useful for analyzing the impact of different resignation settings before applying them.", 
+            .longDescription = "When enabled, the system records statistics on how many games would have been adjudicated, the potential time saved, and any incorrect adjudications, without actually stopping the games. This allows you to test the impact of resignation settings safely.", 
             .isRequired = false, 
             .defaultValue = false, 
             .type = ValueType::Bool } }
