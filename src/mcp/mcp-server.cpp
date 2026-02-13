@@ -223,12 +223,12 @@ void McpServer::listTools(const JsonValue& requestId) {
         {
             .name = "sprt",
             .description = "Runs a Sequential Probability Ratio Test (SPRT) between engines",
-            .groups = {"sprt", "openings", "draw", "resign", "pgnoutput", "logging"}
+            .groups = {"sprt", "openings", "pgnoutput", "logging"}
         },
         {
             .name = "tournament",
             .description = "Runs a tournament between engines",
-            .groups = {"tournament", "openings", "draw", "resign", "pgnoutput", "logging"}
+            .groups = {"tournament", "openings", "pgnoutput", "logging"}
         },
         {
             .name = "epd",
@@ -238,7 +238,12 @@ void McpServer::listTools(const JsonValue& requestId) {
         {
             .name = "spsa",
             .description = "Optimizes engine parameters using SPSA",
-            .groups = {"spsa", "spsavalue", "openings", "draw", "resign", "pgnoutput", "logging"}
+            .groups = {"spsa", "spsavalue", "openings", "pgnoutput", "logging"}
+        },
+        {
+            .name = "adjudicate",
+            .description = "Configures global adjudication settings (Draw and Resign) for all tournaments.",
+            .groups = {"draw", "resign"}
         },
         {
             .name = "control",
@@ -327,6 +332,9 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             result["isError"] = JsonValue{ .data = false };
         } else if (name == "manage_engines") {
             content = McpEngineTool::handleManageEngines(arguments, capabilities_);
+            result["isError"] = JsonValue{ .data = false };
+        } else if (name == "adjudicate") {
+            content = handleAdjudicateTool(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else {
             // Handle active list and execution
@@ -707,6 +715,30 @@ std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode c
     return summary;
 }
 
+JsonValue::Array McpServer::handleAdjudicateTool(const JsonValue::Object& arguments) {
+    JsonValue::Array content;
+    JsonValue::Object textContent;
+    textContent["type"] = JsonValue{ .data = std::string("text") };
+
+    // Update global adjudication config
+    auto inputConfig = mapJsonToConfigData(arguments);
+    
+    const auto sectionNames = inputConfig.getAllSectionNames();
+    for (const auto& name : sectionNames) {
+        if (const auto sectionMap = inputConfig.getSectionMap(name)) {
+            for (const auto& [id, sections] : *sectionMap) {
+                // Since ConfigData duplicates on add, we replace the section list entirely for this ID
+                // to avoid accumulating duplicates over multiple calls.
+                globalAdjudicationConfig_.setSectionList(name, id, sections);
+            }
+        }
+    }
+    
+    textContent["text"] = JsonValue{ .data = std::string("Global adjudication settings updated.") };
+    content.push_back(JsonValue{ .data = textContent });
+    return content;
+}
+
 JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments) {
     JsonValue::Array content;
     JsonValue::Object textContent;
@@ -743,24 +775,46 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
     return content;
 }
 
-
-JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode) {
-    JsonValue::Object toolArgs = arguments;
-    bool background = false;
-    
-    // Check for background execution parameter
-    if (toolArgs.contains("mcp_background")) {
-        background = toolArgs.at("mcp_background").asBool();
-        toolArgs.erase("mcp_background"); // Remove so it doesn't fail settings parsing
-    } else if (toolArgs.contains("background")) {
-        background = toolArgs.at("background").asBool();
-        toolArgs.erase("background");
+void McpServer::mergeGlobalConfig(QaplaHelpers::ConfigData& target, const QaplaHelpers::ConfigData& source) {
+    const auto sectionNames = source.getAllSectionNames();
+    for (const auto& name : sectionNames) {
+        if (const auto sectionMap = source.getSectionMap(name)) {
+            for (const auto& [id, sections] : *sectionMap) {
+                for (const auto& section : sections) {
+                     target.addSection(section);
+                }
+            }
+        }
     }
-    
-    if (toolArgs.contains("engines")) {
-        toolArgs.erase("engines");
+    const auto& globalParams = source.getGlobalParameters();
+    for(const auto& [k, v] : globalParams) {
+        target.addGlobalParameter(k, v);
     }
+}
 
+std::pair<std::string, std::string> McpServer::getTaskConfigInfo(const std::string& name) {
+    if (name == "sprt") {
+        return {SprtTournamentFile::id, "sprt-report"};
+    } 
+    if (name == "tournament") {
+        return {TournamentFile::id, "tournament-report"};
+    } 
+    if (name == "epd") {
+        return {"", "epd-report"};
+    } 
+    if (name == "test") {
+        return {"", "test-report"};
+    } 
+    if (name == "spsa") {
+        return {"", "spsa-report"};
+    } 
+    if (name == "control") {
+        return {"", "control-report"};
+    }
+    return {"", "report"};
+}
+
+void McpServer::prepareTaskFile(const std::string& name, JsonValue::Object& toolArgs) {
     if (name == "sprt") {
         bool resume = false;
         if (toolArgs.contains("resume")) {
@@ -792,30 +846,36 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Ob
         }
         toolArgs["tournament_file"] = JsonValue{ .data = filename };
     }
+}
 
-    std::string configId;
-    std::string reportBaseName = "report";
-
-    if (name == "sprt") {
-        configId = SprtTournamentFile::id;
-        reportBaseName = "sprt-report";
-    } else if (name == "tournament") {
-        configId = TournamentFile::id;
-        reportBaseName = "tournament-report";
-    } else if (name == "epd") {
-        reportBaseName = "epd-report";
-    } else if (name == "test") {
-        reportBaseName = "test-report";
-    } else if (name == "spsa") {
-        reportBaseName = "spsa-report";
-    } else if (name == "control") {
-        // control doesn't run via executeRunnerTool usually, but just in case
-        reportBaseName = "control-report";
+JsonValue::Array McpServer::runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode) {
+    JsonValue::Object toolArgs = arguments;
+    bool background = false;
+    
+    // Check for background execution parameter
+    if (toolArgs.contains("mcp_background")) {
+        background = toolArgs.at("mcp_background").asBool();
+        toolArgs.erase("mcp_background"); // Remove so it doesn't fail settings parsing
+    } else if (toolArgs.contains("background")) {
+        background = toolArgs.at("background").asBool();
+        toolArgs.erase("background");
     }
+    
+    if (toolArgs.contains("engines")) {
+        toolArgs.erase("engines");
+    }
+
+    prepareTaskFile(name, toolArgs);
+
+    auto [configId, reportBaseName] = getTaskConfigInfo(name);
 
     Logger::logBaseName_ = reportBaseName;
     
-    auto configData = mapJsonToConfigData(toolArgs, configId);
+    auto paramsConfig = mapJsonToConfigData(toolArgs, configId);
+    QaplaHelpers::ConfigData configData = globalAdjudicationConfig_;
+    
+    // Copy paramsConfig into configData
+    mergeGlobalConfig(configData, paramsConfig);
     
     returnCode = executeRunnerTool(configData, background);
 

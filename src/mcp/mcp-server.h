@@ -16,6 +16,7 @@
  * @author Volker Böhm
  * @copyright Copyright (c) 2025 Volker Böhm
  */
+ 
 #pragma once
 
 #include "json-helper.h"
@@ -183,7 +184,19 @@ private:
      */
     static JsonValue::Array runRunnerTool(const std::string& name, JsonValue::Object& arguments, AppReturnCode& returnCode);
 
+    static void mergeGlobalConfig(QaplaHelpers::ConfigData& target, const QaplaHelpers::ConfigData& source);
+    static std::pair<std::string, std::string> getTaskConfigInfo(const std::string& name);
+    static void prepareTaskFile(const std::string& name, JsonValue::Object& toolArgs);
+
+    /**
+     * @brief Handles the adjudication tool.
+     * @param arguments The tool arguments.
+     * @return Result content array.
+     */
+    static JsonValue::Array handleAdjudicateTool(const JsonValue::Object& arguments);
+
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
+    inline static QaplaHelpers::ConfigData globalAdjudicationConfig_;
     static inline std::string lastSprtFile_;
     static inline std::string lastTournamentFile_;
 };

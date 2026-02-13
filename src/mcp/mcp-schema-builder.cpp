@@ -159,8 +159,9 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
     properties["engines"] = JsonValue{ .data = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames)) };
     required.push_back(JsonValue{ .data = std::string("engines") });
 
-    properties["concurrency"] = JsonValue{ .data = createProperty("integer", "Maximal number of in parallel running engines") };
-    properties["rapid"] = JsonValue{ .data = createProperty("boolean", "Enables rapid mode (suppresses engine info lines)") };
+    addGlobalParameterSchema("concurrency", properties);
+    addGlobalParameterSchema("rapid", properties);
+
     properties["mcp_background"] = JsonValue{ .data = createProperty("boolean", "If true, starts the task in background and returns immediately. Use 'control' tool to monitor.") };
 
     if (info.name == "sprt" || info.name == "tournament") {
@@ -213,6 +214,10 @@ void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const S
 
 void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties, JsonValue::Array& required) {
     for (const auto& [key, keyDef] : def.keys) {
+        if (key == "file" && (groupName == "sprt" || groupName == "tournament")) {
+            continue;
+        }
+
         if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
@@ -226,6 +231,18 @@ void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const 
             required.push_back(JsonValue{ .data = paramName });
         }
     }
+}
+
+void McpSchemaBuilder::addGlobalParameterSchema(const std::string& key, JsonValue::Object& properties) {
+    const auto& globalDefs = Settings::Manager::instance().getDefinitions();
+    const auto it = globalDefs.find(key);
+    if (it == globalDefs.end()) {
+        return;
+    }
+    const auto& def = it->second;
+    
+    std::string desc = def.longDescription.empty() ? def.description : def.longDescription;
+    properties[key] = JsonValue{ .data = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue)) };
 }
 
 } // namespace QaplaTester::Mcp
