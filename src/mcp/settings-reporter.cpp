@@ -1,5 +1,4 @@
 #include "settings-reporter.h"
-#include "../cli/settings-manager.h"
 #include <format>
 #include <algorithm>
 #include <vector>
@@ -38,24 +37,11 @@ std::string SettingsReporter::generateReport(std::optional<std::vector<std::stri
     return report;
 }
 
-
-static std::string formatSettingsValue(const Settings::Value& v) {
-    if (std::holds_alternative<std::string>(v)) {
-        return std::get<std::string>(v);
-    }
-    if (std::holds_alternative<int>(v)) {
-        return std::to_string(std::get<int>(v));
-    }
-    if (std::holds_alternative<unsigned int>(v)) {
-        return std::to_string(std::get<unsigned int>(v));
-    }
+std::string SettingsReporter::formatSettingValue(const std::variant<std::string, int, unsigned int, bool, double>& v) {
     if (std::holds_alternative<bool>(v)) {
         return std::get<bool>(v) ? "true" : "false";
     }
-    if (std::holds_alternative<double>(v)) {
-        return std::format("{}", std::get<double>(v));
-    }
-    return "";
+    return Settings::to_string(v);
 }
 
 std::string SettingsReporter::getColumnHeader(Column col) {
@@ -214,10 +200,10 @@ void SettingsReporter::processGroupSection(
         if (isProvided) {
              const auto& valMap = instance->getValues();
              if (valMap.contains(key)) {
-                 currentVal = formatSettingsValue(valMap.at(key));
+                 currentVal = formatSettingValue(valMap.at(key));
              }
         } else if (paramDef.defaultValue.has_value()) {
-             currentVal = formatSettingsValue(paramDef.defaultValue.value());
+             currentVal = formatSettingValue(paramDef.defaultValue.value());
         } 
         
         std::string fullName = std::format("{}_{}", groupName, key);
@@ -236,7 +222,7 @@ void SettingsReporter::appendGroupSettingsReport(std::string& report, const std:
         if (!v.has_value()) {
             return "-";
         }
-        return formatSettingsValue(v.value());
+        return formatSettingValue(v.value());
     };
 
     if (!report.empty()) {
