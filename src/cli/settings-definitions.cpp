@@ -42,6 +42,7 @@ void initSettings() {
     Manager::instance().registerSetting({
         .name = "concurrency", 
         .description = "Maximal number of in parallel running engines", 
+        .longDescription = "Maximal number of in parallel running engines. A typical value is 'physical cores - 1'.",
         .isRequired = true, 
         .defaultValue = 10,
         .type = ValueType::UInt
@@ -112,15 +113,17 @@ Results are reported as a success rate and compared against a minimum threshold.
     Manager::instance().registerGroup({
         .name = "sprt", 
         .description = "Sequential Probability Ratio Test configuration", 
-        .longDescription = R"(Runs a Sequential Probability Ratio Test (SPRT) between two engines. 
-SPRT is an efficient method to determine if one engine is stronger than another with statistical confidence.
-
-Typical SPRT configurations:
-- **Small Improvement**: alpha=0.05, beta=0.05, eloH1=5, eloH0=0. Checks if engine 1 is at least 5 Elo stronger.
-- **Strong Improvement**: alpha=0.05, beta=0.05, eloH1=10, eloH0=0. Checks if engine 1 is at least 10 Elo stronger.
-- **Regression Testing**: alpha=0.05, beta=0.05, eloH1=0, eloH0=-5. Checks if engine 1 is at least not more than 5 Elo weaker.
-
-The test stops as soon as H0 (no difference or weaker) or H1 (stronger) is accepted.)",
+        .longDescription = R"(Runs SPRT (Sequential Probability Ratio Test).
+Determines if Challenger is stronger than Baseline.
+Roles:
+- Challenger: Engine with 'gauntlet=true', or first engine if no gauntlet flag.
+- Baseline: The other engine.
+Hypotheses:
+- H0 (Null): Challenger Elo <= Baseline + eloH0
+- H1 (Alt):  Challenger Elo >= Baseline + eloH1
+Configs:
+- Improvement: eloH0=0, eloH1=5
+- Regression: eloH0=-5, eloH1=0)",
         .unique = true, 
         .keys = Settings::getSprtKeys()
     });

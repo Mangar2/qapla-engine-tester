@@ -259,6 +259,12 @@ void McpServer::listTools(const JsonValue& requestId) {
             .groups = {}
         },
         {
+            .name = "list_settings",
+            .description = "Lists all current settings (globals and task groups like sprt, tournament, etc.) excluding engines. "
+                        "Reports default values, mandatory status, and whether a setting is missing.",
+            .groups = {}
+        },
+        {
             .name = "read_report",
             .description = "Reads the content of a specific report log or PGN file",
             .groups = {}
@@ -335,6 +341,9 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             result["isError"] = JsonValue{ .data = false };
         } else if (name == "adjudicate") {
             content = handleAdjudicateTool(arguments);
+            result["isError"] = JsonValue{ .data = false };
+        } else if (name == "list_settings") {
+            content = handleListSettings(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else {
             // Handle active list and execution
@@ -493,6 +502,172 @@ void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry
     resource["description"] = JsonValue{ .data = std::format("{} result for tool {}", isPgn ? "PGN" : "Log", tool) };
     resource["mimeType"] = JsonValue{ .data = (isPgn ? std::string("text/x-chess-pgn") : std::string("text/plain")) };
     resources.push_back(JsonValue{ .data = resource });
+}
+
+JsonValue::Array McpServer::handleListSettings([[maybe_unused]] const JsonValue::Object& arguments) {
+    JsonValue::Array content;
+    std::string report;
+
+    appendGlobalSettingsReport(report);
+    appendGroupSettingsReport(report);
+
+    JsonValue::Object contentObj;
+    contentObj["type"] = JsonValue{ .data = std::string("text") };
+    contentObj["text"] = JsonValue{ .data = report };
+    content.push_back(JsonValue{ .data = contentObj });
+    return content;
+}
+
+std::string McpServer::formatSettingValue(const Settings::Value& v) {
+    if (std::holds_alternative<std::string>(v)) {
+        return std::get<std::string>(v);
+    }
+    if (std::holds_alternative<int>(v)) {
+        return std::to_string(std::get<int>(v));
+    }
+    if (std::holds_alternative<unsigned int>(v)) {
+        return std::to_string(std::get<unsigned int>(v));
+    }
+    if (std::holds_alternative<bool>(v)) {
+        return std::get<bool>(v) ? "true" : "false";
+    }
+    if (std::holds_alternative<double>(v)) {
+        return std::format("{}", std::get<double>(v));
+    }
+    return "";
+}
+
+void McpServer::appendGlobalSettingsReport(std::string& report) {
+    const auto& manager = Settings::Manager::instance();
+    auto formatDefValue = [&](const std::optional<Settings::Value>& v) -> std::string {
+        if (!v.has_value()) {
+            return "-";
+        }
+        return formatSettingValue(v.value());
+    };
+
+    report += "# Global Settings\n\n";
+    report += "| Name | Value | Default | Required | Description |\n";
+    report += "|---|---|---|---|---|\n";
+    
+    std::vector<std::string> keys;
+    for(const auto& [name, _] : manager.getDefinitions()) {
+        keys.push_back(name);
+    }
+    std::ranges::sort(keys);
+
+    for (const auto& name : keys) {
+        const auto& def = manager.getDefinitions().at(name);
+        std::string currentVal = "-";
+        bool isSet = manager.isKeyProvided(name);
+        
+        try {
+             // Manager is const here, but get template method is not marked const in Settings::Manager
+             // We need to cast away constness to call get or use a different method. 
+             // However, let's check Settings::Manager::get signature from provided file content previously.
+             // It was: template<typename T> T get(const std::string& name) { ... }
+             // It is NOT const.
+             // So we should get a mutable reference to manager.
+             auto& mutManager = const_cast<Settings::Manager&>(manager);
+
+             if (def.type == Settings::ValueType::String || 
+                 def.type == Settings::ValueType::PathExists || 
+                 def.type == Settings::ValueType::ValidateOutputPath) {
+                 currentVal = mutManager.get<std::string>(name);
+             } else if (def.type == Settings::ValueType::Int) {
+                 currentVal = std::to_string(mutManager.get<int>(name));
+             } else if (def.type == Settings::ValueType::UInt) {
+                 currentVal = std::to_string(mutManager.get<unsigned int>(name));
+             } else if (def.type == Settings::ValueType::Float) {
+                 currentVal = std::format("{}", mutManager.get<double>(name));
+             } else if (def.type == Settings::ValueType::Bool) {
+                 currentVal = mutManager.get<bool>(name) ? "true" : "false";
+             }
+        } catch (...) {
+            currentVal = "Error";
+        }
+
+        std::string status = "OK";
+        if (def.isRequired && !isSet && !def.defaultValue.has_value()) {
+            status = "MISSING";
+        } else if (!isSet) {
+            status = "Default";
+        } else {
+            status = "Set";
+        }
+
+        // if missing mark value as missing
+        if (status == "MISSING") {
+            currentVal = "**MISSING**";
+        }
+
+        report += std::format("| **{}** | {} | {} | {} | {} |\n", 
+            name, currentVal, formatDefValue(def.defaultValue), def.isRequired ? "Yes" : "No", def.description);
+    }
+}
+
+void McpServer::appendGroupSettingsReport(std::string& report) {
+    auto& manager = Settings::Manager::instance();
+    auto formatDefValue = [&](const std::optional<Settings::Value>& v) -> std::string {
+        if (!v.has_value()) {
+            return "-";
+        }
+        return formatSettingValue(v.value());
+    };
+
+    report += "\n# Group Settings\n";
+    
+    // Groups to show
+    std::vector<std::string> groups = {"openings", "epd", "sprt", "tournament", "spsa", "pgnoutput", "test", "draw", "resign", "logging"};
+    
+    for (const auto& groupName : groups) {
+        if (!manager.getGroupDefinitions().contains(groupName)) {
+            continue;
+        }
+        
+        report += std::format("\n## Group: {}\n\n", groupName);
+        report += "| Parameter | Full Name | Value | Default | Required | Description |\n";
+        report += "|---|---|---|---|---|---|\n";
+
+        const auto& groupDef = manager.getGroupDefinitions().at(groupName);
+        auto instanceList = manager.getGroupInstances(groupName);
+        
+        // Use first instance if any, otherwise dummy
+        const Settings::GroupInstance* instance = nullptr;
+        if (!instanceList.empty()) {
+            instance = instanceList.data();
+        }
+
+        std::vector<std::string> paramKeys = groupDef.getKeyNames();
+        // getKeyNames returns unsorted, might want to sort?
+         std::ranges::sort(paramKeys);
+
+        for (const auto& key : paramKeys) {
+            const auto& paramDef = groupDef.keys.at(key);
+            std::string currentVal = "-";
+            if (instance != nullptr && instance->isKeyProvided(key)) {
+                const auto& valMap = instance->getValues();
+                if (valMap.contains(key)) {
+                    currentVal = formatSettingValue(valMap.at(key));
+                }
+            } else if (paramDef.defaultValue.has_value()) {
+                 currentVal = formatSettingValue(paramDef.defaultValue.value());
+            } else {
+                 currentVal = "**MISSING**";
+            }
+            
+            // Reconstruct full MCP param name (e.g. openings_file)
+            // But wait, group params are usually group_key in MCP except for some cases.
+            // In C++ they are group "openings", key "file".
+            // The MCP mapping uses group_key by convention.
+            
+            std::string fullName = std::format("{}_{}", groupName, key);
+
+            report += std::format("| {} | **{}** | {} | {} | {} | {} |\n", 
+                key, fullName, currentVal, formatDefValue(paramDef.defaultValue), 
+                paramDef.isRequired ? "Yes" : "No", paramDef.description);
+        }
+    }
 }
 
 std::string McpServer::extractToolName(std::string_view filename) {
