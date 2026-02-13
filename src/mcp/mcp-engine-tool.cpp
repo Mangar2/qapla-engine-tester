@@ -310,7 +310,6 @@ std::string McpEngineTool::updateAllEngines(
          JsonValue::Object specificArgs = arguments;
          specificArgs["engine_name"] = JsonValue{.data=config.getName()};
          
-         // Reuse addOrUpdateEngine logic (updates Settings::Manager + Registry)
          try {
              addOrUpdateEngine(specificArgs, true, capabilities);
              count++;
