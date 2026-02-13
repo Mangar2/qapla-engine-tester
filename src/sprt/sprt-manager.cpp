@@ -207,12 +207,12 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 
     Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
 
-    checkAutoSave(configuredResult);
+    autoSave(configuredResult);
 
     finishTournament();
 }
 
-void SprtManager::checkAutoSave(const SprtResult& result) {
+void SprtManager::autoSave(const SprtResult& result, bool force) {
     if (!saveCallback_) {
         return;
     }
@@ -233,7 +233,7 @@ void SprtManager::checkAutoSave(const SprtResult& result) {
         gamesSinceSave_ = 0;
     }
 
-    if (save) {
+    if (save || force) {
         saveCallback_();
     }
 }
