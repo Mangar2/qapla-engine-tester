@@ -217,12 +217,6 @@ private:
      */
     void restoreResults(const std::vector<std::shared_ptr<PairTournament>>& savedPairings);
 
-    /**
-     * @brief Saves the tournament state to a file.
-     * @param filename Path to the output file.
-     */
-    void save(const std::string& filename) const;
-
     std::vector<EngineConfig> engineConfig_;
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;
