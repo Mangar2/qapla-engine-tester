@@ -22,7 +22,6 @@
 #include "settings-manager.h"
 #include "../opening/pgn-save.h"
 #include "../game-manager/adjudication-manager.h"
-#include "../config/engine-config.h"
 #include "../base-elements/logger.h"
 
 #include <string>
@@ -139,11 +138,6 @@ public:
      */
     [[nodiscard]] std::optional<SPSAConfig> getSPSAConfig() const;
 
-    /**
-     * @brief Gets all engine configurations (including non-selected ones)
-     * @return Vector of all engine configurations with selection status
-     */
-    [[nodiscard]] const std::vector<EngineConfiguration>& getAllEngineConfigurations() const;
 
     /**
      * @brief Applies logger configuration with specified report base name
@@ -265,7 +259,6 @@ private:
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
     std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration
-    std::vector<EngineConfiguration> m_allEngineConfigurations; ///< All engine configurations (selected and non-selected)
 };
 
 } // namespace CliSettings

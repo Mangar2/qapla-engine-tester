@@ -260,10 +260,11 @@ void Tournament::save(const std::string& filename) const {
     }
     
     // Write engine configurations
+    /*
     for (const auto& config : engineConfig_) {
         out << config << "\n";
     }
-    
+    */
     // Write tournament round sections
     auto sections = getSections();
     for (const auto& section : sections) {

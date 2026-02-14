@@ -22,6 +22,7 @@
 #include "../base-elements/time-control.h"
 #include "engine-option.h"
 #include "../base-elements/base-logger.h"
+#include "../base-elements/ini-file.h"
 
 #include <string>
 #include <unordered_map>
@@ -348,15 +349,20 @@ public:
     [[nodiscard]] std::unordered_map<std::string, std::string> getOptions(const EngineOptions& availableOptions) const;
 
 
-    friend std::istream& operator>>(std::istream& in, EngineConfig& config);
+    /**
+     * @brief Creates an EngineConfig instance from an INI section.
+     * @param section The INI section to load from.
+     * @return Fully constructed and verified EngineConfig.
+     * @throws std::runtime_error if section content is invalid.
+     */
+    static EngineConfig createFromSection(const QaplaHelpers::IniFile::Section& section);
 
     /**
-     * @brief Saves the engine configuration to a stream (ini file format).
-     * @param out The output stream to write the configuration to.
-     * @param section The section name to use (default "engine").
+     * @brief Creates a section from the current configuration.
+     * @param sectionName The section name to use (default "engine").
+     * @return A QaplaHelpers::IniFile::Section object.
      */
-    void save(std::ostream& out, const std::string& section = "engine") const;
-    friend std::ostream& operator<<(std::ostream& out, const EngineConfig& config);
+    [[nodiscard]] QaplaHelpers::IniFile::Section toSection(const std::string& sectionName = "engine") const;
 
     /**
      * @brief Compares two EngineConfig instances for equality.
