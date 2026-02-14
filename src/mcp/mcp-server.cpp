@@ -258,7 +258,8 @@ void McpServer::listTools(const JsonValue& requestId) {
             .description = "Manage engine configurations in the registry. Use this to manage the "
                         "engine registry. Supports individual management (list, details, add, "
                         "copy, update, delete) and bulk operations (update_all) for global settings "
-                        "like time control or UCI options.",
+                        "like time control or UCI options. IMPORTANT: When using 'copy', always provide "
+                        "any modified parameters (like time control or options) in the same call to avoid extra steps.",
             .groups = {}
         },
         {
