@@ -29,7 +29,6 @@
 #include "../base-elements/logger.h"
 #include "../base-elements/string-helper.h"
 
-#include <fstream>
 #include <ctime>
 #include <random>
 #include <format>
@@ -251,25 +250,6 @@ std::vector<QaplaHelpers::IniFile::Section> Tournament::getSections() const {
     }
     
     return sections;
-}
-
-void Tournament::save(const std::string& filename) const {
-    std::ofstream out(filename);
-    if (!out) {
-        throw std::runtime_error("Failed to open file for saving tournament results: " + filename);
-    }
-    
-    // Write engine configurations
-    /*
-    for (const auto& config : engineConfig_) {
-        out << config << "\n";
-    }
-    */
-    // Write tournament round sections
-    auto sections = getSections();
-    for (const auto& section : sections) {
-        QaplaHelpers::IniFile::saveSection(out, section);
-    }
 }
 
 void Tournament::restoreResults(const std::vector<std::shared_ptr<PairTournament>>& savedPairings) {
