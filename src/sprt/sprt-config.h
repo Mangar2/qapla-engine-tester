@@ -20,7 +20,6 @@
 #pragma once
 
 #include "sprt-manager.h"
-#include "../base-elements/ini-file.h"
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester {
@@ -35,33 +34,6 @@ public:
      * @return The section name used in INI files.
      */
     [[nodiscard]] static constexpr const char* getSectionName() { return "sprt"; }
-
-    /**
-     * @brief Creates INI file sections from SprtConfig.
-     * @param config The SPRT configuration to convert.
-     * @param id The identifier for the configuration.
-     * @return Vector containing one section with SPRT configuration.
-     */
-    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
-        const SprtConfig& config, const std::string& id);
-
-    /**
-     * @brief Loads SPRT configuration from INI file sections.
-     * @param sections The sections containing SPRT configuration.
-     * @return SprtConfig populated from sections.
-     */
-    [[nodiscard]] static SprtConfig fromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections);
-
-    /**
-     * @brief Loads SPRT configuration from ConfigData.
-     * @param configData The configuration data to load from.
-     * @param id The identifier for the configuration.
-     * @return SprtConfig if found, std::nullopt otherwise.
-     */
-    [[nodiscard]] static std::optional<SprtConfig> fromConfigData(
-        const QaplaHelpers::ConfigData& configData, 
-        const std::string& id);
 
     /**
      * @brief Creates SPRT configuration from Settings::Manager.

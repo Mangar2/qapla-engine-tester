@@ -18,83 +18,10 @@
  */
 
 #include "tournament-config.h"
-#include "../base-elements/string-helper.h"
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester {
 
-std::vector<QaplaHelpers::IniFile::Section> TournamentConfigFile::toSections(
-    const TournamentConfig& config, const std::string& id) {
-    
-    QaplaHelpers::IniFile::KeyValueMap entries{
-        {"id", id},
-        {"event", config.event},
-        {"file", config.tournamentFilename},
-        {"type", config.type},
-        {"rounds", std::to_string(config.rounds)},
-        {"games", std::to_string(config.games)},
-        {"repeat", std::to_string(config.repeat)},
-        {"noSwap", config.noSwap ? "true" : "false"},
-        {"averageElo", std::to_string(config.averageElo)},
-        {"saveInterval", std::to_string(config.saveInterval)}
-    };
-
-    return { QaplaHelpers::IniFile::Section{ .name = getSectionName(), .entries = entries } };
-}
-
-TournamentConfig TournamentConfigFile::fromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
-    
-    TournamentConfig config;
-    
-    if (sections.empty()) {
-        return config;
-    }
-
-    for (const auto& [key, value] : sections[0].entries) {
-        if (key == "event") {
-            config.event = value;
-        }
-        else if (key == "file") {
-            config.tournamentFilename = value;
-        }
-        else if (key == "type") {
-            config.type = value;
-        }
-        else if (key == "rounds") {
-            config.rounds = QaplaHelpers::to_uint32(value).value_or(1);
-        }
-        else if (key == "games") {
-            config.games = QaplaHelpers::to_uint32(value).value_or(1);
-        }
-        else if (key == "repeat") {
-            config.repeat = QaplaHelpers::to_uint32(value).value_or(1);
-        }
-        else if (key == "noSwap") {
-            config.noSwap = (value == "true");
-        }
-        else if (key == "averageElo") {
-            config.averageElo = QaplaHelpers::to_int(value).value_or(0);
-        }
-        else if (key == "saveInterval") {
-            config.saveInterval = QaplaHelpers::to_uint32(value).value_or(10);
-        }
-    }
-    
-    return config;
-}
-
-std::optional<TournamentConfig> TournamentConfigFile::fromConfigData(
-    const QaplaHelpers::ConfigData& configData, 
-    const std::string& id) {
-    
-    auto sections = configData.getSectionList(getSectionName(), id);
-    if (!sections || sections->empty()) {
-        return std::nullopt;
-    }
-
-    return fromSections(*sections);
-}
 
 TournamentConfig TournamentConfigFile::fromManager(
     Settings::Manager& manager,
