@@ -724,6 +724,7 @@ void EngineProcess::readFromPipeBlocking()
     }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 EngineLine EngineProcess::readLineBlocking()
 {
     bool read = false;
