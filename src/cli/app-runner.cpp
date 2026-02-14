@@ -150,7 +150,11 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
     auto tfile = tGroup->get<std::string>("file");
     
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
-    TournamentFile::setSaveCallback(tfile, tGroup->get<uint32_t>("saveinterval"), tournament_, activeEngines);
+    TournamentFile::setSaveCallback(
+        tfile,
+        tGroup->get<uint32_t>("saveintervalS") * 1000, 
+        tournament_, 
+        activeEngines);
 
     tournament_->createTournament(activeEngines, *tournamentConfig);
     TournamentFile::loadGameResults(tfile, tournament_);
@@ -210,7 +214,11 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
             manager->runMonteCarloTest(*sprtConfig);
         } else {
             const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
-            SprtTournamentFile::setSaveCallback(sprtfile, sprtGroup->get<unsigned int>("saveinterval"), manager, activeEngines);
+            SprtTournamentFile::setSaveCallback(
+                sprtfile,
+                sprtGroup->get<unsigned int>("saveintervalS") * 1000,
+                manager,
+                activeEngines);
 
             manager->createTournament(activeEngines, *sprtConfig);
             SprtTournamentFile::loadGameResults(sprtfile, manager);

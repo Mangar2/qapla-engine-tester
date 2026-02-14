@@ -27,7 +27,7 @@
 
 namespace QaplaTester {
 
- void SprtTournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+ void SprtTournamentFile::setSaveCallback(const std::string& filename, uint32_t saveIntervalMs, 
     const std::shared_ptr<SprtManager>& manager,
     const std::vector<EngineConfig>& engines) {
     
@@ -55,7 +55,7 @@ namespace QaplaTester {
 
                 SprtTournamentFile::save(filename, saveData);
                 Logger::reportLogger().log(std::format("Auto-saved SPRT state to: {}", filename), TraceLevel::info);
-            }, saveInterval);
+            }, saveIntervalMs);
     }
 }
 

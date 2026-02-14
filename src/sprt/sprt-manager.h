@@ -28,6 +28,7 @@
 #include "../opening/openings.h"
 #include "../cli/input-handler.h"
 #include "../base-elements/ini-file.h"
+#include "../base-elements/callback-timer.h"
 
 #include <thread>
 #include <mutex>
@@ -144,11 +145,11 @@ public:
      * @details The manager controls when to save (Start, End, Interval).
      *          The callback itself should always perform the save.
      * @param callback Function to call to perform the save.
-     * @param interval Number of games between periodic saves.
+     * @param interval Time in ms between periodic saves.
      */
-    void setSaveCallback(std::function<void()> callback, uint32_t interval) {
-        saveCallback_ = std::move(callback);
-        saveInterval_ = interval;
+    void setSaveCallback(std::function<void()> callback, uint32_t intervalMs) {
+        saveTimer_.setCallback(std::move(callback));
+        saveTimer_.setInterval(intervalMs);
     }
 
     /**
@@ -314,9 +315,7 @@ private:
 
     // Registration
     std::unique_ptr<InputHandler::CallbackRegistration> sprtCallback_;
-    std::function<void()> saveCallback_;
-    uint32_t saveInterval_ = 0;
-    uint32_t gamesSinceSave_ = 0;
+    QaplaHelpers::CallbackTimer saveTimer_;
 
     // Monte Carlo test thread management
     std::thread monteCarloThread_;

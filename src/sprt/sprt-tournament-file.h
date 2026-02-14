@@ -72,12 +72,12 @@ public:
     /**
      * @brief Sets up an autosave callback for the SPRT manager.
      * @param filename The file path to save to.
-     * @param saveInterval The number of games between autosaves.
+     * @param saveIntervalMs The number of milliseconds between autosaves.
      * @param manager The SPRT manager instance.
      */
     static void setSaveCallback(
         const std::string& filename, 
-        uint32_t saveInterval, 
+        uint32_t saveIntervalMs,
         const std::shared_ptr<SprtManager>& manager,
         const std::vector<EngineConfig>& engines);
 

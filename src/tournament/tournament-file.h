@@ -72,10 +72,10 @@ public:
     /**
      * @brief Sets up an autosave callback for the tournament.
      * @param filename The file path to save to.
-     * @param saveInterval The number of games between autosaves.
+     * @param saveIntervalMs The number of milliseconds between autosaves.
      * @param tournament The tournament instance.
      */
-    static void setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+    static void setSaveCallback(const std::string& filename, uint32_t saveIntervalMs, 
                                 const std::shared_ptr<Tournament>& tournament,
                                 const std::vector<EngineConfig>& engines);
     /**
