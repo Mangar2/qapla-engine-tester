@@ -40,7 +40,12 @@ public:
          * @param value The value of the entry.
          */
         void addEntry(const std::string& key, const std::string& value) {
-            entries.emplace_back(key, value);
+            if (key == "id") {
+                // Ensure 'id' is always the first entry if it exists
+                entries.insert(entries.begin(), { key, value });
+            } else {
+                entries.emplace_back(key, value);
+            }
         }
 
         /**
@@ -128,6 +133,29 @@ public:
         }
         return result;
     }
+
+    /**
+     * @brief Set a value in all Section objects.
+     * 
+     * @param sections The list of sections to modify.
+     * @param key The key of the entry to set. 
+     * @param newValue The new value to set for the specified key in all sections.
+     * @return A new SectionList with updated values.
+     */
+    static SectionList setValueInSections(const SectionList& sections, 
+                                      const std::string& key, 
+                                      const std::string& newValue) {
+        SectionList result;
+        result.reserve(sections.size());
+        for (const auto& section : sections) {
+            Section newSection = section;
+            newSection.changeOrAddEntry(key, newValue);
+            result.push_back(std::move(newSection));
+        }
+        return result;
+    }
+
+     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 
     /**
      * @brief Loads the INI file sections from the input stream.

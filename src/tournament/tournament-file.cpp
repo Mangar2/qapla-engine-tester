@@ -48,7 +48,9 @@ void TournamentFile::save(const std::string& filename,
             sections = configData.getSectionList(sectionName, "all");
         }
         if (sections && !sections->empty()) {
-            for (auto& section : *sections) {
+            // All entries shall have a turnament id, even if they are from the "all" section. 
+            auto tourSections = QaplaHelpers::IniFile::setValueInSections(*sections, "id", id);
+            for (auto& section : tourSections) {
                 auto name = section.name;
                 // Avoid recursive self-reference: The 'file' entry contains the name of this state file.
                 if (name == "tournament") {
@@ -87,15 +89,16 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
         tournament->setSaveCallback(
             [filename,
              configData = Settings::Manager::instance().toConfigData({}),
-             engines, // captured copy
+             engines,
              tournament = tournament.get()]() mutable 
             {
                 auto sections = tournament->getSections();
                 auto saveData = configData;
 
-                // Add engine sections
                 for (const auto& engine : engines) {
-                    saveData.addSection(engine.toSection());
+                    auto engineSection = engine.toSection();
+                    engineSection.addEntry("id", TournamentFile::id);
+                    saveData.addSection(engineSection);
                 }
 
                 for (const auto& section : sections) {
