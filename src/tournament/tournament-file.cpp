@@ -80,23 +80,29 @@ void TournamentFile::save(const std::string& filename,
 }
 
 void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
-                                     const std::shared_ptr<Tournament>& tournament) {
+                                     const std::shared_ptr<Tournament>& tournament, 
+                                     const std::vector<EngineConfig>& engines) {
     // Setup autosave callback if file is specified
     if (!filename.empty()) {
         tournament->setSaveCallback(
             [filename,
              configData = Settings::Manager::instance().toConfigData({}),
+             engines, // captured copy
              tournament = tournament.get()]() mutable 
             {
                 auto sections = tournament->getSections();
-                if (!sections.empty()) {
-                    auto saveData = configData;
-                    for (const auto& section : sections) {
-                        saveData.addSection(section);
-                    }
-                    TournamentFile::save(filename, saveData, TournamentFile::id);
-                    Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
+                auto saveData = configData;
+
+                // Add engine sections
+                for (const auto& engine : engines) {
+                    saveData.addSection(engine.toSection());
                 }
+
+                for (const auto& section : sections) {
+                    saveData.addSection(section);
+                }
+                TournamentFile::save(filename, saveData, TournamentFile::id);
+                Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
             }, saveInterval
         );
     }

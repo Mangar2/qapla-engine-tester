@@ -21,9 +21,11 @@
 
 #include "tournament.h"
 #include "../base-elements/ini-file.h"
+#include "../engine-handling/engine-config.h"
 #include <string>
 #include <array>
 #include <memory>
+#include <vector>
 
 namespace QaplaTester::Settings {
     class Manager;
@@ -74,8 +76,8 @@ public:
      * @param tournament The tournament instance.
      */
     static void setSaveCallback(const std::string& filename, uint32_t saveInterval, 
-                               const std::shared_ptr<Tournament>& tournament);
-
+                                const std::shared_ptr<Tournament>& tournament,
+                                const std::vector<EngineConfig>& engines);
     /**
      * @brief Loads game results from a tournament file into a tournament instance.
      * @param filename The file path to load from.

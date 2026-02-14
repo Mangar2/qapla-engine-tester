@@ -21,8 +21,10 @@
 
 #include "sprt-manager.h"
 #include "../base-elements/ini-file.h"
+#include "../engine-handling/engine-config.h"
 #include <string>
 #include <array>
+#include <vector>
 
 namespace QaplaTester::Settings {
     class Manager;
@@ -76,7 +78,8 @@ public:
     static void setSaveCallback(
         const std::string& filename, 
         uint32_t saveInterval, 
-        const std::shared_ptr<SprtManager>& manager);
+        const std::shared_ptr<SprtManager>& manager,
+        const std::vector<EngineConfig>& engines);
 
     /**
      * @brief Loads game results from a SPRT tournament file.
