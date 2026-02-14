@@ -81,7 +81,7 @@ void TournamentFile::save(const std::string& filename,
     }
 }
 
-void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveInterval, 
+void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveIntervalMs, 
                                      const std::shared_ptr<Tournament>& tournament, 
                                      const std::vector<EngineConfig>& engines) {
     // Setup autosave callback if file is specified
@@ -106,7 +106,7 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
                 }
                 TournamentFile::save(filename, saveData, TournamentFile::id);
                 Logger::reportLogger().log(std::format("Auto-saved tournament state to: {}", filename), TraceLevel::info);
-            }, saveInterval
+            }, saveIntervalMs
         );
     }
 }

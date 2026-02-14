@@ -144,9 +144,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
         concurrency);
     Logger::reportLogger().logStatus(startMsg, "sprt");
 
-    if (saveCallback_) {
-        saveCallback_();
-    }
+    saveTimer_.update();
 
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
@@ -213,29 +211,9 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 }
 
 void SprtManager::autoSave(const SprtResult& result, bool force) {
-    if (!saveCallback_) {
-        return;
-    }
-
-    bool save = false;
-    // Check interval
-    if (saveInterval_ > 0) {
-        gamesSinceSave_++;
-        if (gamesSinceSave_ >= saveInterval_) {
-            save = true;
-            gamesSinceSave_ = 0;
-        }
-    }
-
     // Check decision or finished state
-    if (result.decision.has_value() || (pairing_ && pairing_->isFinished())) {
-        save = true;
-        gamesSinceSave_ = 0;
-    }
-
-    if (save || force) {
-        saveCallback_();
-    }
+    auto saveOnFinished = (result.decision.has_value() || (pairing_ && pairing_->isFinished()));
+    saveTimer_.update(saveOnFinished || force);
 }
 
 std::optional<QaplaHelpers::IniFile::Section> SprtManager::getSection() const {

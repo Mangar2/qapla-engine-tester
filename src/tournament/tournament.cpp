@@ -149,7 +149,6 @@ void Tournament::createPairings(const std::vector<EngineConfig>& players, const 
 void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     ++raitingTrigger_;
     ++outcomeTrigger_;
-    ++saveTrigger_;
     {
         std::scoped_lock lock(stateMutex_);
         result_ = getResult();
@@ -170,34 +169,15 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
 }
 
 void Tournament::checkAutoSave() {
-    if (!saveCallback_) {
-        return;
-    }
-
-    bool save = false;
-
-    if (config_.saveInterval > 0 && saveTrigger_ >= config_.saveInterval) {
-        saveTrigger_ = 0;
-        save = true;
-    }
-
-    if (!save) {
-        bool allFinished = true;
-        for (const auto& pairing : pairings_) {
-            if (!pairing->isFinished()) {
-                allFinished = false;
-                break;
-            }
-        }
-        if (allFinished) {
-            save = true;
-            saveTrigger_ = 0;
+    bool allFinished = true;
+    for (const auto& pairing : pairings_) {
+        if (!pairing->isFinished()) {
+            allFinished = false;
+            break;
         }
     }
 
-    if (save) {
-        saveCallback_();
-    }
+    saveTimer_.update(allFinished);
 }
 
 void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler,  GameManagerPool& pool) {
@@ -212,9 +192,7 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
 	}
 	PgnSave::tournament().initialize(config_.event, isResumingTournament);
 	
-    if (saveCallback_) {
-        saveCallback_();
-    }
+    saveTimer_.update(true);
 
 	pool.setConcurrency(concurrency, true);
     if (registerToInputhandler) {

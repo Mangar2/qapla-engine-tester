@@ -28,11 +28,13 @@
 #include "../engine-handling/engine-config.h"
 #include "../base-elements/ini-file.h"
 #include "../base-elements/change-tracker.h"
+#include "../base-elements/callback-timer.h"
 
 #include <vector>
 #include <memory>
 #include <string>
 #include <functional>
+#include <mutex>
 
 namespace QaplaTester {
 
@@ -43,7 +45,7 @@ struct TournamentConfig {
     std::string event;
     std::string type = "gauntlet";
     std::string tournamentFilename;
-    uint32_t saveInterval = 0;
+    uint32_t saveIntervalMs = 0;
     uint32_t games = 2;
     uint32_t rounds = 1;
     uint32_t repeat = 2;
@@ -181,11 +183,12 @@ public:
      * @details The manager controls when to save (Start, End, Interval).
      *          The callback itself should always perform the save.
      * @param callback Function to call to perform the save.
-     * @param interval Number of games between periodic saves.
+     * @param interval Time in ms between periodic saves.
      */
-    void setSaveCallback(std::function<void()> callback, uint32_t interval) {
-        saveCallback_ = std::move(callback);
-        config_.saveInterval = interval;
+    void setSaveCallback(std::function<void()> callback, uint32_t intervalMs) {
+        saveTimer_.setCallback(std::move(callback));
+        saveTimer_.setInterval(intervalMs);
+        config_.saveIntervalMs = intervalMs;
     }
 
 private:
@@ -223,13 +226,11 @@ private:
     std::vector<std::shared_ptr<PairTournament>> pairings_;
     uint32_t raitingTrigger_ = 0;
     uint32_t outcomeTrigger_ = 0;
-    uint32_t saveTrigger_ = 0;
 
-	mutable std::mutex stateMutex_; ///< Mutex for thread-safe access to tournament state
-    
-    // Registration
+    mutable std::mutex stateMutex_; ///< Mutex for thread-safe access to tournament state
+
     std::unique_ptr<InputHandler::CallbackRegistration> tournamentCallback_;
-    std::function<void()> saveCallback_;
+    QaplaHelpers::CallbackTimer saveTimer_;
 };
 
 } // namespace QaplaTester

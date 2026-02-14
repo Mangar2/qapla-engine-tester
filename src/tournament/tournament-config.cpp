@@ -36,7 +36,7 @@ TournamentConfig TournamentConfigFile::fromManager(
         .event = tournament->get<std::string>("event"),
         .type = tournament->get<std::string>("type"),
         .tournamentFilename = tournament->get<std::string>("file"),
-        .saveInterval = tournament->get<unsigned int>("saveinterval"),
+        .saveIntervalMs = tournament->get<unsigned int>("saveintervalS") * 1000,
         .games = tournament->get<unsigned int>("games"),
         .rounds = tournament->get<unsigned int>("rounds"),
         .repeat = tournament->get<unsigned int>("repeat"),
