@@ -20,7 +20,6 @@
 #pragma once
 
 #include "../game-manager/adjudication-manager.h"
-#include "../base-elements/ini-file.h"
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester {
@@ -41,46 +40,6 @@ public:
      * @return The section name used in INI files.
      */
     [[nodiscard]] static constexpr const char* getResignSectionName() { return "resign"; }
-
-    /**
-     * @brief Creates draw adjudication sections from configuration.
-     * @param config The draw adjudication configuration.
-     * @param id The identifier for the configuration.
-     * @return Vector containing draw adjudication section.
-     */
-    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toDrawSections(
-        const AdjudicationManager::DrawAdjudicationConfig& config,
-        const std::string& id);
-
-    /**
-     * @brief Creates resign adjudication sections from configuration.
-     * @param config The resign adjudication configuration.
-     * @param id The identifier for the configuration.
-     * @return Vector containing resign adjudication section.
-     */
-    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toResignSections(
-        const AdjudicationManager::ResignAdjudicationConfig& config,
-        const std::string& id);
-
-    /**
-     * @brief Loads draw adjudication configuration from ConfigData.
-     * @param configData The configuration data to load from.
-     * @param id The identifier for the configuration.
-     * @return Draw adjudication configuration if found, std::nullopt otherwise.
-     */
-    [[nodiscard]] static std::optional<AdjudicationManager::DrawAdjudicationConfig> fromDrawConfigData(
-        const QaplaHelpers::ConfigData& configData,
-        const std::string& id);
-
-    /**
-     * @brief Loads resign adjudication configuration from ConfigData.
-     * @param configData The configuration data to load from.
-     * @param id The identifier for the configuration.
-     * @return Resign adjudication configuration if found, std::nullopt otherwise.
-     */
-    [[nodiscard]] static std::optional<AdjudicationManager::ResignAdjudicationConfig> fromResignConfigData(
-        const QaplaHelpers::ConfigData& configData,
-        const std::string& id);
 
     /**
      * @brief Creates draw adjudication configuration from Settings::Manager.

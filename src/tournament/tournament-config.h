@@ -20,7 +20,6 @@
 #pragma once
 
 #include "../tournament/tournament.h"
-#include "../base-elements/ini-file.h"
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester {
@@ -35,33 +34,6 @@ public:
      * @return The section name used in INI files.
      */
     [[nodiscard]] static constexpr const char* getSectionName() { return "tournament"; }
-
-    /**
-     * @brief Creates INI file sections from TournamentConfig.
-     * @param config The tournament configuration to convert.
-     * @param id The identifier for the configuration.
-     * @return Vector containing one section with tournament configuration.
-     */
-    [[nodiscard]] static std::vector<QaplaHelpers::IniFile::Section> toSections(
-        const TournamentConfig& config, const std::string& id);
-
-    /**
-     * @brief Loads tournament configuration from INI file sections.
-     * @param sections The sections containing tournament configuration.
-     * @return TournamentConfig populated from sections.
-     */
-    [[nodiscard]] static TournamentConfig fromSections(
-        const std::vector<QaplaHelpers::IniFile::Section>& sections);
-
-    /**
-     * @brief Loads tournament configuration from ConfigData.
-     * @param configData The configuration data to load from.
-     * @param id The identifier for the configuration.
-     * @return TournamentConfig if found, std::nullopt otherwise.
-     */
-    [[nodiscard]] static std::optional<TournamentConfig> fromConfigData(
-        const QaplaHelpers::ConfigData& configData, 
-        const std::string& id);
 
     /**
      * @brief Creates tournament configuration from Settings::Manager.

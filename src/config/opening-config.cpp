@@ -18,78 +18,9 @@
  */
 
 #include "opening-config.h"
-#include "../base-elements/string-helper.h"
 #include "../base-elements/app-error.h"
 
 namespace QaplaTester {
-
-std::vector<QaplaHelpers::IniFile::Section> OpeningConfig::toSections(
-    const Openings& openings, const std::string& id) {
-    
-    QaplaHelpers::IniFile::KeyValueMap entries{
-        {"id", id},
-        {"file", openings.file},
-        {"order", openings.order},
-        {"seed", std::to_string(openings.seed)},
-        {"start", std::to_string(openings.start + 1)},
-        {"policy", openings.policy}
-    };
-
-    if (openings.plies) {
-        entries.emplace_back("plies", std::to_string(*openings.plies));
-    }
-
-    return {{
-        .name = getSectionName(),
-        .entries = entries
-    }};
-}
-
-Openings OpeningConfig::fromSections(
-    const std::vector<QaplaHelpers::IniFile::Section>& sections) {
-    
-    Openings openings;
-    
-    if (sections.empty()) {
-        return openings;
-    }
-
-    for (const auto& [key, value] : sections[0].entries) {
-        if (key == "file") {
-            openings.file = value;
-        }
-        else if (key == "order" && (value == "sequential" || value == "random")) {
-            openings.order = value;
-        }
-        else if (key == "seed") {
-            openings.seed = QaplaHelpers::to_uint32(value).value_or(815);
-        }
-        else if (key == "plies") {
-            openings.plies = QaplaHelpers::to_int(value);
-        }
-        else if (key == "start") {
-            openings.start = QaplaHelpers::to_uint32(value).value_or(1);
-            openings.start--;
-        }
-        else if (key == "policy" && (value == "default" || value == "encounter" || value == "round")) {
-            openings.policy = value;
-        }
-    }
-    
-    return openings;
-}
-
-std::optional<Openings> OpeningConfig::fromConfigData(
-    const QaplaHelpers::ConfigData& configData, 
-    const std::string& id) {
-    
-    auto sections = configData.getSectionList(getSectionName(), id);
-    if (!sections || sections->empty()) {
-        return std::nullopt;
-    }
-
-    return fromSections(*sections);
-}
 
 Openings OpeningConfig::fromManager(
     Settings::Manager& manager,
