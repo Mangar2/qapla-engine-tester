@@ -22,6 +22,7 @@
 
 #include "../cli/settings-manager.h"
 #include "../base-elements/logger.h"
+#include "src/base-elements/ini-file.h"
 #include <stdexcept>
 
 namespace QaplaTester {
@@ -37,7 +38,7 @@ namespace QaplaTester {
             [filename,
              configData = Settings::Manager::instance().toConfigData(),
              manager = manager.get(),
-             engines // Capture engines by value
+             engines
             ]() mutable 
             {
                 auto saveData = configData;
@@ -45,9 +46,11 @@ namespace QaplaTester {
                 if (section) {
                     saveData.addSection(*section);
                 }
-                // Add engine sections
+
                 for (const auto& engine : engines) {
-                    saveData.addSection(engine.toSection());
+                    auto engineSection = engine.toSection();
+                    engineSection.addEntry("id", id);
+                    saveData.addSection(engineSection);
                 }
 
                 SprtTournamentFile::save(filename, saveData);
@@ -76,7 +79,9 @@ void SprtTournamentFile::save(const std::string& filename,
             sections = configData.getSectionList(sectionName, "all");
         }
         if (sections && !sections->empty()) {
-            for (auto& section : *sections) {
+            // All entries shall have a sprt-tournament id, even if they are from the "all" section. 
+            auto sprtSections = QaplaHelpers::IniFile::setValueInSections(*sections, "id", id);
+            for (auto& section : sprtSections) {
                 auto name = section.name;
                 // Avoid recursive self-reference: The 'file' entry contains the name of this state file.
                 if (name == "sprt") {
