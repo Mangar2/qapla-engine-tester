@@ -28,50 +28,13 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <fstream>
-#include <stdexcept>
-#include <iostream>
 
 namespace QaplaTester {
 
 class EngineConfigManager {
 public:
 
-    /**
-     * @brief Loads engine configurations from a file.
-     *        Only valid EngineConfig entries are added; parsing stops at the first [section] header.
-     * @param filePath Path to the tournament or config file.
-     * @throws std::runtime_error if the file cannot be opened.
-     */
-    void loadFromFile(const std::string& filePath) {
-        std::ifstream file(filePath);
-        if (!file.is_open()) {
-            throw std::runtime_error("Unable to open file: " + filePath);
-        }
-        loadFromStream(file);
-    }
-
-    /**
-     * @brief Loads engine configurations from a stream.
-     *        Stops parsing at the first non-config section (e.g., [round...]).
-     * @param in The input stream containing engine configuration lines.
-     */
-    void loadFromStream(std::istream& in);
-
-    /**
-     * Saves all configurations to an INI file.
-     * Each configuration is separated by a blank line.
-     * @param filePath Path to the INI file.
-     */
-    void saveToFile(const std::string& filePath) const;
-    
-    /**
-	 * @brief Saves all configurations to an output stream.
-	 * @param out The output stream to write the configurations to.
-     */
-    void saveToStream(std::ostream& out) const;
-
-    /**
+      /**
      * Returns all engine configurations.
      * @return A vector of EngineConfig.
      */

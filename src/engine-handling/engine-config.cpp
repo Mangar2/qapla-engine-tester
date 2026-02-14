@@ -29,7 +29,6 @@
 #include <iostream>
 #include <unordered_set>
 #include <vector>
-#include <optional>
 #include <stdexcept>
 #include <set>
 
@@ -215,63 +214,42 @@ void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     }
 }
 
-std::istream& operator>>(std::istream& in, EngineConfig& config) {
+EngineConfig EngineConfig::createFromSection(const QaplaHelpers::IniFile::Section& section) {
 
-    std::string line;
+    EngineConfig config;
     std::unordered_set<std::string> seenKeys;
-    
-	auto sectionHeader = QaplaHelpers::readSectionHeader(in);
-    if (!sectionHeader) { return in; }
-    if (*sectionHeader != "engine") {
-		throw AppError::makeInvalidParameters("Invalid section header, expected [engine], got: " + 
-            (sectionHeader ? *sectionHeader : "none"));
-    }
 
-    while (in && in.peek() != '[' && std::getline(in, line)) {
-        if (line.empty() || line[0] == '#' || line[0] == ';') { continue; }
-
-        auto kv = QaplaHelpers::parseKeyValue(line);
-        if (!kv) {
-            throw AppError::makeInvalidParameters("Invalid setting in line " + line 
-                + "'. Expected 'key=value' format.");
-        }
-        const auto& [key, value] = *kv;
-
+    for (const auto& [key, value] : section.entries) {
         if (!seenKeys.insert(key).second) {
             throw std::runtime_error("Duplicate key: " + key);
         }
-		config.setValue(key, value);
+        config.setValue(key, value);
     }
 
     config.finalizeSetOptions();
-    return in;
+    return config;
 }
 
-void EngineConfig::save(std::ostream& out, const std::string& section) const {
-     if (!out) { throw std::runtime_error("Invalid output stream"); }
+QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectionName) const {
+    QaplaHelpers::IniFile::Section section;
+    section.name = sectionName;
 
-    if (!section.empty()) { out << "[" << section << "]\n"; }
-
-    visitProperties([&out](const std::string& key, const std::string& value) {
+    visitProperties([&section](const std::string& key, const std::string& value) {
         if (value.empty()) { return; }
         // Skip default boolean values to keep config clean
         if ((key == "ponder" || key == "whitepov" || key == "gauntlet") && value == "false") {
-             return;
+            return;
         }
         // Don't save originalName as it is discovered from the engine executable
         if (key == "originalName") { return; }
 
-        out << key << "=" << value << '\n';
+        section.addEntry(key, value);
     });
 
     for (const auto& [_, value] : optionValues_) {
-        out << value.originalName << "=" << value.value << '\n';
+        section.addEntry(value.originalName, value.value);
     }
-}
-
-std::ostream& operator<<(std::ostream& out, const EngineConfig& config) {
-    config.save(out);
-    return out;
+    return section;
 }
 
 std::unordered_map<std::string, std::string> EngineConfig::toDisambiguationMap() const {

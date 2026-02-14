@@ -23,33 +23,6 @@
 
 namespace QaplaTester {
 
-void EngineConfigManager::loadFromStream(std::istream& input) {
-
-    errors.clear();
-
-    while (input) {
-        EngineConfig config;
-
-        input >> config;
-        addOrReplaceByCmd(config);
-    }
-}
-
-void EngineConfigManager::saveToStream(std::ostream& out) const {
-    for (const auto& config : configs) {
-        out << config;
-        out << "\n";
-    }
-}
-
-void EngineConfigManager::saveToFile(const std::string& filePath) const {
-    std::ofstream file(filePath);
-    if (!file.is_open()) {
-        throw std::runtime_error("Unable to write file");
-    }
-
-    saveToStream(file);
-}
 
 const EngineConfig* EngineConfigManager::getConfig(const std::string& name) const {
     for (const auto& config : configs) {

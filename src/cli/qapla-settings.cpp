@@ -34,7 +34,6 @@
 #include "../config/opening-config.h"
 #include "../config/pgn-config.h"
 #include "../config/adjudication-config.h"
-#include "../config/engine-config.h"
 #include "../epd/epd-manager.h"
 #include "../spsa/spsa-optimizer.h"
 #include "../mcp/mcp-server.h"
@@ -430,10 +429,6 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& /*id*/) {
     Settings::Manager::instance().parseInput(configData, false);
-}
-
-const std::vector<EngineConfiguration>& QaplaSettings::getAllEngineConfigurations() const {
-    return m_allEngineConfigurations;
 }
 
 } // namespace QaplaTester::Settings
