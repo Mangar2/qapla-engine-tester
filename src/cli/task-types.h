@@ -5,7 +5,6 @@
 #include "../epd/epd-file.h"
 #include "../spsa/spsa-file.h"
 #include <string>
-#include <stdexcept>
 
 namespace QaplaTester::Cli {
 
@@ -15,7 +14,8 @@ namespace QaplaTester::Cli {
         Epd,
         Spsa,
         Test,
-        All
+        All,
+        None
     };
 
     inline std::string getTaskId(TaskType type) {
@@ -26,7 +26,7 @@ namespace QaplaTester::Cli {
             case TaskType::Spsa: return SpsaFile::id;
             case TaskType::Test: return "test";
             case TaskType::All: return "all";
-            default: throw std::runtime_error("Unknown task type");
+            default: return "none";
         }
     }
 
@@ -46,6 +46,9 @@ namespace QaplaTester::Cli {
         if (name == "test") {
             return TaskType::Test;
         }
-        return TaskType::All;
+        if (name == "all") {
+            return TaskType::All;
+        }
+        return TaskType::None;
     }
 }
