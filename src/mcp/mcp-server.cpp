@@ -33,7 +33,6 @@
 #include "../cli/app-runner.h"
 #include "../cli/task-types.h"
 #include "../engine-handling/engine-worker-factory.h"
-#include "../game-manager/game-manager-pool.h"
 
 #include <iostream>
 #include <sstream>
@@ -790,24 +789,21 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
     const std::string command = arguments.at("command").asString();
     
     std::string result;
-    GameManagerPool& pool = GameManagerPool::getInstance();
 
     if (command == "status") {
-        result = std::format("Running games: {}", pool.runningGameCount());
+        result = AppRunner::getRunningGameCount();
     } else if (command == "set_concurrency") {
         if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
              throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
         }
         int value = static_cast<int>(arguments.at("value").asDouble());
-        pool.setConcurrency(value, true, true);
+        AppRunner::setConcurrency(value);
         result = std::format("Concurrency set to {}.", value);
     } else if (command == "stop") {
-        pool.stopAll();
-        pool.waitForTask();
+        AppRunner::stop(false);
         result = "All tasks stopped.";
     } else if (command == "stop_nice") {
-        pool.setConcurrency(0, true, false);
-        pool.waitForTask();
+        AppRunner::stop(true);
         result = "All tasks stopped gracefully.";
     } else {
          throw AppError::makeInvalidParameters(std::format("Unknown control command '{}'.", command));

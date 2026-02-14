@@ -21,8 +21,10 @@
 
 #include "../base-elements/app-error.h"
 #include "settings-manager.h"
+#include "task-types.h"
 
 #include <memory>
+#include <atomic>
 
 namespace QaplaTester {
 
@@ -101,6 +103,23 @@ public:
      */
     [[nodiscard]] AppReturnCode runDispatcher(bool background = false);
 
+    /**
+     * @brief Stops all running tasks.
+     * @param nice If true, stops gracefully by setting concurrency to 0.
+     */
+    static void stop(bool nice = false);
+
+    /**
+     * @brief Sets the concurrency level for the game manager pool.
+     * @param value Concurrency value.
+     */
+    static void setConcurrency(int value);
+
+    /**
+     * @brief Returns the status of the runner (running games count).
+     */
+    static std::string getRunningGameCount();
+
     [[nodiscard]] std::shared_ptr<Tournament> getTournament() const { return tournament_; }
     [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }
     [[nodiscard]] std::shared_ptr<SprtManager> getSprtManager() const { return sprtManager_; }
@@ -113,6 +132,8 @@ private:
     std::shared_ptr<EpdManager> epdManager_;
     std::shared_ptr<SprtManager> sprtManager_;
     std::shared_ptr<SPSAOptimizer> spsaOptimizer_;
+
+    std::atomic<Cli::TaskType> currentTask_ = Cli::TaskType::None;
 };
 
 } // namespace QaplaTester

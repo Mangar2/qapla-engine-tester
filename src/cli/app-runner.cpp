@@ -323,7 +323,30 @@ void AppRunner::setPgnConfig() {
     PgnSave::tournament().setOptions(*pgnOptions);
 }
 
+void AppRunner::stop(bool nice) {
+    auto& pool = GameManagerPool::getInstance();
+    if (nice) {
+        pool.setConcurrency(0, true, false);
+    }
+    else {
+        pool.stopAll();
+    }
+    pool.waitForTask();
+}
+
+void AppRunner::setConcurrency(int value) {
+    GameManagerPool::getInstance().setConcurrency(value, true, true);
+}
+
+std::string AppRunner::getRunningGameCount() {
+    return std::format("Running games: {}", GameManagerPool::getInstance().runningGameCount());
+}
+
 AppReturnCode AppRunner::runDispatcher(bool background) {
+    if (GameManagerPool::getInstance().runningGameCount() > 0) {
+         throw AppError::makeInvalidParameters("A task is already running. Please stop it first.");
+    }
+
     AppReturnCode returnCode = AppReturnCode::NoError;
     bool hasTask = false;
 
@@ -331,26 +354,31 @@ AppReturnCode AppRunner::runDispatcher(bool background) {
     setAdjudicationOptions();
 
     if (Settings::Manager::instance().getGroupInstance("test")) {
+        currentTask_ = Cli::TaskType::Test;
         returnCode = runTest(*Settings::Manager::instance().getGroupInstance("test"), returnCode);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("epd")) {
+        currentTask_ = Cli::TaskType::Epd;
         returnCode = runEpd(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("tournament")) {
+        currentTask_ = Cli::TaskType::Tournament;
         returnCode = runTournament(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("sprt")) {
+        currentTask_ = Cli::TaskType::Sprt;
         returnCode = runSprt(returnCode, background);
         hasTask = true;
     }
 
     if (Settings::Manager::instance().getGroupInstance("spsa")) {
+        currentTask_ = Cli::TaskType::Spsa;
         returnCode = runSpsa(returnCode, background);
         hasTask = true;
     }
