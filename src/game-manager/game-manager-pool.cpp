@@ -55,6 +55,7 @@ GameManagerPool::GameManagerPool() {
                 this->togglePause();
 			}
         });
+    controller_ = std::make_shared<PoolController>(this);
 }
 
 void GameManagerPool::shutdown() {
@@ -437,6 +438,27 @@ bool GameManagerPool::maybeDeactivateManager(std::shared_ptr<GameTaskProvider>& 
 		taskProvider.reset();
 	}
     return tooMany;
+}
+
+void GameManagerPool::PoolController::stopAll() {
+    std::scoped_lock lock(mutex_);
+    if (pool_ != nullptr) {
+        pool_->stopAll();
+    }
+}
+
+std::shared_ptr<GameManagerPool::PoolController> GameManagerPool::getController() {
+    return controller_;
+}
+
+GameManagerPool::~GameManagerPool() {
+    // Stop assignments first
+    shutdown();
+    
+    // Invalidate the controller
+    if (controller_) {
+        controller_->detach();
+    }
 }
 
 } // namespace QaplaTester
