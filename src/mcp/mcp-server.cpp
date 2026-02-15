@@ -244,7 +244,14 @@ void McpServer::listTools(const JsonValue& requestId) {
         },
         {
             .name = "set_logging",
-            .description = "Configures logging settings dynamically.",
+            .description = "Dynamically configures logging parameters. "
+                           "SCOPE: "
+                           "1. 'logging_path': Sets target directory for new logs. "
+                           "2. 'logging_mcp': Sets MCP diagnostic verbosity (none|result|all). "
+                           "3. 'logging_engine': (Bool) Toggles logging of CRITICAL engine events (crashes, illegal moves, disconnects) only. "
+                           "CONSTRAINTS: "
+                           "- Does NOT control raw UCI/XBoard protocol tracing (Use 'manage_engines' -> 'engine_trace'). "
+                           "- Engine protocol traffic is NOT emitted via MCP (stored on disk only).",
             .groups = {"logging"}
         },
         {
