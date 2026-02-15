@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <numbers>
 
 namespace fastchess {
 
@@ -31,7 +32,7 @@ SPRT::SPRT(double alpha, double beta, double elo0, double elo1, std::string mode
         elo0_ = elo0;
         elo1_ = elo1;
 
-        model_ = model;
+        model_ = std::move(model);
     }
 }
 
@@ -46,23 +47,27 @@ double SPRT::bayeseloToScore(double bayeselo, double drawelo) noexcept {
 }
 
 double SPRT::neloToScoreWDL(double nelo, double variance) noexcept {
-    return nelo * std::sqrt(variance) / (800.0 / std::log(10)) + 0.5;
+    return nelo * std::sqrt(variance) / (800.0 / std::numbers::ln10) + 0.5;
 }
 
 double SPRT::neloToScorePenta(double nelo, double variance) noexcept {
-    return nelo * std::sqrt(2.0 * variance) / (800.0 / std::log(10)) + 0.5;
+    return nelo * std::sqrt(2.0 * variance) / (800.0 / std::numbers::ln10) + 0.5;
 }
 
-void SPRT::isValid(double alpha, double beta, double elo0, double elo1, std::string model, bool& report_penta) {
+void SPRT::isValid(double alpha, double beta, double elo0, double elo1, const std::string& model, bool& report_penta) {
     if (elo0 >= elo1) {
         throw std::runtime_error("Error; SPRT: elo0 must be less than elo1!");
-    } else if (alpha <= 0 || alpha >= 1) {
+    } 
+    if (alpha <= 0 || alpha >= 1) {
         throw std::runtime_error("Error; SPRT: alpha must be a decimal number between 0 and 1!");
-    } else if (beta <= 0 || beta >= 1) {
+    } 
+    if (beta <= 0 || beta >= 1) {
         throw std::runtime_error("Error; SPRT: beta must be a decimal number between 0 and 1!");
-    } else if (alpha + beta >= 1) {
+    } 
+    if (alpha + beta >= 1) {
         throw std::runtime_error("Error; SPRT: sum of alpha and beta must be less than 1!");
-    } else if (model != "normalized" && model != "bayesian" && model != "logistic") {
+    } 
+    if (model != "normalized" && model != "bayesian" && model != "logistic") {
         throw std::runtime_error("Error; SPRT: invalid SPRT model!");
     }
 
@@ -75,27 +80,30 @@ void SPRT::isValid(double alpha, double beta, double elo0, double elo1, std::str
 }
 
 static double regularize(int value) {
-    if (value == 0) return 1e-3;
+    if (value == 0) {
+        return 1e-3;
+    }
     return value;
 }
 
 double SPRT::getLLR(const Stats& stats, bool penta) const noexcept {
-    if (penta)
+    if (penta) {
         return getLLR(stats.penta_WW, stats.penta_WD, stats.penta_WL, stats.penta_DD, stats.penta_LD, stats.penta_LL);
-
+    } 
     return getLLR(stats.wins, stats.draws, stats.losses);
 }
 
 double SPRT::getFraction(const double llr) const noexcept {
     if (llr >= 0) {
         return llr / upper_;
-    } else {
-        return -llr / lower_;
-    }
+    } 
+    return -llr / lower_;
 }
 
 double SPRT::getLLR(int win, int draw, int loss) const noexcept {
-    if (!enabled_) return 0.0;
+    if (!enabled_) {
+        return 0.0;
+    }
 
     double L     = regularize(loss);
     double D     = regularize(draw);
@@ -107,24 +115,27 @@ double SPRT::getLLR(int win, int draw, int loss) const noexcept {
         double t0 = elo0_ / (800.0 / std::log(10));
         double t1 = elo1_ / (800.0 / std::log(10));
         return getLLR_normalized(total, {0.0, 0.5, 1.0}, probs, t0, t1);
-    } else if (model_ == "bayesian") {
-        if (win == 0 || loss == 0) return 0.0;
+    } 
+    if (model_ == "bayesian") {
+        if (win == 0 || loss == 0) {
+            return 0.0;
+        }
         double L       = probs[0];
         double W       = probs[2];
         double drawelo = 200 * std::log10((1 - L) / L * (1 - W) / W);
         double score0  = bayeseloToScore(elo0_, drawelo);
         double score1  = bayeseloToScore(elo1_, drawelo);
         return getLLR_logistic(total, {0.0, 0.5, 1.0}, probs, score0, score1);
-    } else {
-        double score0 = leloToScore(elo0_);
-        double score1 = leloToScore(elo1_);
-        return getLLR_logistic(total, {0.0, 0.5, 1.0}, probs, score0, score1);
-    }
+    } 
+    double score0 = leloToScore(elo0_);
+    double score1 = leloToScore(elo1_);
+    return getLLR_logistic(total, {0.0, 0.5, 1.0}, probs, score0, score1);
 }
 
 double SPRT::getLLR(int penta_WW, int penta_WD, int penta_WL, int penta_DD, int penta_LD, int penta_LL) const noexcept {
-    if (!enabled_) return 0.0;
-
+    if (!enabled_) {
+        return 0.0;
+    }
     double LL    = regularize(penta_LL);
     double LD    = regularize(penta_LD);
     double WL_DD = regularize(penta_DD + penta_WL);
@@ -139,17 +150,18 @@ double SPRT::getLLR(int penta_WW, int penta_WD, int penta_WL, int penta_DD, int 
         double t0 = std::sqrt(2.0) * elo0_ / (800.0 / std::log(10));
         double t1 = std::sqrt(2.0) * elo1_ / (800.0 / std::log(10));
         return getLLR_normalized(total, {0.0, 0.25, 0.5, 0.75, 1.0}, probs, t0, t1);
-    } else {
-        double score0 = leloToScore(elo0_);
-        double score1 = leloToScore(elo1_);
-        return getLLR_logistic(total, {0.0, 0.25, 0.5, 0.75, 1.0}, probs, score0, score1);
-    }
+    } 
+    double score0 = leloToScore(elo0_);
+    double score1 = leloToScore(elo1_);
+    return getLLR_logistic(total, {0.0, 0.25, 0.5, 0.75, 1.0}, probs, score0, score1);
 }
 
 template <size_t N>
 static double mean(std::array<double, N> x, std::array<double, N> p) {
     double result = 0.0;
-    for (size_t i = 0; i < N; i++) result += x[i] * p[i];
+    for (size_t i = 0; i < N; i++) {
+        result += x[i] * p[i];
+    }
     return result;
 }
 
@@ -157,7 +169,9 @@ template <size_t N>
 static std::tuple<double, double> mean_and_variance(std::array<double, N> x, std::array<double, N> p) {
     double mu  = mean(x, p);
     double var = 0.0;
-    for (size_t i = 0; i < N; i++) var += p[i] * (x[i] - mu) * (x[i] - mu);
+    for (size_t i = 0; i < N; i++) {
+        var += p[i] * (x[i] - mu) * (x[i] - mu);
+    }
     return std::make_tuple(mu, var);
 }
 
@@ -176,7 +190,7 @@ static double itp(F f, double a, double b, double f_a, double f_b, double k_1, d
     double n_max  = n_half + n_0;
     for (size_t i = 0; std::abs(b - a) > 2.0 * epsilon; i++) {
         double x_half = (a + b) / 2.0;
-        double r      = epsilon * std::pow(2.0, n_max - i) - (b - a) / 2.0;
+        double r      = epsilon * std::pow(2.0, n_max - static_cast<double>(i)) - (b - a) / 2.0;
         double delta  = k_1 * std::pow(b - a, k_2);
 
         double x_f = (f_b * a - f_a * b) / (f_b - f_a);
@@ -241,7 +255,9 @@ double SPRT::getLLR_logistic(double total, std::array<double, N> scores, std::ar
     std::array<double, N> p0 = mle(s0);
     std::array<double, N> p1 = mle(s1);
     std::array<double, N> lpr;
-    for (size_t i = 0; i < N; i++) lpr[i] = std::log(p1[i]) - std::log(p0[i]);
+    for (size_t i = 0; i < N; i++) {
+        lpr[i] = std::log(p1[i]) - std::log(p0[i]);
+    }
     return total * mean(lpr, probs);
 }
 
@@ -301,7 +317,9 @@ double SPRT::getLLR_normalized(double total, std::array<double, N> scores, std::
             }
 
             // Good enough?
-            if (max_diff < mle_epsilon) break;
+            if (max_diff < mle_epsilon) {
+                break;
+            }
         }
 
         return p;
@@ -310,17 +328,23 @@ double SPRT::getLLR_normalized(double total, std::array<double, N> scores, std::
     std::array<double, N> p0 = mle(0.5, t0);
     std::array<double, N> p1 = mle(0.5, t1);
     std::array<double, N> lpr;
-    for (size_t i = 0; i < N; i++) lpr[i] = std::log(p1[i]) - std::log(p0[i]);
+    for (size_t i = 0; i < N; i++) {
+        lpr[i] = std::log(p1[i]) - std::log(p0[i]);
+    }
     return total * mean(lpr, probs);
 }
 
 SPRTResult SPRT::getResult(double llr) const noexcept {
-    if (!enabled_) return SPRT_CONTINUE;
+    if (!enabled_) {
+        return SPRT_CONTINUE;
+    }
 
-    if (llr >= upper_)
+    if (llr >= upper_) {
         return SPRT_H1;
-    else if (llr <= lower_)
+    }
+    if (llr <= lower_) {
         return SPRT_H0;
+    }
     return SPRT_CONTINUE;
 }
 

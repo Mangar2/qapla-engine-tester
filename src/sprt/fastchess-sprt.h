@@ -41,10 +41,10 @@ class SPRT {
 
     [[nodiscard]] static double leloToScore(double lelo) noexcept;
     [[nodiscard]] static double bayeseloToScore(double bayeselo, double drawelo) noexcept;
-    [[nodiscard]] static double neloToScoreWDL(double nelo, double stdDeviation) noexcept;
-    [[nodiscard]] static double neloToScorePenta(double nelo, double stdDeviation) noexcept;
+    [[nodiscard]] static double neloToScoreWDL(double nelo, double variance) noexcept;
+    [[nodiscard]] static double neloToScorePenta(double nelo, double variance) noexcept;
 
-    static void isValid(double alpha, double beta, double elo0, double elo1, std::string model, bool& report_penta);
+    static void isValid(double alpha, double beta, double elo0, double elo1, const std::string& model, bool& report_penta);
 
    private:
     [[nodiscard]] double getLLR(int win, int draw, int loss) const noexcept;

@@ -21,7 +21,6 @@
 
 #include <optional>
 #include <string>
-#include <array>
 #include <cstdint>
 #include <tuple>
 
@@ -195,7 +194,7 @@ namespace FastchessSprt {
      * @param params Parameters for the SPRT computation.
      * @return SprtResult containing decision, LLR, bounds and all relevant values.
      */
-    SprtResult compute(SprtParameters params);
+    SprtResult compute(const SprtParameters& params);
 
 } // namespace FastchessSprt
 

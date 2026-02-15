@@ -74,7 +74,7 @@ std::string formatInfo(const SprtResult& result) {
 } // namespace SprtBase
 
 // ============================================================================
-// Classical Trinomial SPRT (Derived from cutechess, tested)
+// Classical Trinomial SPRT (Derived from cutechess)
 // ============================================================================
 
 namespace ClassicalSprt {
@@ -132,6 +132,15 @@ SprtResult compute(
     const auto [lBound, uBound] = SprtBase::computeBounds(alpha, beta);
     int totalGames = winsA + draws + winsB;
 
+    std::optional<bool> decision;
+    if (llr >= uBound) {
+        decision = true; // Accept H1
+    } else if (llr <= lBound) {
+        decision = false; // Accept H0
+    } else {
+        decision = std::nullopt; // No decision yet
+    }
+
     SprtResult result {
         .llr = llr,
         .lowerBound = lBound,
@@ -143,8 +152,7 @@ SprtResult compute(
         .engineB = engineB,
         .eloH0 = eloH0,
         .eloH1 = eloH1,
-        .decision = llr >= uBound ? std::optional<bool>(true) :
-                     llr <= lBound ? std::optional<bool>(false) : std::nullopt,
+        .decision = decision,
         .reachedMaxGames = std::cmp_greater_equal(totalGames, maxGames),
         .model = "bayesian",
         .pentanomial = false
@@ -163,12 +171,12 @@ SprtResult compute(
 
 namespace FastchessSprt {
 
-SprtResult compute(SprtParameters params) {
+SprtResult compute(const SprtParameters& params) {
 
 
     fastchess::SPRT sprt(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, true);
     bool report_penta = params.pentanomial;
-    sprt.isValid(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, report_penta);
+    fastchess::SPRT::isValid(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, report_penta);
     
     fastchess::Stats stats {
         .wins = params.winsA,
@@ -185,6 +193,15 @@ SprtResult compute(SprtParameters params) {
     double llr = sprt.getLLR(stats, report_penta);
     auto result = sprt.getResult(llr);
     int totalGames = params.winsA + params.draws + params.winsB; 
+
+    std::optional<bool> decision;
+    if (result == fastchess::SPRT_H1) {
+        decision = true; // Accept H1
+    } else if (result == fastchess::SPRT_H0) {
+        decision = false; // Accept H0
+    } else {
+        decision = std::nullopt; // No decision yet
+    }
     
     SprtResult sprtResult {
         .llr = llr,
@@ -197,8 +214,7 @@ SprtResult compute(SprtParameters params) {
         .engineB = params.engineB,
         .eloH0 = params.eloH0,
         .eloH1 = params.eloH1,
-        .decision = result == fastchess::SPRT_H1 ? std::optional<bool>(true) :
-                     result == fastchess::SPRT_H0 ? std::optional<bool>(false) : std::nullopt,
+        .decision = decision,
         .reachedMaxGames = result == fastchess::SPRT_CONTINUE && 
             (std::cmp_greater_equal(totalGames, params.maxGames)),
         .model = params.model,
