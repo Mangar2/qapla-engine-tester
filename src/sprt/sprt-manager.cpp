@@ -155,7 +155,6 @@ std::optional<GameTask> SprtManager::nextTask() {
     return pairing_->nextTask();
 }
 
-
 void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& record) {
 	bool engine1IsWhite = pairing_->getEngineA().getName() == record.getWhiteEngineName();
     pairing_->setGameRecord(taskId, record);
@@ -249,7 +248,11 @@ void SprtManager::setGameResults(const QaplaHelpers::IniFile::SectionList& secti
     }
 }
 
-SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optional<bool> usePentanomial) const {
+SprtResult SprtManager::computeSprt(
+    std::optional<std::string> model, 
+    std::optional<bool> usePentanomial,
+    std::optional<uint32_t> maxGames) const
+{
     auto duel = pairing_->getResult();
     
     SprtParameters params {
@@ -262,7 +265,7 @@ SprtResult SprtManager::computeSprt(std::optional<std::string> model, std::optio
         .eloH1 = config_.eloH1,
         .alpha = config_.alpha,
         .beta = config_.beta,
-        .maxGames = config_.maxGames,
+        .maxGames = maxGames ? *maxGames : config_.maxGames,
         .model = model ? *model : config_.model,
         .pentanomial = usePentanomial ? *usePentanomial : config_.pentanomial,
         .pentaWW = duel.pentaWW,

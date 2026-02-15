@@ -173,7 +173,6 @@ namespace FastchessSprt {
 
 SprtResult compute(const SprtParameters& params) {
 
-
     fastchess::SPRT sprt(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, true);
     bool report_penta = params.pentanomial;
     fastchess::SPRT::isValid(params.alpha, params.beta, params.eloH0, params.eloH1, params.model, report_penta);
