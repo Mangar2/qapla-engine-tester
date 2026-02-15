@@ -243,6 +243,11 @@ void McpServer::listTools(const JsonValue& requestId) {
             .groups = {"spsa", "spsavalue", "openings", "pgnoutput", "logging"}
         },
         {
+            .name = "set_logging",
+            .description = "Configures logging settings dynamically.",
+            .groups = {"logging"}
+        },
+        {
             .name = "adjudicate",
             .description = "Configures global adjudication settings (Draw and Resign) for all tournaments.",
             .groups = {"draw", "resign"}
@@ -341,6 +346,9 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             result["isError"] = JsonValue{ .data = false };
         } else if (name == "manage_engines") {
             content = McpEngineTool::handleManageEngines(arguments, capabilities_);
+            result["isError"] = JsonValue{ .data = false };
+        } else if (name == "set_logging") {
+            content = handleSetLogging(arguments);
             result["isError"] = JsonValue{ .data = false };
         } else if (name == "adjudicate") {
             content = handleAdjudicateTool(arguments);
@@ -956,6 +964,61 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         textContent["text"] = JsonValue{ .data = runSummary + "\n\n" + settingsReport };
     }
 
+    content.push_back(JsonValue{ .data = textContent });
+    return content;
+}
+
+JsonValue::Array McpServer::handleSetLogging(const JsonValue::Object& arguments) {
+    auto configData = mapJsonToConfigData(arguments);
+    Settings::Manager::instance().parseInput(configData, true);
+
+    // 1. MCP Logging Level
+    if (arguments.contains("logging_mcp")) {
+        const auto& val = arguments.at("logging_mcp");
+        if (val.isString()) {
+            const std::string lvl = val.asString();
+            TraceLevel mcpLevel = TraceLevel::result;
+            if (lvl == "all") {
+                mcpLevel = TraceLevel::info;
+            } else if (lvl == "none") {
+                mcpLevel = TraceLevel::none;
+            }
+            Logger::reportLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, mcpLevel);
+        }
+    }
+
+    // 2. Engine Logging
+    if (arguments.contains("logging_engine")) {
+        bool enable = true;
+        const auto& val = arguments.at("logging_engine");
+        
+        if (val.isBool()) {
+            enable = val.asBool();
+        } else if (val.isString()) {
+            enable = (val.asString() == "true");
+        }
+
+        if (enable) {
+             EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::error);
+        } else {
+             EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none, TraceLevel::none);
+        }
+    }
+    
+    // 3. Log Path - already handled by mapJsonToConfigData? 
+    // mapJsonToConfigData handles generic keys. logging_path -> [logging] path.
+    // But BaseLogger::logPath_ static member needs explicit update if not observing settings.
+    if (arguments.contains("logging_path")) {
+        const auto& val = arguments.at("logging_path");
+        if (val.isString()) {
+             BaseLogger::logPath_ = val.asString();
+        }
+    }
+
+    JsonValue::Array content;
+    JsonValue::Object textContent;
+    textContent["type"] = JsonValue{ .data = std::string("text") };
+    textContent["text"] = JsonValue{ .data = std::string("Logging configuration updated.") };
     content.push_back(JsonValue{ .data = textContent });
     return content;
 }

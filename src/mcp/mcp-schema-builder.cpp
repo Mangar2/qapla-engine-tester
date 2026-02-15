@@ -229,6 +229,10 @@ void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const 
             continue;
         }
 
+        if (groupName == "logging" && key == "trace") {
+            continue;
+        }
+
         if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
