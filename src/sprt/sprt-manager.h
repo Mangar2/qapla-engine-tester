@@ -226,15 +226,19 @@ public:
     /**
      * @brief Computes the result of the Sequential Probability Ratio Test (SPRT).
      * 
-     * @param model Optional model override ("bayesian", "logistic", "normalized").
-     * @param usePentanomial Optional flag to override pentanomial statistics usage.
-     *
      * Uses the configured model (normalized, logistic, or bayesian) and either trinomial
      * or pentanomial statistics depending on configuration. Returns SprtResult containing
      * decision, LLR, bounds and all relevant values.
+     *
+     * @param model Optional model override ("bayesian", "logistic", "normalized").
+     * @param usePentanomial Optional flag to override pentanomial statistics usage.
+     * @param maxGames Optional override for maximum games limit.
+     * @return SprtResult containing the decision, LLR, bounds, and relevant values.
      */
-    SprtResult computeSprt(std::optional<std::string> model = std::nullopt, 
-        std::optional<bool> usePentanomial = std::nullopt) const;
+    SprtResult computeSprt(
+        std::optional<std::string> model = std::nullopt, 
+        std::optional<bool> usePentanomial = std::nullopt,
+        std::optional<uint32_t> maxGames = std::nullopt) const;
 
     /**
      * @brief Checks if the SPRT test has finished.
