@@ -146,6 +146,7 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
 
     saveTimer_.update();
 
+    poolController_ = pool.getController();
     pool.setConcurrency(concurrency, true);
     pool.addTaskProvider(self, pairing_->getEngineA(), pairing_->getEngineB());
     pool.startManagers();
@@ -297,7 +298,9 @@ void SprtManager::finishTournament() {
     }
     
     if (allHaveDecisions) {
-        GameManagerPool::getInstance().stopAll();
+        if (poolController_) {
+            poolController_->stopAll();
+        } 
     }
 }
 

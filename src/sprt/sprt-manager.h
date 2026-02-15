@@ -23,6 +23,7 @@
 
 #include "../game-manager/pair-tournament.h"
 #include "../game-manager/game-task.h"
+#include "../game-manager/game-manager-pool.h"
 
 #include "../engine-handling/engine-config.h"
 #include "../opening/openings.h"
@@ -339,5 +340,7 @@ private:
      * @param force If true, forces a save regardless of interval or decision state. 
      */
     void autoSave(const SprtResult& result, bool force = false);
+
+    std::shared_ptr<GameManagerPool::PoolController> poolController_;
 };
 } // namespace QaplaTester

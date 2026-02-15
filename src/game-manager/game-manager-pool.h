@@ -45,6 +45,7 @@ public:
         std::string status;
     };
     GameManagerPool();
+    ~GameManagerPool();
 
     /**
      * @brief Ensures safe shutdown by waiting for all currently running games to 
@@ -135,6 +136,30 @@ public:
      * @return True if all futures are ready, false otherwise.
      */
     bool areAllTasksFinished();
+
+    /**
+     * @brief Controller class to safely stop the pool even if it has been destroyed.
+     */
+    class PoolController {
+    public:
+        explicit PoolController(GameManagerPool* pool) : pool_(pool) {}
+        
+        void stopAll();
+        
+        void detach() {
+            std::scoped_lock lock(mutex_);
+            pool_ = nullptr;
+        }
+
+    private:
+        GameManagerPool* pool_;
+        std::mutex mutex_;
+    };
+
+    /**
+     * @brief Creates a helper object that can safely call stopAll even if the pool is destroyed.
+     */
+    std::shared_ptr<PoolController> getController();
 
     /**
      * @brief Returns the singleton instance of the GameManagerPool.
@@ -278,6 +303,8 @@ private:
 
 	// InputHandler
     std::unique_ptr<InputHandler::CallbackRegistration> inputCallback_;
+
+    std::shared_ptr<PoolController> controller_;
 };
 
 } // namespace QaplaTester
