@@ -154,6 +154,11 @@ public:
     }
 
     /**
+     * @brief Triggers a save operation immediately.
+     */
+    void save();
+
+    /**
      * @brief Runs a Monte Carlo simulation to estimate the SPRT decision boundaries in a background thread.
      * @param config The configuration parameters for the SPRT test.
      * @return true if test was started, false if a test is already running.

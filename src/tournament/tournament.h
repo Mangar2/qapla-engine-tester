@@ -191,6 +191,11 @@ public:
         config_.saveIntervalMs = intervalMs;
     }
 
+    /**
+     * @brief Triggers a save operation immediately.
+     */
+    void save();
+
 private:
     TournamentResult result_;
     ChangeTracker changeTracker_;

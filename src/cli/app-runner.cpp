@@ -332,6 +332,14 @@ void AppRunner::stop(bool nice) {
         pool.stopAll();
     }
     pool.waitForTask();
+
+    auto& app = AppRunner::instance();
+    if (app.currentTask_ == Cli::TaskType::Sprt && app.sprtManager_) {
+        app.sprtManager_->save();
+    }
+    else if (app.currentTask_ == Cli::TaskType::Tournament && app.tournament_) {
+        app.tournament_->save();
+    }
 }
 
 void AppRunner::setConcurrency(int value) {

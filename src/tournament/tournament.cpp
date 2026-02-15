@@ -333,4 +333,8 @@ uint32_t Tournament::calculateTotalGames(const std::vector<EngineConfig>& engine
     return pairingsPerRound * config.rounds * config.games;
 }
 
+void Tournament::save() {
+    saveTimer_.update(true);
+}
+
 } // namespace QaplaTester

@@ -591,4 +591,8 @@ void SprtManager::logFinalResult() const {
     Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
 }
 
+void SprtManager::save() {
+    saveTimer_.update(true);
+}
+
 } // namespace QaplaTester
