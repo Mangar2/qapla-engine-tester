@@ -197,6 +197,13 @@ private:
     static void prepareTaskFile(const std::string& name, JsonValue::Object& toolArgs);
 
     /**
+     * @brief Handles the set_logging tool.
+     * @param arguments The tool arguments.
+     * @return Result content array.
+     */
+    static JsonValue::Array handleSetLogging(const JsonValue::Object& arguments);
+
+    /**
      * @brief Handles the adjudication tool.
      * @param arguments The tool arguments.
      * @return Result content array.
