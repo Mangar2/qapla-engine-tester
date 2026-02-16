@@ -20,7 +20,7 @@
 #include "mcp-server.h"
 #include "mcp-schema-builder.h"
 #include "mcp-engine-tool.h"
-#include "json-helper.h"
+#include "../base-elements/json-helper.h"
 #include "mcp-converter.h"
 #include "settings-reporter.h"
 

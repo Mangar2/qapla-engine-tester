@@ -20,7 +20,7 @@
 #pragma once
 
 #include <string>
-#include "json-helper.h"
+#include "../base-elements/json-helper.h"
 #include "../cli/settings-manager.h"
 
 namespace QaplaTester::Mcp {
