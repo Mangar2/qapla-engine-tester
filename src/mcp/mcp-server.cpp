@@ -34,7 +34,6 @@
 #include "../cli/task-types.h"
 #include "../engine-handling/engine-worker-factory.h"
 
-#include <iostream>
 #include <sstream>
 #include <filesystem>
 #include <fstream>
@@ -84,7 +83,7 @@ AppReturnCode McpServer::run() {
     capabilities_.autoDetect();
     
     while (true) {
-        const auto message = readMessage();
+        const auto message = messageChannel_.readMessage();
         if (!message.has_value()) {
             break; // EOF or error
         }
@@ -134,7 +133,7 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
         responseBody["result"] = JsonValue{ .data = resultData };
         response.data = responseBody;
 
-        sendMessage(response);
+        messageChannel_.sendMessage(response);
     }
     else if (method == "tools/list") {
         if (jsonObject.contains("id")) {
@@ -159,10 +158,6 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
     return AppReturnCode::NoError;
 }
 
-void McpServer::sendMessage(const JsonValue& message) {
-    std::cout << JsonHelper::serialize(message) << std::endl;
-}
-
 void McpServer::sendNotification(const std::string& method, const JsonValue::Object& params) {
     JsonValue notification;
     JsonValue::Object body;
@@ -170,35 +165,7 @@ void McpServer::sendNotification(const std::string& method, const JsonValue::Obj
     body["method"] = JsonValue{ .data = method };
     body["params"] = JsonValue{ .data = params };
     notification.data = body;
-    sendMessage(notification);
-}
-
-std::optional<JsonValue> McpServer::readMessage() {
-    static std::string accumulated;
-    
-    // Check if we already have a full message in accumulated (from previous over-read)
-    if (auto val = tryReadByBraceCounting(accumulated)) {
-        return val;
-    }
-
-    std::string line;
-    while (std::getline(std::cin, line)) {
-        if (const auto val = tryReadByContentLength(line)) {
-            return val;
-        }
-
-        if (line.empty() && accumulated.empty()) {
-            continue;
-        }
-
-        accumulated += line;
-        
-        if (const auto val = tryReadByBraceCounting(accumulated)) {
-            return val;
-        }
-    }
-
-    return std::nullopt;
+    messageChannel_.sendMessage(notification);
 }
 
 void McpServer::listTools(const JsonValue& requestId) {
@@ -312,7 +279,7 @@ void McpServer::listTools(const JsonValue& requestId) {
     responseBody["result"] = JsonValue{ .data = resultData };
     response.data = responseBody;
 
-    sendMessage(response);
+    messageChannel_.sendMessage(response);
 }
 
 void McpServer::callTool(const JsonValue::Object& jsonObject) {
@@ -382,7 +349,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     responseBody["result"] = JsonValue{ .data = result };
     response.data = responseBody;
 
-    sendMessage(response);
+    messageChannel_.sendMessage(response);
 }
 
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
@@ -489,7 +456,7 @@ void McpServer::listResources(const JsonValue& requestId) {
     responseBody["result"] = JsonValue{ .data = resultData };
     response.data = responseBody;
 
-    sendMessage(response);
+    messageChannel_.sendMessage(response);
 }
 
 void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources) {
@@ -625,77 +592,7 @@ void McpServer::readResource(const JsonValue::Object& jsonObject) {
     responseBody["result"] = JsonValue{ .data = result };
     response.data = responseBody;
 
-    sendMessage(response);
-}
-
-std::optional<JsonValue> McpServer::tryReadByContentLength(const std::string& line) {
-    if (!line.starts_with("Content-Length:")) {
-        return std::nullopt;
-    }
-
-    const auto lengthOpt = QaplaHelpers::to_unsigned_int<uint64_t>(line.substr(15));
-    if (!lengthOpt) {
-        return std::nullopt;
-    }
-
-    const auto length = static_cast<size_t>(*lengthOpt);
-    std::string empty;
-    std::getline(std::cin, empty); // usually an empty line follows headers
-    
-    std::string content(length, '\0');
-    if (std::cin.read(content.data(), static_cast<std::streamsize>(length))) {
-        std::string_view contentView = content;
-        return JsonHelper::parse(contentView);
-    }
-
-    return std::nullopt;
-}
-
-std::optional<JsonValue> McpServer::tryReadByBraceCounting(std::string& accumulated) {
-    size_t openBraces = 0;
-    size_t closeBraces = 0;
-    bool inString = false;
-    bool escaped = false;
-    size_t pos = 0;
-
-    for (const char character : accumulated) {
-        pos++;
-        if (character == '"' && !escaped) {
-            inString = !inString;
-        } else if (!inString) {
-            if (character == '{' || character == '[') {
-                openBraces++;
-            } else if (character == '}' || character == ']') {
-                closeBraces++;
-            }
-        }
-        escaped = (character == '\\' && !escaped);
-
-        if (openBraces > 0 && openBraces == closeBraces) {
-            std::string_view jsonInputView(accumulated.data(), pos);
-            try {
-                auto result = JsonHelper::parse(jsonInputView);
-                accumulated.erase(0, pos);
-                return result;
-            } catch (...) { // NOLINT(bugprone-empty-catch)
-                // If it fails, maybe it wasn't a complete JSON yet after all (e.g. malformed)
-                // continue searching
-            }
-        }
-    }
-
-    if (openBraces == 0 && !accumulated.empty()) {
-        std::string_view jsonInputView = accumulated;
-        try {
-            auto result = JsonHelper::parse(jsonInputView);
-            accumulated.clear();
-            return result;
-        } catch (...) { // NOLINT(bugprone-empty-catch)
-            // Ignore parse errors at the end of stream
-        }
-    }
-
-    return std::nullopt;
+    messageChannel_.sendMessage(response);
 }
 
 JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments) {

@@ -23,10 +23,10 @@
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
 #include "../engine-handling/engine-capabilities.h"
+#include "mcp-message-channel.h"
 
 #include <filesystem>
 #include <string_view>
-#include <optional>
 
 namespace QaplaTester::Mcp {
 
@@ -65,23 +65,11 @@ private:
     static void silenceLoggers();
 
     /**
-     * @brief Reads a single JSON-RPC message from stdin.
-     * @return Optional JSON value, nullopt on EOF.
-     */
-    [[nodiscard]] static std::optional<JsonValue> readMessage();
-
-    /**
      * @brief Sends a notification message to the client.
      * @param method The JSON-RPC method name.
      * @param params The parameters object.
      */
     static void sendNotification(const std::string& method, const JsonValue::Object& params);
-
-    /**
-     * @brief Sends a JSON-RPC message to stdout.
-     * @param message The message to send.
-     */
-    static void sendMessage(const JsonValue& message);
 
     /**
      * @brief Processes a single JSON-RPC request/notification.
@@ -124,20 +112,6 @@ private:
      * @param resources The target resource array.
      */
     static void addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources);
-
-    /**
-     * @brief Tries to read a message based on Content-Length header.
-     * @param line The current header line.
-     * @return Optional JSON value if header was found and content read.
-     */
-    [[nodiscard]] static std::optional<JsonValue> tryReadByContentLength(const std::string& line);
-
-    /**
-     * @brief Tries to read a message by counting braces in accumulated buffer.
-     * @param accumulated The buffered input.
-     * @return Optional JSON value if a complete object/array was formed.
-     */
-    [[nodiscard]] static std::optional<JsonValue> tryReadByBraceCounting(std::string& accumulated);
 
     /**
      * @brief Handles the control tool.
@@ -211,6 +185,7 @@ private:
     static JsonValue::Array handleAdjudicateTool(const JsonValue::Object& arguments);
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
+    inline static McpMessageChannel messageChannel_{ McpMessageChannelType::cli };
     inline static QaplaHelpers::ConfigData globalAdjudicationConfig_;
     static inline std::string lastSprtFile_;
     static inline std::string lastTournamentFile_;

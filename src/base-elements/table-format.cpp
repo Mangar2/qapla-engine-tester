@@ -19,27 +19,18 @@
 
 #include "table-format.h"
 #include "json-helper.h"
+#include "string-helper.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cctype>
 #include <format>
 #include <sstream>
 #include <type_traits>
 
 namespace {
 
-[[nodiscard]] std::string toLower(std::string_view text) {
-    std::string lowered;
-    lowered.reserve(text.size());
-    for (const auto character : text) {
-        lowered += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
-    }
-    return lowered;
-}
-
 [[nodiscard]] bool isCpColumn(std::string_view header) {
-    return toLower(header).find("cp") != std::string::npos;
+    return QaplaHelpers::to_lowercase(std::string(header)).find("cp") != std::string::npos;
 }
 
 [[nodiscard]] std::string trimTrailingZeros(std::string value) {

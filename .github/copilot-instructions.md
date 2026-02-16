@@ -26,6 +26,7 @@ You are a professional code developer working on the **Qapla Engine Tester** pro
 - Always call get_errors after editing files and fix them.
 - Never rename public symbols in c++ that are heavily used across files. Ask the user to do it because it is efficently possible with the IDE.
 - Whenever you add code to an existing method, first try to create a helper method instead of extending the current method. Only if this really does not fit, extend the current method.
+- Always comment header files in js-doc style.
 
 ## Allways apply if creating unit tests
 - **Test only public interface**: Unit-tests verify behavior through public methods only - never access private members
