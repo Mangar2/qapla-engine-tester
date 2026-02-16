@@ -18,11 +18,30 @@
  */
 
 #include "json-helper.h"
+#include "string-helper.h"
 #include <format>
-#include <charconv>
 #include <cctype>
+#include <algorithm>
 
 namespace QaplaTester::Mcp {
+
+namespace {
+
+[[nodiscard]] bool isJsonNumberCharacter(const char character) {
+    return (std::isdigit(static_cast<unsigned char>(character)) != 0)
+        || (character == '-')
+        || (character == '+')
+        || (character == '.')
+        || (character == 'e')
+        || (character == 'E');
+}
+
+[[nodiscard]] size_t findJsonNumberLength(const std::string_view jsonText) {
+    const auto numberEnd = std::ranges::find_if_not(jsonText, isJsonNumberCharacter);
+    return static_cast<size_t>(numberEnd - jsonText.begin());
+}
+
+} // namespace
 
 JsonValue JsonHelper::makeNull() {
     return {};
@@ -247,14 +266,18 @@ JsonValue JsonHelper::parseString(std::string_view& jsonText) {
 }
 
 JsonValue JsonHelper::parseNumber(std::string_view& jsonText) {
-    double numberValue = 0.0;
-    const auto [ptr, errorCode] = std::from_chars(jsonText.data(), jsonText.data() + jsonText.size(), numberValue);
-    if (errorCode == std::errc()) {
-        jsonText.remove_prefix(ptr - jsonText.data());
-    } else {
+    const auto numberLength = findJsonNumberLength(jsonText);
+    if (numberLength == 0) {
         throw std::runtime_error("Invalid number in JSON");
     }
-    return { .data = numberValue };
+
+    const auto numberValue = QaplaHelpers::to_double(jsonText.substr(0, numberLength));
+    if (!numberValue.has_value()) {
+        throw std::runtime_error("Invalid number in JSON");
+    }
+
+    jsonText.remove_prefix(numberLength);
+    return { .data = *numberValue };
 }
 
 JsonValue JsonHelper::parseConstant(std::string_view& jsonText) {
