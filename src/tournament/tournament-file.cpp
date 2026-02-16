@@ -25,8 +25,23 @@
 #include <stdexcept>
 #include <format>
 #include <filesystem>
+#include <string_view>
 
 namespace QaplaTester {
+
+QaplaHelpers::ConfigData TournamentFile::getConfigData(const Settings::Manager& settingsManager) {
+    std::vector<std::string> sectionFilter;
+    sectionFilter.reserve(sectionNames.size());
+
+    for (const auto* sectionName : sectionNames) {
+        const auto sectionNameView = std::string_view(sectionName);
+        if ((sectionNameView != "engine") && (sectionNameView != "round")) {
+            sectionFilter.emplace_back(sectionName);
+        }
+    }
+
+    return settingsManager.toConfigData(sectionFilter);
+}
 
 void TournamentFile::save(const std::string& filename, 
                           const QaplaHelpers::ConfigData& configData,
@@ -73,7 +88,7 @@ void TournamentFile::save(const std::string& filename,
                           const std::string& id) {
     if (!filename.empty()) {
         auto sections = tournament->getSections();
-        QaplaHelpers::ConfigData configData = settingsManager.toConfigData({});
+        auto configData = getConfigData(settingsManager);
         for (const auto& section : sections) {
             configData.addSection(section);
         }
@@ -88,7 +103,7 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
     if (!filename.empty()) {
         tournament->setSaveCallback(
             [filename,
-             configData = Settings::Manager::instance().toConfigData({}),
+             configData = getConfigData(Settings::Manager::instance()),
              engines,
              tournament = tournament.get()]() mutable 
             {

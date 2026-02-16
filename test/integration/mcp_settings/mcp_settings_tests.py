@@ -27,17 +27,17 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "# Global Settings",
+                    "content": "Global Settings",
                     "isRegex": False
                 },
                 {
                     "type": "stdout",
-                    "content": "| Name | Value | Default | Required | Description |",
+                    "content": "Settings Group: openings",
                     "isRegex": False
                 },
                 {
                     "type": "stdout",
-                    "content": "# Group Settings",
+                    "content": "Settings Group: epd",
                     "isRegex": False
                 }
             ],

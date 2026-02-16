@@ -165,35 +165,7 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
 
     uint32_t resultIndex = record.getRound() - 1;
 
-    std::scoped_lock lock(sprtResultsMutex_);
-
-    if (sprtResults_.size() <= resultIndex) {
-        sprtResults_.resize(resultIndex + 1);
-    }
-
-    SprtResultsPerTournament& resultsForRound = sprtResults_[resultIndex];
-    
-    if (!resultsForRound.empty() && resultsForRound[0].decision.has_value()) {
-        return;
-    }
-
-    resultsForRound.clear();
-
-    auto configuredResult = computeSprt(config_.model, config_.pentanomial);
-    resultsForRound.push_back(configuredResult);
-
-    for (const auto* model : { "normalized", "logistic", "bayesian" }) {
-        if (model != config_.model || config_.pentanomial) {
-            auto altResult = computeSprt(model, false);
-            resultsForRound.push_back(altResult);
-        }
-    }
-    for (const auto* model : { "normalized", "logistic" }) {
-        if (model != config_.model || !config_.pentanomial) {
-            auto altPentaResult = computeSprt(model, true);
-            resultsForRound.push_back(altPentaResult);
-        }
-    }
+    auto configuredResult = updateSprtResultsForRound(resultIndex, true);
 
     std::ostringstream oss;
     oss << std::left
@@ -243,10 +215,46 @@ void SprtManager::setGameResults(const QaplaHelpers::IniFile::SectionList& secti
         }
         if (!games.empty() && pairing_->matches(round, engineA, engineB)) {
             pairing_->fromSection(section);
+            updateSprtResultsForRound(round, false);
+            finishTournament();
         }
     } catch (const std::exception& ex) {
         Logger::reportLogger().log("Failed to load SPRT tournament from section: " + std::string(ex.what()), TraceLevel::error);
     }
+}
+
+SprtResult SprtManager::updateSprtResultsForRound(uint32_t resultIndex, bool keepDecidedResult) {
+    std::scoped_lock lock(sprtResultsMutex_);
+
+    if (sprtResults_.size() <= resultIndex) {
+        sprtResults_.resize(resultIndex + 1);
+    }
+
+    auto& resultsForRound = sprtResults_[resultIndex];
+    if (keepDecidedResult && !resultsForRound.empty() && resultsForRound[0].decision.has_value()) {
+        return resultsForRound[0];
+    }
+
+    resultsForRound.clear();
+
+    auto configuredResult = computeSprt(config_.model, config_.pentanomial);
+    resultsForRound.push_back(configuredResult);
+
+    for (const auto* model : { "normalized", "logistic", "bayesian" }) {
+        if (model != config_.model || config_.pentanomial) {
+            auto altResult = computeSprt(model, false);
+            resultsForRound.push_back(altResult);
+        }
+    }
+
+    for (const auto* model : { "normalized", "logistic" }) {
+        if (model != config_.model || !config_.pentanomial) {
+            auto altPentaResult = computeSprt(model, true);
+            resultsForRound.push_back(altPentaResult);
+        }
+    }
+
+    return configuredResult;
 }
 
 SprtResult SprtManager::computeSprt(

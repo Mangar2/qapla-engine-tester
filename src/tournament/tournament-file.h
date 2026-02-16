@@ -103,6 +103,16 @@ public:
         "global",
         "round"
     };
+
+private:
+    /**
+     * @brief Creates ConfigData for tournament configuration sections.
+     * Excludes runtime-specific sections that are merged separately.
+     * @param settingsManager The settings manager used as source.
+     * @return ConfigData containing configured sections except engine and round.
+     */
+    [[nodiscard]] static QaplaHelpers::ConfigData getConfigData(
+            const Settings::Manager& settingsManager);
 };
 
 } // namespace QaplaTester
