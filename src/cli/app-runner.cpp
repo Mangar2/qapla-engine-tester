@@ -350,6 +350,28 @@ std::string AppRunner::getRunningGameCount() {
     return std::format("Running games: {}", GameManagerPool::getInstance().runningGameCount());
 }
 
+std::string AppRunner::getStatus() {
+    auto& app = AppRunner::instance();
+    auto currentTask = app.currentTask_.load();
+    auto runningGames = GameManagerPool::getInstance().runningGameCount();
+
+    std::string sprtStatus = "{}";
+
+    if (currentTask == Cli::TaskType::Sprt && app.sprtManager_) {
+        const auto result = app.sprtManager_->computeSprt();
+        sprtStatus = std::format(
+            R"({{ "llr": {:.4f}, "lower_bound": {:.4f}, "upper_bound": {:.4f}, "elo_h0": {:.2f}, "elo_h1": {:.2f}, "games": {}, "wins": {}, "losses": {}, "draws": {} }})",
+            result.llr, result.lowerBound, result.upperBound,
+            result.eloH0, result.eloH1,
+            result.winsA + result.winsB + result.draws,
+            result.winsA, result.winsB, result.draws
+        );
+    }
+
+    return std::format(R"({{ "running_games": {}, "current_task": "{}", "sprt": {} }})",
+        runningGames, Cli::getTaskId(currentTask), sprtStatus);
+}
+
 AppReturnCode AppRunner::runDispatcher(bool background) {
     if (GameManagerPool::getInstance().runningGameCount() > 0) {
          throw AppError::makeInvalidParameters("A task is already running. Please stop it first.");
