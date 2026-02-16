@@ -24,6 +24,30 @@
 
 namespace QaplaTester::Mcp {
 
+JsonValue JsonHelper::makeNull() {
+    return {};
+}
+
+JsonValue JsonHelper::makeBool(bool value) {
+    return { .data = value };
+}
+
+JsonValue JsonHelper::makeNumber(double value) {
+    return { .data = value };
+}
+
+JsonValue JsonHelper::makeString(std::string_view value) {
+    return { .data = std::string(value) };
+}
+
+JsonValue JsonHelper::makeArray(JsonValue::Array value) {
+    return { .data = std::move(value) };
+}
+
+JsonValue JsonHelper::makeObject(JsonValue::Object value) {
+    return { .data = std::move(value) };
+}
+
 /**
  * @brief Visitor for serializing JsonValue data types.
  */

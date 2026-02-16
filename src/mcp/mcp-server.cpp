@@ -47,26 +47,20 @@ void McpServer::initialize() {
     silenceLoggers();
 
     // Set up MCP logging callback for report logger
-    Logger::reportLogger().setMcpCallback([](std::string_view message, std::string_view toolName) {
+    Logger::reportLogger().setMcpCallback([](std::string_view payload, std::string_view toolName) {
         JsonValue::Object params;
         params["level"] = JsonValue{ .data = std::string("info") };
         params["logger"] = JsonValue{ .data = std::string(toolName.empty() ? "qapla" : toolName) };
-        
-        // Try to parse message as JSON if it looks like it
-        std::string_view msgTrimmed = message;
-        while (!msgTrimmed.empty() && std::isspace(msgTrimmed.front())) {
-            msgTrimmed.remove_prefix(1);
-        }
-        
-        if (!msgTrimmed.empty() && (msgTrimmed.front() == '{' || msgTrimmed.front() == '[')) {
-            try {
-                params["data"] = JsonHelper::parse(msgTrimmed);
-            } catch (...) {
-                // Ignore parse errors, treat as plain text
-                params["data"] = JsonValue{ .data = std::string(message) };
-            }
-        } else {
-            params["data"] = JsonValue{ .data = std::string(message) };
+
+        auto payloadCopy = std::string(payload);
+        std::string_view payloadView = payloadCopy;
+        try {
+            params["data"] = JsonHelper::parse(payloadView);
+        } catch (...) {
+            JsonValue::Object fallback;
+            fallback["type"] = JsonValue{ .data = std::string("invalidLoggerPayload") };
+            fallback["raw"] = JsonValue{ .data = payloadCopy };
+            params["data"] = JsonValue{ .data = fallback };
         }
         
         sendNotification("notifications/message", params);

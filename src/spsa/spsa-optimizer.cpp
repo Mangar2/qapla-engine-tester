@@ -365,20 +365,18 @@ double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
 }
 
 void SPSAOptimizer::logParameters(const std::string& stage) const {
-    std::string json = std::format(R"({{"type":"spsaParameters","stage":"{}","parameters":[)", stage);
-    
-    for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        if (i > 0) {
-            json += ",";
-        }
-        json += std::format(
-            R"({{"name":"{}","value":{:.4f}}})",
-            config_.parameters[i].name, currentParameters_[i]
-        );
+    BaseLogger::Table table;
+    table.columnWidths = { 28, 12 };
+    table.headers = { "Parameter", "Value" };
+
+    for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
+        table.body.push_back({
+            config_.parameters[parameterIndex].name,
+            std::format("{:.4f}", currentParameters_[parameterIndex])
+        });
     }
-    json += R"(]}})";
-    
-    Logger::reportLogger().log(json, TraceLevel::error);
+
+    Logger::reportLogger().logTable(std::format("spsaParameters.{}", stage), table, TraceLevel::error);
 }
 
 void SPSAOptimizer::workerThreadFunction() {

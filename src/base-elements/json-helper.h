@@ -53,6 +53,47 @@ struct JsonValue {
 class JsonHelper {
 public:
     /**
+     * @brief Creates a null JSON value.
+     * @return JsonValue with null content.
+     */
+    [[nodiscard]] static JsonValue makeNull();
+
+    /**
+     * @brief Creates a boolean JSON value.
+     * @param value Boolean value.
+     * @return JsonValue containing the boolean.
+     */
+    [[nodiscard]] static JsonValue makeBool(bool value);
+
+    /**
+     * @brief Creates a numeric JSON value.
+     * @param value Numeric value represented as double.
+     * @return JsonValue containing the number.
+     */
+    [[nodiscard]] static JsonValue makeNumber(double value);
+
+    /**
+     * @brief Creates a string JSON value.
+     * @param value String value.
+     * @return JsonValue containing the string.
+     */
+    [[nodiscard]] static JsonValue makeString(std::string_view value);
+
+    /**
+     * @brief Creates an array JSON value.
+     * @param value Array content.
+     * @return JsonValue containing the array.
+     */
+    [[nodiscard]] static JsonValue makeArray(JsonValue::Array value);
+
+    /**
+     * @brief Creates an object JSON value.
+     * @param value Object content.
+     * @return JsonValue containing the object.
+     */
+    [[nodiscard]] static JsonValue makeObject(JsonValue::Object value);
+
+    /**
      * @brief Parses a JSON string into a JsonValue.
      * @param jsonText The string view to parse, will be advanced.
      * @return Parsed JSON value.
