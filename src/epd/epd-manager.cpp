@@ -88,7 +88,7 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
     BaseLogger::Table table;
     table.columnWidths = { 20, 24 };
     table.headers = { "TestId", "BestMoves" };
-    std::vector<std::string> rowValues;
+        std::vector<TableCell> rowValues;
     rowValues.push_back(current.id);
     std::string bestMoveList;
     for (size_t moveIndex = 0; moveIndex < current.bestMoves.size(); ++moveIndex) {
@@ -308,6 +308,33 @@ TestResults EpdManager::getResultsCopy() const {
 		}
         return results;
 	}
+
+TableData EpdManager::getStatusTable() const {
+    TableData table;
+    table.columnWidths = { 24, 8, 8, 10 };
+    table.headers = { "Engine", "Solved", "Total", "Success" };
+
+    const auto results = getResultsCopy();
+    for (const auto& engineResult : results) {
+        const auto totalTests = engineResult.result.size();
+        const auto solvedTests = std::count_if(engineResult.result.begin(), engineResult.result.end(),
+            [](const EpdTestCase& testCase) {
+                return testCase.correct;
+            });
+        const auto successRate = totalTests > 0
+            ? (100.0 * static_cast<double>(solvedTests)) / static_cast<double>(totalTests)
+            : 0.0;
+
+        table.body.push_back({
+            engineResult.engineName,
+            static_cast<int>(solvedTests),
+            static_cast<int>(totalTests),
+            successRate
+        });
+    }
+
+    return table;
+}
 
 
 void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies) {

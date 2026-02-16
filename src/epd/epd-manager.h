@@ -24,6 +24,7 @@
 #include "../engine-handling/engine-config.h"
 #include "../engine-tester/epd-test.h"
 #include "../base-elements/time-control.h"
+#include "../base-elements/table-format.h"
 #include "../game-manager/game-manager-pool.h"
 
 #include <memory>
@@ -106,6 +107,8 @@ public:
         }
         return count;
 	}
+
+        [[nodiscard]] TableData getStatusTable() const;
 
     /**
      * @brief Outputs the current results to the provided output stream in a human-readable format.

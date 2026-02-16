@@ -35,14 +35,13 @@
 
 namespace QaplaTester {
 
-namespace {
-
-[[nodiscard]] BaseLogger::Table buildRatingLogTable(TournamentResult result, int averageElo) {
-    BaseLogger::Table table;
+TableData Tournament::getRatingStatusTable() const {
+    auto result = getResult();
+    TableData table;
     table.columnWidths = { 4, 28, 8, 6, 5, 8, 8 };
     table.headers = { "Rank", "Name", "Elo", "Error", "Games", "Score", "Draw" };
 
-    auto scoredEngines = result.computeAllElos(averageElo);
+    auto scoredEngines = result.computeAllElos(config_.averageElo);
     int rankValue = 1;
     for (const auto& scored : scoredEngines) {
         const auto aggregate = scored.result.aggregate(scored.engineName);
@@ -52,11 +51,11 @@ namespace {
         const auto hasReliableError = totalGames >= 10 && scored.error != 0;
 
         table.body.push_back({
-            std::to_string(rankValue),
+            rankValue,
             scored.engineName,
-            hasReliableError ? std::format("{:.1f}", scored.elo) : std::string("n/a"),
-            hasReliableError ? std::to_string(scored.error) : std::string("n/a"),
-            std::to_string(totalGames),
+            hasReliableError ? TableCell(scored.elo) : TableCell("n/a"),
+            hasReliableError ? TableCell(scored.error) : TableCell("n/a"),
+            totalGames,
             std::format("{:.2f}%", scorePercent),
             std::format("{:.1f}%", drawPercent)
         });
@@ -66,8 +65,9 @@ namespace {
     return table;
 }
 
-[[nodiscard]] BaseLogger::Table buildOutcomeLogTable(const TournamentResult& result) {
-    BaseLogger::Table table;
+TableData Tournament::getOutcomeStatusTable() const {
+    const auto result = getResult();
+    TableData table;
     table.columnWidths = { 28, 6, 6, 6, 6 };
     table.headers = { "Name", "Wins", "Loss", "Draw", "Total" };
 
@@ -79,17 +79,15 @@ namespace {
         const auto aggregate = engineResult->aggregate(engineName);
         table.body.push_back({
             engineName,
-            std::to_string(aggregate.winsEngineA),
-            std::to_string(aggregate.winsEngineB),
-            std::to_string(aggregate.draws),
-            std::to_string(aggregate.total())
+            aggregate.winsEngineA,
+            aggregate.winsEngineB,
+            aggregate.draws,
+            aggregate.total()
         });
     }
 
     return table;
 }
-
-} // namespace
 
 void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     const TournamentConfig& config) {
@@ -212,14 +210,12 @@ void Tournament::onGameFinished([[maybe_unused]] PairTournament* sender) {
     }
     if (config_.ratingInterval > 0 && raitingTrigger_ >= config_.ratingInterval) {
         raitingTrigger_ = 0;
-        auto result = getResult();
-        const auto table = buildRatingLogTable(result, config_.averageElo);
+        const auto table = getRatingStatusTable();
         Logger::reportLogger().logTable("ratingTable", table, TraceLevel::result);
     }
     if (config_.outcomeInterval > 0 && outcomeTrigger_ >= config_.outcomeInterval) {
         outcomeTrigger_ = 0;
-        const auto result = getResult();
-        const auto table = buildOutcomeLogTable(result);
+        const auto table = getOutcomeStatusTable();
         Logger::reportLogger().logTable("outcome", table, TraceLevel::result);
     }
     

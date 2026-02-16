@@ -21,10 +21,81 @@
 #include "json-helper.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cctype>
 #include <format>
 #include <sstream>
+#include <type_traits>
 
 namespace {
+
+[[nodiscard]] std::string toLower(std::string_view text) {
+    std::string lowered;
+    lowered.reserve(text.size());
+    for (const auto character : text) {
+        lowered += static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+    }
+    return lowered;
+}
+
+[[nodiscard]] bool isCpColumn(std::string_view header) {
+    return toLower(header).find("cp") != std::string::npos;
+}
+
+[[nodiscard]] std::string trimTrailingZeros(std::string value) {
+    const auto dotPosition = value.find('.');
+    if (dotPosition == std::string::npos) {
+        return value;
+    }
+
+    while (!value.empty() && value.back() == '0') {
+        value.pop_back();
+    }
+    if (!value.empty() && value.back() == '.') {
+        value.pop_back();
+    }
+    if (value.empty()) {
+        return "0";
+    }
+    return value;
+}
+
+[[nodiscard]] std::string formatDoubleForText(double value, std::string_view header) {
+    if (isCpColumn(header)) {
+        return std::format("{:.1f}", value);
+    }
+    return trimTrailingZeros(std::format("{:.4f}", value));
+}
+
+[[nodiscard]] std::string formatCellForText(const QaplaTester::TableCell& cell, std::string_view header) {
+    return std::visit([header](const auto& value) -> std::string {
+        using ValueType = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<ValueType, std::string>) {
+            return value;
+        } else if constexpr (std::is_same_v<ValueType, std::int64_t>) {
+            return std::format("{}", value);
+        } else {
+            return formatDoubleForText(value, header);
+        }
+    }, cell.value);
+}
+
+[[nodiscard]] QaplaTester::Mcp::JsonValue formatCellForJson(const QaplaTester::TableCell& cell, std::string_view header) {
+    return std::visit([header](const auto& value) -> QaplaTester::Mcp::JsonValue {
+        using ValueType = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<ValueType, std::string>) {
+            return QaplaTester::Mcp::JsonHelper::makeString(value);
+        } else if constexpr (std::is_same_v<ValueType, std::int64_t>) {
+            return QaplaTester::Mcp::JsonHelper::makeNumber(static_cast<double>(value));
+        } else {
+            if (isCpColumn(header)) {
+                const auto rounded = std::round(value * 10.0) / 10.0;
+                return QaplaTester::Mcp::JsonHelper::makeNumber(rounded);
+            }
+            return QaplaTester::Mcp::JsonHelper::makeNumber(value);
+        }
+    }, cell.value);
+}
 
 [[nodiscard]] size_t detectColumnCount(const QaplaTester::TableData& table) {
     auto columnCount = std::max(table.columnWidths.size(), table.headers.size());
@@ -46,7 +117,9 @@ namespace {
 
     for (const auto& row : table.body) {
         for (size_t columnIndex = 0; columnIndex < row.size() && columnIndex < columnCount; ++columnIndex) {
-            widths[columnIndex] = std::max(widths[columnIndex], row[columnIndex].size());
+            const auto& header = columnIndex < table.headers.size() ? table.headers[columnIndex] : std::string_view();
+            const auto cellText = formatCellForText(row[columnIndex], header);
+            widths[columnIndex] = std::max(widths[columnIndex], cellText.size());
         }
     }
 
@@ -59,13 +132,18 @@ namespace {
     return widths;
 }
 
-[[nodiscard]] std::string formatRow(const std::vector<std::string>& rowValues, const std::vector<size_t>& widths) {
+[[nodiscard]] std::string formatRow(const std::vector<QaplaTester::TableCell>& rowValues,
+    const std::vector<std::string>& headers,
+    const std::vector<size_t>& widths) {
     std::string line;
     for (size_t columnIndex = 0; columnIndex < widths.size(); ++columnIndex) {
         if (columnIndex > 0) {
             line += " | ";
         }
-        const auto& cellValue = columnIndex < rowValues.size() ? rowValues[columnIndex] : std::string();
+        const auto& header = columnIndex < headers.size() ? headers[columnIndex] : std::string_view();
+        const auto cellValue = columnIndex < rowValues.size()
+            ? formatCellForText(rowValues[columnIndex], header)
+            : std::string();
         line += std::format("{:<{}}", cellValue, widths[columnIndex]);
     }
     return line;
@@ -96,9 +174,16 @@ std::string TableFormat::toText(const TableData& table) {
     std::ostringstream stream;
 
     if (!table.headers.empty()) {
-        auto headerValues = table.headers;
-        headerValues.resize(columnCount);
-        stream << formatRow(headerValues, widths) << "\n";
+        std::vector<TableCell> headerValues;
+        headerValues.reserve(columnCount);
+        for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex) {
+            if (columnIndex < table.headers.size()) {
+                headerValues.emplace_back(table.headers[columnIndex]);
+            } else {
+                headerValues.emplace_back("");
+            }
+        }
+        stream << formatRow(headerValues, table.headers, widths) << "\n";
         stream << formatSeparator(widths);
         if (!table.body.empty()) {
             stream << "\n";
@@ -108,7 +193,7 @@ std::string TableFormat::toText(const TableData& table) {
     for (size_t rowIndex = 0; rowIndex < table.body.size(); ++rowIndex) {
         auto rowValues = table.body[rowIndex];
         rowValues.resize(columnCount);
-        stream << formatRow(rowValues, widths);
+        stream << formatRow(rowValues, table.headers, widths);
         if (rowIndex + 1 < table.body.size()) {
             stream << "\n";
         }
@@ -134,8 +219,11 @@ std::string TableFormat::toJson(std::string_view tableName, const TableData& tab
     for (size_t rowIndex = 0; rowIndex < table.body.size(); ++rowIndex) {
         Mcp::JsonValue::Array rowValues;
         for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex) {
-            const auto& cellValue = columnIndex < table.body[rowIndex].size() ? table.body[rowIndex][columnIndex] : std::string();
-            rowValues.push_back(Mcp::JsonHelper::makeString(cellValue));
+            const auto& header = columnIndex < table.headers.size() ? table.headers[columnIndex] : std::string_view();
+            const auto& cellValue = columnIndex < table.body[rowIndex].size()
+                ? table.body[rowIndex][columnIndex]
+                : TableCell("");
+            rowValues.push_back(formatCellForJson(cellValue, header));
         }
         rows.push_back(Mcp::JsonHelper::makeArray(std::move(rowValues)));
     }

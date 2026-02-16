@@ -19,16 +19,34 @@
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 namespace QaplaTester {
 
+struct TableCell {
+    std::variant<std::string, std::int64_t, double> value;
+
+    TableCell() : value(std::string()) {}
+    TableCell(const std::string& text) : value(text) {}
+    TableCell(std::string&& text) : value(std::move(text)) {}
+    TableCell(std::string_view text) : value(std::string(text)) {}
+    TableCell(const char* text) : value(std::string(text)) {}
+    TableCell(std::int64_t number) : value(number) {}
+    TableCell(std::uint64_t number) : value(static_cast<std::int64_t>(number)) {}
+    TableCell(int number) : value(static_cast<std::int64_t>(number)) {}
+    TableCell(unsigned int number) : value(static_cast<std::int64_t>(number)) {}
+    TableCell(double number) : value(number) {}
+    TableCell(float number) : value(static_cast<double>(number)) {}
+};
+
 struct TableData {
     std::vector<size_t> columnWidths;
     std::vector<std::string> headers;
-    std::vector<std::vector<std::string>> body;
+    std::vector<std::vector<TableCell>> body;
 };
 
 class TableFormat {
