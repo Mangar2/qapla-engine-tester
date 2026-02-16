@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "json-helper.h"
+#include "../base-elements/json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
 #include "../engine-handling/engine-capabilities.h"

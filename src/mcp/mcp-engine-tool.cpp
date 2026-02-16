@@ -23,7 +23,7 @@
 #include "../cli/settings-manager.h"
 #include "../cli/engine-settings-helper.h"
 #include "../engine-handling/engine-config.h"
-#include "../base-elements/string-helper.h"
+#include "../base-elements/string-helper.h" 
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
 
