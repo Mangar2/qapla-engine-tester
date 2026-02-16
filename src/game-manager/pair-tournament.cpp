@@ -209,12 +209,18 @@ void PairTournament::setGameRecord([[maybe_unused]] const std::string& taskId, c
     collectPentanomialStats(gameInRound - 1);
 
     if (verbose_) {
-        std::string json = std::format(
-            R"({{"type":"gameFinished","round":{},"game":{},"result":"{}","cause":"{}","white":"{}","black":"{}"}})",
-            config_.round + 1, gameInRound, to_string(result), to_string(cause),
-            record.getWhiteEngineName(), record.getBlackEngineName()
-        );
-        Logger::reportLogger().log(json, TraceLevel::result);
+        BaseLogger::Table table;
+        table.columnWidths = { 7, 6, 10, 12, 30, 30 };
+        table.headers = { "Round", "Game", "Result", "Cause", "White", "Black" };
+        table.body.push_back({
+            std::to_string(config_.round + 1),
+            std::to_string(gameInRound),
+            std::string(to_string(result)),
+            std::string(to_string(cause)),
+            record.getWhiteEngineName(),
+            record.getBlackEngineName()
+        });
+        Logger::reportLogger().logTable("gameFinished", table, TraceLevel::result);
     }
 
     setFinishedIf(std::cmp_greater_equal(duelResult_.total(), config_.games));

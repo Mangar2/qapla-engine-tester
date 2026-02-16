@@ -84,32 +84,41 @@ std::string EpdManager::generateResultLine(const EpdTestCase& current, const Tes
 
 void EpdManager::logResultLine(const EpdTestCase& current) const {
 	auto results = getResultsCopy();
-    
-    std::string json = std::format(R"({{"type":"epdResult","id":"{}","bestMoves":[)", current.id);
-    for (size_t i = 0; i < current.bestMoves.size(); ++i) {
-        json += std::format(R"("{}"{})", current.bestMoves[i], (i + 1 < current.bestMoves.size() ? "," : ""));
+
+    BaseLogger::Table table;
+    table.columnWidths = { 20, 24 };
+    table.headers = { "TestId", "BestMoves" };
+    std::vector<std::string> rowValues;
+    rowValues.push_back(current.id);
+    std::string bestMoveList;
+    for (size_t moveIndex = 0; moveIndex < current.bestMoves.size(); ++moveIndex) {
+        if (moveIndex > 0) {
+            bestMoveList += " ";
+        }
+        bestMoveList += current.bestMoves[moveIndex];
     }
-    json += R"(],"engines":[)";
-    
-    bool first = true;
+    rowValues.push_back(std::move(bestMoveList));
+
     for (const auto& result : results) {
         const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
             return t.id == current.id;
         });
         if (it != result.result.end()) {
-            if (!first) {
-                json += ",";
-            }
-            first = false;
-            json += std::format(
-                R"({{"name":"{}","correct":{},"timeMs":{},"depth":{},"move":"{}"}})",
-                result.engineName, it->correct, it->correctAtTimeInMs, it->correctAtDepth, it->playedMove
-            );
+            table.columnWidths.push_back(30);
+            table.headers.push_back(result.engineName);
+            rowValues.push_back(std::format(
+                "{} | {}ms | D:{} | M:{}",
+                it->correct ? "ok" : "miss",
+                it->correctAtTimeInMs,
+                it->correctAtDepth,
+                it->playedMove
+            ));
         }
     }
-    json += R"(]}})";
 
-	Logger::reportLogger().log(json, TraceLevel::result);
+    table.body.push_back(std::move(rowValues));
+
+	Logger::reportLogger().logTable("epdResult", table, TraceLevel::result);
 }
 
 void EpdManager::saveResults(std::ostream& os) const {

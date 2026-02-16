@@ -19,8 +19,31 @@
 
 #include "base-logger.h"
 #include "file-helper.h"
+#include "json-helper.h"
 
 #include <iostream>
+
+namespace {
+
+[[nodiscard]] std::string toMcpTextPayload(std::string_view message) {
+    QaplaTester::Mcp::JsonValue::Object payloadObject;
+    payloadObject["type"] = QaplaTester::Mcp::JsonHelper::makeString("text");
+    payloadObject["message"] = QaplaTester::Mcp::JsonHelper::makeString(message);
+    const auto payload = QaplaTester::Mcp::JsonHelper::makeObject(std::move(payloadObject));
+    return QaplaTester::Mcp::JsonHelper::serialize(payload);
+}
+
+[[nodiscard]] std::string toMcpStatusPayload(std::string_view message, std::string_view toolName, bool overwrite) {
+    QaplaTester::Mcp::JsonValue::Object payloadObject;
+    payloadObject["type"] = QaplaTester::Mcp::JsonHelper::makeString("status");
+    payloadObject["message"] = QaplaTester::Mcp::JsonHelper::makeString(message);
+    payloadObject["tool"] = QaplaTester::Mcp::JsonHelper::makeString(toolName);
+    payloadObject["overwrite"] = QaplaTester::Mcp::JsonHelper::makeBool(overwrite);
+    const auto payload = QaplaTester::Mcp::JsonHelper::makeObject(std::move(payloadObject));
+    return QaplaTester::Mcp::JsonHelper::serialize(payload);
+}
+
+} // namespace
 
 namespace QaplaTester {
 
@@ -89,11 +112,37 @@ void BaseLogger::log(std::string_view message, TraceLevel level) {
     }
 
     if (level <= mcpThreshold_ && mcpCallback_) {
-        mcpCallback_(message, "");
+        const auto mcpPayload = toMcpTextPayload(message);
+        mcpCallback_(mcpPayload, "");
     }
 
     if (level <= cliThreshold_) {
         std::cout << message << "\n" << std::flush;
+    }
+}
+
+void BaseLogger::logTable(std::string_view tableName, const Table& table, TraceLevel level) {
+    std::scoped_lock lock(loggingMutex_);
+
+    std::string tableText;
+    if (level <= fileThreshold_ || level <= cliThreshold_) {
+        tableText = TableFormat::toText(table);
+    }
+
+    if (level <= fileThreshold_) {
+        ensureFileOpen(logPath_);
+        if (fileStream_.is_open()) {
+            fileStream_ << tableText << "\n" << std::flush;
+        }
+    }
+
+    if (level <= mcpThreshold_ && mcpCallback_) {
+        const auto payload = TableFormat::toJson(tableName, table);
+        mcpCallback_(payload, "");
+    }
+
+    if (level <= cliThreshold_) {
+        std::cout << tableText << "\n" << std::flush;
     }
 }
 
@@ -108,7 +157,8 @@ void BaseLogger::logStatus(std::string_view message, std::string_view toolName, 
     }
 
     if (level <= mcpThreshold_ && mcpCallback_) {
-        mcpCallback_(message, toolName);
+        const auto mcpPayload = toMcpStatusPayload(message, toolName, overwrite);
+        mcpCallback_(mcpPayload, toolName);
     }
 
     if (level <= cliThreshold_) {

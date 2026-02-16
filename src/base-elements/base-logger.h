@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include "table-format.h"
+
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -57,6 +59,8 @@ std::string to_string(QaplaTester::TraceLevel level);
  */
 class BaseLogger {
 public:
+    using Table = TableData;
+
     /**
      * @brief Constructs a base logger with default error-level threshold.
      */
@@ -84,6 +88,15 @@ public:
      * @param level The trace level of this message (default: command).
      */
     void log(std::string_view message, TraceLevel level = TraceLevel::command);
+
+    /**
+     * @brief Logs a table and renders it as text for CLI/file and JSON for MCP.
+     *
+     * @param tableName Logical name of the table payload.
+     * @param table Table data including widths, header, and body rows.
+     * @param level The trace level of this message (default: result).
+     */
+    void logTable(std::string_view tableName, const Table& table, TraceLevel level = TraceLevel::result);
 
     /**
      * @brief Logs a message without prefix to cli only
