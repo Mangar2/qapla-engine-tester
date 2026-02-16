@@ -120,6 +120,11 @@ public:
      */
     static std::string getRunningGameCount();
 
+    /**
+     * @brief Returns the status of the runner including current task details.
+     */
+    static std::string getStatus();
+
     [[nodiscard]] std::shared_ptr<Tournament> getTournament() const { return tournament_; }
     [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }
     [[nodiscard]] std::shared_ptr<SprtManager> getSprtManager() const { return sprtManager_; }

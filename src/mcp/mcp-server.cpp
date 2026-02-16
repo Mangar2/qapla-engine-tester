@@ -806,7 +806,7 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
     std::string result;
 
     if (command == "status") {
-        result = AppRunner::getRunningGameCount();
+        result = AppRunner::getStatus();
     } else if (command == "set_concurrency") {
         if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
              throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
