@@ -346,6 +346,14 @@ private:
      */
     void autoSave(const SprtResult& result, bool force = false);
 
+    /**
+     * @brief Rebuilds cached SPRT variants for a tournament round.
+     * @param resultIndex Zero-based round index.
+     * @param keepDecidedResult If true, keeps an already decided result unchanged.
+     * @return The configured SPRT result variant for the round.
+     */
+    SprtResult updateSprtResultsForRound(uint32_t resultIndex, bool keepDecidedResult);
+
     std::shared_ptr<GameManagerPool::PoolController> poolController_;
 };
 } // namespace QaplaTester

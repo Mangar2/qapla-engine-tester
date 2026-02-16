@@ -94,6 +94,15 @@ public:
 
 private:
     /**
+     * @brief Creates ConfigData for SPRT configuration sections.
+     * Excludes runtime-specific sections that are merged separately.
+     * @param settingsManager The settings manager used as source.
+     * @return ConfigData containing configured sections except engine and round.
+     */
+    [[nodiscard]] static QaplaHelpers::ConfigData getConfigData(
+            const Settings::Manager& settingsManager);
+
+    /**
      * @brief List of all section names used in SPRT tournament files.
      * 
      */

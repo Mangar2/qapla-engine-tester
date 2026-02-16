@@ -24,8 +24,23 @@
 #include "../base-elements/logger.h"
 #include "src/base-elements/ini-file.h"
 #include <stdexcept>
+#include <string_view>
 
 namespace QaplaTester {
+
+QaplaHelpers::ConfigData SprtTournamentFile::getConfigData(const Settings::Manager& settingsManager) {
+    std::vector<std::string> sectionFilter;
+    sectionFilter.reserve(sectionNames.size());
+
+    for (const auto* sectionName : sectionNames) {
+        const auto sectionNameView = std::string_view(sectionName);
+        if ((sectionNameView != "engine") && (sectionNameView != "round")) {
+            sectionFilter.emplace_back(sectionName);
+        }
+    }
+
+    return settingsManager.toConfigData(sectionFilter);
+}
 
  void SprtTournamentFile::setSaveCallback(const std::string& filename, uint32_t saveIntervalMs, 
     const std::shared_ptr<SprtManager>& manager,
@@ -36,7 +51,7 @@ namespace QaplaTester {
         
         manager->setSaveCallback(
             [filename,
-             configData = Settings::Manager::instance().toConfigData(),
+             configData = getConfigData(Settings::Manager::instance()),
              manager = manager.get(),
              engines
             ]() mutable 
@@ -106,7 +121,7 @@ void SprtTournamentFile::save(
 {
     if (!filename.empty()) {
         auto section = sprtManager->getSection();
-        QaplaHelpers::ConfigData configData = settingsManager.toConfigData();
+        auto configData = getConfigData(settingsManager);
         if (section) {
             configData.addSection(*section);
         }
