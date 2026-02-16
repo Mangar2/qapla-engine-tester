@@ -372,7 +372,7 @@ void SPSAOptimizer::logParameters(const std::string& stage) const {
     for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
         table.body.push_back({
             config_.parameters[parameterIndex].name,
-            std::format("{:.4f}", currentParameters_[parameterIndex])
+            currentParameters_[parameterIndex]
         });
     }
 
@@ -437,6 +437,31 @@ void SPSAOptimizer::printStatus(std::ostream& out) const {
             << " (range: " << param.minValue << " - " << param.maxValue << ")\n";
     }
     out << "================================\n";
+}
+
+TableData SPSAOptimizer::getStatusTable() const {
+    std::scoped_lock lock(stateMutex_);
+
+    TableData table;
+    table.columnWidths = { 20, 10, 10, 10, 10, 10 };
+    table.headers = { "Parameter", "Value", "StdDev2k", "StdDev5k", "Min", "Max" };
+
+    for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
+        const auto& parameter = config_.parameters[parameterIndex];
+        const auto standardDeviation2k = calculateStdDev(parameterIndex, 2000);
+        const auto standardDeviation5k = calculateStdDev(parameterIndex, 5000);
+
+        table.body.push_back({
+            parameter.name,
+            currentParameters_[parameterIndex],
+            standardDeviation2k,
+            standardDeviation5k,
+            parameter.minValue,
+            parameter.maxValue
+        });
+    }
+
+    return table;
 }
 
 } // namespace QaplaTester

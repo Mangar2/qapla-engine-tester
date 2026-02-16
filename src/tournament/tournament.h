@@ -29,6 +29,7 @@
 #include "../base-elements/ini-file.h"
 #include "../base-elements/change-tracker.h"
 #include "../base-elements/callback-timer.h"
+#include "../base-elements/table-format.h"
 
 #include <vector>
 #include <memory>
@@ -122,6 +123,9 @@ public:
         result.printOutcome(oss);
         return oss.str();
     }
+
+    [[nodiscard]] TableData getRatingStatusTable() const;
+    [[nodiscard]] TableData getOutcomeStatusTable() const;
 
     /**
 	 * @brief Return a pointer to the PairTournament at the given index.

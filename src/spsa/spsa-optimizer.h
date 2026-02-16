@@ -22,6 +22,7 @@
 #include "../game-manager/pair-tournament.h"
 
 #include "../engine-handling/engine-config.h"
+#include "../base-elements/table-format.h"
 
 #include <vector>
 #include <string>
@@ -110,6 +111,8 @@ public:
      * @brief Print current optimization status
      */
     void printStatus(std::ostream& out) const;
+
+    [[nodiscard]] TableData getStatusTable() const;
 
     /**
      * @brief Get a specific perturbation by index
