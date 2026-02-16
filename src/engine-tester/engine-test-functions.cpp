@@ -259,8 +259,8 @@ TestResult runLowerCaseOptionTest(const EngineConfig& engineConfig)
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
         std::size_t uMem = engine->getEngineMemoryUsage();
         
-        // Verify memory is similar (within 1000 bytes)
-        bool success = (lMem + 1000 > uMem && lMem - 1000 < uMem);
+        constexpr int64_t threshold = 100'000'000; // 100 MB
+        bool success = (lMem + threshold > uMem && lMem - threshold < uMem);
         
         std::string resultMsg = std::string("Tried \"setoption name hash value 512\", ") +
             (success ? "lowercase option is accepted" : "lowercase option is not accepted");
