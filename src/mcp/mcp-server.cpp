@@ -702,9 +702,10 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
         if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
              throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
         }
-        int value = static_cast<int>(arguments.at("value").asDouble());
+        const int value = static_cast<int>(arguments.at("value").asDouble());
         AppRunner::setConcurrency(value);
-        result = std::format("Concurrency set to {}.", value);
+        const auto status = AppRunner::getStatus();
+        result = std::format("Concurrency set to {}.\nStatus: {}", value, status);
     } else if (command == "stop") {
         AppRunner::stop(false);
         result = "All tasks stopped.";

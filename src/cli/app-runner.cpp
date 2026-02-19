@@ -33,6 +33,7 @@
 #include "../game-manager/adjudication-manager.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/json-helper.h"
+#include "../base-elements/oss-tools.h"
 #include "../base-elements/table-format.h"
 #include "settings-manager.h"
 
@@ -136,6 +137,59 @@ static void checkTimeControl() {
     }
 }
 
+struct ConcurrencyResolution {
+    uint32_t configuredConcurrency = 0;
+    int physicalCoreCount = 0;
+    uint32_t effectiveConcurrency = 1;
+    bool usesAutoMode = false;
+    bool usedFallback = false;
+};
+
+[[nodiscard]] ConcurrencyResolution resolveConfiguredConcurrency() {
+    ConcurrencyResolution resolution;
+    resolution.configuredConcurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+    resolution.usesAutoMode = resolution.configuredConcurrency == 0U;
+
+    if (!resolution.usesAutoMode) {
+        resolution.effectiveConcurrency = resolution.configuredConcurrency;
+        return resolution;
+    }
+
+    resolution.physicalCoreCount = QaplaHelpers::getPhysicalCoreCount();
+    if (resolution.physicalCoreCount <= 1) {
+        resolution.effectiveConcurrency = 1U;
+        resolution.usedFallback = true;
+        return resolution;
+    }
+
+    resolution.effectiveConcurrency = static_cast<uint32_t>(resolution.physicalCoreCount - 1);
+    return resolution;
+}
+
+void logStartConcurrency(std::string_view toolName, const ConcurrencyResolution& resolution) {
+    if (!resolution.usesAutoMode) {
+        Logger::reportLogger().logStatus(
+            std::format(
+                "Concurrency resolved (tool={}): configured={}, physical_cores=n/a, effective={}, mode=manual",
+                toolName,
+                resolution.configuredConcurrency,
+                resolution.effectiveConcurrency),
+            toolName,
+            TraceLevel::result);
+        return;
+    }
+
+    Logger::reportLogger().logStatus(
+        std::format(
+            "Concurrency resolved (tool={}): configured=0, physical_cores={}, effective={}, mode=auto{}, formula=max(1, physical-1)",
+            toolName,
+            resolution.physicalCoreCount,
+            resolution.effectiveConcurrency,
+            resolution.usedFallback ? " fallback" : ""),
+        toolName,
+        TraceLevel::result);
+}
+
 AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("engine-report");
     Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
@@ -172,8 +226,10 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
         return code;
     }
 
-    const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    const auto concurrency = concurrencyResolution.effectiveConcurrency;
     Settings::QaplaSettings::instance().applyLoggerConfig("epd-report");
+    logStartConcurrency("epd", concurrencyResolution);
     epdManager_ = std::make_shared<EpdManager>();
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -211,8 +267,10 @@ AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
         return code;
     }
 
-    const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    const auto concurrency = concurrencyResolution.effectiveConcurrency;
     Settings::QaplaSettings::instance().applyLoggerConfig("tournament-report");
+    logStartConcurrency("tournament", concurrencyResolution);
 
     if (!Settings::QaplaSettings::instance().getOpenings()) {
         throw AppError::makeInvalidParameters("No openings defined for the tournament. Please define an opening, see --help for more info.");
@@ -298,7 +356,9 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
             manager->createTournament(activeEngines, *sprtConfig);
             SprtTournamentFile::loadGameResults(sprtfile, manager);
 
-            const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+            const auto concurrencyResolution = resolveConfiguredConcurrency();
+            const auto concurrency = concurrencyResolution.effectiveConcurrency;
+            logStartConcurrency("sprt", concurrencyResolution);
             GameManagerPool& pool = GameManagerPool::getInstance();
             manager->schedule(manager, concurrency, pool);
 
@@ -357,7 +417,9 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
         spsaOptimizer_ = std::make_shared<SPSAOptimizer>();
         spsaOptimizer_->createSPSA(activeEngines.front(), *spsaConfig);
         
-        const auto concurrency = Settings::Manager::instance().get<unsigned int>("concurrency");
+        const auto concurrencyResolution = resolveConfiguredConcurrency();
+        const auto concurrency = concurrencyResolution.effectiveConcurrency;
+        logStartConcurrency("spsa", concurrencyResolution);
         GameManagerPool& pool = GameManagerPool::getInstance();
         spsaOptimizer_->scheduleSPSA(concurrency, pool);
         
