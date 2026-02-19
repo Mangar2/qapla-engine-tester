@@ -41,10 +41,10 @@ void initSettings() {
     
     Manager::instance().registerSetting({
         .name = "concurrency", 
-        .description = "Maximal number of in parallel running engines", 
-        .longDescription = "Maximal number of in parallel running engines. A typical value is 'physical cores - 1'.",
+        .description = "Max parallel engines (0 = auto: physical cores - 1)", 
+        .longDescription = "Maximum number of concurrently running engines. Use 0 for automatic detection based on physical CPU cores. In auto mode the runtime uses max(1, physical cores - 1). If core detection fails, it falls back to 1.",
         .isRequired = true, 
-        .defaultValue = 10,
+        .defaultValue = 0,
         .type = ValueType::UInt
     });
     

@@ -138,11 +138,6 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     // Validate all settings for completeness
     Manager::instance().validateCompleteness();
 
-    // Check concurrency is not zero
-    if (Manager::instance().get<unsigned int>("concurrency") == 0) {
-        throw AppError::makeInvalidParameters("Concurrency must be at least 1.");
-    }
-
     setLoggerConfiguration();
     setPgnConfig(Manager::instance(), "pgnoutput");
     setDrawAdjudicationConfig(Manager::instance(), "draw");
