@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <string>
+#include <string_view>
 #include <memory>
 #include <mutex>
 #include <random>
@@ -34,6 +35,7 @@
 namespace QaplaTester {
 
 class GameManagerPool;
+enum class TraceLevel : std::uint8_t;
 
 /**
  * @brief Configuration for a single parameter to be optimized via SPSA
@@ -57,6 +59,7 @@ struct SPSAConfig {
     double learningRate = 0.002;        // Global learning rate (r in the algorithm)
     uint32_t gamesPerPair = 8;          // Games per pairing
     uint32_t iterations = 1000;         // Maximum number of iterations
+    uint32_t outcomeInterval = 50;      // Interval for status and outcome output
     std::string openingsFile;           // Path to openings file
     uint32_t openingsSeed = 0;          // Seed for opening selection
     bool swapColors = true;             // Whether to swap colors
@@ -66,7 +69,7 @@ struct SPSAConfig {
  * @brief Perturbation direction and associated tournament
  */
 struct SPSAPerturbation {
-    std::vector<int> deltas;                    // Â±1 for each parameter
+    std::vector<int> deltas;                    // +/-1 for each parameter
     std::vector<double> perturbedValues;        // Actual parameter values used
     std::shared_ptr<PairTournament> pairing;    // Associated tournament
     size_t iteration;                           // Iteration number
@@ -157,14 +160,14 @@ private:
 
     /**
      * @brief Apply perturbations to create modified engine config
-     * @param deltas Vector of Â±1 perturbation directions
+        * @param deltas Vector of +/-1 perturbation directions
      * @return Modified engine configuration
      */
     EngineConfig createPerturbedEngineConfig(const std::vector<int>& deltas, 
                                               std::vector<double>& perturbedValues);
 
     /**
-     * @brief Generate random perturbation deltas (Â±1)
+        * @brief Generate random perturbation deltas (+/-1)
      */
     std::vector<int> generatePerturbationDeltas();
 
@@ -177,10 +180,17 @@ private:
     [[nodiscard]] double calculateStdDev(size_t paramIndex, size_t lastN) const;
 
     /**
-     * @brief Log current parameter values
-     * @param stage Description of the current stage (e.g., "Initial", "After iteration 5")
+      * @brief Build progress metrics table for SPSA execution.
+      * @return Table with completed iterations and active pair counts.
      */
-    void logParameters(const std::string& stage) const;
+     [[nodiscard]] TableData getProgressTable() const;
+
+     /**
+      * @brief Log SPSA status and structured tables.
+      * @param stage Logical stage label for status text.
+      * @param level Trace level used for status and table messages.
+      */
+     void logStatusTables(std::string_view stage, TraceLevel level) const;
 
     /**
      * @brief Worker thread function that creates new perturbations when needed
@@ -189,7 +199,7 @@ private:
 
     EngineConfig baseEngine_;
     SPSAConfig config_;
-    std::vector<double> currentParameters_;     // Current best parameters (Î¸)
+    std::vector<double> currentParameters_;     // Current best parameters (theta)
     std::vector<std::vector<double>> parameterHistory_; // History of parameters for stddev calculation
     std::shared_ptr<StartPositions> startPositions_;
     GameManagerPool* pool_ = nullptr;           // Pool reference for scheduling

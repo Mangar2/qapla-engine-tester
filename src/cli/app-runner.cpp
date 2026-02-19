@@ -362,16 +362,17 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
         spsaOptimizer_->scheduleSPSA(concurrency, pool);
         
         if (background) {
-            Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+            Logger::reportLogger().logStatus("Task started in background.", "spsa", TraceLevel::result);
             return code;
         }
 
         pool.waitForTask();
         
-        Logger::reportLogger().log("SPSA optimization completed.", TraceLevel::result);
+        Logger::reportLogger().logStatus("SPSA optimization completed.", "spsa", TraceLevel::result);
     }
     catch (const std::exception& e) {
-        Logger::reportLogger().log(std::format("Exception during SPSA run: {}", e.what()), TraceLevel::error);
+        Logger::reportLogger().logStatus(
+            std::format("Exception during SPSA run: {}", e.what()), "spsa", TraceLevel::error);
         return AppReturnCode::GeneralError;
     }
     return code;
