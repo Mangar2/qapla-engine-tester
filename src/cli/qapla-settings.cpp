@@ -394,6 +394,7 @@ void QaplaSettings::setSPSAConfig() {
     m_spsaConfig->learningRate = spsaGroup->get<double>("learningrate");
     m_spsaConfig->gamesPerPair = spsaGroup->get<unsigned int>("gamesperpair");
     m_spsaConfig->iterations = spsaGroup->get<unsigned int>("iterations");
+    m_spsaConfig->outcomeInterval = spsaGroup->get<unsigned int>("outcomeinterval");
     m_spsaConfig->openingsSeed = spsaGroup->get<unsigned int>("seed");
     m_spsaConfig->swapColors = !spsaGroup->get<bool>("noswap");
     

@@ -25,8 +25,6 @@
 #include "../base-elements/logger.h"
 #include "../base-elements/app-error.h"
 
-#include <iostream>
-#include <iomanip>
 #include <format>
 #include <algorithm>
 #include <cmath>
@@ -97,13 +95,12 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
         }
     }
 
-    Logger::reportLogger().log(
-        std::format("SPSA initialized with {} parameters, {} initial pairs created",
-                   config.parameters.size(), perturbations_.size()),
+    Logger::reportLogger().logStatus(
+        std::format("SPSA initialized with {} parameters and {} initial pairs",
+            config.parameters.size(), perturbations_.size()),
+        "spsa",
         TraceLevel::info);
-    
-    // Log initial parameter values
-    logParameters("Initial");
+    logStatusTables("initial", TraceLevel::result);
 }
 
 void SPSAOptimizer::scheduleSPSA(uint32_t concurrency, GameManagerPool& pool) {
@@ -126,8 +123,9 @@ void SPSAOptimizer::scheduleSPSA(uint32_t concurrency, GameManagerPool& pool) {
         }
     }
 
-    Logger::reportLogger().log(
-        std::format("SPSA scheduled {} pairs", perturbations_.size()),
+    Logger::reportLogger().logStatus(
+        std::format("SPSA scheduled {} active pairs", perturbations_.size()),
+        "spsa",
         TraceLevel::info);
     
     // Start worker thread only if not already running
@@ -187,9 +185,12 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
     perturbations_.push_back(perturbation);
     ++activePerturbationCount_;
 
-    Logger::reportLogger().log(
-        std::format("Created SPSA perturbation iteration {} (round {})",
-                    perturbation->iteration, ptc.round),
+    Logger::reportLogger().logStatus(
+        std::format("SPSA queued iteration {}/{} (round {})",
+            perturbation->iteration + 1,
+            config_.iterations,
+            ptc.round),
+        "spsa",
         TraceLevel::info);
     
     return perturbation;
@@ -209,16 +210,18 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
         
         // Find the finished perturbation by round number (direct indexing)
         if (round >= perturbations_.size()) {
-            Logger::reportLogger().log(
+            Logger::reportLogger().logStatus(
                 std::format("Warning: Invalid round number {} (size: {})", round, perturbations_.size()), 
+                "spsa",
                 TraceLevel::warning);
             return;
         }
 
         finishedPerturbation = perturbations_[round];
         if (!finishedPerturbation || finishedPerturbation->pairing.get() != sender) {
-            Logger::reportLogger().log(
+            Logger::reportLogger().logStatus(
                 std::format("Warning: Round {} does not match expected pairing", round), 
+                "spsa",
                 TraceLevel::warning);
             return;
         }
@@ -229,25 +232,28 @@ void SPSAOptimizer::onPairFinished(PairTournament* sender) {
     updateParameters(*finishedPerturbation);
     --activePerturbationCount_;
 
-    // Print status
+    bool logIntermediateStatus = false;
     {
         std::scoped_lock lock(stateMutex_);
-        if (completedIterations_ % 10 == 0) {
-            std::ostringstream oss;
-            printStatus(oss);
-            Logger::reportLogger().log(oss.str(), TraceLevel::result);
-        }
+        logIntermediateStatus = config_.outcomeInterval > 0 &&
+            completedIterations_ % config_.outcomeInterval == 0;
+    }
+    if (logIntermediateStatus) {
+        logStatusTables("progress", TraceLevel::result);
     }
 
     // Notify worker thread to create new perturbations if needed
     workerCondition_.notify_one();
     
     // Check if optimization is complete
-    if (activePerturbationCount_ == 0 && nextIteration_ >= config_.iterations) {
-        Logger::reportLogger().log("SPSA optimization complete!", TraceLevel::result);
-        std::ostringstream oss;
-        printStatus(oss);
-        Logger::reportLogger().log(oss.str(), TraceLevel::result);
+    bool optimizationComplete = false;
+    {
+        std::scoped_lock lock(stateMutex_);
+        optimizationComplete = activePerturbationCount_ == 0 && nextIteration_ >= config_.iterations;
+    }
+    if (optimizationComplete) {
+        Logger::reportLogger().logStatus("SPSA optimization complete.", "spsa", TraceLevel::result);
+        logStatusTables("final", TraceLevel::result);
     }
 }
 
@@ -255,25 +261,25 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
     auto result = perturbation.pairing->getResult();
     
     // Calculate gradient signal: wins - losses
-    // In the normalized space, gradient g_Ï†_i â‰ˆ (wins - losses) * Î”_i
+    // In normalized space, gradient g_phi_i ~= (wins - losses) * delta_i
     int wins = result.winsEngineA;
     int losses = result.winsEngineB;
-    double gradient_signal = static_cast<double>(wins - losses);
+    auto gradient_signal = static_cast<double>(wins - losses);
 
     std::scoped_lock lock(stateMutex_);
 
     // Update each parameter using SPSA update rule
-    // Î”Î¸_i = r_i * c_i * g_Ï†_i, where g_Ï†_i = gradient_signal * Î”_i
+    // delta_theta_i = r_i * c_i * g_phi_i, where g_phi_i = gradient_signal * delta_i
     for (size_t i = 0; i < currentParameters_.size(); ++i) {
-        double delta_i = static_cast<double>(perturbation.deltas[i]);
-        double c_i = config_.parameters[i].c;
-        double r_i = config_.learningRate;
+        auto delta_i = static_cast<double>(perturbation.deltas[i]);
+        auto c_i = config_.parameters[i].c;
+        auto r_i = config_.learningRate;
         
         // SPSA gradient approximation in normalized space
-        double g_phi_i = gradient_signal * delta_i;
+        auto g_phi_i = gradient_signal * delta_i;
         
-        // Update in original parameter space: Î”Î¸ = r * c * g_Ï†
-        double update = r_i * c_i * g_phi_i;
+        // Update in original parameter space: delta_theta = r * c * g_phi
+        auto update = r_i * c_i * g_phi_i;
         currentParameters_[i] += update;
         
         // Clamp to bounds
@@ -288,9 +294,6 @@ void SPSAOptimizer::updateParameters(const SPSAPerturbation& perturbation) {
     }
 
     completedIterations_++;
-    
-    // Log updated parameters
-    logParameters(std::format("After iteration {}", completedIterations_));
 }
 
 EngineConfig SPSAOptimizer::createPerturbedEngineConfig(
@@ -303,10 +306,10 @@ EngineConfig SPSAOptimizer::createPerturbedEngineConfig(
 
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
         const auto& paramConfig = config_.parameters[i];
-        double baseValue = currentParameters_[i];
+        auto baseValue = currentParameters_[i];
         
-        // Apply perturbation: Î¸_i + c_i * Î”_i
-        double perturbedValue = baseValue + paramConfig.c * deltas[i];
+        // Apply perturbation: theta_i + c_i * delta_i
+        auto perturbedValue = baseValue + paramConfig.c * deltas[i];
         perturbedValue = std::clamp(perturbedValue, paramConfig.minValue, paramConfig.maxValue);
         
         perturbedValues.push_back(perturbedValue);
@@ -328,7 +331,7 @@ std::vector<int> SPSAOptimizer::generatePerturbationDeltas() {
     std::uniform_int_distribution<int> dist(0, 1);
     
     for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        // Generate Â±1 randomly
+        // Generate +/-1 randomly
         deltas.push_back(dist(rng_) == 0 ? -1 : 1);
     }
     
@@ -364,19 +367,42 @@ double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
     return std::sqrt(sq_sum / static_cast<double>(count));
 }
 
-void SPSAOptimizer::logParameters(const std::string& stage) const {
-    BaseLogger::Table table;
-    table.columnWidths = { 28, 12 };
-    table.headers = { "Parameter", "Value" };
+TableData SPSAOptimizer::getProgressTable() const {
+    std::scoped_lock lock(stateMutex_);
 
-    for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
-        table.body.push_back({
-            config_.parameters[parameterIndex].name,
-            currentParameters_[parameterIndex]
-        });
+    TableData table;
+    table.columnWidths = { 24, 12 };
+    table.headers = { "Metric", "Value" };
+    table.body.push_back({ "CompletedIterations", static_cast<std::uint64_t>(completedIterations_) });
+    table.body.push_back({ "TotalIterations", static_cast<std::uint64_t>(config_.iterations) });
+    table.body.push_back({ "ActivePairs", static_cast<std::uint64_t>(activePerturbationCount_.load()) });
+    table.body.push_back({ "MaxActivePairs", static_cast<std::uint64_t>(config_.maxActivePairs) });
+
+    return table;
+}
+
+void SPSAOptimizer::logStatusTables(std::string_view stage, TraceLevel level) const {
+    size_t completedIterations = 0;
+    uint32_t totalIterations = 0;
+    size_t activePairs = 0;
+    {
+        std::scoped_lock lock(stateMutex_);
+        completedIterations = completedIterations_;
+        totalIterations = config_.iterations;
+        activePairs = activePerturbationCount_.load();
     }
 
-    Logger::reportLogger().logTable(std::format("spsaParameters.{}", stage), table, TraceLevel::error);
+    Logger::reportLogger().logStatus(
+        std::format(
+            "SPSA {} status: {}/{} iterations, {} active pairs",
+            stage,
+            completedIterations,
+            totalIterations,
+            activePairs),
+        "spsa",
+        level);
+    Logger::reportLogger().logTable("spsaProgress", getProgressTable(), level);
+    Logger::reportLogger().logTable("spsaStatus", getStatusTable(), level);
 }
 
 void SPSAOptimizer::workerThreadFunction() {
@@ -406,45 +432,26 @@ void SPSAOptimizer::workerThreadFunction() {
             }
             
             newPerturbation->pairing->schedule(newPerturbation->pairing, *pool_);
-            Logger::reportLogger().log(
+            Logger::reportLogger().logStatus(
                 std::format("Starting iteration {}/{}", 
                            newPerturbation->iteration + 1, config_.iterations),
+                "spsa",
                 TraceLevel::info);
         }
     }
 }
 
 void SPSAOptimizer::printStatus(std::ostream& out) const {
-    size_t activeCount = std::count_if(perturbations_.begin(), perturbations_.end(),
-        [](const auto& p) { return p != nullptr; });
-    
-    out << "\n=== SPSA Optimization Status ===\n";
-    out << "Completed iterations: " << completedIterations_ 
-        << " / " << config_.iterations << "\n";
-    out << "Active pairs: " << activeCount << "\n";
-    out << "\nCurrent best parameters (Value | StdDev 2k | StdDev 5k):\n";
-    
-    for (size_t i = 0; i < config_.parameters.size(); ++i) {
-        const auto& param = config_.parameters[i];
-        const double sd2k = calculateStdDev(i, 2000);
-        const double sd5k = calculateStdDev(i, 5000);
-
-        out << std::setw(20) << std::left << param.name << ": "
-            << std::setw(10) << std::right << std::fixed << std::setprecision(2)
-            << currentParameters_[i] << " | "
-            << std::setw(10) << std::fixed << std::setprecision(4) << sd2k << " | "
-            << std::setw(10) << std::fixed << std::setprecision(4) << sd5k
-            << " (range: " << param.minValue << " - " << param.maxValue << ")\n";
-    }
-    out << "================================\n";
+    out << TableFormat::toText(getProgressTable()) << "\n";
+    out << TableFormat::toText(getStatusTable()) << "\n";
 }
 
 TableData SPSAOptimizer::getStatusTable() const {
     std::scoped_lock lock(stateMutex_);
 
     TableData table;
-    table.columnWidths = { 20, 10, 10, 10, 10, 10 };
-    table.headers = { "Parameter", "Value", "StdDev2k", "StdDev5k", "Min", "Max" };
+    table.columnWidths = { 20, 10, 10, 10, 10, 10, 10 };
+    table.headers = { "Parameter", "Initial", "Value", "StdDev2k", "StdDev5k", "Min", "Max" };
 
     for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
         const auto& parameter = config_.parameters[parameterIndex];
@@ -453,6 +460,7 @@ TableData SPSAOptimizer::getStatusTable() const {
 
         table.body.push_back({
             parameter.name,
+            parameter.defaultValue,
             currentParameters_[parameterIndex],
             standardDeviation2k,
             standardDeviation5k,
