@@ -203,14 +203,17 @@ public:
 
     /**
 	 * @brief Tells the engine to stop computing and return the best move.
+     * @return True if stop command was sent to engine, otherwise false.
      */
-    void moveNow() {
+    bool moveNow() {
         if (!engine_) {
-            return;
+            return false;
         }
         if (computeState_ == ComputeState::ComputingMove) {
-            engine_->moveNow();
+            return engine_->moveNow();
         }
+
+		return false;
 	}
 
 	/**

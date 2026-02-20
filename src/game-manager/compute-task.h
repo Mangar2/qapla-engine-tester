@@ -196,8 +196,9 @@ public:
 
     /**
      * @brief Forces the engine to return the best move immediately.
+        * @return True if stop command was sent to the active engine.
      */
-    void moveNow();
+        bool moveNow();
 
     /**
      * @brief Returns a future that signals when the task is complete.
