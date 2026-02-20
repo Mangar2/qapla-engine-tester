@@ -20,6 +20,8 @@
 #include "mcp-server.h"
 #include "mcp-schema-builder.h"
 #include "mcp-engine-tool.h"
+#include "job-scheduler.h"
+#include "mcp-background-tools.h"
 #include "../base-elements/json-helper.h"
 #include "mcp-converter.h"
 #include "settings-reporter.h"
@@ -77,6 +79,18 @@ void McpServer::initialize() {
 
     // Default MCP trace level to result
     Logger::reportLogger().setTraceLevel(TraceLevel::none, TraceLevel::info, TraceLevel::result);
+
+    JobScheduler::instance().configure(
+        [](const QueueJob& queuedJob) {
+            McpEngineTool::setupActiveEngines(queuedJob.executionArguments, Cli::TaskType::All, capabilities_);
+            Logger::logBaseName_ = queuedJob.reportBaseName;
+            auto configData = queuedJob.configData;
+            return executeRunnerTool(configData, false);
+        },
+        [](bool niceStop) {
+            AppRunner::stop(niceStop);
+        });
+    JobScheduler::instance().start();
 }
 
 AppReturnCode McpServer::run() {
@@ -97,6 +111,7 @@ AppReturnCode McpServer::run() {
             break;
         }
     }
+    JobScheduler::instance().stop();
     capabilities_.shutdown();
     return AppReturnCode::NoError;
 }
@@ -222,7 +237,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         },
         {
             .name = "control",
-            .description = "Control the execution of running tasks (concurrency, stop)",
+            .description = "Control running tasks and queued jobs (status, concurrency, stop, cancel, clear, list_results, clear_results)",
             .groups = {}
         },
         {
@@ -328,7 +343,11 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             // Handle active list and execution
             const Cli::TaskType taskType = Cli::TaskType::All;
 
-            McpEngineTool::setupActiveEngines(arguments, taskType, capabilities_);
+            const bool deferEngineSetupToQueue =
+                (name == "sprt") && isBackgroundRequested(arguments);
+            if (!deferEngineSetupToQueue) {
+                McpEngineTool::setupActiveEngines(arguments, taskType, capabilities_);
+            }
             content = runRunnerTool(name, arguments, returnCode);
             
             result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
@@ -697,21 +716,45 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
     std::string result;
 
     if (command == "status") {
-        result = AppRunner::getStatus();
+        result = createCombinedControlStatus();
     } else if (command == "set_concurrency") {
         if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
              throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
         }
         const int value = static_cast<int>(arguments.at("value").asDouble());
         AppRunner::setConcurrency(value);
-        const auto status = AppRunner::getStatus();
+        const auto status = createCombinedControlStatus();
         result = std::format("Concurrency set to {}.\nStatus: {}", value, status);
     } else if (command == "stop") {
+        const auto activeCanceled = JobScheduler::instance().requestCancelActive(false);
         AppRunner::stop(false);
-        result = "All tasks stopped.";
+        const auto clearedCount = JobScheduler::instance().clearQueuedJobs();
+        result = std::format("All tasks stopped. Active queued-run canceled: {}. Cleared {} queued jobs.",
+            activeCanceled ? "yes" : "no", clearedCount);
     } else if (command == "stop_nice") {
+        const auto activeCanceled = JobScheduler::instance().requestCancelActive(true);
         AppRunner::stop(true);
-        result = "All tasks stopped gracefully.";
+        const auto clearedCount = JobScheduler::instance().clearQueuedJobs();
+        result = std::format("All tasks stopped gracefully. Active queued-run canceled: {}. Cleared {} queued jobs.",
+            activeCanceled ? "yes" : "no", clearedCount);
+    } else if (command == "cancel_job") {
+        if (!arguments.contains("job_id") || !arguments.at("job_id").isString()) {
+            throw AppError::makeInvalidParameters("String job_id required for cancel_job.");
+        }
+
+        const auto& jobId = arguments.at("job_id").asString();
+        const auto canceled = JobScheduler::instance().cancelJob(jobId, true);
+        result = canceled
+            ? std::format("Cancel requested for job '{}'.", jobId)
+            : std::format("Job '{}' not found.", jobId);
+    } else if (command == "clear_queue") {
+        const auto clearedCount = JobScheduler::instance().clearQueuedJobs();
+        result = std::format("Cleared {} queued jobs.", clearedCount);
+    } else if (command == "list_results") {
+        result = JsonHelper::serialize(JobScheduler::instance().finishedResultsJson());
+    } else if (command == "clear_results") {
+        const auto clearedCount = JobScheduler::instance().clearFinishedResults();
+        result = std::format("Cleared {} finished queue results.", clearedCount);
     } else {
          throw AppError::makeInvalidParameters(std::format("Unknown control command '{}'.", command));
     }
@@ -824,8 +867,6 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     // Copy paramsConfig into configData
     mergeGlobalConfig(configData, paramsConfig);
     
-    returnCode = executeRunnerTool(configData, background);
-
     JsonValue::Array content;
     JsonValue::Object textContent;
 
@@ -853,12 +894,30 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
 
     std::string settingsReport = SettingsReporter::generateReport(reportGroups, reportColumns);
 
-    if (background) {
+    if (background && name == "sprt") {
+        QueueJob queueEntry;
+        queueEntry.jobType = QueueJobType::Sprt;
+        queueEntry.toolName = name;
+        queueEntry.reportBaseName = reportBaseName;
+        queueEntry.configData = configData;
+        queueEntry.executionArguments = arguments;
+
+        const auto jobId = JobScheduler::instance().enqueue(std::move(queueEntry));
+        returnCode = AppReturnCode::NoError;
+
+        const auto queueStatus = JsonHelper::serialize(JobScheduler::instance().queueStatusJson());
+        std::string summary = std::format("Tool '{}' queued as '{}'.", name, jobId);
+        summary += "\nThe next queued SPRT starts automatically after the running one finishes.";
+        summary += "\nUse control/status to monitor and control/cancel_job to stop specific jobs.";
+        summary += std::format("\nQueue status: {}", queueStatus);
+        textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
+    } else if (background) {
+        returnCode = executeRunnerTool(configData, background);
         std::string summary = std::format("Tool '{}' started in background.", name);
         summary += std::format("\nReport Log might be available at: qapla://reports/{}/<timestamped_file>", name);
-        // Note: We cannot provide exact filename as it is generated by the background thread.
         textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
     } else {
+        returnCode = executeRunnerTool(configData, background);
         std::string runSummary = formatRunSummary(name, returnCode);
         textContent["text"] = JsonValue{ .data = runSummary + "\n\n" + settingsReport };
     }

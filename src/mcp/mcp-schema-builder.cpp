@@ -117,10 +117,15 @@ void McpSchemaBuilder::addControlSchema(JsonValue::Object& properties, JsonValue
         JsonValue{ .data = std::string("status") }, 
         JsonValue{ .data = std::string("set_concurrency") }, 
         JsonValue{ .data = std::string("stop") }, 
-        JsonValue{ .data = std::string("stop_nice") } 
+        JsonValue{ .data = std::string("stop_nice") },
+        JsonValue{ .data = std::string("cancel_job") },
+        JsonValue{ .data = std::string("clear_queue") },
+        JsonValue{ .data = std::string("list_results") },
+        JsonValue{ .data = std::string("clear_results") }
     } };
     properties["command"] = JsonValue{ .data = command };
     properties["value"] = JsonValue{ .data = createProperty("integer", "Value for the command (e.g. concurrency level).") };
+    properties["job_id"] = JsonValue{ .data = createProperty("string", "Job id for queue control commands like cancel_job.") };
     required.push_back(JsonValue{ .data = std::string("command") });
 }
 
