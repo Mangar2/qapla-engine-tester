@@ -509,6 +509,12 @@ AppReturnCode AppRunner::runDispatcher(bool background) {
          throw AppError::makeInvalidParameters("A task is already running. Please stop it first.");
     }
 
+    static bool hasExecutedDispatcherRun = false;
+    // An initial log file is created on application start, we ensure to use it.
+    if (hasExecutedDispatcherRun) {
+        Logger::reportLogger().startNewRunLogFile();
+    }
+
     AppReturnCode returnCode = AppReturnCode::NoError;
     bool hasTask = false;
 
@@ -548,6 +554,8 @@ AppReturnCode AppRunner::runDispatcher(bool background) {
     if (!hasTask) {
         throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, or --spsa.");
     }
+
+    hasExecutedDispatcherRun = true;
 
     return returnCode;
 }
