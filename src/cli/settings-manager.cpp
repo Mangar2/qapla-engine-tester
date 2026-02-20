@@ -669,7 +669,7 @@ namespace QaplaTester::Settings
                 bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue) && std::get<std::string>(*def.defaultValue).empty();
                 if (!isEmptyString)
                 {
-                    std::cout << std::format(" (default: {})", valueToString(*def.defaultValue));
+                    std::cout << std::format(" (default: {})", formatHelpDefaultValue(*def.defaultValue));
                 }
             }
             std::cout << "\n";
@@ -707,7 +707,7 @@ namespace QaplaTester::Settings
                     bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue) && std::get<std::string>(*meta.defaultValue).empty();
                     if (!isEmptyString)
                     {
-                        std::cout << std::format(" (default: {})", valueToString(*meta.defaultValue));
+                        std::cout << std::format(" (default: {})", formatHelpDefaultValue(*meta.defaultValue));
                     }
                 }
                 std::cout << "\n";
@@ -849,6 +849,17 @@ namespace QaplaTester::Settings
     std::string Manager::valueToString(const Value& value)
     {
         return std::visit([](auto&& val) {
+            return std::format("{}", val);
+        }, value);
+    }
+
+    std::string Manager::formatHelpDefaultValue(const Value& value)
+    {
+        return std::visit([](auto&& val) -> std::string {
+            using ValueType = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<ValueType, double>) {
+                return std::format("{:.4f}", val);
+            }
             return std::format("{}", val);
         }, value);
     }

@@ -447,6 +447,7 @@ namespace QaplaTester::Settings {
         void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite, bool strict);
 
         static std::string valueToString(const Value& value);
+        static std::string formatHelpDefaultValue(const Value& value);
 
         [[nodiscard]] const GroupInstance* findGroupInstance(const std::string& groupName, 
                                                             const QaplaHelpers::IniFile::KeyValueMap& criteria) const;
