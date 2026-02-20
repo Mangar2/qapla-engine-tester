@@ -61,6 +61,7 @@ struct QueueJob {
     std::string jobId;
     QueueJobType jobType = QueueJobType::Sprt;
     std::string toolName;
+    std::string jobIntent;
     std::string reportBaseName;
     QaplaHelpers::ConfigData configData;
     JsonValue::Object executionArguments;

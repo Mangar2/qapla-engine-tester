@@ -841,6 +841,7 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     AppReturnCode& returnCode) {
     auto toolArgs = arguments;  // Create a copy to modify
     bool background = false;
+    std::string jobIntent;
     
     // Check for background execution parameter
     if (toolArgs.contains("mcp_background")) {
@@ -853,6 +854,15 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     
     if (toolArgs.contains("engines")) {
         toolArgs.erase("engines");
+    }
+
+    if (name == "sprt") {
+        if (!toolArgs.contains("job_intent") || !toolArgs.at("job_intent").isString()) {
+            throw AppError::makeInvalidParameters("String job_intent is required for sprt jobs.");
+        }
+
+        jobIntent = toolArgs.at("job_intent").asString();
+        toolArgs.erase("job_intent");
     }
 
     prepareTaskFile(name, toolArgs);
@@ -898,6 +908,7 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         QueueJob queueEntry;
         queueEntry.jobType = QueueJobType::Sprt;
         queueEntry.toolName = name;
+        queueEntry.jobIntent = jobIntent;
         queueEntry.reportBaseName = reportBaseName;
         queueEntry.configData = configData;
         queueEntry.executionArguments = arguments;
