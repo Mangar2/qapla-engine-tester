@@ -643,70 +643,69 @@ namespace QaplaTester::Settings
 
     void Manager::showHelp()
     {
+        std::cout << "Available options:\n";
+        showGlobalHelpParameters();
+        showGroupHelpParameters();
+    }
+
+    void Manager::showGlobalHelpParameters() const {
         constexpr int nameWidth = 30;
 
-        std::cout << "Available options:\n";
-        for (const auto &[key, def] : definitions_)
-        {
+        for (const auto& [key, def] : definitions_) {
             if (def.isHidden) {
                 continue;
             }
 
             std::ostringstream line;
-            line << "  --" << key << "=";
-
-			std::string typeStr = to_string(def.type);
-
-            line << typeStr;
+            line << "  --" << key << "=" << to_string(def.type);
             std::cout << std::left << std::setw(nameWidth) << line.str();
 
             std::cout << def.description;
             if (def.isRequired) {
                 std::cout << " [required]";
             }
-            else if (def.defaultValue)
-            {
-                bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue) && std::get<std::string>(*def.defaultValue).empty();
-                if (!isEmptyString)
-                {
+            else if (def.defaultValue) {
+                const bool isEmptyString = std::holds_alternative<std::string>(*def.defaultValue)
+                    && std::get<std::string>(*def.defaultValue).empty();
+                if (!isEmptyString) {
                     std::cout << std::format(" (default: {})", formatHelpDefaultValue(*def.defaultValue));
                 }
             }
             std::cout << "\n";
         }
+    }
 
-        for (const auto &[group, def] : groupDefs_)
-        {
+    void Manager::showGroupHelpParameters() const {
+        constexpr int nameWidth = 30;
+
+        for (const auto& [group, def] : groupDefs_) {
+            if (def.ignore) {
+                continue;
+            }
+
             std::ostringstream header;
             header << "  --" << group << " ...";
 
-            std::cout << "\n"
-                      << std::left << std::setw(nameWidth) << header.str();
+            std::cout << "\n" << std::left << std::setw(nameWidth) << header.str();
             std::cout << def.description << "\n";
 
-            for (const auto &[param, meta] : def.keys)
-            {
+            for (const auto& [param, meta] : def.keys) {
                 if (meta.isHidden) {
                     continue;
                 }
 
                 std::ostringstream line;
-                line << "    " << param << "=";
-
-				std::string typeStr = to_string(meta.type);
-
-                line << typeStr;
+                line << "    " << param << "=" << to_string(meta.type);
                 std::cout << std::left << std::setw(nameWidth) << line.str();
 
                 std::cout << meta.description;
                 if (meta.isRequired) {
                     std::cout << " [required]";
                 }
-                else if (meta.defaultValue)
-                {
-                    bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue) && std::get<std::string>(*meta.defaultValue).empty();
-                    if (!isEmptyString)
-                    {
+                else if (meta.defaultValue) {
+                    const bool isEmptyString = std::holds_alternative<std::string>(*meta.defaultValue)
+                        && std::get<std::string>(*meta.defaultValue).empty();
+                    if (!isEmptyString) {
                         std::cout << std::format(" (default: {})", formatHelpDefaultValue(*meta.defaultValue));
                     }
                 }

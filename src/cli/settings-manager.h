@@ -446,6 +446,9 @@ namespace QaplaTester::Settings {
          */
         void parseGroupedParameter(const QaplaHelpers::IniFile::Section& section, bool overwrite, bool strict);
 
+        void showGlobalHelpParameters() const;
+        void showGroupHelpParameters() const;
+
         static std::string valueToString(const Value& value);
         static std::string formatHelpDefaultValue(const Value& value);
 
