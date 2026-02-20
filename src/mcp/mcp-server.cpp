@@ -402,6 +402,23 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
     return configData;
 }
 
+namespace {
+    void ensureTaskGroupSection(QaplaHelpers::ConfigData& configData, std::string_view toolName) {
+        if (!isQueueableTool(toolName)) {
+            return;
+        }
+
+        if (configData.getSectionMap(std::string(toolName)).has_value()) {
+            return;
+        }
+
+        QaplaHelpers::IniFile::Section section;
+        section.name = std::string(toolName);
+        section.addEntry("id", "all");
+        configData.addSection(section);
+    }
+}
+
 void McpServer::processParameter(const std::string& key, const JsonValue& value,
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
     QaplaHelpers::ConfigData& configData) {
@@ -864,6 +881,7 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     Logger::logBaseName_ = reportBaseName;
     
     auto paramsConfig = mapJsonToConfigData(toolArgs);
+    ensureTaskGroupSection(paramsConfig, name);
     QaplaHelpers::ConfigData configData = globalAdjudicationConfig_;
     
     // Copy paramsConfig into configData
