@@ -338,20 +338,29 @@ void JobScheduler::enrichFinishedJob(QueueJob& jobEntry) {
         jobEntry.reportUri = std::format("qapla://reports/{}/{}", jobEntry.toolName, reportFilename);
     }
 
-    if (jobEntry.jobType != QueueJobType::Sprt) {
-        return;
-    }
-
-    if (const auto sectionMap = jobEntry.configData.getSectionMap("sprt")) {
-        for (const auto& [_, sections] : *sectionMap) {
-            for (const auto& section : sections) {
-                for (const auto& [key, value] : section.entries) {
-                    if (key == "file") {
-                        jobEntry.resultUri = std::format("qapla://reports/sprt/{}", std::filesystem::path(value).filename().string());
+    const auto copyResultFileFromSection = [&jobEntry](const std::string& sectionName) {
+        if (const auto sectionMap = jobEntry.configData.getSectionMap(sectionName)) {
+            for (const auto& [_, sections] : *sectionMap) {
+                for (const auto& section : sections) {
+                    for (const auto& [key, value] : section.entries) {
+                        if (key == "file") {
+                            jobEntry.resultUri = std::format(
+                                "qapla://reports/{}/{}",
+                                sectionName,
+                                std::filesystem::path(value).filename().string());
+                        }
                     }
                 }
             }
         }
+    };
+
+    if (jobEntry.jobType == QueueJobType::Sprt) {
+        copyResultFileFromSection("sprt");
+    }
+
+    if (jobEntry.jobType == QueueJobType::Tournament) {
+        copyResultFileFromSection("tournament");
     }
 }
 
@@ -376,6 +385,14 @@ std::string JobScheduler::typeName(QueueJobType type) {
     switch (type) {
         case QueueJobType::Sprt:
             return "sprt";
+        case QueueJobType::Tournament:
+            return "tournament";
+        case QueueJobType::Epd:
+            return "epd";
+        case QueueJobType::Spsa:
+            return "spsa";
+        case QueueJobType::Test:
+            return "test";
         default:
             return "unknown";
     }

@@ -20,7 +20,12 @@
 #include "mcp-background-tools.h"
 
 #include "job-scheduler.h"
+#include "../base-elements/app-error.h"
 #include "../cli/app-runner.h"
+
+#include <algorithm>
+#include <array>
+#include <format>
 
 namespace QaplaTester::Mcp {
 
@@ -47,6 +52,89 @@ std::string createCombinedControlStatus() {
     auto rootObject = runnerJson.asObject();
     rootObject["job_queue"] = JobScheduler::instance().queueStatusJson();
     return JsonHelper::serialize(JsonHelper::makeObject(std::move(rootObject)));
+}
+
+bool isQueueableTool(std::string_view toolName) {
+    static constexpr std::array queueableTools{
+        std::string_view{"sprt"},
+        std::string_view{"tournament"},
+        std::string_view{"epd"},
+        std::string_view{"spsa"},
+        std::string_view{"test"}
+    };
+
+    return std::ranges::any_of(queueableTools, [toolName](std::string_view knownName) {
+        return knownName == toolName;
+    });
+}
+
+QueueJobType queueJobTypeForTool(std::string_view toolName) {
+    if (toolName == "sprt") {
+        return QueueJobType::Sprt;
+    }
+
+    if (toolName == "tournament") {
+        return QueueJobType::Tournament;
+    }
+
+    if (toolName == "epd") {
+        return QueueJobType::Epd;
+    }
+
+    if (toolName == "spsa") {
+        return QueueJobType::Spsa;
+    }
+
+    if (toolName == "test") {
+        return QueueJobType::Test;
+    }
+
+    throw AppError::makeInvalidParameters(std::format("Tool '{}' is not queueable.", toolName));
+}
+
+std::string extractJobIntentForQueue(
+    std::string_view toolName,
+    JsonValue::Object& toolArgs,
+    bool background)
+{
+    if (!isQueueableTool(toolName)) {
+        return "";
+    }
+
+    if (!toolArgs.contains("job_intent")) {
+        if (background) {
+            throw AppError::makeInvalidParameters(
+                std::format("String job_intent is required for {} jobs.", toolName));
+        }
+        return "";
+    }
+
+    if (!toolArgs.at("job_intent").isString()) {
+        throw AppError::makeInvalidParameters(
+            std::format("String job_intent is required for {} jobs.", toolName));
+    }
+
+    auto jobIntent = toolArgs.at("job_intent").asString();
+    toolArgs.erase("job_intent");
+
+    if (jobIntent.empty()) {
+        throw AppError::makeInvalidParameters(
+            std::format("String job_intent must not be empty for {} jobs.", toolName));
+    }
+
+    return jobIntent;
+}
+
+std::string createQueueStartSummary(
+    std::string_view toolName,
+    std::string_view jobId,
+    std::string_view queueStatusJson)
+{
+    auto summary = std::format("Tool '{}' queued as '{}'.", toolName, jobId);
+    summary += std::format("\nThe next queued '{}' job starts automatically after the running one finishes.", toolName);
+    summary += "\nUse control/status to monitor and control/cancel_job to stop specific jobs.";
+    summary += std::format("\nQueue status: {}", queueStatusJson);
+    return summary;
 }
 
 } // namespace QaplaTester::Mcp
