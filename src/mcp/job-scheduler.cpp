@@ -169,6 +169,7 @@ JsonValue JobScheduler::queueStatusJson() const {
         JsonValue::Object activeObject;
         activeObject["job_id"] = JsonHelper::makeString(activeJob_->jobId);
         activeObject["type"] = JsonHelper::makeString(typeName(activeJob_->jobType));
+        activeObject["job_intent"] = JsonHelper::makeString(activeJob_->jobIntent);
         activeObject["state"] = JsonHelper::makeString(stateName(activeJob_->state));
         activeObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(activeJob_->createdAt));
         activeObject["started_at"] = JsonHelper::makeNumber(toUnixSeconds(activeJob_->startedAt));
@@ -181,6 +182,7 @@ JsonValue JobScheduler::queueStatusJson() const {
         JsonValue::Object queuedObject;
         queuedObject["job_id"] = JsonHelper::makeString(queuedJob.jobId);
         queuedObject["type"] = JsonHelper::makeString(typeName(queuedJob.jobType));
+        queuedObject["job_intent"] = JsonHelper::makeString(queuedJob.jobIntent);
         queuedObject["state"] = JsonHelper::makeString(stateName(queuedJob.state));
         queuedObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(queuedJob.createdAt));
         queuedArray.push_back(JsonHelper::makeObject(std::move(queuedObject)));
@@ -192,6 +194,7 @@ JsonValue JobScheduler::queueStatusJson() const {
         JsonValue::Object finishedObject;
         finishedObject["job_id"] = JsonHelper::makeString(finishedJob.jobId);
         finishedObject["type"] = JsonHelper::makeString(typeName(finishedJob.jobType));
+        finishedObject["job_intent"] = JsonHelper::makeString(finishedJob.jobIntent);
         finishedObject["state"] = JsonHelper::makeString(stateName(finishedJob.state));
         finishedObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.createdAt));
         finishedObject["started_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.startedAt));
@@ -225,6 +228,7 @@ JsonValue JobScheduler::finishedResultsJson() const {
         JsonValue::Object result;
         result["job_id"] = JsonHelper::makeString(finishedJob.jobId);
         result["type"] = JsonHelper::makeString(typeName(finishedJob.jobType));
+        result["job_intent"] = JsonHelper::makeString(finishedJob.jobIntent);
         result["state"] = JsonHelper::makeString(stateName(finishedJob.state));
         result["return_code"] = JsonHelper::makeNumber(static_cast<double>(static_cast<int>(finishedJob.returnCode)));
         result["return_code_text"] = JsonHelper::makeString(finishedJob.returnCodeText);
