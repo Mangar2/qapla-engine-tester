@@ -131,6 +131,11 @@ public:
     [[nodiscard]] std::string getFilename();
 
     /**
+     * @brief Forces creation of a new log file on next write.
+     */
+    void startNewRunLogFile();
+
+    /**
      * @brief Sets the trace level thresholds for console and file logging.
      * 
      * Only messages with a level less than or equal to the threshold will be logged.

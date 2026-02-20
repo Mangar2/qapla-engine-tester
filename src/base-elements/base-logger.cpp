@@ -94,6 +94,17 @@ std::string BaseLogger::getFilename() {
     return filename_;
 }
 
+void BaseLogger::startNewRunLogFile() {
+    std::scoped_lock lock(loggingMutex_);
+    if (fileStream_.is_open()) {
+        fileStream_.close();
+    }
+
+    filename_.clear();
+    openedBasename_.clear();
+    openedLogPath_.clear();
+}
+
 void BaseLogger::logCli(std::string_view message, TraceLevel level) {
     std::scoped_lock lock(loggingMutex_);
     if (level <= cliThreshold_) {

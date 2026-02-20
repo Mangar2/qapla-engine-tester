@@ -584,16 +584,19 @@ void SprtManager::logFinalResult() const {
     }
     
     const auto& finalResult = sprtResults_.front().front();
+    const auto totalGames = finalResult.winsA + finalResult.draws + finalResult.winsB;
+    const auto winRatePercent = getDuelResult().engineARate() * 100.0;
     
     std::ostringstream oss;
-    oss << "SPRT final result: " << finalResult.info;
+    oss << "SPRT final result: " << finalResult.info << "\n";
     if (finalResult.decision.has_value()) {
-        oss << " | decision: " << (*finalResult.decision ? "H1 Accepted" : "H0 Accepted");
+        oss << "decision: " << (*finalResult.decision ? "H1 Accepted" : "H0 Accepted");
     } else {
-        oss << " | decision: Inconclusive";
+        oss << "decision: Inconclusive";
     }
     oss << " | LLR: " << std::fixed << std::setprecision(2) << finalResult.llr
-        << " | games: " << (finalResult.winsA + finalResult.draws + finalResult.winsB)
+        << " | winrate: " << std::fixed << std::setprecision(2) << winRatePercent << "%"
+        << " | games: " << totalGames
         << " (W:" << finalResult.winsA << " D:" << finalResult.draws << " L:" << finalResult.winsB << ")";
     
     Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);
