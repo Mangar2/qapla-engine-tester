@@ -490,7 +490,7 @@ TestResult runImmediateStopTest(const EngineConfig& engineConfig)
         static constexpr auto ANALYZE_TEST_TIMEOUT = std::chrono::milliseconds(500);
         static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
         static constexpr auto STOP_POLL_INTERVAL = std::chrono::milliseconds(1);
-        static constexpr int STOP_POLL_LIMIT = 100;
+        static constexpr int STOP_POLL_LIMIT = 2;
         
         TimeControl t;
         t.setInfinite();

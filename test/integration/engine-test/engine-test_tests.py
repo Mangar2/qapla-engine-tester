@@ -57,7 +57,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test nostop=false --engine conf='Qapla 0.3.0' --logging path=test/integration/log/engine-test/stop-fail",
             "log_path": "test/integration/log/engine-test/stop-fail",
             "validators": [
-                {"type": "exitCode", "expected": 11}
+                {"type": "exitCode", "expected": 10}
             ],
             "cleanup": "test/integration/log/engine-test/stop-fail",
         },
