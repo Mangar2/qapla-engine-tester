@@ -237,7 +237,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         },
         {
             .name = "control",
-            .description = "Control running tasks and queued jobs (status, concurrency, stop, cancel, clear, list_results, clear_results)",
+            .description = "Control running tasks and queued jobs (status, concurrency, stop, cancel, clear, list_results, clear_results). Queue-capable tools: sprt, tournament, epd, spsa, test.",
             .groups = {}
         },
         {
@@ -344,7 +344,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
             const Cli::TaskType taskType = Cli::TaskType::All;
 
             const bool deferEngineSetupToQueue =
-                (name == "sprt") && isBackgroundRequested(arguments);
+                isQueueableTool(name) && isBackgroundRequested(arguments);
             if (!deferEngineSetupToQueue) {
                 McpEngineTool::setupActiveEngines(arguments, taskType, capabilities_);
             }
@@ -841,7 +841,6 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     AppReturnCode& returnCode) {
     auto toolArgs = arguments;  // Create a copy to modify
     bool background = false;
-    std::string jobIntent;
     
     // Check for background execution parameter
     if (toolArgs.contains("mcp_background")) {
@@ -856,14 +855,7 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         toolArgs.erase("engines");
     }
 
-    if (name == "sprt") {
-        if (!toolArgs.contains("job_intent") || !toolArgs.at("job_intent").isString()) {
-            throw AppError::makeInvalidParameters("String job_intent is required for sprt jobs.");
-        }
-
-        jobIntent = toolArgs.at("job_intent").asString();
-        toolArgs.erase("job_intent");
-    }
+    const auto jobIntent = extractJobIntentForQueue(name, toolArgs, background);
 
     prepareTaskFile(name, toolArgs);
 
@@ -904,9 +896,9 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
 
     std::string settingsReport = SettingsReporter::generateReport(reportGroups, reportColumns);
 
-    if (background && name == "sprt") {
+    if (background && isQueueableTool(name)) {
         QueueJob queueEntry;
-        queueEntry.jobType = QueueJobType::Sprt;
+        queueEntry.jobType = queueJobTypeForTool(name);
         queueEntry.toolName = name;
         queueEntry.jobIntent = jobIntent;
         queueEntry.reportBaseName = reportBaseName;
@@ -917,10 +909,7 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         returnCode = AppReturnCode::NoError;
 
         const auto queueStatus = JsonHelper::serialize(JobScheduler::instance().queueStatusJson());
-        std::string summary = std::format("Tool '{}' queued as '{}'.", name, jobId);
-        summary += "\nThe next queued SPRT starts automatically after the running one finishes.";
-        summary += "\nUse control/status to monitor and control/cancel_job to stop specific jobs.";
-        summary += std::format("\nQueue status: {}", queueStatus);
+        const auto summary = createQueueStartSummary(name, jobId, queueStatus);
         textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
     } else if (background) {
         returnCode = executeRunnerTool(configData, background);

@@ -170,10 +170,11 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
     properties["engines"] = JsonValue{ .data = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames)) };
     required.push_back(JsonValue{ .data = std::string("engines") });
 
-    if (info.name == "sprt") {
+    if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" ||
+        info.name == "spsa" || info.name == "test") {
         properties["job_intent"] = JsonValue{ .data = createProperty(
             "string",
-            "Short and precise purpose of this SPRT job. Include key specifics like tested parameter/value and expected comparison goal.") };
+            "Short and precise purpose of this queued job. Include key specifics like tested parameter/value and expected comparison goal.") };
         required.push_back(JsonValue{ .data = std::string("job_intent") });
     }
 

@@ -40,7 +40,11 @@ namespace QaplaTester::Mcp {
  * @brief Supported queue job categories.
  */
 enum class QueueJobType {
-    Sprt
+    Sprt,
+    Tournament,
+    Epd,
+    Spsa,
+    Test
 };
 
 /**
