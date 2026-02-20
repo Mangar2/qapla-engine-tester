@@ -510,7 +510,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
                         .defaultValue = false, 
                         .type = ValueType::Bool } },
         { "numgames",   { .description = "Number of test games to run", 
-                        .longDescription = "Specifies the number of games played by the engine against itself to test long-term stability (0 skips this test). Long running, many full engine vs. engine games.",
+                        .longDescription = "Specifies the number of games played by the engine against itself to test long-term stability. Values greater than 0 enable the multi-game self-play test (including parallel execution by configured concurrency). A value of 0 skips this test.",
                         .isRequired = false, 
                         .defaultValue = 20, 
                         .type = ValueType::UInt } },

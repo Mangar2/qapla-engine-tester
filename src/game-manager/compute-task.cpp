@@ -191,19 +191,17 @@ void ComputeTask::autoPlay(const std::optional<EngineEvent>& event) {
     }
 }
 
-void ComputeTask::moveNow() {
+bool ComputeTask::moveNow() {
     if (gameContext_.getPlayerCount() == 0) {
-        return;
+        return false;
     }
 
     const auto& gameRecord = gameContext_.gameRecord();
     auto* player = gameRecord.isWhiteToMove() ? gameContext_.getWhite() : gameContext_.getBlack();
     if (player == nullptr) {
-        return;
+        return false;
     }
-    // Check Ready is ok in UCI, but not in Winboard mode, I do not know why it is here and if it is needed for uci.
-    // player->checkReady();
-    player->moveNow();
+    return player->moveNow();
 }
 
 const std::future<void>& ComputeTask::getFinishedFuture() const {
