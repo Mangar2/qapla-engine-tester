@@ -21,6 +21,7 @@
 
 #include "../base-elements/logger.h"
 
+#include <cctype>
 #include <filesystem>
 #include <format>
 
@@ -218,35 +219,20 @@ JsonValue JobScheduler::queueStatusJson() const {
 }
 
 JsonValue JobScheduler::finishedResultsJson() const {
-    std::scoped_lock lock(mutex_);
+    const auto statusSnapshot = queueStatusJson();
 
     JsonValue::Object root;
-    root["count"] = JsonHelper::makeNumber(static_cast<double>(finishedJobs_.size()));
-
     JsonValue::Array results;
-    for (const auto& finishedJob : finishedJobs_) {
-        JsonValue::Object result;
-        result["job_id"] = JsonHelper::makeString(finishedJob.jobId);
-        result["type"] = JsonHelper::makeString(typeName(finishedJob.jobType));
-        result["job_intent"] = JsonHelper::makeString(finishedJob.jobIntent);
-        result["state"] = JsonHelper::makeString(stateName(finishedJob.state));
-        result["return_code"] = JsonHelper::makeNumber(static_cast<double>(static_cast<int>(finishedJob.returnCode)));
-        result["return_code_text"] = JsonHelper::makeString(finishedJob.returnCodeText);
-        result["created_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.createdAt));
-        result["started_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.startedAt));
-        result["finished_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.finishedAt));
-        if (!finishedJob.reportUri.empty()) {
-            result["report_uri"] = JsonHelper::makeString(finishedJob.reportUri);
+
+    if (statusSnapshot.isObject()) {
+        const auto& statusObject = statusSnapshot.asObject();
+        if (const auto iterator = statusObject.find("finished_jobs");
+            iterator != statusObject.end() && iterator->second.isArray()) {
+            results = iterator->second.asArray();
         }
-        if (!finishedJob.resultUri.empty()) {
-            result["result_uri"] = JsonHelper::makeString(finishedJob.resultUri);
-        }
-        if (!finishedJob.errorMessage.empty()) {
-            result["error"] = JsonHelper::makeString(finishedJob.errorMessage);
-        }
-        results.push_back(JsonHelper::makeObject(std::move(result)));
     }
 
+    root["count"] = JsonHelper::makeNumber(static_cast<double>(results.size()));
     root["results"] = JsonValue{ .data = std::move(results) };
     return JsonHelper::makeObject(std::move(root));
 }
@@ -399,30 +385,19 @@ std::string JobScheduler::typeName(QueueJobType type) {
 }
 
 std::string JobScheduler::returnCodeName(AppReturnCode code) {
-    switch (code) {
-        case AppReturnCode::NoError:
-            return "NoError";
-        case AppReturnCode::GeneralError:
-            return "GeneralError";
-        case AppReturnCode::InvalidParameters:
-            return "InvalidParameters";
-        case AppReturnCode::EngineError:
-            return "EngineError";
-        case AppReturnCode::EngineMissbehaviour:
-            return "EngineMissbehaviour";
-        case AppReturnCode::EngineNote:
-            return "EngineNote";
-        case AppReturnCode::MissedTarget:
-            return "MissedTarget";
-        case AppReturnCode::H1Accepted:
-            return "H1Accepted";
-        case AppReturnCode::H0Accepted:
-            return "H0Accepted";
-        case AppReturnCode::UndefinedResult:
-            return "UndefinedResult";
-        default:
-            return std::format("ReturnCode({})", static_cast<int>(code));
+    auto codeName = appReturnCodeName(code);
+    bool numericOnly = !codeName.empty();
+    for (const auto currentCharacter : codeName) {
+        if (std::isdigit(static_cast<unsigned char>(currentCharacter)) == 0) {
+            numericOnly = false;
+            break;
+        }
     }
+
+    if (numericOnly) {
+        return std::format("ReturnCode({})", codeName);
+    }
+    return codeName;
 }
 
 double JobScheduler::toUnixSeconds(const std::chrono::system_clock::time_point& timePoint) {
