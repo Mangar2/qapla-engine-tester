@@ -81,6 +81,8 @@ JsonValue::Object McpSchemaBuilder::createInputSchema(const ToolInfo& info, cons
         addControlSchema(properties, required);
     } else if (info.name == "manage_engines") {
         addManageEnginesSchema(properties, required, registeredNames);
+    } else if (info.name == "set_logging" || info.name == "adjudicate" || info.name == "list_settings") {
+        addNonTaskSchema(info, properties, required);
     } else {
         addStandardTaskSchema(info, properties, required, registeredNames);
     }
@@ -166,6 +168,13 @@ void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, Jso
         "Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128."
         "Use the 'details' command to list available options for a specific engine.") };
 }
+
+void McpSchemaBuilder::addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required) {
+    for (const auto& group : info.groups) {
+        addParametersFromGroup(group, properties, required);
+    }
+}
+
 void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames) {
     properties["engines"] = JsonValue{ .data = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames)) };
     required.push_back(JsonValue{ .data = std::string("engines") });

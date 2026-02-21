@@ -282,8 +282,12 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
         }
 
         pool.waitForTask();
-        Logger::reportLogger().log(std::format("Finished EPD test for engine: {}, success rate: {:.2f}%", 
-            name, epdManager_->getSuccessRate() * 100.0));
+        const auto statusResult = epdManager_->getStatusResult();
+        Logger::reportLogger().log(std::format(
+            "Finished EPD test for engine: {}, success rate: {:.2f}%, total nodes: {}",
+            name,
+            statusResult.hitRatePercent,
+            statusResult.totalNodes));
         if (code == AppReturnCode::NoError) {
             const bool success = epdManager_->getSuccessRate() >= epdConfig->minSuccess / 100.0;
             code = success ? code : AppReturnCode::MissedTarget;
