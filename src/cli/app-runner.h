@@ -99,9 +99,11 @@ public:
     /**
      * @brief Dispatches execution to the correct mode based on current settings.
      * @param background If true, starts in background and returns immediately.
+     * @param forcedTask If set, only this task is executed and all other configured tasks are ignored.
      * @return Application return code.
      */
-    [[nodiscard]] AppReturnCode runDispatcher(bool background = false);
+    [[nodiscard]] AppReturnCode runDispatcher(bool background = false,
+        Cli::TaskType forcedTask = Cli::TaskType::None);
 
     /**
      * @brief Stops all running tasks.

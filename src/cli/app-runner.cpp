@@ -514,7 +514,7 @@ std::string AppRunner::getStatus() {
     return Mcp::JsonHelper::serialize(Mcp::JsonHelper::makeObject(std::move(rootObject)));
 }
 
-AppReturnCode AppRunner::runDispatcher(bool background) {
+AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask) {
     if (GameManagerPool::getInstance().runningGameCount() > 0) {
          throw AppError::makeInvalidParameters("A task is already running. Please stop it first.");
     }
@@ -527,41 +527,49 @@ AppReturnCode AppRunner::runDispatcher(bool background) {
 
     AppReturnCode returnCode = AppReturnCode::NoError;
     bool hasTask = false;
+    const auto shouldRunTask = [forcedTask](Cli::TaskType taskType) {
+        return forcedTask == Cli::TaskType::None || forcedTask == taskType;
+    };
 
     setPgnConfig();
     setAdjudicationOptions();
 
-    if (Settings::Manager::instance().getGroupInstance("test")) {
+    if (shouldRunTask(Cli::TaskType::Test) && Settings::Manager::instance().getGroupInstance("test")) {
         currentTask_ = Cli::TaskType::Test;
         returnCode = runTest(*Settings::Manager::instance().getGroupInstance("test"), returnCode);
         hasTask = true;
     }
 
-    if (Settings::Manager::instance().getGroupInstance("epd")) {
+    if (shouldRunTask(Cli::TaskType::Epd) && Settings::Manager::instance().getGroupInstance("epd")) {
         currentTask_ = Cli::TaskType::Epd;
         returnCode = runEpd(returnCode, background);
         hasTask = true;
     }
 
-    if (Settings::Manager::instance().getGroupInstance("tournament")) {
+    if (shouldRunTask(Cli::TaskType::Tournament) && Settings::Manager::instance().getGroupInstance("tournament")) {
         currentTask_ = Cli::TaskType::Tournament;
         returnCode = runTournament(returnCode, background);
         hasTask = true;
     }
 
-    if (Settings::Manager::instance().getGroupInstance("sprt")) {
+    if (shouldRunTask(Cli::TaskType::Sprt) && Settings::Manager::instance().getGroupInstance("sprt")) {
         currentTask_ = Cli::TaskType::Sprt;
         returnCode = runSprt(returnCode, background);
         hasTask = true;
     }
 
-    if (Settings::Manager::instance().getGroupInstance("spsa")) {
+    if (shouldRunTask(Cli::TaskType::Spsa) && Settings::Manager::instance().getGroupInstance("spsa")) {
         currentTask_ = Cli::TaskType::Spsa;
         returnCode = runSpsa(returnCode, background);
         hasTask = true;
     }
 
     if (!hasTask) {
+        if (forcedTask != Cli::TaskType::None) {
+            throw AppError::makeInvalidParameters(std::format(
+                "No '{}' task configuration found. The selected task is forced in MCP mode.",
+                Cli::getTaskId(forcedTask)));
+        }
         throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, or --spsa.");
     }
 
