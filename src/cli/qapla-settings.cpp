@@ -363,6 +363,8 @@ void QaplaSettings::setEpdConfig() {
         .maxTime = epdGroup->get<unsigned int>("maxtime"),
         .minTime = epdGroup->get<unsigned int>("mintime"),
         .seenPlies = epdGroup->get<unsigned int>("seenplies"),
+        .depth = epdGroup->get<unsigned int>("depth"),
+        .nodes = epdGroup->get<unsigned int>("nodes"),
         .minSuccess = epdGroup->get<unsigned int>("minsuccess")
     });
 }

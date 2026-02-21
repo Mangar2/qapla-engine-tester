@@ -22,6 +22,7 @@
 #include "../game-manager/game-manager.h"
 #include "../game-manager/game-manager-pool.h"
 #include "../base-elements/string-helper.h"
+#include "../base-elements/app-error.h"
 
 namespace QaplaTester {
 
@@ -89,7 +90,7 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
     table.columnWidths = { 20, 24 };
     table.headers = { "TestId", "BestMoves" };
         std::vector<TableCell> rowValues;
-    rowValues.push_back(current.id);
+    rowValues.emplace_back(current.id);
     std::string bestMoveList;
     for (size_t moveIndex = 0; moveIndex < current.bestMoves.size(); ++moveIndex) {
         if (moveIndex > 0) {
@@ -97,7 +98,7 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
         }
         bestMoveList += current.bestMoves[moveIndex];
     }
-    rowValues.push_back(std::move(bestMoveList));
+    rowValues.emplace_back(std::move(bestMoveList));
 
     for (const auto& result : results) {
         const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
@@ -106,7 +107,7 @@ void EpdManager::logResultLine(const EpdTestCase& current) const {
         if (it != result.result.end()) {
             table.columnWidths.push_back(30);
             table.headers.push_back(result.engineName);
-            rowValues.push_back(std::format(
+            rowValues.emplace_back(std::format(
                 "{} | {}ms | D:{} | M:{}",
                 it->correct ? "ok" : "miss",
                 it->correctAtTimeInMs,
@@ -337,7 +338,8 @@ TableData EpdManager::getStatusTable() const {
 }
 
 
-void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies) {
+void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies,
+    uint32_t depth, uint32_t nodes) {
     if (!reader_) {
         throw std::runtime_error("EpdReader must be initialized before loading test cases.");
     }
@@ -353,20 +355,39 @@ void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, u
 		testCase->maxTimeInS = maxTimeInS;
 		testCase->minTimeInS = minTimeInS;
 		testCase->seenPlies = static_cast<int>(seenPlies);
+		if (depth > 0 || nodes > 0) {
+			testCase->minTimeInS = 0;
+			testCase->seenPlies = -1;
+		}
         testsRead_.push_back(std::move(*testCase));
     }
 }
 
 void EpdManager::initialize(const std::string& filepath, 
-    uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies)
+    uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies, uint32_t depth, uint32_t nodes)
 {
+    if (depth != 0 && nodes != 0) {
+        throw AppError::makeInvalidParameters("EPD configuration error: 'depth' and 'nodes' cannot both be greater than 0.");
+	}
+
 	epdFileName_ = filepath;
     bool sameFile = reader_ && reader_->getFilePath() == filepath;
     if (!sameFile) {
         reader_ = std::make_unique<EpdReader>(filepath);
     }
 
-    initializeTestCases(maxTimeInS, minTimeInS, seenPlies);
+    initializeTestCases(maxTimeInS, minTimeInS, seenPlies, depth, nodes);
+    tc_ = TimeControl{};
+    if (depth != 0) {
+        tc_.setDepth(depth);
+        return;
+    }
+
+    if (nodes != 0) {
+        tc_.setNodes(nodes);
+        return;
+    }
+
     tc_.setMoveTime(maxTimeInS * 1000);
 }
 

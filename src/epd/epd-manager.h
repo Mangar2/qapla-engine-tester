@@ -46,6 +46,8 @@ struct EpdConfig {
     uint32_t maxTime = 20;      ///< Maximum allowed time in seconds per move
     uint32_t minTime = 2;       ///< Minimum required time for early stop
     uint32_t seenPlies = 0;     ///< Amount of plies one of the expected moves must be shown to stop early
+    uint32_t depth = 0;         ///< Fixed depth limit (0 = disabled)
+    uint32_t nodes = 0;         ///< Fixed node limit (0 = disabled)
     uint32_t minSuccess = 0;    ///< Minimum percentage of best moves that must be found
 };
  
@@ -64,8 +66,11 @@ public:
 	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
 	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
+	 * @param depth Fixed depth limit for each position. 0 means disabled.
+	 * @param nodes Fixed node limit for each position. 0 means disabled.
      */
-    void initialize(const std::string& filepath, uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies);
+    void initialize(const std::string& filepath, uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies,
+        uint32_t depth, uint32_t nodes);
 
     /**
      * @brief Continues the analysis from the current state.
@@ -129,8 +134,11 @@ private:
 	 * @param maxTimeInS Maximum allowed time in seconds for each engine to analyze a position.
 	 * @param minTimeInS Minimum time in seconds each engine must spend at least on a position.
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
+	 * @param depth Fixed depth limit for each position. 0 means disabled.
+	 * @param nodes Fixed node limit for each position. 0 means disabled.
      */
-    void initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies);
+    void initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies,
+        uint32_t depth, uint32_t nodes);
     /**
      * @brief Retrieves and transforms the next EPD entry into a test case.
      * @return Optional EpdTestCase or std::nullopt if no more entries are available.

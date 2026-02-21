@@ -416,8 +416,16 @@ Defines how the EPD testset should be executed. One testset can be applied to al
 - **`mintime`** (Optional, Default: `2`)  
   Minimum amount of time (in seconds) before the engine is allowed to stop after finding a correct move.
 
-- **`seenplies`** (Optional, Default: `-1`)  
-  The expected move must be visible in the principal variation for at least this many plies before early stopping is triggered. Use `-1` to disable early stopping of the analysis.
+- **`seenplies`** (Optional, Default: `0`)  
+  The expected move must be visible in the principal variation for at least this many plies before early stopping is triggered. Use `0` to disable early stopping of the analysis.
+
+- **`depth`** (Optional, Default: `0`)  
+  Fixed search depth per position. `0` means not set. If `depth > 0`, the EPD run uses fixed depth and ignores `maxtime`, `mintime`, and `seenplies`.
+
+- **`nodes`** (Optional, Default: `0`)  
+  Fixed node limit per position. `0` means not set. If `nodes > 0`, the EPD run uses fixed nodes and ignores `maxtime`, `mintime`, and `seenplies`.
+
+`depth` and `nodes` are alternatives and must not both be greater than `0` at the same time.
 
 - **`minsuccess`** (Optional, Default: `0`)  
   Minimum percentage of correct best moves required. Can be used as a pass/fail threshold in batch testing.
@@ -426,6 +434,14 @@ Defines how the EPD testset should be executed. One testset can be applied to al
 
 ```bash
 --epd file="endgames.epd" maxtime=30 seenplies=3
+```
+
+```bash
+--epd file="endgames.epd" depth=12
+```
+
+```bash
+--epd file="endgames.epd" nodes=500000
 ```
 
 ---
