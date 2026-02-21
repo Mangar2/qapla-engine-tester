@@ -95,8 +95,14 @@ namespace {
     }
 
     Mcp::JsonValue::Object statusObject;
-    const auto resultsJson = TableFormat::toJson("epdStatus", app.getEpdManager()->getStatusTable());
+    const auto statusResult = app.getEpdManager()->getStatusResult();
+    const auto resultsJson = TableFormat::toJson("epdStatus", statusResult.statusTable);
     statusObject["results"] = parseJsonText(resultsJson);
+
+    statusObject["total_nodes"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.totalNodes));
+    statusObject["solved"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.solvedCount));
+    statusObject["total"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.totalCount));
+    statusObject["hit_rate_percent"] = Mcp::JsonHelper::makeNumber(statusResult.hitRatePercent);
     return Mcp::JsonHelper::makeObject(std::move(statusObject));
 }
 
@@ -111,6 +117,21 @@ namespace {
     statusObject["completed_iterations"] = Mcp::JsonHelper::makeNumber(
         static_cast<double>(app.getSPSAOptimizer()->getCompletedIterations()));
     return Mcp::JsonHelper::makeObject(std::move(statusObject));
+}
+
+[[nodiscard]] Mcp::JsonValue createTaskStatusFor(const AppRunner& app, Cli::TaskType taskType) {
+    switch (taskType) {
+        case Cli::TaskType::Sprt:
+            return createSprtStatus(app, Cli::TaskType::Sprt);
+        case Cli::TaskType::Tournament:
+            return createTournamentStatus(app, Cli::TaskType::Tournament);
+        case Cli::TaskType::Epd:
+            return createEpdStatus(app, Cli::TaskType::Epd);
+        case Cli::TaskType::Spsa:
+            return createSpsaStatus(app, Cli::TaskType::Spsa);
+        default:
+            return makeEmptyObject();
+    }
 }
 
 } // namespace
@@ -506,12 +527,17 @@ std::string AppRunner::getStatus() {
     Mcp::JsonValue::Object rootObject;
     rootObject["running_games"] = Mcp::JsonHelper::makeNumber(static_cast<double>(runningGames));
     rootObject["current_task"] = Mcp::JsonHelper::makeString(Cli::getTaskId(currentTask));
-    rootObject["sprt"] = createSprtStatus(app, currentTask);
-    rootObject["tournament"] = createTournamentStatus(app, currentTask);
-    rootObject["epd"] = createEpdStatus(app, currentTask);
-    rootObject["spsa"] = createSpsaStatus(app, currentTask);
+    rootObject["sprt"] = createTaskStatusFor(app, Cli::TaskType::Sprt);
+    rootObject["tournament"] = createTaskStatusFor(app, Cli::TaskType::Tournament);
+    rootObject["epd"] = createTaskStatusFor(app, Cli::TaskType::Epd);
+    rootObject["spsa"] = createTaskStatusFor(app, Cli::TaskType::Spsa);
 
     return Mcp::JsonHelper::serialize(Mcp::JsonHelper::makeObject(std::move(rootObject)));
+}
+
+std::string AppRunner::getTaskStatusJson(Cli::TaskType taskType) {
+    const auto& app = AppRunner::instance();
+    return Mcp::JsonHelper::serialize(createTaskStatusFor(app, taskType));
 }
 
 AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask) {

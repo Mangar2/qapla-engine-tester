@@ -19,10 +19,11 @@
 
 #pragma once
 
+#include "epd-test.h"
+
 #include "../opening/epd-reader.h"
 
 #include "../engine-handling/engine-config.h"
-#include "../engine-tester/epd-test.h"
 #include "../base-elements/time-control.h"
 #include "../base-elements/table-format.h"
 #include "../game-manager/game-manager-pool.h"
@@ -49,6 +50,14 @@ struct EpdConfig {
     uint32_t depth = 0;         ///< Fixed depth limit (0 = disabled)
     uint32_t nodes = 0;         ///< Fixed node limit (0 = disabled)
     uint32_t minSuccess = 0;    ///< Minimum percentage of best moves that must be found
+};
+
+struct EpdStatusResult {
+    TableData statusTable;
+    uint64_t totalNodes = 0;
+    uint64_t solvedCount = 0;
+    uint64_t totalCount = 0;
+    double hitRatePercent = 0.0;
 };
  
 /**
@@ -113,7 +122,9 @@ public:
         return count;
 	}
 
-        [[nodiscard]] TableData getStatusTable() const;
+    [[nodiscard]] TableData getStatusTable() const;
+
+    [[nodiscard]] EpdStatusResult getStatusResult() const;
 
     /**
      * @brief Outputs the current results to the provided output stream in a human-readable format.

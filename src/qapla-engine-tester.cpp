@@ -17,10 +17,6 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
-
-
-#include "engine-tester/epd-test.h"
-
 #include "sprt/sprt-tournament-file.h"
 #include "spsa/spsa-optimizer.h"
 #include "tournament/tournament-file.h"
