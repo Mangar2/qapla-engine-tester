@@ -187,7 +187,7 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
          properties["resume"] = JsonValue{ .data = createProperty("boolean", "If true, resumes sending results to the last used file. If false (default), creates a new timestamped file.") };
     }
 
-    if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" || info.name == "spsa") {
+    if (info.name == "sprt" || info.name == "tournament" || info.name == "spsa") {
         properties["engine_tc"] = JsonValue{ .data = createProperty("string", "Set the time control (engine_tc) for all participating engines. This also updates the engine configuration until the service is restarted.") };
     }
 

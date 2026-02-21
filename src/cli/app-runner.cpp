@@ -234,12 +234,22 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         const auto& name = engine.getName();
-        const std::string earlyStop = std::format("Early stop - Seen plies: {} Min time: {}s",
-            epdConfig->seenPlies, epdConfig->minTime);
+        std::string searchMode = std::format("Max Time: {}s Early stop - Seen plies: {} Min time: {}s",
+            epdConfig->maxTime,
+            epdConfig->seenPlies,
+            epdConfig->minTime);
+        if (epdConfig->depth != 0) {
+            searchMode = std::format("Fixed depth: {} (maxtime/mintime/seenplies are ignored)", epdConfig->depth);
+        } else if (epdConfig->nodes != 0) {
+            searchMode = std::format("Fixed nodes: {} (maxtime/mintime/seenplies are ignored)", epdConfig->nodes);
+        }
 
-        Logger::reportLogger().log(std::format("Using engine: {} Concurrency: {} Max Time: {}s {}",
-            name, concurrency, epdConfig->maxTime, earlyStop));
-        epdManager_->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies);
+        Logger::reportLogger().log(std::format("Using engine: {} Concurrency: {} {}",
+            name,
+            concurrency,
+            searchMode));
+        epdManager_->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies,
+            epdConfig->depth, epdConfig->nodes);
         GameManagerPool& pool = GameManagerPool::getInstance();
 
         pool.setConcurrency(concurrency, true);
