@@ -77,6 +77,7 @@ struct QueueJob {
     std::string reportFilename;
     std::string reportUri;
     std::string resultUri;
+    std::string taskStatusJson;
 
     std::chrono::system_clock::time_point createdAt;
     std::chrono::system_clock::time_point startedAt;

@@ -311,22 +311,36 @@ TestResults EpdManager::getResultsCopy() const {
 	}
 
 TableData EpdManager::getStatusTable() const {
-    TableData table;
-    table.columnWidths = { 24, 8, 8, 10 };
-    table.headers = { "Engine", "Solved", "Total", "Success" };
+    return getStatusResult().statusTable;
+}
+
+EpdStatusResult EpdManager::getStatusResult() const {
+    EpdStatusResult statusResult;
+    statusResult.statusTable.columnWidths = { 24, 8, 8, 10 };
+    statusResult.statusTable.headers = { "Engine", "Solved", "Total", "Success" };
 
     const auto results = getResultsCopy();
     for (const auto& engineResult : results) {
         const auto totalTests = engineResult.result.size();
-        const auto solvedTests = std::count_if(engineResult.result.begin(), engineResult.result.end(),
-            [](const EpdTestCase& testCase) {
-                return testCase.correct;
-            });
+        uint64_t solvedTests = 0;
+        for (const auto& testCase : engineResult.result) {
+            if (testCase.correct) {
+                ++solvedTests;
+            }
+            if (testCase.tested) {
+                ++statusResult.totalCount;
+                statusResult.totalNodes += testCase.nodeCount;
+                if (testCase.correct) {
+                    ++statusResult.solvedCount;
+                }
+            }
+        }
+
         const auto successRate = totalTests > 0
             ? (100.0 * static_cast<double>(solvedTests)) / static_cast<double>(totalTests)
             : 0.0;
 
-        table.body.push_back({
+        statusResult.statusTable.body.push_back({
             engineResult.engineName,
             static_cast<int>(solvedTests),
             static_cast<int>(totalTests),
@@ -334,7 +348,11 @@ TableData EpdManager::getStatusTable() const {
         });
     }
 
-    return table;
+    statusResult.hitRatePercent = statusResult.totalCount > 0
+        ? 100.0 * static_cast<double>(statusResult.solvedCount) / static_cast<double>(statusResult.totalCount)
+        : 0.0;
+
+    return statusResult;
 }
 
 

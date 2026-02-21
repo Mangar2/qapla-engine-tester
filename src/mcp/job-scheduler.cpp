@@ -20,6 +20,8 @@
 #include "job-scheduler.h"
 
 #include "../base-elements/logger.h"
+#include "../cli/app-runner.h"
+#include "../cli/task-types.h"
 
 #include <cctype>
 #include <filesystem>
@@ -208,6 +210,10 @@ JsonValue JobScheduler::queueStatusJson() const {
         if (!finishedJob.resultUri.empty()) {
             finishedObject["result_uri"] = JsonHelper::makeString(finishedJob.resultUri);
         }
+        if (!finishedJob.taskStatusJson.empty()) {
+            std::string_view statusJsonView = finishedJob.taskStatusJson;
+            finishedObject["task_status"] = JsonHelper::parse(statusJsonView);
+        }
         if (!finishedJob.errorMessage.empty()) {
             finishedObject["error"] = JsonHelper::makeString(finishedJob.errorMessage);
         }
@@ -347,6 +353,11 @@ void JobScheduler::enrichFinishedJob(QueueJob& jobEntry) {
 
     if (jobEntry.jobType == QueueJobType::Tournament) {
         copyResultFileFromSection("tournament");
+    }
+
+    const auto taskType = Cli::getTaskType(jobEntry.toolName);
+    if (taskType != Cli::TaskType::None) {
+        jobEntry.taskStatusJson = AppRunner::getTaskStatusJson(taskType);
     }
 }
 

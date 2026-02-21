@@ -127,6 +127,12 @@ public:
      */
     static std::string getStatus();
 
+    /**
+     * @brief Returns the status payload for one task as serialized JSON object.
+     * @param taskType The task to query.
+     */
+    static std::string getTaskStatusJson(Cli::TaskType taskType);
+
     [[nodiscard]] std::shared_ptr<Tournament> getTournament() const { return tournament_; }
     [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }
     [[nodiscard]] std::shared_ptr<SprtManager> getSprtManager() const { return sprtManager_; }
