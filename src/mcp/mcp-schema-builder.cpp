@@ -82,7 +82,7 @@ JsonValue::Object McpSchemaBuilder::createInputSchema(const ToolInfo& info, cons
     } else if (info.name == "manage_engines") {
         addManageEnginesSchema(properties, required, registeredNames);
     } else if (info.name == "set_logging" || info.name == "adjudicate" || info.name == "list_settings") {
-        addNonTaskSchema(info, properties, required);
+        addNonTaskSchema(info, properties);
     } else {
         addStandardTaskSchema(info, properties, required, registeredNames);
     }
@@ -94,7 +94,7 @@ JsonValue::Object McpSchemaBuilder::createInputSchema(const ToolInfo& info, cons
     return inputSchema;
 }
 
-void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties, JsonValue::Array& required) {
+void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties) {
     const auto& groupDefs = Settings::Manager::instance().getGroupDefinitions();
     const auto it = groupDefs.find(std::string(groupName));
     if (it == groupDefs.end()) {
@@ -104,7 +104,7 @@ void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, JsonVa
     if (!it->second.unique) {
         addArrayGroupSchema(std::string(groupName), it->second, properties);
     } else {
-        addSingleGroupSchema(std::string(groupName), it->second, properties, required);
+        addSingleGroupSchema(std::string(groupName), it->second, properties);
     }
 }
 
@@ -169,9 +169,9 @@ void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, Jso
         "Use the 'details' command to list available options for a specific engine.") };
 }
 
-void McpSchemaBuilder::addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required) {
+void McpSchemaBuilder::addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties) {
     for (const auto& group : info.groups) {
-        addParametersFromGroup(group, properties, required);
+        addParametersFromGroup(group, properties);
     }
 }
 
@@ -201,7 +201,7 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
     }
 
     for (const auto& group : info.groups) {
-        addParametersFromGroup(group, properties, required);
+        addParametersFromGroup(group, properties);
     }
 }
 
@@ -222,15 +222,6 @@ void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const S
         
         std::string desc = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription;
         itemProperties[key] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
-        
-        if (keyDef.isRequired) {
-            bool canBeGlobal = (keyDef.type == Settings::ValueType::PathExists || 
-                              keyDef.type == Settings::ValueType::ValidateOutputPath);
-            
-            if (!canBeGlobal) {
-                itemRequired.push_back(JsonValue{ .data = key });
-            }
-        }
     }
     
     items["properties"] = JsonValue{ .data = itemProperties };
@@ -245,7 +236,7 @@ void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const S
     properties[groupName] = JsonValue{ .data = arrayProp };
 }
 
-void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties, JsonValue::Array& required) {
+void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties) {
     for (const auto& [key, keyDef] : def.keys) {
         if (key == "file" && (groupName == "sprt" || groupName == "tournament")) {
             continue;
@@ -263,15 +254,6 @@ void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const 
         std::string desc = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription;
         
         properties[paramName] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
-        
-        if (keyDef.isRequired) {
-            bool canBeGlobal = (keyDef.type == Settings::ValueType::PathExists || 
-                              keyDef.type == Settings::ValueType::ValidateOutputPath);
-            
-            if (!canBeGlobal) {
-                required.push_back(JsonValue{ .data = paramName });
-            }
-        }
     }
 }
 
