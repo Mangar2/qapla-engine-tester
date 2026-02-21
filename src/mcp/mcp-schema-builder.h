@@ -57,6 +57,7 @@ private:
     static void addReadReportSchema(JsonValue::Object& properties, JsonValue::Array& required);
     static void addControlSchema(JsonValue::Object& properties, JsonValue::Array& required);
     static void addManageEnginesSchema(JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
+    static void addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required);
     static void addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
 };
 
