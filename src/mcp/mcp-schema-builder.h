@@ -48,16 +48,16 @@ public:
     [[nodiscard]] static JsonValue::Object createInputSchema(const ToolInfo& info, const std::string& registeredNames);
 
 private:
-    static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties, JsonValue::Array& required);
+    static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties);
     static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
-    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties, JsonValue::Array& required);
+    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
     static void addGlobalParameterSchema(const std::string& key, JsonValue::Object& properties);
     
     // Specific tool helpers
     static void addReadReportSchema(JsonValue::Object& properties, JsonValue::Array& required);
     static void addControlSchema(JsonValue::Object& properties, JsonValue::Array& required);
     static void addManageEnginesSchema(JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
-    static void addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required);
+    static void addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties);
     static void addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
 };
 
