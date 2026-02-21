@@ -22,6 +22,7 @@
 #include "../base-elements/json-helper.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
+#include "../cli/task-types.h"
 #include "../engine-handling/engine-capabilities.h"
 #include "mcp-message-channel.h"
 
@@ -138,9 +139,11 @@ private:
      * @brief Executes a tool that uses the AppRunner dispatcher.
      * @param configData The prepared configuration data.
      * @param background If true, execution continues in background.
+     * @param forcedTask If set, limits execution to exactly one task type.
      * @return Tool return code.
      */
-    static AppReturnCode executeRunnerTool(QaplaHelpers::ConfigData& configData, bool background = false);
+    static AppReturnCode executeRunnerTool(QaplaHelpers::ConfigData& configData,
+        bool background = false, Cli::TaskType forcedTask = Cli::TaskType::None);
 
     /**
      * @brief Formats the summary text for a tool execution.

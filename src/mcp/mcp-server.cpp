@@ -85,7 +85,7 @@ void McpServer::initialize() {
             McpEngineTool::setupActiveEngines(queuedJob.executionArguments, Cli::TaskType::All, capabilities_);
             Logger::logBaseName_ = queuedJob.reportBaseName;
             auto configData = queuedJob.configData;
-            return executeRunnerTool(configData, false);
+            return executeRunnerTool(configData, false, Cli::getTaskType(queuedJob.toolName));
         },
         [](bool niceStop) {
             AppRunner::stop(niceStop);
@@ -94,7 +94,6 @@ void McpServer::initialize() {
 }
 
 AppReturnCode McpServer::run() {
-    capabilities_.autoDetect();
     
     while (true) {
         const auto message = messageChannel_.readMessage();
@@ -147,6 +146,7 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
 
         responseBody["result"] = JsonValue{ .data = resultData };
         response.data = responseBody;
+        capabilities_.autoDetect();
 
         messageChannel_.sendMessage(response);
     }
@@ -668,12 +668,13 @@ JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments)
     throw std::runtime_error("Could not read report file: file not found.");
 }
 
-AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData, bool background) {
+AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData,
+    bool background, Cli::TaskType forcedTask) {
 
     Settings::QaplaSettings::instance().applyConfig(configData);
 
     // Run dispatcher
-    return AppRunner::instance().runDispatcher(background);
+    return AppRunner::instance().runDispatcher(background, forcedTask);
 }
 
 std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode code) {
@@ -898,7 +899,9 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         SettingsReporter::Column::Value
     };
 
-    std::string settingsReport = SettingsReporter::generateReport(reportGroups, reportColumns);
+    const auto generateSettingsReport = [&reportGroups, &reportColumns]() {
+        return SettingsReporter::generateReport(reportGroups, reportColumns);
+    };
 
     if (background && isQueueableTool(name)) {
         QueueJob queueEntry;
@@ -914,15 +917,18 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
 
         const auto queueStatus = JsonHelper::serialize(JobScheduler::instance().queueStatusJson());
         const auto summary = createQueueStartSummary(name, jobId, queueStatus);
+        const auto settingsReport = generateSettingsReport();
         textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
     } else if (background) {
-        returnCode = executeRunnerTool(configData, background);
+        returnCode = executeRunnerTool(configData, background, Cli::getTaskType(name));
         std::string summary = std::format("Tool '{}' started in background.", name);
         summary += std::format("\nReport Log might be available at: qapla://reports/{}/<timestamped_file>", name);
+        const auto settingsReport = generateSettingsReport();
         textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
     } else {
-        returnCode = executeRunnerTool(configData, background);
+        returnCode = executeRunnerTool(configData, background, Cli::getTaskType(name));
         std::string runSummary = formatRunSummary(name, returnCode);
+        const auto settingsReport = generateSettingsReport();
         textContent["text"] = JsonValue{ .data = runSummary + "\n\n" + settingsReport };
     }
 
