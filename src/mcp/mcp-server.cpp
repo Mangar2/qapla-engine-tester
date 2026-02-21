@@ -677,21 +677,7 @@ AppReturnCode McpServer::executeRunnerTool(QaplaHelpers::ConfigData& configData,
 }
 
 std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode code) {
-    std::string summary = std::format("Tool '{}' finished. Result: ", name);
-    switch (code) {
-        case AppReturnCode::NoError: summary += "Success"; break;
-        case AppReturnCode::GeneralError: summary += "General Error"; break;
-        case AppReturnCode::InvalidParameters: summary += "Invalid Parameters"; break;
-        case AppReturnCode::EngineError: summary += "Engine Error (crash or illegal moves)"; break;
-        case AppReturnCode::EngineMissbehaviour: summary += "Engine Misbehavior (hang or protocol violation)"; break;
-        case AppReturnCode::EngineNote: summary += "Completed with engine notes"; break;
-        case AppReturnCode::MissedTarget: summary += "EPD target threshold not reached"; break;
-        case AppReturnCode::H1Accepted: summary += "SPRT H1 accepted (stronger engine)"; break;
-        case AppReturnCode::H0Accepted: summary += "SPRT H0 accepted (no significant difference)"; break;
-        case AppReturnCode::UndefinedResult: summary += "SPRT result undecided"; break;
-        default: summary += std::to_string(static_cast<int>(code)); break;
-    }
-
+    std::string summary = std::format("Tool '{}' finished. Result: {}", name, appReturnCodeResultText(code));
     const std::string reportFilename = std::filesystem::path(Logger::reportLogger().getFilename()).filename().string();
     if (!reportFilename.empty()) {
         summary += std::format("\nReport Log Resource: qapla://reports/{}/{}", name, reportFilename);

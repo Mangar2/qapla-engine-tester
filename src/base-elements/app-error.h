@@ -41,6 +41,66 @@ enum class AppReturnCode : std::uint8_t {
     UndefinedResult = 16
 };
 
+/**
+ * @brief Returns stable symbolic name of a return code.
+ */
+[[nodiscard]] inline std::string appReturnCodeName(AppReturnCode returnCode) {
+    switch (returnCode) {
+        case AppReturnCode::NoError:
+            return "NoError";
+        case AppReturnCode::GeneralError:
+            return "GeneralError";
+        case AppReturnCode::InvalidParameters:
+            return "InvalidParameters";
+        case AppReturnCode::EngineError:
+            return "EngineError";
+        case AppReturnCode::EngineMissbehaviour:
+            return "EngineMissbehaviour";
+        case AppReturnCode::EngineNote:
+            return "EngineNote";
+        case AppReturnCode::MissedTarget:
+            return "MissedTarget";
+        case AppReturnCode::H1Accepted:
+            return "H1Accepted";
+        case AppReturnCode::H0Accepted:
+            return "H0Accepted";
+        case AppReturnCode::UndefinedResult:
+            return "UndefinedResult";
+        default:
+            return std::to_string(static_cast<int>(returnCode));
+    }
+}
+
+/**
+ * @brief Returns user-facing description text for a return code.
+ */
+[[nodiscard]] inline std::string appReturnCodeResultText(AppReturnCode returnCode) {
+    switch (returnCode) {
+        case AppReturnCode::NoError:
+            return "Success";
+        case AppReturnCode::GeneralError:
+            return "General Error";
+        case AppReturnCode::InvalidParameters:
+            return "Invalid Parameters";
+        case AppReturnCode::EngineError:
+            return "Engine Error (crash or illegal moves)";
+        case AppReturnCode::EngineMissbehaviour:
+            return "Engine Misbehavior (hang or protocol violation)";
+        case AppReturnCode::EngineNote:
+            return "Completed with engine notes";
+        case AppReturnCode::MissedTarget:
+            return "EPD target threshold not reached";
+        case AppReturnCode::H1Accepted:
+            return "SPRT H1 accepted (stronger engine)";
+        case AppReturnCode::H0Accepted:
+            return "SPRT H0 accepted (no significant difference)";
+        case AppReturnCode::UndefinedResult:
+            return "SPRT result undecided";
+        default:
+            return std::to_string(static_cast<int>(returnCode));
+    }
+}
+
  /**
   * Represents a structured application error with user and system context.
   */
