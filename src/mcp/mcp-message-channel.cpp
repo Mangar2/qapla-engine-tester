@@ -23,11 +23,41 @@
 
 #include <cstdint>
 #include <iostream>
+#include <mutex>
+
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
 
 namespace QaplaTester::Mcp {
 
+namespace {
+
+std::mutex cliOutputMutex;
+
+void configureCliMcpBinaryStdio() {
+#ifdef _WIN32
+    // Why: In text mode Windows rewrites '\n' to "\r\n". MCP framing requires exact bytes
+    // for "Content-Length" headers and "\r\n\r\n" separators, otherwise frames can become
+    // "\r\r\n" and clients fail to parse or split messages.
+    static bool binaryConfigured = false;
+    if (binaryConfigured) {
+        return;
+    }
+    _setmode(_fileno(stdin), _O_BINARY);
+    _setmode(_fileno(stdout), _O_BINARY);
+    binaryConfigured = true;
+#endif
+}
+
+}
+
 McpMessageChannel::McpMessageChannel(McpMessageChannelType type)
     : type_(type) {
+    if (type_ == McpMessageChannelType::cli) {
+        configureCliMcpBinaryStdio();
+    }
 }
 
 void McpMessageChannel::setType(McpMessageChannelType type) {
@@ -81,11 +111,12 @@ std::optional<JsonValue> McpMessageChannel::readCliMessage() {
 }
 
 std::optional<JsonValue> McpMessageChannel::tryReadByContentLength(const std::string& line) {
-    if (!line.starts_with("Content-Length:")) {
+    const auto headerLine = QaplaHelpers::trim(line);
+    if (!headerLine.starts_with("Content-Length:")) {
         return std::nullopt;
     }
 
-    const auto lengthOpt = QaplaHelpers::to_unsigned_int<uint64_t>(line.substr(15));
+    const auto lengthOpt = QaplaHelpers::to_unsigned_int<uint64_t>(QaplaHelpers::trim(headerLine.substr(15)));
     if (!lengthOpt.has_value()) {
         return std::nullopt;
     }
@@ -149,7 +180,8 @@ std::optional<JsonValue> McpMessageChannel::tryReadByBraceCounting(std::string& 
 }
 
 void McpMessageChannel::sendCliMessage(const JsonValue& message) {
-    std::cout << JsonHelper::serialize(message) << std::endl;
+    std::lock_guard lock(cliOutputMutex);
+    std::cout << JsonHelper::serialize(message) << "\n" << std::flush;
 }
 
 std::runtime_error McpMessageChannel::createUnsupportedTypeError(McpMessageChannelType type) {
