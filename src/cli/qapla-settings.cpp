@@ -88,8 +88,8 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
         
-        loadFromFile(sprtFile, false, true);
-        loadFromFile(tournamentFile, false, true);
+        loadFromFile(sprtFile, false, false);
+        loadFromFile(tournamentFile, false, false);
     }
 
     if (Settings::Manager::instance().get<bool>("mcp")) {
@@ -126,9 +126,12 @@ void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError,
 void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configData) {
     
     // Apply initial config vector (later entries override earlier ones)
+    /*
+    // to be tested, if this is really no longer needed.
     for (const auto& cfg : configData_) {
-        Manager::instance().parseInput(cfg, true);
+        Manager::instance().parseInput(cfg, false);
     }
+    */
     
     // Apply dynamic configuration if provided
     if (configData.has_value()) {
