@@ -584,7 +584,7 @@ void SprtManager::logFinalResult() const {
     }
     
     const auto& finalResult = sprtResults_.front().front();
-    const auto totalGames = finalResult.winsA + finalResult.draws + finalResult.winsB;
+    const auto totalGames = getDuelResult().total();
     const auto winRatePercent = getDuelResult().engineARate() * 100.0;
     
     std::ostringstream oss;
