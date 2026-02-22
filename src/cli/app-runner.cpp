@@ -63,13 +63,15 @@ namespace {
     }
 
     const auto result = app.getSprtManager()->computeSprt();
+    const auto duel = app.getSprtManager()->getDuelResult();
     Mcp::JsonValue::Object statusObject;
     statusObject["llr"] = Mcp::JsonHelper::makeNumber(result.llr);
     statusObject["lower_bound"] = Mcp::JsonHelper::makeNumber(result.lowerBound);
     statusObject["upper_bound"] = Mcp::JsonHelper::makeNumber(result.upperBound);
     statusObject["elo_h0"] = Mcp::JsonHelper::makeNumber(result.eloH0);
     statusObject["elo_h1"] = Mcp::JsonHelper::makeNumber(result.eloH1);
-    statusObject["games"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.winsA + result.winsB + result.draws));
+    statusObject["games"] = Mcp::JsonHelper::makeNumber(static_cast<double>(duel.total()));
+    statusObject["win_rate_percent"] = Mcp::JsonHelper::makeNumber(duel.engineARate() * 100.0);
     statusObject["wins"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.winsA));
     statusObject["losses"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.winsB));
     statusObject["draws"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.draws));
