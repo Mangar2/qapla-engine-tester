@@ -262,15 +262,27 @@ namespace QaplaTester::Settings {
         T get(const std::string& name) {
             std::string key = QaplaHelpers::to_lowercase(name);
             auto it = values_.find(key);
-            if (it == values_.end()) {
-                auto defIt = definitions_.find(key);
-                if (defIt == definitions_.end() || !defIt->second.defaultValue) {
+            if (it != values_.end()) {
+                return std::get<T>(it->second);
+            }
+
+            auto defIt = definitions_.find(key);
+            if (defIt != definitions_.end()) {
+                if (!defIt->second.defaultValue) {
                     throw std::runtime_error("Access to undefined setting: " + name);
                 }
-
                 return std::get<T>(*defIt->second.defaultValue);
             }
-            return std::get<T>(it->second);
+
+            if constexpr (std::is_same_v<T, bool>) {
+                auto groupDefinitionIt = groupDefs_.find(key);
+                if (groupDefinitionIt == groupDefs_.end()) {
+                    throw std::runtime_error("Access to undefined setting: " + name);
+                }
+                return getGroupInstance(key).has_value();
+            }
+
+            throw std::runtime_error("Access to undefined setting: " + name);
         }
 
         /**

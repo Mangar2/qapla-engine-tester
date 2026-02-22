@@ -43,6 +43,38 @@
 
 namespace QaplaTester::Mcp {
 
+namespace {
+    [[nodiscard]] std::string getToolPrefix() {
+        const auto mcpGroup = Settings::Manager::instance().getGroupInstance("mcp");
+        if (!mcpGroup.has_value()) {
+            return "";
+        }
+        return mcpGroup->get<std::string>("prefix");
+    }
+
+    [[nodiscard]] std::string toPublishedToolName(std::string_view canonicalToolName) {
+        const auto toolPrefix = getToolPrefix();
+        if (toolPrefix.empty()) {
+            return std::string(canonicalToolName);
+        }
+        return std::format("{}_{}", toolPrefix, canonicalToolName);
+    }
+
+    [[nodiscard]] std::string toCanonicalToolName(std::string_view requestedToolName) {
+        const auto toolPrefix = getToolPrefix();
+        if (toolPrefix.empty()) {
+            return std::string(requestedToolName);
+        }
+
+        const auto requiredPrefix = std::format("{}_", toolPrefix);
+        if (requestedToolName.starts_with(requiredPrefix)) {
+            return std::string(requestedToolName.substr(requiredPrefix.length()));
+        }
+
+        return std::string(requestedToolName);
+    }
+}
+
 void McpServer::initialize() {
     AppError::setDefaultInvalidParameterUserHint("Please refer to the tool definition schema for supported parameters.");
     silenceLoggers();
@@ -277,7 +309,7 @@ void McpServer::listTools(const JsonValue& requestId) {
 
     for (const auto& info : toolsToRegister) {
         JsonValue::Object tool;
-        tool["name"] = JsonValue{ .data = std::string(info.name) };
+        tool["name"] = JsonValue{ .data = toPublishedToolName(info.name) };
         
         // Use longDescription from main group if available
         std::string description(info.description);
@@ -306,7 +338,8 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
         return;
     }
 
-    const std::string& name = params.at("name").asString();
+    const std::string requestedName = params.at("name").asString();
+    const std::string name = toCanonicalToolName(requestedName);
     JsonValue response;
     JsonValue::Object responseBody;
     responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
@@ -358,7 +391,7 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
     } catch (const std::exception& e) {
         JsonValue::Object errorContent;
         errorContent["type"] = JsonValue{ .data = std::string("text") };
-        errorContent["text"] = JsonValue{ .data = std::format("Error executing tool '{}': {}", name, e.what()) };
+        errorContent["text"] = JsonValue{ .data = std::format("Error executing tool '{}': {}", requestedName, e.what()) };
         content.push_back(JsonValue{ .data = errorContent });
         result["isError"] = JsonValue{ .data = true };
         returnCode = AppReturnCode::GeneralError;

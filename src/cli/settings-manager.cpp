@@ -59,6 +59,17 @@ namespace QaplaTester::Settings
                 return to_lowercase(instanceValStr) == to_lowercase(val);
             });
         }
+
+        [[nodiscard]] std::optional<bool> parseBooleanShortcutValue(std::string_view rawValue) {
+            const auto lowerValue = QaplaHelpers::to_lowercase(std::string(rawValue));
+            if (lowerValue == "true" || lowerValue == "1") {
+                return true;
+            }
+            if (lowerValue == "false" || lowerValue == "0") {
+                return false;
+            }
+            return std::nullopt;
+        }
     }
 
     Value Manager::parseBool(const ParsedParameter& arg)
@@ -384,6 +395,21 @@ namespace QaplaTester::Settings
 
         auto it = definitions_.find(lowerKey);
         if (it == definitions_.end()) {
+            const auto groupDefinitionIt = groupDefs_.find(lowerKey);
+            if (groupDefinitionIt != groupDefs_.end()) {
+                const auto enabledValue = parseBooleanShortcutValue(value);
+                if (!enabledValue.has_value()) {
+                    throw AppError::makeInvalidParameters(
+                        std::format("\"{}\" is invalid: expected true, false, 1 or 0", key));
+                }
+
+                if (*enabledValue) {
+                    QaplaHelpers::IniFile::Section section;
+                    section.name = lowerKey;
+                    parseGroupedParameter(section, overwrite, true);
+                }
+                return;
+            }
             throw AppError::makeInvalidParameters("\"" + key + "\" is not a valid global parameter");
         }
 
