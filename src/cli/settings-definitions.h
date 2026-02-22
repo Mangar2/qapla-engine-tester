@@ -32,6 +32,9 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys();
 /// Returns key definitions for logging group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys();
 
+/// Returns key definitions for mcp group
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getMcpKeys();
+
 /// Returns key definitions for each group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys();
 

@@ -32,14 +32,6 @@ void initSettings() {
     });
 
     Manager::instance().registerSetting({
-        .name = "mcp", 
-        .description = "Enables Model Context Protocol (MCP) server mode", 
-        .isRequired = false, 
-        .defaultValue = false, 
-        .type = ValueType::Bool
-    });
-    
-    Manager::instance().registerSetting({
         .name = "concurrency", 
         .description = "Max parallel engines (0 = auto: physical cores - 1)", 
         .longDescription = "Maximum number of concurrently running engines. Use 0 for automatic detection based on physical CPU cores. In auto mode the runtime uses max(1, physical cores - 1). If core detection fails, it falls back to 1.",
@@ -70,6 +62,14 @@ void initSettings() {
         .isRequired = false, 
         .defaultValue = std::string(""),
         .type = ValueType::PathExists
+    });
+
+    Manager::instance().registerGroup({
+        .name = "mcp",
+        .description = "Model Context Protocol (MCP) server mode settings",
+        .longDescription = "Enables MCP mode and optional tool-name prefixing for parallel local/remote MCP server usage.",
+        .unique = true,
+        .keys = Settings::getMcpKeys()
     });
 
     Manager::instance().registerGroup({
@@ -332,6 +332,17 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getLoggingKeys() {
             .isRequired = false, 
             .defaultValue = std::string("result"), 
             .type = ValueType::String }},
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getMcpKeys() {
+    return {
+        { "prefix", {
+            .description = "Optional prefix added to MCP tool names (e.g. local_sprt)",
+            .longDescription = "Optional MCP tool name prefix used to avoid naming conflicts when multiple MCP servers are active.",
+            .isRequired = false,
+            .defaultValue = std::string(""),
+            .type = ValueType::String } }
     };
 }
 
