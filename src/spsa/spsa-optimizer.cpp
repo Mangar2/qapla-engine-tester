@@ -344,6 +344,22 @@ std::vector<double> SPSAOptimizer::getCurrentParameters() const {
     return currentParameters_;
 }
 
+double SPSAOptimizer::calculateMean(size_t paramIndex, size_t lastN) const {
+    if (paramIndex >= parameterHistory_.size()) {
+        return 0.0;
+    }
+
+    const auto& history = parameterHistory_[paramIndex];
+    if (history.empty()) {
+        return 0.0;
+    }
+
+    const auto count = std::min(history.size(), lastN);
+    const auto startIt = history.end() - static_cast<long long>(count);
+    const auto sum = std::accumulate(startIt, history.end(), 0.0);
+    return sum / static_cast<double>(count);
+}
+
 double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
     if (paramIndex >= parameterHistory_.size()) {
         return 0.0;
@@ -354,13 +370,12 @@ double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
         return 0.0;
     }
 
-    const size_t count = std::min(history.size(), lastN);
+    const auto count = std::min(history.size(), lastN);
     const auto startIt = history.end() - static_cast<long long>(count);
+
+    const auto mean = calculateMean(paramIndex, lastN);
     
-    double sum = std::accumulate(startIt, history.end(), 0.0);
-    double mean = sum / static_cast<double>(count);
-    
-    double sq_sum = std::accumulate(startIt, history.end(), 0.0, 
+    const auto sq_sum = std::accumulate(startIt, history.end(), 0.0,
         [mean](double acc, double val) {
             return acc + (val - mean) * (val - mean);
         });
@@ -465,11 +480,13 @@ TableData SPSAOptimizer::getStatusTable() const {
     std::scoped_lock lock(stateMutex_);
 
     TableData table;
-    table.columnWidths = { 20, 10, 10, 10, 10, 10, 10 };
-    table.headers = { "Parameter", "Initial", "Value", "RelStd2k%", "RelStd5k%", "Min", "Max" };
+    table.columnWidths = { 20, 10, 10, 10, 10, 10, 10, 10, 10 };
+    table.headers = { "Parameter", "Initial", "Value", "Mean2k", "Mean5k", "RelStd2k%", "RelStd5k%", "Min", "Max" };
 
     for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
         const auto& parameter = config_.parameters[parameterIndex];
+        const auto mean2k = calculateMean(parameterIndex, 2000);
+        const auto mean5k = calculateMean(parameterIndex, 5000);
         const auto standardDeviation2k = calculateRelativeStdDev(parameterIndex, 2000) * 100.0;
         const auto standardDeviation5k = calculateRelativeStdDev(parameterIndex, 5000) * 100.0;
 
@@ -477,6 +494,8 @@ TableData SPSAOptimizer::getStatusTable() const {
             parameter.name,
             parameter.defaultValue,
             currentParameters_[parameterIndex],
+            mean2k,
+            mean5k,
             standardDeviation2k,
             standardDeviation5k,
             parameter.minValue,

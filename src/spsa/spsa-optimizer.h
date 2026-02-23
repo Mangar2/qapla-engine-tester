@@ -180,6 +180,14 @@ private:
     [[nodiscard]] double calculateStdDev(size_t paramIndex, size_t lastN) const;
 
     /**
+     * @brief Calculate moving average of parameter history
+     * @param paramIndex Index of the parameter
+     * @param lastN Number of last iterations to consider
+     * @return Mean value over selected window
+     */
+    [[nodiscard]] double calculateMean(size_t paramIndex, size_t lastN) const;
+
+    /**
      * @brief Calculate standard deviation relative to the start value
      * @param paramIndex Index of the parameter
      * @param lastN Number of last iterations to consider
