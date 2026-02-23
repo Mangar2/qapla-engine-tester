@@ -386,7 +386,12 @@ void EngineProcess::start()
 
 EngineProcess::~EngineProcess()
 {
-    terminate();
+    try {
+        terminate();
+    } catch (const std::exception& ex) {
+        // Log the error but do not throw from destructor
+        std::cerr << "Error during EngineProcess destruction: " << ex.what() << std::endl;
+    }
 }
 
 void EngineProcess::closeAllHandles()
@@ -663,7 +668,7 @@ void EngineProcess::readFromPipeBlocking()
     inSystemRead_ = false;
     readStartTimeMs_ = 0;
 
-    if (stdoutRead_ < 0)
+    if (stdoutRead_ < 0 && debugTrace_)
     { 
         std::cout << "[" << Timer::getCurrentTimeMs() << "] " << identifier_ << " read: file closed" << std::endl;
     } 

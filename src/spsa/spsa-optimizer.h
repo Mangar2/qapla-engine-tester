@@ -180,6 +180,14 @@ private:
     [[nodiscard]] double calculateStdDev(size_t paramIndex, size_t lastN) const;
 
     /**
+     * @brief Calculate standard deviation relative to the start value
+     * @param paramIndex Index of the parameter
+     * @param lastN Number of last iterations to consider
+     * @return Relative standard deviation as ratio to default value
+     */
+    [[nodiscard]] double calculateRelativeStdDev(size_t paramIndex, size_t lastN) const;
+
+    /**
       * @brief Build progress metrics table for SPSA execution.
       * @return Table with completed iterations and active pair counts.
      */
