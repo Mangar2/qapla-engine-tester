@@ -28,6 +28,7 @@
 #include <format>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numeric>
 
 namespace QaplaTester {
@@ -367,6 +368,20 @@ double SPSAOptimizer::calculateStdDev(size_t paramIndex, size_t lastN) const {
     return std::sqrt(sq_sum / static_cast<double>(count));
 }
 
+double SPSAOptimizer::calculateRelativeStdDev(size_t paramIndex, size_t lastN) const {
+    if (paramIndex >= config_.parameters.size()) {
+        return 0.0;
+    }
+
+    const auto standardDeviation = calculateStdDev(paramIndex, lastN);
+    const auto referenceValue = std::abs(config_.parameters[paramIndex].defaultValue);
+    if (referenceValue <= std::numeric_limits<double>::epsilon()) {
+        return 0.0;
+    }
+
+    return standardDeviation / referenceValue;
+}
+
 TableData SPSAOptimizer::getProgressTable() const {
     std::scoped_lock lock(stateMutex_);
 
@@ -451,12 +466,12 @@ TableData SPSAOptimizer::getStatusTable() const {
 
     TableData table;
     table.columnWidths = { 20, 10, 10, 10, 10, 10, 10 };
-    table.headers = { "Parameter", "Initial", "Value", "StdDev2k", "StdDev5k", "Min", "Max" };
+    table.headers = { "Parameter", "Initial", "Value", "RelStd2k%", "RelStd5k%", "Min", "Max" };
 
     for (size_t parameterIndex = 0; parameterIndex < config_.parameters.size(); ++parameterIndex) {
         const auto& parameter = config_.parameters[parameterIndex];
-        const auto standardDeviation2k = calculateStdDev(parameterIndex, 2000);
-        const auto standardDeviation5k = calculateStdDev(parameterIndex, 5000);
+        const auto standardDeviation2k = calculateRelativeStdDev(parameterIndex, 2000) * 100.0;
+        const auto standardDeviation5k = calculateRelativeStdDev(parameterIndex, 5000) * 100.0;
 
         table.body.push_back({
             parameter.name,
