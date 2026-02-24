@@ -145,6 +145,14 @@ public:
         explicit PoolController(GameManagerPool* pool) : pool_(pool) {}
         
         void stopAll();
+
+        /**
+         * @brief Updates pool concurrency and optionally starts managers.
+         * @param count New maximum concurrency.
+         * @param nice If true, idle managers are reduced gradually.
+         * @param start If true, starts managers immediately after update.
+         */
+        void setConcurrency(uint32_t count, bool nice = true, bool start = true);
         
         void detach() {
             std::scoped_lock lock(mutex_);

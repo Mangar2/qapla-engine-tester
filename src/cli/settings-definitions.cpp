@@ -149,6 +149,15 @@ Configs:
         .keys = Settings::getTestKeys()
     });
 
+    // System test group
+    Manager::instance().registerGroup({
+        .name = "systemtest",
+        .description = "Measures NPS behavior while increasing game parallelism",
+        .longDescription = "Runs repeated games from one fixed start position with one engine configuration and increases game concurrency step by step. Logs average NPS and NPS variance per move, including a baseline variance at low parallelism and additional variance introduced by higher parallelism.",
+        .unique = true,
+        .keys = Settings::getSystemTestKeys()
+    });
+
     // PGN output group
     Manager::instance().registerGroup({
         .name = "pgnoutput", 
@@ -589,6 +598,31 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
                         .isRequired = false, 
                         .defaultValue = false, 
                         .type = ValueType::Bool } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSystemTestKeys() {
+    return {
+        { "id",         { .description = "Identifier for the configuration",
+                        .isRequired = false,
+                        .defaultValue = "systemtest",
+                        .type = ValueType::String,
+                        .isHidden = true } },
+        { "maxcores",   { .description = "Maximum concurrency level to test (0 uses resolved global concurrency)",
+                        .longDescription = "Maximum number of parallel games to test. If set to 0, the resolved global concurrency value is used as upper bound.",
+                        .isRequired = false,
+                        .defaultValue = 0,
+                        .type = ValueType::UInt } },
+        { "step",       { .description = "Concurrency increase per step",
+                        .longDescription = "How many concurrency slots are added after each step interval.",
+                        .isRequired = false,
+                        .defaultValue = 1,
+                        .type = ValueType::UInt } },
+        { "steptime",   { .description = "Duration of one step in seconds",
+                        .longDescription = "Number of seconds to run one concurrency step before increasing to the next step.",
+                        .isRequired = false,
+                        .defaultValue = 30,
+                        .type = ValueType::UInt } }
     };
 }
 

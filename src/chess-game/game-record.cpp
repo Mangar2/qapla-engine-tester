@@ -21,6 +21,7 @@
 #include "../qapla-engine/move.h"
 
 #include <sstream>
+#include <numeric>
 
 namespace QaplaTester {
 
@@ -325,6 +326,39 @@ std::string GameRecord::movesToStringUpToPly(uint32_t lastPly, const MoveRecord:
     }
 
     return out.str();
+}
+
+GameRecord::NpsStatistics GameRecord::calculateNpsStatistics() const {
+    NpsStatistics statistics;
+    std::vector<double> perMoveNps;
+    perMoveNps.reserve(moves_.size());
+
+    for (const auto& move : moves_) {
+        if (move.timeMs == 0 || move.nodes == 0) {
+            continue;
+        }
+        const auto nps = (static_cast<double>(move.nodes) * 1000.0) / static_cast<double>(move.timeMs);
+        perMoveNps.push_back(nps);
+        statistics.totalNodes += move.nodes;
+        statistics.totalTimeMs += move.timeMs;
+    }
+
+    statistics.sampleCount = static_cast<uint64_t>(perMoveNps.size());
+    if (statistics.sampleCount == 0) {
+        return statistics;
+    }
+
+    const auto sumNps = std::accumulate(perMoveNps.begin(), perMoveNps.end(), 0.0);
+    statistics.averageNps = sumNps / static_cast<double>(statistics.sampleCount);
+
+    auto squaredDiffSum = 0.0;
+    for (const auto value : perMoveNps) {
+        const auto diff = value - statistics.averageNps;
+        squaredDiffSum += diff * diff;
+    }
+    statistics.varianceNps = squaredDiffSum / static_cast<double>(statistics.sampleCount);
+
+    return statistics;
 }
 
 } // namespace QaplaTester

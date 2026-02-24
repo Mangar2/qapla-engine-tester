@@ -26,6 +26,7 @@
 #include "../sprt/sprt-manager.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../spsa/spsa-optimizer.h"
+#include "../system-test/system-test-manager.h"
 #include "../tournament/tournament.h"
 #include "../tournament/tournament-file.h"
 #include "../opening/pgn-save.h"
@@ -121,6 +122,16 @@ namespace {
     return Mcp::JsonHelper::makeObject(std::move(statusObject));
 }
 
+[[nodiscard]] Mcp::JsonValue createSystemTestStatus(const AppRunner& app, Cli::TaskType currentTask) {
+    if (currentTask != Cli::TaskType::SystemTest || !app.getSystemTestManager()) {
+        return makeEmptyObject();
+    }
+
+    Mcp::JsonValue::Object statusObject;
+    statusObject["finished"] = Mcp::JsonHelper::makeBool(app.getSystemTestManager()->isFinished());
+    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+}
+
 [[nodiscard]] Mcp::JsonValue createTaskStatusFor(const AppRunner& app, Cli::TaskType taskType) {
     switch (taskType) {
         case Cli::TaskType::Sprt:
@@ -131,6 +142,8 @@ namespace {
             return createEpdStatus(app, Cli::TaskType::Epd);
         case Cli::TaskType::Spsa:
             return createSpsaStatus(app, Cli::TaskType::Spsa);
+        case Cli::TaskType::SystemTest:
+            return createSystemTestStatus(app, Cli::TaskType::SystemTest);
         default:
             return makeEmptyObject();
     }
@@ -477,6 +490,58 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
     return code;
 }
 
+AppReturnCode AppRunner::runSystemTest(AppReturnCode code, bool background) {
+    const auto systemTestGroup = Settings::Manager::instance().getGroupInstance("systemtest");
+    if (!systemTestGroup.has_value()) {
+        return code;
+    }
+
+    const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
+    if (activeEngines.empty()) {
+        throw AppError::makeInvalidParameters("No engine defined for systemtest.");
+    }
+
+    checkTimeControl();
+    Settings::QaplaSettings::instance().applyLoggerConfig("systemtest-report");
+
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    const auto configuredMaxCores = systemTestGroup->get<uint32_t>("maxcores");
+    const auto resolvedMaxCores = configuredMaxCores == 0 ? concurrencyResolution.effectiveConcurrency : configuredMaxCores;
+    if (resolvedMaxCores == 0) {
+        throw AppError::makeInvalidParameters("systemtest.maxcores resolved to 0.");
+    }
+
+    const SystemTestConfig config {
+        .maxCores = resolvedMaxCores,
+        .step = systemTestGroup->get<uint32_t>("step"),
+        .stepTimeSeconds = systemTestGroup->get<uint32_t>("steptime")
+    };
+
+    try {
+        systemTestManager_ = std::make_shared<SystemTestManager>();
+        systemTestManager_->initialize(activeEngines.front(), config);
+        GameManagerPool& pool = GameManagerPool::getInstance();
+        systemTestManager_->schedule(systemTestManager_, pool);
+
+        if (background) {
+            Logger::reportLogger().logStatus("Task started in background.", "systemtest", TraceLevel::result);
+            return code;
+        }
+
+        pool.waitForTask();
+        Logger::reportLogger().logStatus("systemtest all games completed", "systemtest", TraceLevel::result);
+    }
+    catch (const std::exception& exception) {
+        Logger::reportLogger().logStatus(
+            std::format("Exception during systemtest run: {}", exception.what()),
+            "systemtest",
+            TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+
+    return code;
+}
+
 void AppRunner::setAdjudicationOptions() {
     const auto& drawConfig = Settings::QaplaSettings::instance().getDrawAdjudicationConfig();
     if (drawConfig) {
@@ -537,6 +602,7 @@ std::string AppRunner::getStatus() {
     rootObject["tournament"] = createTaskStatusFor(app, Cli::TaskType::Tournament);
     rootObject["epd"] = createTaskStatusFor(app, Cli::TaskType::Epd);
     rootObject["spsa"] = createTaskStatusFor(app, Cli::TaskType::Spsa);
+    rootObject["systemtest"] = createTaskStatusFor(app, Cli::TaskType::SystemTest);
 
     return Mcp::JsonHelper::serialize(Mcp::JsonHelper::makeObject(std::move(rootObject)));
 }
@@ -596,13 +662,19 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
         hasTask = true;
     }
 
+    if (shouldRunTask(Cli::TaskType::SystemTest) && Settings::Manager::instance().getGroupInstance("systemtest")) {
+        currentTask_ = Cli::TaskType::SystemTest;
+        returnCode = runSystemTest(returnCode, background);
+        hasTask = true;
+    }
+
     if (!hasTask) {
         if (forcedTask != Cli::TaskType::None) {
             throw AppError::makeInvalidParameters(std::format(
                 "No '{}' task configuration found. The selected task is forced in MCP mode.",
                 Cli::getTaskId(forcedTask)));
         }
-        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, or --spsa.");
+        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, or --systemtest.");
     }
 
     hasExecutedDispatcherRun = true;

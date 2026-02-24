@@ -447,6 +447,13 @@ void GameManagerPool::PoolController::stopAll() {
     }
 }
 
+void GameManagerPool::PoolController::setConcurrency(uint32_t count, bool nice, bool start) {
+    std::scoped_lock lock(mutex_);
+    if (pool_ != nullptr) {
+        pool_->setConcurrency(count, nice, start);
+    }
+}
+
 std::shared_ptr<GameManagerPool::PoolController> GameManagerPool::getController() {
     return controller_;
 }

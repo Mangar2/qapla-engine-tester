@@ -13,6 +13,7 @@ namespace QaplaTester::Cli {
         Tournament,
         Epd,
         Spsa,
+        SystemTest,
         Test,
         All,
         None
@@ -24,6 +25,7 @@ namespace QaplaTester::Cli {
             case TaskType::Tournament: return TournamentFile::id;
             case TaskType::Epd: return EpdFile::id;
             case TaskType::Spsa: return SpsaFile::id;
+            case TaskType::SystemTest: return "systemtest";
             case TaskType::Test: return "test";
             case TaskType::All: return "all";
             default: return "none";
@@ -42,6 +44,9 @@ namespace QaplaTester::Cli {
         } 
         if (name == "spsa") {
             return TaskType::Spsa;
+        }
+        if (name == "systemtest") {
+            return TaskType::SystemTest;
         }
         if (name == "test") {
             return TaskType::Test;
