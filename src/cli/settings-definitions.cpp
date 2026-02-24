@@ -153,7 +153,7 @@ Configs:
     Manager::instance().registerGroup({
         .name = "systemtest",
         .description = "Measures NPS behavior while increasing game parallelism",
-        .longDescription = "Runs repeated games from one fixed start position with one engine configuration and increases game concurrency step by step. Logs average NPS and NPS variance per move, including a baseline variance at low parallelism and additional variance introduced by higher parallelism.",
+        .longDescription = "Runs repeated games from one fixed start position with one engine configuration and increases game concurrency step by step. Logs average and total NPS in kNps plus NPS standard deviation per move, including a baseline standard deviation at low parallelism and additional standard deviation introduced by higher parallelism.",
         .unique = true,
         .keys = Settings::getSystemTestKeys()
     });

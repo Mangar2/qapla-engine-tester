@@ -21,6 +21,7 @@
 #include "../qapla-engine/move.h"
 
 #include <sstream>
+#include <cmath>
 #include <numeric>
 
 namespace QaplaTester {
@@ -356,7 +357,8 @@ GameRecord::NpsStatistics GameRecord::calculateNpsStatistics() const {
         const auto diff = value - statistics.averageNps;
         squaredDiffSum += diff * diff;
     }
-    statistics.varianceNps = squaredDiffSum / static_cast<double>(statistics.sampleCount);
+    const auto varianceNps = squaredDiffSum / static_cast<double>(statistics.sampleCount);
+    statistics.standardDeviationNps = std::sqrt(varianceNps);
 
     return statistics;
 }

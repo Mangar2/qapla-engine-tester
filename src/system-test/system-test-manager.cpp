@@ -23,9 +23,19 @@
 #include "../base-elements/logger.h"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 
 namespace QaplaTester {
+
+namespace {
+[[nodiscard]] uint64_t toKnpsRounded(double nps) {
+    if (nps <= 0.0) {
+        return 0;
+    }
+    return static_cast<uint64_t>(std::llround(nps / 1000.0));
+}
+}
 
 void SystemTestManager::initialize(const EngineConfig& engine, const SystemTestConfig& config) {
     if (config.maxCores == 0) {
@@ -42,18 +52,19 @@ void SystemTestManager::initialize(const EngineConfig& engine, const SystemTestC
     config_ = config;
     finished_.store(false);
     nextTaskId_.store(1);
-    currentConcurrency_.store(1);
+    currentConcurrency_.store(0);
 
     {
         std::scoped_lock lock(stateMutex_);
-        baselineVariance_.reset();
+        baselineStandardDeviation_.reset();
         resetAggregate();
     }
 }
 
 void SystemTestManager::schedule(const std::shared_ptr<SystemTestManager>& self, GameManagerPool& pool) {
     poolController_ = pool.getController();
-    currentConcurrency_.store(1);
+    const auto startConcurrency = std::min(config_.maxCores, config_.step);
+    currentConcurrency_.store(startConcurrency);
     stepDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(config_.stepTimeSeconds);
 
     Logger::reportLogger().logStatus(
@@ -67,7 +78,7 @@ void SystemTestManager::schedule(const std::shared_ptr<SystemTestManager>& self,
         "systemtest",
         TraceLevel::result);
 
-    pool.setConcurrency(1, true);
+    pool.setConcurrency(startConcurrency, true);
     pool.addTaskProvider(self, engine_, engine_);
     pool.startManagers();
 }
@@ -86,8 +97,10 @@ void SystemTestManager::setGameRecord([[maybe_unused]] const std::string& taskId
         std::scoped_lock lock(stateMutex_);
         stepAggregate_.games += 1;
         stepAggregate_.samples += statistics.sampleCount;
+        stepAggregate_.totalNodes += statistics.totalNodes;
+        stepAggregate_.totalTimeMs += statistics.totalTimeMs;
         stepAggregate_.weightedNpsSum += statistics.averageNps * static_cast<double>(statistics.sampleCount);
-        stepAggregate_.weightedVarianceSum += statistics.varianceNps * static_cast<double>(statistics.sampleCount);
+        stepAggregate_.weightedStandardDeviationSum += statistics.standardDeviationNps * static_cast<double>(statistics.sampleCount);
     }
     updateStepIfRequired();
 }
@@ -152,35 +165,42 @@ SystemTestManager::StepResult SystemTestManager::buildStepResult(uint32_t concur
     result.concurrency = concurrency;
     result.games = aggregate.games;
     result.samples = aggregate.samples;
+
+    if (aggregate.totalTimeMs > 0) {
+        result.totalNps = (static_cast<double>(aggregate.totalNodes) * 1000.0)
+            / static_cast<double>(aggregate.totalTimeMs);
+    }
+
     if (aggregate.samples > 0) {
         result.averageNps = aggregate.weightedNpsSum / static_cast<double>(aggregate.samples);
-        result.averageVariance = aggregate.weightedVarianceSum / static_cast<double>(aggregate.samples);
+        result.averageStandardDeviation = aggregate.weightedStandardDeviationSum / static_cast<double>(aggregate.samples);
     }
     return result;
 }
 
 void SystemTestManager::logStepResult(const StepResult& result) {
-    double baselineVariance = 0.0;
-    double additionalVariance = 0.0;
+    double baselineStandardDeviation = 0.0;
+    double additionalStandardDeviation = 0.0;
     {
         std::scoped_lock lock(stateMutex_);
-        if (!baselineVariance_.has_value() && result.samples > 0) {
-            baselineVariance_ = result.averageVariance;
+        if (!baselineStandardDeviation_.has_value() && result.samples > 0) {
+            baselineStandardDeviation_ = result.averageStandardDeviation;
         }
-        baselineVariance = baselineVariance_.value_or(0.0);
+        baselineStandardDeviation = baselineStandardDeviation_.value_or(0.0);
     }
-    additionalVariance = std::max(0.0, result.averageVariance - baselineVariance);
+    additionalStandardDeviation = std::max(0.0, result.averageStandardDeviation - baselineStandardDeviation);
 
     Logger::reportLogger().logStatus(
         std::format(
-            "systemtest step cores {} games {} samples {} avg-nps {:.2f} variance {:.2f} basis-varianz {:.2f} parallel-varianz {:.2f}",
+            "systemtest step cores {} games {} samples {} total-nps {}knps avg-nps {}knps stddev {}knps basis-stddev {}knps parallel-stddev {}knps",
             result.concurrency,
             result.games,
             result.samples,
-            result.averageNps,
-            result.averageVariance,
-            baselineVariance,
-            additionalVariance),
+            toKnpsRounded(result.totalNps),
+            toKnpsRounded(result.averageNps),
+            toKnpsRounded(result.averageStandardDeviation),
+            toKnpsRounded(baselineStandardDeviation),
+            toKnpsRounded(additionalStandardDeviation)),
         "systemtest",
         TraceLevel::result);
 }
