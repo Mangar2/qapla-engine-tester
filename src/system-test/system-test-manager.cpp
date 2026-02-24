@@ -65,7 +65,8 @@ void SystemTestManager::schedule(const std::shared_ptr<SystemTestManager>& self,
     poolController_ = pool.getController();
     const auto startConcurrency = std::min(config_.maxCores, config_.step);
     currentConcurrency_.store(startConcurrency);
-    stepDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(config_.stepTimeSeconds);
+    stepStartTime_ = std::chrono::steady_clock::now();
+    stepDeadline_ = stepStartTime_ + std::chrono::seconds(config_.stepTimeSeconds);
 
     Logger::reportLogger().logStatus(
         std::format(
@@ -98,7 +99,6 @@ void SystemTestManager::setGameRecord([[maybe_unused]] const std::string& taskId
         stepAggregate_.games += 1;
         stepAggregate_.samples += statistics.sampleCount;
         stepAggregate_.totalNodes += statistics.totalNodes;
-        stepAggregate_.totalTimeMs += statistics.totalTimeMs;
         stepAggregate_.weightedNpsSum += statistics.averageNps * static_cast<double>(statistics.sampleCount);
         stepAggregate_.weightedStandardDeviationSum += statistics.standardDeviationNps * static_cast<double>(statistics.sampleCount);
     }
@@ -127,6 +127,9 @@ void SystemTestManager::updateStepIfRequired() {
 
 void SystemTestManager::completeCurrentStepAndAdvance() {
     const auto currentConcurrency = currentConcurrency_.load();
+    const auto currentStepEndTime = std::chrono::steady_clock::now();
+    const auto elapsedMs = static_cast<uint64_t>(std::max<int64_t>(1,
+        std::chrono::duration_cast<std::chrono::milliseconds>(currentStepEndTime - stepStartTime_).count()));
 
     StepAggregate aggregate;
     {
@@ -134,7 +137,7 @@ void SystemTestManager::completeCurrentStepAndAdvance() {
         aggregate = stepAggregate_;
         resetAggregate();
     }
-    const auto result = buildStepResult(currentConcurrency, aggregate);
+    const auto result = buildStepResult(currentConcurrency, aggregate, elapsedMs);
     logStepResult(result);
 
     if (currentConcurrency >= config_.maxCores) {
@@ -148,7 +151,8 @@ void SystemTestManager::completeCurrentStepAndAdvance() {
 
     const auto nextConcurrency = std::min(config_.maxCores, currentConcurrency + config_.step);
     currentConcurrency_.store(nextConcurrency);
-    stepDeadline_ = std::chrono::steady_clock::now() + std::chrono::seconds(config_.stepTimeSeconds);
+    stepStartTime_ = std::chrono::steady_clock::now();
+    stepDeadline_ = stepStartTime_ + std::chrono::seconds(config_.stepTimeSeconds);
 
     if (poolController_) {
         poolController_->setConcurrency(nextConcurrency, true, true);
@@ -160,15 +164,16 @@ void SystemTestManager::completeCurrentStepAndAdvance() {
         TraceLevel::result);
 }
 
-SystemTestManager::StepResult SystemTestManager::buildStepResult(uint32_t concurrency, const StepAggregate& aggregate) {
+SystemTestManager::StepResult SystemTestManager::buildStepResult(uint32_t concurrency, const StepAggregate& aggregate, uint64_t stepElapsedMs) {
     StepResult result;
     result.concurrency = concurrency;
     result.games = aggregate.games;
     result.samples = aggregate.samples;
+    result.stepElapsedMs = stepElapsedMs;
 
-    if (aggregate.totalTimeMs > 0) {
+    if (stepElapsedMs > 0) {
         result.totalNps = (static_cast<double>(aggregate.totalNodes) * 1000.0)
-            / static_cast<double>(aggregate.totalTimeMs);
+            / static_cast<double>(stepElapsedMs);
     }
 
     if (aggregate.samples > 0) {

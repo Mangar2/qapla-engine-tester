@@ -81,7 +81,6 @@ private:
         uint64_t games = 0;
         uint64_t samples = 0;
         uint64_t totalNodes = 0;
-        uint64_t totalTimeMs = 0;
         double weightedNpsSum = 0.0;
         double weightedStandardDeviationSum = 0.0;
     };
@@ -90,6 +89,7 @@ private:
         uint32_t concurrency = 0;
         uint64_t games = 0;
         uint64_t samples = 0;
+        uint64_t stepElapsedMs = 0;
         double totalNps = 0.0;
         double averageNps = 0.0;
         double averageStandardDeviation = 0.0;
@@ -98,7 +98,7 @@ private:
     [[nodiscard]] GameTask createTask(uint64_t taskNumber) const;
     void updateStepIfRequired();
     void completeCurrentStepAndAdvance();
-    [[nodiscard]] static StepResult buildStepResult(uint32_t concurrency, const StepAggregate& aggregate);
+    [[nodiscard]] static StepResult buildStepResult(uint32_t concurrency, const StepAggregate& aggregate, uint64_t stepElapsedMs);
     void logStepResult(const StepResult& result);
     void resetAggregate();
 
@@ -106,6 +106,7 @@ private:
     SystemTestConfig config_;
     std::shared_ptr<GameManagerPool::PoolController> poolController_;
 
+    std::chrono::steady_clock::time_point stepStartTime_;
     std::chrono::steady_clock::time_point stepDeadline_;
 
     mutable std::mutex stateMutex_;
