@@ -80,16 +80,19 @@ private:
     struct StepAggregate {
         uint64_t games = 0;
         uint64_t samples = 0;
+        uint64_t totalNodes = 0;
+        uint64_t totalTimeMs = 0;
         double weightedNpsSum = 0.0;
-        double weightedVarianceSum = 0.0;
+        double weightedStandardDeviationSum = 0.0;
     };
 
     struct StepResult {
         uint32_t concurrency = 0;
         uint64_t games = 0;
         uint64_t samples = 0;
+        double totalNps = 0.0;
         double averageNps = 0.0;
-        double averageVariance = 0.0;
+        double averageStandardDeviation = 0.0;
     };
 
     [[nodiscard]] GameTask createTask(uint64_t taskNumber) const;
@@ -107,7 +110,7 @@ private:
 
     mutable std::mutex stateMutex_;
     StepAggregate stepAggregate_;
-    std::optional<double> baselineVariance_;
+    std::optional<double> baselineStandardDeviation_;
 
     std::atomic<uint64_t> nextTaskId_ = 1;
     std::atomic<bool> finished_ = false;

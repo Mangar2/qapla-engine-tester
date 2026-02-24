@@ -70,7 +70,7 @@ public:
 		uint64_t totalNodes = 0;
 		uint64_t totalTimeMs = 0;
 		double averageNps = 0.0;
-		double varianceNps = 0.0;
+		double standardDeviationNps = 0.0;
 	};
 
 	/**
@@ -514,9 +514,9 @@ public:
 	 * @brief Calculates NPS statistics from all moves with valid node/time data.
 	 *
 	 * Per-move NPS is computed as nodes * 1000 / timeMs.
-	 * The variance is computed against the game average NPS over all valid moves.
+	 * The standard deviation is computed against the game average NPS over all valid moves.
 	 *
-	 * @return NpsStatistics containing average and variance of per-move NPS.
+	 * @return NpsStatistics containing average and standard deviation of per-move NPS.
 	 */
 	[[nodiscard]] NpsStatistics calculateNpsStatistics() const;
 
