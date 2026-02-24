@@ -20,20 +20,20 @@
 // GameRecord.h
 #pragma once
 
+
+#include "move-record.h"
+#include "game-result.h"
+
+#include "../base-elements/time-control.h"
+#include "../base-elements/change-tracker.h"
+
 #include <vector>
 #include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <string>
 #include <map>
-#include <iostream>
 
-#include "move-record.h"
-#include "../base-elements/time-control.h"
-#include "game-result.h"
-#include "../base-elements/change-tracker.h"
-
-#include "../qapla-engine/move.h"
 
 namespace QaplaTester {
 
@@ -65,6 +65,14 @@ enum class GameEvent : std::uint8_t {
 class GameRecord
 {
 public:
+	struct NpsStatistics {
+		uint64_t sampleCount = 0;
+		uint64_t totalNodes = 0;
+		uint64_t totalTimeMs = 0;
+		double averageNps = 0.0;
+		double varianceNps = 0.0;
+	};
+
 	/**
 	 * @brief Sets the starting position of the game.
 	 * @param startPos True if starting from standard position, false for custom FEN.
@@ -501,6 +509,16 @@ public:
 	 * @return concatenated move string (SANs with optional comments)
 	 */
 	[[nodiscard]] std::string movesToStringUpToPly(uint32_t lastPly, const MoveRecord::toStringOptions& opts = {}) const;
+
+	/**
+	 * @brief Calculates NPS statistics from all moves with valid node/time data.
+	 *
+	 * Per-move NPS is computed as nodes * 1000 / timeMs.
+	 * The variance is computed against the game average NPS over all valid moves.
+	 *
+	 * @return NpsStatistics containing average and variance of per-move NPS.
+	 */
+	[[nodiscard]] NpsStatistics calculateNpsStatistics() const;
 
 	/**
 	 * @brief Reserves memory for the move history to avoid repeated reallocations.

@@ -49,6 +49,10 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getOpeningsKeys();
 
 /// Returns key definitions for test group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys();
+
+/// Returns key definitions for systemtest group
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getSystemTestKeys();
+
 /// Returns key definitions for pgnoutput group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getPgnOutputKeys();
 
