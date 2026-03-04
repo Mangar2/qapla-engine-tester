@@ -312,6 +312,31 @@ namespace QaplaHelpers {
     };
 
     /**
+     * @brief Reads the next token from a string view.
+     * @param text Source text.
+     * @param position Current offset; advanced to the end of the returned token.
+     * @param delimiters Characters that delimit tokens. Defaults to single space.
+     * @return Next token or empty string_view if no further token exists.
+     */
+    inline std::string_view readNextToken(
+        std::string_view text,
+        size_t& position,
+        std::string_view delimiters = " ") {
+        const auto tokenStart = text.find_first_not_of(delimiters, position);
+        if (tokenStart == std::string_view::npos) {
+            position = text.size();
+            return {};
+        }
+        const auto tokenEnd = text.find_first_of(delimiters, tokenStart);
+        if (tokenEnd == std::string_view::npos) {
+            position = text.size();
+            return text.substr(tokenStart);
+        }
+        position = tokenEnd;
+        return text.substr(tokenStart, tokenEnd - tokenStart);
+    }
+
+    /**
      * @brief Splits a string by a delimiter character.
      * @param str The string to split.
      * @param delimiter The delimiter character.

@@ -21,7 +21,6 @@
 
 #include <string>
 #include <filesystem>
-#include <optional>
 #include <chrono>
 #include <deque>
 #include <array>
