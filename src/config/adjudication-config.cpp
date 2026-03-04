@@ -51,8 +51,8 @@ AdjudicationManager::ResignAdjudicationConfig AdjudicationConfig::fromResignMana
     return AdjudicationManager::ResignAdjudicationConfig{
         .requiredConsecutiveMoves = resign->get<unsigned int>("movecount"),
         .centipawnThreshold = resign->get<int>("score"),
-        .testOnly = resign->get<bool>("test"),
         .twoSided = resign->get<bool>("twosided"),
+        .testOnly = resign->get<bool>("test"),
         .active = true
     };
 }
