@@ -24,7 +24,9 @@
 #include "engine-process.h"
 
 #include "../base-elements/logger.h"
+#include "../base-elements/string-helper.h"
 
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -285,6 +287,41 @@ static void readBoundedInt(std::istringstream& iss,
     target = static_cast<T>(value);
 }
 
+/**
+ * Tries to read an integer from stream, checks it against given bounds,
+ * and stores it in the target if valid. Reports detailed errors otherwise.
+ *
+ * @param token The string token to parse as integer.
+ * @param fieldName Logical token name, used in error reporting.
+ * @param min Minimum allowed value (inclusive).
+ * @param max Maximum allowed value (inclusive).
+ * @param errors Vector collecting parse errors.
+ */
+static std::optional<int32_t> readBoundedInt(const std::string_view& token,
+    const std::string& fieldName,
+    int32_t min,
+    int32_t max,
+    std::vector<EngineEvent::ParseError>& errors)
+{
+    auto value = QaplaHelpers::to_signed_int<int32_t>(token);
+    if (!value) {
+        errors.push_back({
+            .name=fieldName,
+            .detail=std::format("Expected an integer for '{}'", fieldName)
+            });
+        return std::nullopt;
+    }
+
+    if (*value < min || *value > max) {   
+        errors.push_back({
+            .name=fieldName,
+            .detail=std::format("Reported value {} is outside the expected range [{}, {}]", *value, min, max)
+            });
+        return std::nullopt;
+    }
+    return *value;
+}
+
 static bool isLanMoveToken(const std::string& token) {
 	// A valid LAN move token is a string of 4 or 5 characters, starting with a letter
 	// and followed by 3 or 4 digits (e.g., "e2e4", "g1f3", "d7d5").
@@ -305,6 +342,37 @@ static bool isLanMoveToken(const std::string& token) {
     }
 	return true;
 }
+
+EngineEvent UciAdapter::parseScoreCpInfo(const std::string& line, uint64_t timestamp) const {
+    const std::string_view content{ line };
+    size_t tokenStart = 0;
+    std::string_view parent;
+    SearchInfo info;
+    auto event = EngineEvent::create(EngineEvent::Type::Info, identifier_, timestamp, line);
+
+    while (tokenStart < content.size()) {
+        const auto token = QaplaHelpers::readNextToken(content, tokenStart);
+        if (parent == "score") {
+            if (token == "cp") { 
+                auto valueToken = QaplaHelpers::readNextToken(content, tokenStart);
+                info.scoreCp = readBoundedInt(valueToken, "score cp", -100000, 100000, event.errors); 
+            }
+            else if (token == "mate") { 
+                auto valueToken = QaplaHelpers::readNextToken(content, tokenStart);
+                info.scoreMate = readBoundedInt(valueToken, "score mate", -500, 500, event.errors); 
+            }
+            else if (token == "lowerbound") { info.scoreLowerbound = true; }
+            else if (token == "upperbound") { info.scoreUpperbound = true; }
+            else { break; } // terminate score parsing
+        }
+        parent = token;
+    }
+    if (info.scoreCp || info.scoreMate) {
+        event.searchInfo = std::move(info);
+    }
+    return event;
+}
+
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timestamp, 
@@ -451,7 +519,8 @@ EngineEvent UciAdapter::readEvent() { // NOLINT(readability-function-cognitive-c
 
     if (command == "info") {
 		if (suppressInfoLines_) {
-			return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
+            // We need to get the cp info to support adjudications.
+			return parseScoreCpInfo(line, engineLine.timestampMs);
 		}
         logFromEngine(line, TraceLevel::info);
         return parseSearchInfo(iss, engineLine.timestampMs, line);

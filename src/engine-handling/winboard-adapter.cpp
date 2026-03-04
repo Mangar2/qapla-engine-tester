@@ -18,13 +18,11 @@
  */
 
 
-#include <cstring>
 #include <iostream>
 #include <sstream>
 #include <chrono>
 #include <limits>
 #include <unordered_set>
-#include "../base-elements/timer.h"
 #include "../base-elements/string-helper.h"
 #include "winboard-adapter.h"
 #include "engine-process.h"
@@ -52,7 +50,7 @@ void WinboardAdapter::terminateEngine() {
 		// Once Terminating is set, writing to the engine is not allowed anymore
         terminating_ = true;
     }
-    catch (...) {
+    catch (...) { // NOLINT(bugprone-empty-catch)
         // Engine might already be gone; nothing to do
     }
 
@@ -346,7 +344,8 @@ void WinboardAdapter::setTestOption(
 std::string mapOptionName(const std::string& name) {
     if (name == "Hash") {
         return "memory";
-    } else if (name == "Threads") {
+    } 
+    if (name == "Threads") {
         return "smp";
     }
     return name;
@@ -551,7 +550,7 @@ EngineEvent WinboardAdapter::parseSearchInfo(const std::string& depthStr, std::i
     constexpr int32_t MATE_VALUE = 100000;
     constexpr int32_t MAX_SCORE = MATE_VALUE + 10000;
 
-    event.searchInfo->depth = std::stoi(depthStr);
+    event.searchInfo->depth = QaplaHelpers::to_unsigned_int<uint32_t>(depthStr);
 
 	if (!readBoundedInt<int32_t>(iss, "score", -MAX_SCORE, MAX_SCORE, event.searchInfo->scoreCp, event.errors)) {
         return event;
@@ -563,20 +562,24 @@ EngineEvent WinboardAdapter::parseSearchInfo(const std::string& depthStr, std::i
         event.searchInfo->scoreMate = *event.searchInfo->scoreCp - MATE_VALUE;
     }
 
-	if (!readBoundedInt<uint64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
-		return event;
-	}
-    *event.searchInfo->timeMs *= 10;
+    if (!suppressInfoLines_) {
 
-	if (!readBoundedInt<uint64_t>(iss, "nodes", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nodes, event.errors)) {
-		return event;
-	}
+        if (!readBoundedInt<uint64_t>(iss, "time", 0, std::numeric_limits<int64_t>::max() / 10, event.searchInfo->timeMs, event.errors)) {
+            return event;
+        }
+        *event.searchInfo->timeMs *= 10;
 
-    // optionale ints (seldepth, nps, tbhits)
-    auto pv = parseOptionalIntegers(iss, event);
+        if (!readBoundedInt<uint64_t>(iss, "nodes", 0, std::numeric_limits<int64_t>::max(), event.searchInfo->nodes, event.errors)) {
+            return event;
+        }
 
-    // principal variation
-    parsePV(pv, event);
+        // optionale ints (seldepth, nps, tbhits)
+        auto pv = parseOptionalIntegers(iss, event);
+
+        // principal variation
+        parsePV(pv, event);
+        
+    }
 
     return event;
 }
@@ -864,9 +867,6 @@ EngineEvent WinboardAdapter::parseCommand(const EngineLine& engineLine) {
     command = QaplaHelpers::to_lowercase(command);
 
     if (QaplaHelpers::isInteger(command)) {
-        if (suppressInfoLines_) {
-            return EngineEvent::createNoData(identifier_, engineLine.timestampMs);
-        }
         logFromEngine(line, TraceLevel::info);
         return parseSearchInfo(command, iss, engineLine.timestampMs, line);
     }

@@ -155,6 +155,18 @@ private:
 
     EngineEvent parseSearchInfo(std::istringstream& iss, uint64_t timestamp, const std::string& originalLine);
 
+    /**
+     * @brief Parses only `score cp` from a raw UCI info line.
+     *
+     * Used when info suppression is enabled to keep draw/resign adjudication
+     * working while avoiding full info-line parsing overhead.
+     *
+     * @param line Full raw line received from the engine.
+     * @param timestamp Timestamp of the engine output line.
+     * @return Info event with scoreCp set, or NoData if no valid cp score exists.
+     */
+    [[nodiscard]] EngineEvent parseScoreCpInfo(const std::string& line, uint64_t timestamp) const;
+
 	static inline int numOptionError_ = 0; 
     static inline int numIdError_ = 0;
     static inline int numNameError_ = 0;
