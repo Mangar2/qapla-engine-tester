@@ -17,6 +17,13 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 
+#include "uci-adapter.h"
+
+#include "engine-adapter.h"
+#include "uci-option.h"
+#include "engine-process.h"
+
+#include "../base-elements/logger.h"
 
 #include <cstring>
 #include <iostream>
@@ -24,9 +31,11 @@
 #include <chrono>
 #include <limits>
 
-#include "uci-adapter.h"
-#include "engine-process.h"
-#include "../base-elements/logger.h"
+#include <atomic>
+#include <string>
+#include <optional>
+
+
 
 namespace QaplaTester {
 

@@ -18,17 +18,8 @@
  */
 #pragma once
 
-#include <thread>
-#include <atomic>
-#include <mutex>
 #include <string>
-#include <condition_variable>
-#include <optional>
-#include <unordered_map>
-#include <iostream>
-
 #include "engine-adapter.h"
-#include "uci-option.h"
 
 namespace QaplaTester {
 
