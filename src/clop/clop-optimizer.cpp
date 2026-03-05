@@ -91,7 +91,7 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
     {
         std::scoped_lock lock(stateMutex_);
         samples_.clear();
-        activeSample_.reset();
+        activeSamples_.clear();
         nextRound_ = 0;
         initialized_ = true;
         scheduled_ = false;
@@ -161,13 +161,30 @@ void CLOPOptimizer::workerThreadFunction() {
             stateCondition_.notify_all();
             break;
         }
-        if (activeSample_.has_value()) {
+        const auto activeCount = activeSamples_.size();
+        const auto totalScheduled = samples_.size() + activeCount;
+        if (activeCount >= config_.maxActivePairs || totalScheduled >= config_.samples) {
             stateCondition_.wait_for(lock, std::chrono::milliseconds(25));
             continue;
         }
         lock.unlock();
 
-        scheduleNextSample();
+        while (!stopWorker_) {
+            bool canScheduleMore = false;
+            {
+                std::scoped_lock stateLock(stateMutex_);
+                const auto localActiveCount = activeSamples_.size();
+                const auto localTotalScheduled = samples_.size() + localActiveCount;
+                canScheduleMore = localActiveCount < config_.maxActivePairs &&
+                    localTotalScheduled < config_.samples;
+            }
+
+            if (!canScheduleMore) {
+                break;
+            }
+
+            scheduleNextSample();
+        }
     }
 }
 
@@ -182,13 +199,14 @@ void CLOPOptimizer::scheduleNextSample() {
 
     {
         std::scoped_lock lock(stateMutex_);
-        if (samples_.size() >= config_.samples || activeSample_.has_value()) {
+        const auto totalScheduled = samples_.size() + activeSamples_.size();
+        if (totalScheduled >= config_.samples) {
             return;
         }
 
         normalizedValues = createNormalizedSample();
         parameterValues = denormalizeValues(normalizedValues);
-        sampleIndex = samples_.size();
+        sampleIndex = totalScheduled;
     }
 
     auto challengerEngine = createConfiguredEngine(parameterValues);
@@ -197,7 +215,7 @@ void CLOPOptimizer::scheduleNextSample() {
     PairTournamentConfig pairConfig;
     pairConfig.games = config_.gamesPerSample;
     pairConfig.repeat = 1;
-    pairConfig.swapColors = config_.swapColors;
+    pairConfig.swapColors = true;
     pairConfig.round = nextRound_++;
     pairConfig.gameNumberOffset = static_cast<uint32_t>(sampleIndex * config_.gamesPerSample);
     pairConfig.openings.start = static_cast<uint32_t>(rng_() % startPositions_->size());
@@ -218,7 +236,7 @@ void CLOPOptimizer::scheduleNextSample() {
         active.normalizedValues = std::move(normalizedValues);
         active.index = sampleIndex;
         active.pairing = pair;
-        activeSample_ = std::move(active);
+        activeSamples_.push_back(std::move(active));
     }
 
     pair->schedule(pair, *pool_);
@@ -232,14 +250,17 @@ void CLOPOptimizer::onPairFinished(PairTournament* sender) {
     std::optional<CLOPSample> finishedSample;
     {
         std::scoped_lock lock(stateMutex_);
-        if (!activeSample_.has_value() || activeSample_->pairing == nullptr) {
+        const auto iterator = std::find_if(activeSamples_.begin(), activeSamples_.end(),
+            [sender](const CLOPSample& sample) {
+                return sample.pairing != nullptr && sample.pairing.get() == sender;
+            });
+
+        if (iterator == activeSamples_.end()) {
             return;
         }
-        if (activeSample_->pairing.get() != sender) {
-            return;
-        }
-        finishedSample = std::move(activeSample_);
-        activeSample_.reset();
+
+        finishedSample = *iterator;
+        activeSamples_.erase(iterator);
     }
 
     if (!finishedSample.has_value() || finishedSample->pairing == nullptr) {
@@ -316,7 +337,8 @@ std::vector<double> CLOPOptimizer::createNormalizedSample() {
     }
 
     sample = selected->normalizedValues;
-    const double sigma = 0.6 / std::sqrt(static_cast<double>(samples_.size()) + 1.0);
+    const auto scheduledCount = samples_.size() + activeSamples_.size();
+    const double sigma = 0.6 / std::sqrt(static_cast<double>(scheduledCount) + 1.0);
     std::normal_distribution<double> noiseDist(0.0, sigma);
     for (size_t index = 0; index < parameterCount; ++index) {
         sample[index] = std::clamp(sample[index] + noiseDist(rng_), -1.0, 1.0);
@@ -542,8 +564,8 @@ TableData CLOPOptimizer::getStatusTable() const {
     table.headers = { "Parameter", "Initial", "Estimated", "Current", "Min", "Max" };
 
     std::vector<double> currentValues = estimatedParameters_;
-    if (activeSample_.has_value()) {
-        currentValues = activeSample_->values;
+    if (!activeSamples_.empty()) {
+        currentValues = activeSamples_.front().values;
     }
 
     for (size_t index = 0; index < config_.parameters.size(); ++index) {

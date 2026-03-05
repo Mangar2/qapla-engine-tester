@@ -863,11 +863,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys() {
         { "seed",          { .description = "Random seed for opening selection", 
                             .isRequired = false, 
                             .defaultValue = 0, 
-                            .type = ValueType::UInt } },
-        { "noswap",        { .description = "Disable automatic color swap between games", 
-                            .isRequired = false, 
-                            .defaultValue = false, 
-                            .type = ValueType::Bool } }
+                            .type = ValueType::UInt } }
     };
 }
 
@@ -913,6 +909,10 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopKeys() {
                                 .defaultValue = "clop",
                                 .type = ValueType::String,
                                 .isHidden = true } },
+        { "activepairs",      { .description = "Maximum number of concurrent unfinished CLOP sample pairs",
+                                .isRequired = false,
+                                .defaultValue = 8,
+                                .type = ValueType::UInt } },
         { "samples",          { .description = "Maximum number of CLOP samples",
                                 .isRequired = false,
                                 .defaultValue = 100,
@@ -945,11 +945,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopKeys() {
         { "seed",             { .description = "Random seed for sample generation",
                                 .isRequired = false,
                                 .defaultValue = 0,
-                                .type = ValueType::UInt } },
-        { "noswap",           { .description = "Disable automatic color swap between games",
-                                .isRequired = false,
-                                .defaultValue = false,
-                                .type = ValueType::Bool } }
+                                .type = ValueType::UInt } }
     };
 }
 

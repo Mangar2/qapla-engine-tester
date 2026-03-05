@@ -166,7 +166,7 @@ std::shared_ptr<SPSAPerturbation> SPSAOptimizer::createPairWithPerturbedParamete
     PairTournamentConfig ptc;
     ptc.games = config_.gamesPerPair;
     ptc.repeat = 1;
-    ptc.swapColors = config_.swapColors;
+    ptc.swapColors = true;
     ptc.round = nextRound_++;
     ptc.gameNumberOffset = static_cast<uint32_t>(perturbation->iteration * config_.gamesPerPair);
     ptc.openings.start = static_cast<uint32_t>(rng_() % startPositions_->size());
