@@ -1,0 +1,117 @@
+/**
+ * @license
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @author Volker Böhm
+ * @copyright Copyright (c) 2026 Volker Böhm
+ */
+
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
+#include "unit-test-helpers.h"
+#include "../../engine-handling/engine-config.h"
+#include "../../clop/clop-optimizer.h"
+#include "../../game-manager/game-manager-pool.h"
+#include "../../base-elements/app-error.h"
+
+using namespace QaplaTester;
+using namespace QaplaTester::Test;
+using Catch::Approx;
+
+TEST_CASE("CLOPOptimizer initialization edge cases", "[clop][optimizer]") {
+    EngineConfig engine;
+    engine.setName("TestEngine");
+    
+    CLOPConfig config;
+    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.samples = 10;
+    config.gamesPerSample = 8;
+    config.parameters.push_back({"Param1", 10.0, 0.0, 20.0});
+
+    CLOPOptimizer optimizer;
+
+    SECTION("Missing parameters throws") {
+        auto badConfig = config;
+        badConfig.parameters.clear();
+        REQUIRE_THROWS_AS(optimizer.createCLOP(engine, badConfig), AppError);
+    }
+    
+    SECTION("Zero samples throws") {
+        auto badConfig = config;
+        badConfig.samples = 0;
+        REQUIRE_THROWS_AS(optimizer.createCLOP(engine, badConfig), AppError);
+    }
+
+    SECTION("Zero games per sample throws") {
+        auto badConfig = config;
+        badConfig.gamesPerSample = 0;
+        REQUIRE_THROWS_AS(optimizer.createCLOP(engine, badConfig), AppError);
+    }
+
+    SECTION("Missing openings file throws") {
+        auto badConfig = config;
+        badConfig.openingsFile = "";
+        REQUIRE_THROWS_AS(optimizer.createCLOP(engine, badConfig), AppError);
+    }
+
+    SECTION("Invalid openings file throws") {
+        auto badConfig = config;
+        badConfig.openingsFile = "nonexistent_file.pgn";
+        REQUIRE_THROWS_AS(optimizer.createCLOP(engine, badConfig), AppError);
+    }
+
+    SECTION("Uninitialized schedule throws") {
+        GameManagerPool pool;
+        REQUIRE_THROWS_AS(optimizer.scheduleCLOP(1, pool), AppError);
+    }
+}
+
+TEST_CASE("CLOPOptimizer valid initialization", "[clop][optimizer]") {
+    EngineConfig engine;
+    engine.setName("TestEngine");
+    
+    CLOPConfig config;
+    // We reuse an existing unit test opening file
+    config.openingsFile = "src/test-system/unit/test-openings.pgn"; 
+    config.samples = 10;
+    config.gamesPerSample = 8;
+    
+    SECTION("Single parameter initialization default values") {
+        config.parameters.push_back({"TestParam", 50.0, 0.0, 100.0});
+        
+        CLOPOptimizer optimizer;
+        REQUIRE_NOTHROW(optimizer.createCLOP(engine, config));
+        
+        REQUIRE(optimizer.getCompletedSamples() == 0);
+        
+        auto params = optimizer.getEstimatedParameters();
+        REQUIRE(params.size() == 1);
+        REQUIRE(params[0] == 50.0);
+    }
+    
+    SECTION("Multiple parameter initialization") {
+        config.parameters.push_back({"Param1", 10.0, 0.0, 20.0});
+        config.parameters.push_back({"Param2", 50.0, 25.0, 75.0});
+        config.parameters.push_back({"Param3", 100.0, 50.0, 150.0});
+        
+        CLOPOptimizer optimizer;
+        REQUIRE_NOTHROW(optimizer.createCLOP(engine, config));
+        
+        auto params = optimizer.getEstimatedParameters();
+        REQUIRE(params.size() == 3);
+        REQUIRE(params[0] == 10.0);
+        REQUIRE(params[1] == 50.0);
+        REQUIRE(params[2] == 100.0);
+    }
+}

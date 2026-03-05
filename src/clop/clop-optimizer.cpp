@@ -443,19 +443,17 @@ void CLOPOptimizer::updateDesignWeights() {
         return;
     }
 
-    auto model = fitQuadraticLogisticRegression();
-    const double meanLogit = fitLogisticMean();
-    const double sigma = std::max(confidenceDeviation(meanLogit), 1e-8);
-
-    double previousSum = std::accumulate(
-        samples_.begin(),
-        samples_.end(),
-        0.0,
-        [](double sum, const CLOPSample& sample) {
-            return sum + sample.designWeight;
-        });
+    double previousSum = 0.0;
+    for (auto& sample : samples_) {
+        sample.designWeight = 1.0;
+        previousSum += 1.0;
+    }
 
     for (uint32_t iteration = 0; iteration < config_.maxWeightIterations; ++iteration) {
+        auto model = fitQuadraticLogisticRegression();
+        const double meanLogit = fitLogisticMean();
+        const double sigma = std::max(confidenceDeviation(meanLogit), 1e-8);
+
         double nextSum = 0.0;
         for (auto& sample : samples_) {
             const double quadraticValue = evaluateQuadratic(model, sample.normalizedValues);
