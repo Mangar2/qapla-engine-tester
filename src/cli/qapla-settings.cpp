@@ -398,7 +398,6 @@ void QaplaSettings::setSPSAConfig() {
     m_spsaConfig->iterations = spsaGroup->get<unsigned int>("iterations");
     m_spsaConfig->outcomeInterval = spsaGroup->get<unsigned int>("outcomeinterval");
     m_spsaConfig->openingsSeed = spsaGroup->get<unsigned int>("seed");
-    m_spsaConfig->swapColors = !spsaGroup->get<bool>("noswap");
     
     if (m_openings != nullptr) {
         m_spsaConfig->openingsFile = m_openings->file;
@@ -438,6 +437,7 @@ void QaplaSettings::setCLOPConfig() {
     }
 
     m_clopConfig = std::make_unique<CLOPConfig>();
+    m_clopConfig->maxActivePairs = clopGroup->get<unsigned int>("activepairs");
     m_clopConfig->samples = clopGroup->get<unsigned int>("samples");
     m_clopConfig->gamesPerSample = clopGroup->get<unsigned int>("gamespersample");
     m_clopConfig->warmupSamples = clopGroup->get<unsigned int>("warmupsamples");
@@ -446,7 +446,6 @@ void QaplaSettings::setCLOPConfig() {
     m_clopConfig->h = clopGroup->get<double>("h");
     m_clopConfig->priorVariance = clopGroup->get<double>("priorvariance");
     m_clopConfig->openingsSeed = clopGroup->get<unsigned int>("seed");
-    m_clopConfig->swapColors = !clopGroup->get<bool>("noswap");
 
     if (m_openings != nullptr) {
         m_clopConfig->openingsFile = m_openings->file;

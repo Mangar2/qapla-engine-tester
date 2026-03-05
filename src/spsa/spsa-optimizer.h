@@ -62,7 +62,6 @@ struct SPSAConfig {
     uint32_t outcomeInterval = 50;      // Interval for status and outcome output
     std::string openingsFile;           // Path to openings file
     uint32_t openingsSeed = 0;          // Seed for opening selection
-    bool swapColors = true;             // Whether to swap colors
 };
 
 /**

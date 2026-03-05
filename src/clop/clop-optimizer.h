@@ -27,7 +27,6 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-#include <optional>
 #include <random>
 #include <string>
 #include <thread>
@@ -54,6 +53,7 @@ using CLOPParameterList = std::vector<CLOPParameterConfig>;
  */
 struct CLOPConfig {
     CLOPParameterList parameters;
+    uint32_t maxActivePairs = 32;
     uint32_t samples = 100;
     uint32_t gamesPerSample = 8;
     uint32_t warmupSamples = 8;
@@ -62,7 +62,6 @@ struct CLOPConfig {
     uint32_t openingsSeed = 0;
     double h = 3.0;
     double priorVariance = 100.0;
-    bool swapColors = true;
     std::string openingsFile;
 };
 
@@ -159,7 +158,7 @@ private:
     std::vector<CLOPSample> samples_;
     std::vector<double> estimatedParameters_;
 
-    std::optional<CLOPSample> activeSample_;
+    std::vector<CLOPSample> activeSamples_;
     uint32_t nextRound_ = 0;
 
     mutable std::mutex stateMutex_;
