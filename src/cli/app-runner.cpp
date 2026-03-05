@@ -26,6 +26,7 @@
 #include "../sprt/sprt-manager.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../spsa/spsa-optimizer.h"
+#include "../clop/clop-optimizer.h"
 #include "../system-test/system-test-manager.h"
 #include "../tournament/tournament.h"
 #include "../tournament/tournament-file.h"
@@ -122,6 +123,19 @@ namespace {
     return Mcp::JsonHelper::makeObject(std::move(statusObject));
 }
 
+[[nodiscard]] Mcp::JsonValue createClopStatus(const AppRunner& app, Cli::TaskType currentTask) {
+    if (currentTask != Cli::TaskType::Clop || !app.getCLOPOptimizer()) {
+        return makeEmptyObject();
+    }
+
+    Mcp::JsonValue::Object statusObject;
+    const auto parametersJson = TableFormat::toJson("clopStatus", app.getCLOPOptimizer()->getStatusTable());
+    statusObject["parameters"] = parseJsonText(parametersJson);
+    statusObject["completed_samples"] = Mcp::JsonHelper::makeNumber(
+        static_cast<double>(app.getCLOPOptimizer()->getCompletedSamples()));
+    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+}
+
 [[nodiscard]] Mcp::JsonValue createSystemTestStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::SystemTest || !app.getSystemTestManager()) {
         return makeEmptyObject();
@@ -142,6 +156,8 @@ namespace {
             return createEpdStatus(app, Cli::TaskType::Epd);
         case Cli::TaskType::Spsa:
             return createSpsaStatus(app, Cli::TaskType::Spsa);
+        case Cli::TaskType::Clop:
+            return createClopStatus(app, Cli::TaskType::Clop);
         case Cli::TaskType::SystemTest:
             return createSystemTestStatus(app, Cli::TaskType::SystemTest);
         default:
@@ -490,6 +506,52 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
     return code;
 }
 
+AppReturnCode AppRunner::runClop(AppReturnCode code, bool background) {
+    const auto& clopConfig = Settings::QaplaSettings::instance().getCLOPConfig();
+    if (!clopConfig) {
+        return code;
+    }
+
+    const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
+    if (activeEngines.empty()) {
+        throw AppError::makeInvalidParameters("No engine defined for CLOP optimization.");
+    }
+
+    if (!Settings::QaplaSettings::instance().getOpenings()) {
+        throw AppError::makeInvalidParameters("No openings defined for CLOP optimization. Please define an opening.");
+    }
+
+    checkTimeControl();
+    Settings::QaplaSettings::instance().applyLoggerConfig("clop-report");
+
+    try {
+        clopOptimizer_ = std::make_shared<CLOPOptimizer>();
+        clopOptimizer_->createCLOP(activeEngines.front(), *clopConfig);
+
+        const auto concurrencyResolution = resolveConfiguredConcurrency();
+        const auto concurrency = concurrencyResolution.effectiveConcurrency;
+        logStartConcurrency("clop", concurrencyResolution);
+        GameManagerPool& pool = GameManagerPool::getInstance();
+        clopOptimizer_->scheduleCLOP(concurrency, pool);
+
+        if (background) {
+            Logger::reportLogger().logStatus("Task started in background.", "clop", TraceLevel::result);
+            return code;
+        }
+
+        clopOptimizer_->waitUntilFinished();
+        pool.waitForTask();
+
+        Logger::reportLogger().logStatus("CLOP optimization completed.", "clop", TraceLevel::result);
+    }
+    catch (const std::exception& exception) {
+        Logger::reportLogger().logStatus(
+            std::format("Exception during CLOP run: {}", exception.what()), "clop", TraceLevel::error);
+        return AppReturnCode::GeneralError;
+    }
+    return code;
+}
+
 AppReturnCode AppRunner::runSystemTest(AppReturnCode code, bool background) {
     const auto systemTestGroup = Settings::Manager::instance().getGroupInstance("systemtest");
     if (!systemTestGroup.has_value()) {
@@ -580,6 +642,9 @@ void AppRunner::stop(bool nice) {
     else if (app.currentTask_ == Cli::TaskType::Tournament && app.tournament_) {
         app.tournament_->save();
     }
+    else if (app.currentTask_ == Cli::TaskType::Clop && app.clopOptimizer_) {
+        app.clopOptimizer_->stop();
+    }
 }
 
 void AppRunner::setConcurrency(int value) {
@@ -602,6 +667,7 @@ std::string AppRunner::getStatus() {
     rootObject["tournament"] = createTaskStatusFor(app, Cli::TaskType::Tournament);
     rootObject["epd"] = createTaskStatusFor(app, Cli::TaskType::Epd);
     rootObject["spsa"] = createTaskStatusFor(app, Cli::TaskType::Spsa);
+    rootObject["clop"] = createTaskStatusFor(app, Cli::TaskType::Clop);
     rootObject["systemtest"] = createTaskStatusFor(app, Cli::TaskType::SystemTest);
 
     return Mcp::JsonHelper::serialize(Mcp::JsonHelper::makeObject(std::move(rootObject)));
@@ -662,6 +728,12 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
         hasTask = true;
     }
 
+    if (shouldRunTask(Cli::TaskType::Clop) && Settings::Manager::instance().getGroupInstance("clop")) {
+        currentTask_ = Cli::TaskType::Clop;
+        returnCode = runClop(returnCode, background);
+        hasTask = true;
+    }
+
     if (shouldRunTask(Cli::TaskType::SystemTest) && Settings::Manager::instance().getGroupInstance("systemtest")) {
         currentTask_ = Cli::TaskType::SystemTest;
         returnCode = runSystemTest(returnCode, background);
@@ -674,7 +746,7 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
                 "No '{}' task configuration found. The selected task is forced in MCP mode.",
                 Cli::getTaskId(forcedTask)));
         }
-        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, or --systemtest.");
+        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, --clop, or --systemtest.");
     }
 
     hasExecutedDispatcherRun = true;

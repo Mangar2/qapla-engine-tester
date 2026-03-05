@@ -35,6 +35,7 @@ namespace QaplaTester {
     struct SprtConfig;
     struct EpdConfig;
     struct SPSAConfig;
+    struct CLOPConfig;
 
 }
 
@@ -138,6 +139,12 @@ public:
      */
     [[nodiscard]] std::optional<SPSAConfig> getSPSAConfig() const;
 
+    /**
+     * @brief Gets the CLOP configuration
+     * @return Optional containing CLOP config if configured, nullopt otherwise
+     */
+    [[nodiscard]] std::optional<CLOPConfig> getCLOPConfig() const;
+
 
     /**
      * @brief Applies logger configuration with specified report base name
@@ -236,6 +243,11 @@ private:
     void setSPSAConfig();
 
     /**
+     * @brief Reads CLOP configuration from CLI settings
+     */
+    void setCLOPConfig();
+
+    /**
      * @brief Applies all configurations found in ConfigData
      * @param configData The configuration data to apply
      * @param id Identifier for the configuration sections
@@ -258,6 +270,7 @@ private:
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
+    std::unique_ptr<CLOPConfig> m_clopConfig; ///< CLOP configuration
     std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration
 };
 

@@ -32,6 +32,7 @@ class Tournament;
 class EpdManager;
 class SprtManager;
 class SPSAOptimizer;
+class CLOPOptimizer;
 class SystemTestManager;
 
 /**
@@ -86,6 +87,14 @@ public:
      * @return Updated application return code.
      */
     [[nodiscard]] AppReturnCode runSpsa(AppReturnCode code, bool background = false);
+
+    /**
+     * @brief Runs the CLOP mode.
+     * @param code Current application return code.
+     * @param background If true, starts in background and returns immediately.
+     * @return Updated application return code.
+     */
+    [[nodiscard]] AppReturnCode runClop(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the system-test mode.
@@ -146,6 +155,7 @@ public:
     [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }
     [[nodiscard]] std::shared_ptr<SprtManager> getSprtManager() const { return sprtManager_; }
     [[nodiscard]] std::shared_ptr<SPSAOptimizer> getSPSAOptimizer() const { return spsaOptimizer_; }
+    [[nodiscard]] std::shared_ptr<CLOPOptimizer> getCLOPOptimizer() const { return clopOptimizer_; }
     [[nodiscard]] std::shared_ptr<SystemTestManager> getSystemTestManager() const { return systemTestManager_; }
 
 private:
@@ -155,6 +165,7 @@ private:
     std::shared_ptr<EpdManager> epdManager_;
     std::shared_ptr<SprtManager> sprtManager_;
     std::shared_ptr<SPSAOptimizer> spsaOptimizer_;
+    std::shared_ptr<CLOPOptimizer> clopOptimizer_;
     std::shared_ptr<SystemTestManager> systemTestManager_;
 
     std::atomic<Cli::TaskType> currentTask_ = Cli::TaskType::None;

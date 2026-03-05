@@ -60,6 +60,7 @@ bool isQueueableTool(std::string_view toolName) {
         std::string_view{"tournament"},
         std::string_view{"epd"},
         std::string_view{"spsa"},
+        std::string_view{"clop"},
         std::string_view{"test"}
     };
 
@@ -83,6 +84,10 @@ QueueJobType queueJobTypeForTool(std::string_view toolName) {
 
     if (toolName == "spsa") {
         return QueueJobType::Spsa;
+    }
+
+    if (toolName == "clop") {
+        return QueueJobType::Clop;
     }
 
     if (toolName == "test") {

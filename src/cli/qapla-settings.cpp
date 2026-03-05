@@ -36,6 +36,7 @@
 #include "../config/adjudication-config.h"
 #include "../epd/epd-manager.h"
 #include "../spsa/spsa-optimizer.h"
+#include "../clop/clop-optimizer.h"
 #include "../mcp/mcp-server.h"
 
 #include <fstream>
@@ -151,6 +152,7 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
     setSPSAConfig();
+    setCLOPConfig();
 }
 
 const std::vector<std::string>& QaplaSettings::getArguments() const {
@@ -426,6 +428,50 @@ std::optional<SPSAConfig> QaplaSettings::getSPSAConfig() const {
         return std::nullopt;
     }
     return *m_spsaConfig;
+}
+
+void QaplaSettings::setCLOPConfig() {
+    auto clopGroup = Manager::instance().getGroupInstance("clop");
+    if (!clopGroup.has_value()) {
+        m_clopConfig = nullptr;
+        return;
+    }
+
+    m_clopConfig = std::make_unique<CLOPConfig>();
+    m_clopConfig->samples = clopGroup->get<unsigned int>("samples");
+    m_clopConfig->gamesPerSample = clopGroup->get<unsigned int>("gamespersample");
+    m_clopConfig->warmupSamples = clopGroup->get<unsigned int>("warmupsamples");
+    m_clopConfig->outcomeInterval = clopGroup->get<unsigned int>("outcomeinterval");
+    m_clopConfig->maxWeightIterations = clopGroup->get<unsigned int>("maxweightiterations");
+    m_clopConfig->h = clopGroup->get<double>("h");
+    m_clopConfig->priorVariance = clopGroup->get<double>("priorvariance");
+    m_clopConfig->openingsSeed = clopGroup->get<unsigned int>("seed");
+    m_clopConfig->swapColors = !clopGroup->get<bool>("noswap");
+
+    if (m_openings != nullptr) {
+        m_clopConfig->openingsFile = m_openings->file;
+    }
+
+    auto clopValueGroups = Manager::instance().getGroupInstances("clopvalue");
+    for (const auto& valueGroup : clopValueGroups) {
+        CLOPParameterConfig parameter;
+        parameter.name = valueGroup.get<std::string>("name");
+        parameter.defaultValue = valueGroup.get<double>("default");
+        parameter.minValue = valueGroup.get<double>("min");
+        parameter.maxValue = valueGroup.get<double>("max");
+        m_clopConfig->parameters.push_back(parameter);
+    }
+
+    if (m_clopConfig->parameters.empty()) {
+        m_clopConfig = nullptr;
+    }
+}
+
+std::optional<CLOPConfig> QaplaSettings::getCLOPConfig() const {
+    if (m_clopConfig == nullptr) {
+        return std::nullopt;
+    }
+    return *m_clopConfig;
 }
 
 void QaplaSettings::setFromConfigData(const QaplaHelpers::ConfigData& configData, const std::string& /*id*/) {

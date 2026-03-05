@@ -36,6 +36,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `--spsa` and `--spsa value` parameter groups
   - Iterative parameter tuning for engine optimization
 
+- **CLOP parameter optimization**: New Confident Local Optimization algorithm for noisy black-box tuning
+  - New `--clop` and `--clop value` parameter groups
+  - Weighted local quadratic logistic regression with confidence-based sampling
+  - Integrated into CLI task dispatch and MCP tooling with queue/background support
+
 - **SPRT final result logging**: Log file now includes final SPRT decision and statistics
 
 

@@ -388,6 +388,8 @@ std::string JobScheduler::typeName(QueueJobType type) {
             return "epd";
         case QueueJobType::Spsa:
             return "spsa";
+        case QueueJobType::Clop:
+            return "clop";
         case QueueJobType::Test:
             return "test";
         default:
