@@ -71,6 +71,12 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaKeys();
 /// Returns key definitions for spsavalue group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys();
 
+/// Returns key definitions for clop group
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopKeys();
+
+/// Returns key definitions for clopvalue group
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopValueKeys();
+
 /**
  * @brief Initializes all CLI settings by registering them with the Manager
  * 

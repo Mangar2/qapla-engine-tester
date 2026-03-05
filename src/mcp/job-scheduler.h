@@ -44,6 +44,7 @@ enum class QueueJobType {
     Tournament,
     Epd,
     Spsa,
+    Clop,
     Test
 };
 

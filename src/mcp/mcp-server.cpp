@@ -251,6 +251,11 @@ void McpServer::listTools(const JsonValue& requestId) {
             .groups = {"spsa", "spsavalue", "openings", "pgnoutput", "logging"}
         },
         {
+            .name = "clop",
+            .description = "Optimizes engine parameters using CLOP",
+            .groups = {"clop", "clopvalue", "openings", "pgnoutput", "logging"}
+        },
+        {
             .name = "set_logging",
             .description = "Dynamically configures logging parameters. "
                            "SCOPE: "
@@ -269,7 +274,7 @@ void McpServer::listTools(const JsonValue& requestId) {
         },
         {
             .name = "control",
-            .description = "Control running tasks and queued jobs (status, concurrency, stop, cancel, clear, list_results, clear_results). Queue-capable tools: sprt, tournament, epd, spsa, test.",
+            .description = "Control running tasks and queued jobs (status, concurrency, stop, cancel, clear, list_results, clear_results). Queue-capable tools: sprt, tournament, epd, spsa, clop, test.",
             .groups = {}
         },
         {
@@ -589,7 +594,8 @@ std::string McpServer::extractToolName(std::string_view filename) {
         std::string_view("sprt-"),
         std::string_view("tournament-"),
         std::string_view("epd-"),
-        std::string_view("spsa-")
+        std::string_view("spsa-"),
+        std::string_view("clop-")
     };
 
     for (const auto& prefix : prefixes) {
@@ -834,6 +840,9 @@ std::pair<std::string, std::string> McpServer::getTaskConfigInfo(const std::stri
     if (name == "spsa") {
         return {"", "spsa-report"};
     } 
+    if (name == "clop") {
+        return {"", "clop-report"};
+    }
     if (name == "control") {
         return {"", "control-report"};
     }
@@ -922,6 +931,8 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         reportGroups.insert(reportGroups.end(), { "epd", "pgnoutput" });
     } else if (name == "spsa") {
         reportGroups.insert(reportGroups.end(), { "spsa", "spsavalue", "openings", "pgnoutput" });
+    } else if (name == "clop") {
+        reportGroups.insert(reportGroups.end(), { "clop", "clopvalue", "openings", "pgnoutput" });
     } else if (name == "test") {
         reportGroups.insert(reportGroups.end(), { "test" });
     }

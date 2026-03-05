@@ -4,6 +4,7 @@
 #include "../tournament/tournament-file.h"
 #include "../epd/epd-file.h"
 #include "../spsa/spsa-file.h"
+#include "../clop/clop-file.h"
 #include <string>
 
 namespace QaplaTester::Cli {
@@ -13,6 +14,7 @@ namespace QaplaTester::Cli {
         Tournament,
         Epd,
         Spsa,
+        Clop,
         SystemTest,
         Test,
         All,
@@ -25,6 +27,7 @@ namespace QaplaTester::Cli {
             case TaskType::Tournament: return TournamentFile::id;
             case TaskType::Epd: return EpdFile::id;
             case TaskType::Spsa: return SpsaFile::id;
+            case TaskType::Clop: return ClopFile::id;
             case TaskType::SystemTest: return "systemtest";
             case TaskType::Test: return "test";
             case TaskType::All: return "all";
@@ -44,6 +47,9 @@ namespace QaplaTester::Cli {
         } 
         if (name == "spsa") {
             return TaskType::Spsa;
+        }
+        if (name == "clop") {
+            return TaskType::Clop;
         }
         if (name == "systemtest") {
             return TaskType::SystemTest;

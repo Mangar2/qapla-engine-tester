@@ -180,7 +180,7 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
     required.push_back(JsonValue{ .data = std::string("engines") });
 
     if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" ||
-        info.name == "spsa" || info.name == "test") {
+        info.name == "spsa" || info.name == "clop" || info.name == "test") {
         properties["job_intent"] = JsonValue{ .data = createProperty(
             "string",
             "Short and precise purpose of this queued job. Include key specifics like tested parameter/value and expected comparison goal.") };
@@ -196,7 +196,7 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
          properties["resume"] = JsonValue{ .data = createProperty("boolean", "If true, resumes sending results to the last used file. If false (default), creates a new timestamped file.") };
     }
 
-    if (info.name == "sprt" || info.name == "tournament" || info.name == "spsa") {
+    if (info.name == "sprt" || info.name == "tournament" || info.name == "spsa" || info.name == "clop") {
         properties["engine_tc"] = JsonValue{ .data = createProperty("string", "Set the time control (engine_tc) for all participating engines. This also updates the engine configuration until the service is restarted.") };
     }
 

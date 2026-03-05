@@ -223,6 +223,29 @@ Multiple 'spsavalue' groups can be defined to optimize several parameters simult
         .keys = Settings::getSpsaValueKeys()
     });
 
+    // CLOP optimization group
+    Manager::instance().registerGroup({
+        .name = "clop",
+        .description = "CLOP parameter optimization configuration",
+        .longDescription = R"(Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression.
+The optimizer fits a local quadratic win model over sampled parameter vectors and updates a local design weight function.
+New samples are drawn according to this weight function and evaluated by self-play against the current baseline.
+IMPORTANT: You MUST define all optimized parameters using the 'clopvalue' group.)",
+        .unique = true,
+        .keys = Settings::getClopKeys()
+    });
+
+    // CLOP parameter value group
+    Manager::instance().registerGroup({
+        .name = "clopvalue",
+        .description = "Defines a single parameter to optimize with CLOP",
+        .longDescription = R"(Defines a parameter for CLOP optimization.
+All fields (name, default, min, max) are mandatory.
+Multiple 'clopvalue' groups can be defined to optimize several parameters simultaneously.)",
+        .unique = false,
+        .keys = Settings::getClopValueKeys()
+    });
+
     // Round Group
     Manager::instance().registerGroup({
         .name = "round", 
@@ -879,6 +902,80 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSpsaValueKeys() {
                         .longDescription = "The amount by which the parameter is changed in each direction to estimate the gradient. A rule of thumb is about 5-10% of the expected parameter range.",
                         .isRequired = true, 
                         .defaultValue = 0.0F, 
+                        .type = ValueType::Float } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopKeys() {
+    return {
+        { "id",               { .description = "Identifier for the configuration",
+                                .isRequired = false,
+                                .defaultValue = "clop",
+                                .type = ValueType::String,
+                                .isHidden = true } },
+        { "samples",          { .description = "Maximum number of CLOP samples",
+                                .isRequired = false,
+                                .defaultValue = 100,
+                                .type = ValueType::UInt } },
+        { "gamespersample",   { .description = "Number of games per sampled parameter vector",
+                                .isRequired = false,
+                                .defaultValue = 8,
+                                .type = ValueType::UInt } },
+        { "warmupsamples",    { .description = "Number of initial random samples before local fitting",
+                                .isRequired = false,
+                                .defaultValue = 8,
+                                .type = ValueType::UInt } },
+        { "outcomeinterval",  { .description = "Interval in completed samples for status and outcome output",
+                                .isRequired = false,
+                                .defaultValue = 10,
+                                .type = ValueType::UInt } },
+        { "maxweightiterations", { .description = "Maximum iterations for local weight refinement per sample",
+                                .isRequired = false,
+                                .defaultValue = 25,
+                                .type = ValueType::UInt } },
+        { "h",                { .description = "Locality factor H for CLOP weighting",
+                                .longDescription = "Positive locality factor H in wk(x)=exp((q(x)-mu)/(H*sigma)). Smaller H makes regression more local.",
+                                .isRequired = false,
+                                .defaultValue = 3.0F,
+                                .type = ValueType::Float } },
+        { "priorvariance",    { .description = "Gaussian prior variance for logistic regressions",
+                                .isRequired = false,
+                                .defaultValue = 100.0F,
+                                .type = ValueType::Float } },
+        { "seed",             { .description = "Random seed for sample generation",
+                                .isRequired = false,
+                                .defaultValue = 0,
+                                .type = ValueType::UInt } },
+        { "noswap",           { .description = "Disable automatic color swap between games",
+                                .isRequired = false,
+                                .defaultValue = false,
+                                .type = ValueType::Bool } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopValueKeys() {
+    return {
+        { "id",        { .description = "Identifier for the configuration",
+                        .isRequired = false,
+                        .defaultValue = "clop",
+                        .type = ValueType::String,
+                        .isHidden = true } },
+        { "name",      { .description = "UCI parameter name to optimize",
+                        .longDescription = "The exact name of the UCI option as reported by the engine.",
+                        .isRequired = true,
+                        .defaultValue = "",
+                        .type = ValueType::String } },
+        { "default",   { .description = "Starting value for the parameter",
+                        .isRequired = true,
+                        .defaultValue = 0.0F,
+                        .type = ValueType::Float } },
+        { "min",       { .description = "Minimum allowed value for the parameter",
+                        .isRequired = true,
+                        .defaultValue = 0.0F,
+                        .type = ValueType::Float } },
+        { "max",       { .description = "Maximum allowed value for the parameter",
+                        .isRequired = true,
+                        .defaultValue = 0.0F,
                         .type = ValueType::Float } }
     };
 }

@@ -37,6 +37,7 @@ All features are fully configurable and optimized for multi-core systems.
 - [♟️ `--openings` Group — Opening Selection Settings](#️---openings-group--opening-selection-settings)
 - [🏆 `--tournament` Group — Tournament Mode](#---tournament-Group--Tournament-Mode)
 - [📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)](#---sprt-group--sequential-probability-ratio-test-sprt)
+- [🎯 `--clop` Group — Confident Local Optimization (CLOP)](#---clop-group--confident-local-optimization-clop)
 - [🧾 Tournament Result Files](#-tournament-result-files)
 - [🧪 Engine Testing Suite — Protocol & Stability Validation](#-engine-testing-suite--protocol--stability-validation)
 - [Example Combined Run](#example-combined-run)
@@ -626,6 +627,51 @@ his helps you evaluate:
 
 ```bash
 --sprt elolower=0 eloupper=10 alpha=0.05 beta=0.05 maxgames=3000
+```
+
+---
+
+## 🎯 `--clop` Group — Confident Local Optimization (CLOP)
+
+CLOP is a local black-box optimizer for noisy outcomes. It tunes engine options by repeatedly:
+
+1. fitting a weighted quadratic logistic model,
+2. updating local sample weights,
+3. sampling a new candidate from that local distribution,
+4. evaluating that candidate in self-play.
+
+Define the optimizer with `--clop` and define each tuned parameter with one `--clopvalue` group.
+
+### Sub-options (`--clop`)
+
+- **`samples`** (Optional, Default: `100`)  
+  Maximum number of evaluated parameter vectors.
+
+- **`gamespersample`** (Optional, Default: `8`)  
+  Number of self-play games per sampled parameter vector.
+
+- **`warmupsamples`** (Optional, Default: `8`)  
+  Number of initial random samples before local quadratic fitting dominates.
+
+- **`h`** (Optional, Default: `3.0`)  
+  Locality parameter of CLOP weighting. Lower values enforce stronger locality.
+
+- **`priorvariance`** (Optional, Default: `100.0`)  
+  Gaussian prior variance for logistic regressions.
+
+### Parameter definitions (`--clopvalue`)
+
+Each parameter to optimize requires:
+
+- `name` (UCI option name)
+- `default` (start value)
+- `min` (lower bound)
+- `max` (upper bound)
+
+### Example (CLOP Run)
+
+```bash
+--engine conf="MyEngine" --openings file="openings.epd" --clop samples=150 gamespersample=12 h=3.0 --clopvalue name="Contempt" default=20 min=-50 max=50 --clopvalue name="KingSafety" default=120 min=50 max=300
 ```
 
 ---
