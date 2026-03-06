@@ -24,6 +24,7 @@
 #include "../base-elements/table-format.h"
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -75,6 +76,7 @@ struct CLOPSample {
     double observationWeight = 1.0;
     double designWeight = 1.0;
     size_t index = 0;
+    uint64_t generation = 0;
     std::shared_ptr<PairTournament> pairing;
 };
 
@@ -130,20 +132,25 @@ private:
         std::vector<double> coefficients;
     };
 
-    void workerThreadFunction();
+    void schedulerThreadFunction();
+    void recomputeThreadFunction();
+    void updateFinishedStateLocked();
     void scheduleNextSample();
     void onPairFinished(PairTournament* sender);
 
-    [[nodiscard]] std::vector<double> createNormalizedSample();
+    [[nodiscard]] std::vector<double> createNormalizedSample(
+        const std::vector<CLOPSample>& modeledSamples,
+        const std::vector<double>& estimatedParameters,
+        size_t scheduledCount);
     [[nodiscard]] std::vector<double> denormalizeValues(const std::vector<double>& normalizedValues) const;
     [[nodiscard]] std::vector<double> normalizeValues(const std::vector<double>& values) const;
     [[nodiscard]] EngineConfig createConfiguredEngine(const std::vector<double>& values) const;
 
-    [[nodiscard]] LogisticModel fitQuadraticLogisticRegression() const;
-    [[nodiscard]] double fitLogisticMean() const;
-    [[nodiscard]] double confidenceDeviation(double meanLogit) const;
-    void updateDesignWeights();
-    void updateEstimatedOptimum();
+    [[nodiscard]] LogisticModel fitQuadraticLogisticRegression(const std::vector<CLOPSample>& samples) const;
+    [[nodiscard]] double fitLogisticMean(const std::vector<CLOPSample>& samples) const;
+    [[nodiscard]] double confidenceDeviation(double meanLogit, const std::vector<CLOPSample>& samples) const;
+    void updateDesignWeights(std::vector<CLOPSample>& samples) const;
+    [[nodiscard]] std::vector<double> computeEstimatedOptimum(const std::vector<CLOPSample>& samples) const;
 
     [[nodiscard]] size_t featureCount() const;
     [[nodiscard]] std::vector<double> buildFeatureVector(const std::vector<double>& normalizedValues) const;
@@ -156,16 +163,26 @@ private:
     GameManagerPool* pool_ = nullptr;
 
     std::vector<CLOPSample> samples_;
+    std::vector<CLOPSample> pendingResults_;
     std::vector<double> estimatedParameters_;
+    size_t completedSamples_ = 0;
+    size_t lastLoggedCompletedSamples_ = 0;
+    uint64_t modelGeneration_ = 0;
+    size_t nextSampleIndex_ = 0;
 
     std::vector<CLOPSample> activeSamples_;
     uint32_t nextRound_ = 0;
+    std::chrono::steady_clock::time_point lastRecomputeAt_{};
+    std::chrono::milliseconds minRecomputeInterval_{ 250 };
 
     mutable std::mutex stateMutex_;
     std::condition_variable stateCondition_;
+    std::condition_variable recomputeCondition_;
 
-    std::thread workerThread_;
+    std::thread schedulerThread_;
+    std::thread recomputeThread_;
     std::atomic<bool> stopWorker_ = false;
+    bool recomputeRunning_ = false;
     bool initialized_ = false;
     bool scheduled_ = false;
     bool finished_ = false;

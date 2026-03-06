@@ -38,7 +38,7 @@ TEST_CASE("SPSA Optimizer initialization and configuration", "[spsa][optimizer]"
     config.gamesPerPair = 8;
     config.iterations = 5;
     config.learningRate = 0.01;
-    config.swapColors = true;
+
     
     SECTION("Single parameter initialization") {
         SPSAParameterConfig param;
@@ -113,7 +113,7 @@ TEST_CASE("SPSA PairTournament configuration is correct", "[spsa][config]") {
     config.gamesPerPair = 8;
     config.iterations = 3;
     config.learningRate = 0.1;
-    config.swapColors = true;
+
     config.openingsSeed = 42;
     
     SPSAParameterConfig param;
@@ -135,9 +135,9 @@ TEST_CASE("SPSA PairTournament configuration is correct", "[spsa][config]") {
     auto* pair = *pairOpt;
     REQUIRE(pair != nullptr);
     
-    // Check that swapColors is correctly set in the pair tournament config
+
     auto pairConfig = pair->getConfig();
-    REQUIRE(pairConfig.swapColors == true);
+
     REQUIRE(pairConfig.games == 8);
 }
 
@@ -151,7 +151,7 @@ TEST_CASE("SPSA with balanced game results keeps parameters unchanged", "[spsa][
     config.gamesPerPair = 8;
     config.iterations = 3;
     config.learningRate = 0.1;
-    config.swapColors = true;  // With swapColors, WhiteWins leads to 4:4 split
+
     config.openingsSeed = 42;
     
     SPSAParameterConfig param;
@@ -173,9 +173,9 @@ TEST_CASE("SPSA with balanced game results keeps parameters unchanged", "[spsa][
     REQUIRE(builder.perturbationCount() == 2);
     
     // Play all games with WhiteWins result
-    // With swapColors=true: Engine A wins games 0,2,4,6 and Engine B wins games 1,3,5,7
+
     // This leads to winsEngineA=4, winsEngineB=4, gradient=0
-    size_t gamesPlayed = builder.completePerturbationWithWins(0);
+    size_t gamesPlayed = builder.completePerturbationBalanced(0);
     REQUIRE(gamesPlayed == config.gamesPerPair);
     
     // After completing games, check that one iteration is complete
@@ -197,7 +197,7 @@ TEST_CASE("SPSA updates all parameters when one engine dominates", "[spsa][games
     config.gamesPerPair = 8;
     config.iterations = 3;
     config.learningRate = 0.1;
-    config.swapColors = false;  // Without swapColors, WhiteWins = Engine A wins all
+
     config.openingsSeed = 42;
     
     // Create 10 parameters with different c values
@@ -235,7 +235,7 @@ TEST_CASE("SPSA updates all parameters when one engine dominates", "[spsa][games
     REQUIRE(pairOpt.has_value());
     
     // Play all games with WhiteWins result
-    // With swapColors=false: Engine A (plus variant) wins all 8 games
+
     // gradient_signal = 8 - 0 = 8
     size_t gamesPlayed = builder.completePerturbationWithWins(0);
     REQUIRE(gamesPlayed == config.gamesPerPair);
@@ -279,7 +279,7 @@ TEST_CASE("SPSA processes multiple active pairs correctly", "[spsa][games][multi
     config.gamesPerPair = 8;
     config.iterations = 10;
     config.learningRate = 0.1;
-    config.swapColors = false;  // Without swapColors, WhiteWins = Engine A wins all
+
     config.openingsSeed = 12345;  // Fixed seed for reproducible deltas
     
     // Create 2 parameters, we'll only verify the first one
