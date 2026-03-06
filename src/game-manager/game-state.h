@@ -91,7 +91,7 @@ public:
 		}
 		auto currentHalfmoves = static_cast<uint32_t>(moveList_.size());
 		halfmoves = std::max(halfmoves, currentHalfmoves);
-		position_.setStartHalfmoves(halfmoves - currentHalfmoves);
+		position_.setStartHalfmoves(static_cast<int32_t>(halfmoves - currentHalfmoves));
 	}
 
 	/**
