@@ -167,27 +167,39 @@ public:
     /**
      * @brief Completes an entire perturbation with wins for the plus variant.
      * 
-     * Plays all games in a perturbation with WhiteWins (engine+ winning),
-     * simulating a positive parameter change.
+     * Because color swapping is always active, to simulate Engine A (the plus variant) 
+     * winning every game, we must alternate WhiteWins and BlackWins.
      * 
      * @param perturbationIndex Index of the perturbation
      * @return Number of games played
      */
     size_t completePerturbationWithWins(size_t perturbationIndex) {
+        return playAllGames(perturbationIndex, {GameResult::WhiteWins, GameResult::BlackWins});
+    }
+
+    /**
+     * @brief Completes an entire perturbation with balanced results.
+     * 
+     * By always returning WhiteWins while Engine A and Engine B repeatedly swap colors, 
+     * they will win an equal number of games (e.g. 4-4 across 8 games).
+     * 
+     * @param perturbationIndex Index of the perturbation
+     * @return Number of games played
+     */
+    size_t completePerturbationBalanced(size_t perturbationIndex) {
         return playAllGames(perturbationIndex, {GameResult::WhiteWins});
     }
 
     /**
      * @brief Completes an entire perturbation with losses for the plus variant.
      * 
-     * Plays all games in a perturbation with BlackWins (engine- winning),
-     * simulating a negative parameter change.
+     * Plays all games simulating Engine B (minus variant) winning every game.
      * 
      * @param perturbationIndex Index of the perturbation
      * @return Number of games played
      */
     size_t completePerturbationWithLosses(size_t perturbationIndex) {
-        return playAllGames(perturbationIndex, {GameResult::BlackWins});
+        return playAllGames(perturbationIndex, {GameResult::BlackWins, GameResult::WhiteWins});
     }
 
     /**

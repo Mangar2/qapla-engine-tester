@@ -91,11 +91,18 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
     {
         std::scoped_lock lock(stateMutex_);
         samples_.clear();
+        pendingResults_.clear();
         activeSamples_.clear();
+        completedSamples_ = 0;
+        lastLoggedCompletedSamples_ = 0;
+        modelGeneration_ = 0;
+        nextSampleIndex_ = 0;
         nextRound_ = 0;
+        recomputeRunning_ = false;
         initialized_ = true;
         scheduled_ = false;
         finished_ = false;
+        lastRecomputeAt_ = std::chrono::steady_clock::time_point{};
     }
 
     Logger::reportLogger().logStatus(
@@ -121,25 +128,37 @@ void CLOPOptimizer::scheduleCLOP(uint32_t concurrency, GameManagerPool& pool) {
     scheduled_ = true;
     stopWorker_ = false;
 
-    if (workerThread_.joinable()) {
-        workerThread_.join();
+    if (schedulerThread_.joinable()) {
+        schedulerThread_.join();
     }
-    workerThread_ = std::thread(&CLOPOptimizer::workerThreadFunction, this);
+    if (recomputeThread_.joinable()) {
+        recomputeThread_.join();
+    }
+
+    schedulerThread_ = std::thread(&CLOPOptimizer::schedulerThreadFunction, this);
+    recomputeThread_ = std::thread(&CLOPOptimizer::recomputeThreadFunction, this);
 }
 
 void CLOPOptimizer::waitUntilFinished() {
-    std::unique_lock lock(stateMutex_);
-    stateCondition_.wait(lock, [this]() {
-        return finished_ || stopWorker_;
-    });
+    {
+        std::unique_lock lock(stateMutex_);
+        stateCondition_.wait(lock, [this]() {
+            return finished_ || stopWorker_;
+        });
+    }
+    stop();
 }
 
 void CLOPOptimizer::stop() {
     stopWorker_ = true;
     stateCondition_.notify_all();
+    recomputeCondition_.notify_all();
 
-    if (workerThread_.joinable()) {
-        workerThread_.join();
+    if (schedulerThread_.joinable()) {
+        schedulerThread_.join();
+    }
+    if (recomputeThread_.joinable()) {
+        recomputeThread_.join();
     }
 }
 
@@ -150,19 +169,29 @@ std::vector<double> CLOPOptimizer::getEstimatedParameters() const {
 
 size_t CLOPOptimizer::getCompletedSamples() const {
     std::scoped_lock lock(stateMutex_);
-    return samples_.size();
+    return completedSamples_;
 }
 
-void CLOPOptimizer::workerThreadFunction() {
+void CLOPOptimizer::updateFinishedStateLocked() {
+    const bool enoughSamples = completedSamples_ >= config_.samples;
+    const bool noActivePairs = activeSamples_.empty();
+    const bool noPendingResults = pendingResults_.empty();
+    if (enoughSamples && noActivePairs && noPendingResults && !recomputeRunning_) {
+        finished_ = true;
+    }
+}
+
+void CLOPOptimizer::schedulerThreadFunction() {
     while (!stopWorker_) {
         std::unique_lock lock(stateMutex_);
-        if (samples_.size() >= config_.samples) {
-            finished_ = true;
+        updateFinishedStateLocked();
+        if (finished_) {
             stateCondition_.notify_all();
             break;
         }
+
         const auto activeCount = activeSamples_.size();
-        const auto totalScheduled = samples_.size() + activeCount;
+        const auto totalScheduled = completedSamples_ + activeCount;
         if (activeCount >= config_.maxActivePairs || totalScheduled >= config_.samples) {
             stateCondition_.wait_for(lock, std::chrono::milliseconds(25));
             continue;
@@ -174,7 +203,7 @@ void CLOPOptimizer::workerThreadFunction() {
             {
                 std::scoped_lock stateLock(stateMutex_);
                 const auto localActiveCount = activeSamples_.size();
-                const auto localTotalScheduled = samples_.size() + localActiveCount;
+                const auto localTotalScheduled = completedSamples_ + localActiveCount;
                 canScheduleMore = localActiveCount < config_.maxActivePairs &&
                     localTotalScheduled < config_.samples;
             }
@@ -188,26 +217,107 @@ void CLOPOptimizer::workerThreadFunction() {
     }
 }
 
+void CLOPOptimizer::recomputeThreadFunction() {
+    while (!stopWorker_) {
+        std::vector<CLOPSample> modelSnapshot;
+        std::vector<CLOPSample> pendingBatch;
+        bool reachedSampleLimit = false;
+
+        {
+            std::unique_lock lock(stateMutex_);
+            recomputeCondition_.wait_for(lock, std::chrono::milliseconds(200), [this]() {
+                return stopWorker_ || !pendingResults_.empty();
+            });
+
+            if (stopWorker_) {
+                break;
+            }
+
+            const auto now = std::chrono::steady_clock::now();
+            if (!pendingResults_.empty() &&
+                lastRecomputeAt_ != std::chrono::steady_clock::time_point{} &&
+                now - lastRecomputeAt_ < minRecomputeInterval_)
+            {
+                continue;
+            }
+
+            if (pendingResults_.empty()) {
+                continue;
+            }
+
+            recomputeRunning_ = true;
+            modelSnapshot = samples_;
+            pendingBatch.swap(pendingResults_);
+            reachedSampleLimit = completedSamples_ >= config_.samples;
+            lock.unlock();
+        }
+
+        modelSnapshot.insert(modelSnapshot.end(), pendingBatch.begin(), pendingBatch.end());
+        updateDesignWeights(modelSnapshot);
+        auto nextEstimatedParameters = computeEstimatedOptimum(modelSnapshot);
+
+        bool shouldLog = false;
+        bool isFinishedNow = false;
+        {
+            std::scoped_lock lock(stateMutex_);
+            samples_ = std::move(modelSnapshot);
+            estimatedParameters_ = std::move(nextEstimatedParameters);
+            ++modelGeneration_;
+            recomputeRunning_ = false;
+            lastRecomputeAt_ = std::chrono::steady_clock::now();
+
+            if (config_.outcomeInterval != 0U) {
+                const size_t previousBucket = lastLoggedCompletedSamples_ / config_.outcomeInterval;
+                const size_t currentBucket = completedSamples_ / config_.outcomeInterval;
+                shouldLog = currentBucket > previousBucket;
+                if (shouldLog) {
+                    lastLoggedCompletedSamples_ = completedSamples_;
+                }
+            }
+            if (reachedSampleLimit && pendingResults_.empty() && activeSamples_.empty()) {
+                finished_ = true;
+            }
+            isFinishedNow = finished_;
+        }
+
+        if (shouldLog || isFinishedNow) {
+            Logger::reportLogger().logTable("clopStatus", getStatusTable(), TraceLevel::result);
+        }
+
+        stateCondition_.notify_all();
+    }
+}
+
 void CLOPOptimizer::scheduleNextSample() {
     if (pool_ == nullptr) {
         return;
     }
 
+    std::vector<CLOPSample> modeledSamples;
+    std::vector<double> estimatedParameters;
     std::vector<double> normalizedValues;
     std::vector<double> parameterValues;
     size_t sampleIndex = 0;
+    size_t scheduledCount = 0;
+    uint64_t modelGeneration = 0;
 
     {
         std::scoped_lock lock(stateMutex_);
-        const auto totalScheduled = samples_.size() + activeSamples_.size();
+        const auto totalScheduled = completedSamples_ + activeSamples_.size();
         if (totalScheduled >= config_.samples) {
             return;
         }
 
-        normalizedValues = createNormalizedSample();
-        parameterValues = denormalizeValues(normalizedValues);
-        sampleIndex = totalScheduled;
+        modeledSamples = samples_;
+        estimatedParameters = estimatedParameters_;
+        modelGeneration = modelGeneration_;
+        sampleIndex = nextSampleIndex_;
+        ++nextSampleIndex_;
+        scheduledCount = totalScheduled;
     }
+
+    normalizedValues = createNormalizedSample(modeledSamples, estimatedParameters, scheduledCount);
+    parameterValues = denormalizeValues(normalizedValues);
 
     auto challengerEngine = createConfiguredEngine(parameterValues);
     challengerEngine.setName(std::format("{}_clop_sample{}", baseEngine_.getName(), sampleIndex));
@@ -235,6 +345,7 @@ void CLOPOptimizer::scheduleNextSample() {
         active.values = std::move(parameterValues);
         active.normalizedValues = std::move(normalizedValues);
         active.index = sampleIndex;
+        active.generation = modelGeneration;
         active.pairing = pair;
         activeSamples_.push_back(std::move(active));
     }
@@ -272,36 +383,28 @@ void CLOPOptimizer::onPairFinished(PairTournament* sender) {
     finishedSample->outcome =
         (static_cast<double>(result.winsEngineA) + 0.5 * static_cast<double>(result.draws)) / totalGames;
     finishedSample->observationWeight = totalGames;
-
-    bool shouldLog = false;
-    bool isFinishedNow = false;
+    finishedSample->pairing.reset();
 
     {
         std::scoped_lock lock(stateMutex_);
-        samples_.push_back(*finishedSample);
-
-        updateDesignWeights();
-        updateEstimatedOptimum();
-
-        shouldLog = config_.outcomeInterval != 0U && samples_.size() % config_.outcomeInterval == 0U;
-        isFinishedNow = samples_.size() >= config_.samples;
-        if (isFinishedNow) {
-            finished_ = true;
-        }
+        pendingResults_.push_back(std::move(*finishedSample));
+        ++completedSamples_;
+        updateFinishedStateLocked();
     }
 
-    if (shouldLog || isFinishedNow) {
-        Logger::reportLogger().logTable("clopStatus", getStatusTable(), TraceLevel::result);
-    }
-
+    recomputeCondition_.notify_one();
     stateCondition_.notify_all();
 }
 
-std::vector<double> CLOPOptimizer::createNormalizedSample() {
+std::vector<double> CLOPOptimizer::createNormalizedSample(
+    const std::vector<CLOPSample>& modeledSamples,
+    const std::vector<double>& estimatedParameters,
+    size_t scheduledCount) {
+
     const size_t parameterCount = config_.parameters.size();
     std::vector<double> sample(parameterCount, 0.0);
 
-    if (samples_.size() < config_.warmupSamples) {
+    if (modeledSamples.size() < config_.warmupSamples) {
         std::uniform_real_distribution<double> randomDist(-1.0, 1.0);
         for (size_t index = 0; index < parameterCount; ++index) {
             sample[index] = randomDist(rng_);
@@ -310,22 +413,22 @@ std::vector<double> CLOPOptimizer::createNormalizedSample() {
     }
 
     const double totalWeight = std::accumulate(
-        samples_.begin(),
-        samples_.end(),
+        modeledSamples.begin(),
+        modeledSamples.end(),
         0.0,
         [](double sum, const CLOPSample& sampleEntry) {
             return sum + std::max(sampleEntry.designWeight, 0.0);
         });
 
     if (totalWeight <= std::numeric_limits<double>::epsilon()) {
-        return normalizeValues(estimatedParameters_);
+        return normalizeValues(estimatedParameters);
     }
 
     std::uniform_real_distribution<double> selectDist(0.0, totalWeight);
     const double target = selectDist(rng_);
     double cumulative = 0.0;
     const CLOPSample* selected = nullptr;
-    for (const auto& sampleEntry : samples_) {
+    for (const auto& sampleEntry : modeledSamples) {
         cumulative += std::max(sampleEntry.designWeight, 0.0);
         if (cumulative >= target) {
             selected = &sampleEntry;
@@ -333,11 +436,10 @@ std::vector<double> CLOPOptimizer::createNormalizedSample() {
         }
     }
     if (selected == nullptr) {
-        selected = &samples_.back();
+        selected = &modeledSamples.back();
     }
 
     sample = selected->normalizedValues;
-    const auto scheduledCount = samples_.size() + activeSamples_.size();
     const double sigma = 0.6 / std::sqrt(static_cast<double>(scheduledCount) + 1.0);
     std::normal_distribution<double> noiseDist(0.0, sigma);
     for (size_t index = 0; index < parameterCount; ++index) {
@@ -383,11 +485,11 @@ EngineConfig CLOPOptimizer::createConfiguredEngine(const std::vector<double>& va
     return configuredEngine;
 }
 
-CLOPOptimizer::LogisticModel CLOPOptimizer::fitQuadraticLogisticRegression() const {
+CLOPOptimizer::LogisticModel CLOPOptimizer::fitQuadraticLogisticRegression(const std::vector<CLOPSample>& samples) const {
     LogisticModel model;
     model.coefficients.assign(featureCount(), 0.0);
 
-    if (samples_.empty()) {
+    if (samples.empty()) {
         return model;
     }
 
@@ -399,7 +501,7 @@ CLOPOptimizer::LogisticModel CLOPOptimizer::fitQuadraticLogisticRegression() con
     for (size_t iteration = 0; iteration < maxIterations; ++iteration) {
         std::fill(gradient.begin(), gradient.end(), 0.0);
 
-        for (const auto& sample : samples_) {
+        for (const auto& sample : samples) {
             const auto features = buildFeatureVector(sample.normalizedValues);
             const double linearValue = std::inner_product(
                 model.coefficients.begin(),
@@ -424,8 +526,8 @@ CLOPOptimizer::LogisticModel CLOPOptimizer::fitQuadraticLogisticRegression() con
     return model;
 }
 
-double CLOPOptimizer::fitLogisticMean() const {
-    if (samples_.empty()) {
+double CLOPOptimizer::fitLogisticMean(const std::vector<CLOPSample>& samples) const {
+    if (samples.empty()) {
         return 0.0;
     }
 
@@ -437,7 +539,7 @@ double CLOPOptimizer::fitLogisticMean() const {
         const double probability = sigmoid(intercept);
         double gradient = -intercept / config_.priorVariance;
 
-        for (const auto& sample : samples_) {
+        for (const auto& sample : samples) {
             const double effectiveWeight = sample.designWeight * sample.observationWeight;
             gradient += effectiveWeight * (sample.outcome - probability);
         }
@@ -448,11 +550,11 @@ double CLOPOptimizer::fitLogisticMean() const {
     return intercept;
 }
 
-double CLOPOptimizer::confidenceDeviation(double meanLogit) const {
+double CLOPOptimizer::confidenceDeviation(double meanLogit, const std::vector<CLOPSample>& samples) const {
     const double probability = sigmoid(meanLogit);
     double precision = 1.0 / config_.priorVariance;
 
-    for (const auto& sample : samples_) {
+    for (const auto& sample : samples) {
         const double effectiveWeight = sample.designWeight * sample.observationWeight;
         precision += effectiveWeight * probability * (1.0 - probability);
     }
@@ -460,24 +562,26 @@ double CLOPOptimizer::confidenceDeviation(double meanLogit) const {
     return 1.0 / std::sqrt(std::max(precision, 1e-12));
 }
 
-void CLOPOptimizer::updateDesignWeights() {
-    if (samples_.empty()) {
+void CLOPOptimizer::updateDesignWeights(std::vector<CLOPSample>& samples) const {
+    if (samples.empty()) {
         return;
     }
 
     double previousSum = 0.0;
-    for (auto& sample : samples_) {
+    for (auto& sample : samples) {
         sample.designWeight = 1.0;
         previousSum += 1.0;
     }
 
     for (uint32_t iteration = 0; iteration < config_.maxWeightIterations; ++iteration) {
-        auto model = fitQuadraticLogisticRegression();
-        const double meanLogit = fitLogisticMean();
-        const double sigma = std::max(confidenceDeviation(meanLogit), 1e-8);
+        // Refit is required each iteration because fitQuadraticLogisticRegression()
+        // and fitLogisticMean() both consume sample.designWeight that is changed in the inner loop.
+        auto model = fitQuadraticLogisticRegression(samples);
+        const double meanLogit = fitLogisticMean(samples);
+        const double sigma = std::max(confidenceDeviation(meanLogit, samples), 1e-8);
 
         double nextSum = 0.0;
-        for (auto& sample : samples_) {
+        for (auto& sample : samples) {
             const double quadraticValue = evaluateQuadratic(model, sample.normalizedValues);
             const double exponent = clampExpInput((quadraticValue - meanLogit) / (config_.h * sigma));
             const double newWeight = std::exp(exponent);
@@ -492,14 +596,19 @@ void CLOPOptimizer::updateDesignWeights() {
     }
 }
 
-void CLOPOptimizer::updateEstimatedOptimum() {
-    if (samples_.empty()) {
-        return;
+std::vector<double> CLOPOptimizer::computeEstimatedOptimum(const std::vector<CLOPSample>& samples) const {
+    if (samples.empty()) {
+        std::vector<double> defaults;
+        defaults.reserve(config_.parameters.size());
+        for (const auto& parameter : config_.parameters) {
+            defaults.push_back(parameter.defaultValue);
+        }
+        return defaults;
     }
 
     std::vector<double> weightedSum(config_.parameters.size(), 0.0);
     double totalWeight = 0.0;
-    for (const auto& sample : samples_) {
+    for (const auto& sample : samples) {
         const double effectiveWeight = sample.designWeight;
         totalWeight += effectiveWeight;
         for (size_t parameterIndex = 0; parameterIndex < weightedSum.size(); ++parameterIndex) {
@@ -508,12 +617,20 @@ void CLOPOptimizer::updateEstimatedOptimum() {
     }
 
     if (totalWeight <= std::numeric_limits<double>::epsilon()) {
-        return;
+        std::vector<double> defaults;
+        defaults.reserve(config_.parameters.size());
+        for (const auto& parameter : config_.parameters) {
+            defaults.push_back(parameter.defaultValue);
+        }
+        return defaults;
     }
 
+    std::vector<double> estimated(weightedSum.size(), 0.0);
     for (size_t parameterIndex = 0; parameterIndex < weightedSum.size(); ++parameterIndex) {
-        estimatedParameters_[parameterIndex] = weightedSum[parameterIndex] / totalWeight;
+        estimated[parameterIndex] = weightedSum[parameterIndex] / totalWeight;
     }
+
+    return estimated;
 }
 
 size_t CLOPOptimizer::featureCount() const {
@@ -560,13 +677,8 @@ TableData CLOPOptimizer::getStatusTable() const {
     std::scoped_lock lock(stateMutex_);
 
     TableData table;
-    table.columnWidths = { 24, 12, 12, 12, 12, 14 };
-    table.headers = { "Parameter", "Initial", "Estimated", "Current", "Min", "Max" };
-
-    std::vector<double> currentValues = estimatedParameters_;
-    if (!activeSamples_.empty()) {
-        currentValues = activeSamples_.front().values;
-    }
+    table.columnWidths = { 24, 12, 12, 12, 14 };
+    table.headers = { "Parameter", "Initial", "Estimated", "Min", "Max" };
 
     for (size_t index = 0; index < config_.parameters.size(); ++index) {
         const auto& parameter = config_.parameters[index];
@@ -574,7 +686,6 @@ TableData CLOPOptimizer::getStatusTable() const {
             parameter.name,
             parameter.defaultValue,
             estimatedParameters_[index],
-            currentValues[index],
             parameter.minValue,
             parameter.maxValue
         });
