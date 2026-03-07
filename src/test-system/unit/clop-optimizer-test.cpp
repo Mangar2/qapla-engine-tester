@@ -18,7 +18,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/catch_approx.hpp>
+#include <filesystem>
 #include "unit-test-helpers.h"
 #include "../../engine-handling/engine-config.h"
 #include "../../clop/clop-optimizer.h"
@@ -27,14 +27,23 @@
 
 using namespace QaplaTester;
 using namespace QaplaTester::Test;
-using Catch::Approx;
+
+namespace {
+
+[[nodiscard]] std::string testOpeningsFilePath() {
+    const auto testDirectory = std::filesystem::path(__FILE__).parent_path();
+    const auto openingsPath = testDirectory / "test-openings.pgn";
+    return openingsPath.generic_string();
+}
+
+} // namespace
 
 TEST_CASE("CLOPOptimizer initialization edge cases", "[clop][optimizer]") {
     EngineConfig engine;
     engine.setName("TestEngine");
     
     CLOPConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.samples = 10;
     config.gamesPerSample = 8;
     config.parameters.push_back({"Param1", 10.0, 0.0, 20.0});
@@ -82,8 +91,7 @@ TEST_CASE("CLOPOptimizer valid initialization", "[clop][optimizer]") {
     engine.setName("TestEngine");
     
     CLOPConfig config;
-    // We reuse an existing unit test opening file
-    config.openingsFile = "src/test-system/unit/test-openings.pgn"; 
+    config.openingsFile = testOpeningsFilePath();
     config.samples = 10;
     config.gamesPerSample = 8;
     

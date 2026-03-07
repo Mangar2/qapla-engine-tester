@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include "clop-model.h"
+#include "clop-types.h"
+
 #include "../game-manager/pair-tournament.h"
 #include "../engine-handling/engine-config.h"
 #include "../base-elements/table-format.h"
@@ -29,42 +32,12 @@
 #include <memory>
 #include <mutex>
 #include <random>
-#include <string>
 #include <thread>
 #include <vector>
 
 namespace QaplaTester {
 
 class GameManagerPool;
-
-/**
- * @brief Configuration for a single parameter optimized by CLOP.
- */
-struct CLOPParameterConfig {
-    std::string name;
-    double defaultValue;
-    double minValue;
-    double maxValue;
-};
-
-using CLOPParameterList = std::vector<CLOPParameterConfig>;
-
-/**
- * @brief Configuration for CLOP optimization.
- */
-struct CLOPConfig {
-    CLOPParameterList parameters;
-    uint32_t maxActivePairs = 32;
-    uint32_t samples = 100;
-    uint32_t gamesPerSample = 8;
-    uint32_t warmupSamples = 8;
-    uint32_t outcomeInterval = 10;
-    uint32_t maxWeightIterations = 25;
-    uint32_t openingsSeed = 0;
-    double h = 3.0;
-    double priorVariance = 100.0;
-    std::string openingsFile;
-};
 
 /**
  * @brief One completed CLOP sample and its measured outcome.
@@ -128,10 +101,6 @@ public:
     [[nodiscard]] TableData getStatusTable() const;
 
 private:
-    struct LogisticModel {
-        std::vector<double> coefficients;
-    };
-
     void schedulerThreadFunction();
     void recomputeThreadFunction();
     void updateFinishedStateLocked();
@@ -142,23 +111,12 @@ private:
         const std::vector<CLOPSample>& modeledSamples,
         const std::vector<double>& estimatedParameters,
         size_t scheduledCount);
-    [[nodiscard]] std::vector<double> denormalizeValues(const std::vector<double>& normalizedValues) const;
-    [[nodiscard]] std::vector<double> normalizeValues(const std::vector<double>& values) const;
     [[nodiscard]] EngineConfig createConfiguredEngine(const std::vector<double>& values) const;
-
-    [[nodiscard]] LogisticModel fitQuadraticLogisticRegression(const std::vector<CLOPSample>& samples) const;
-    [[nodiscard]] double fitLogisticMean(const std::vector<CLOPSample>& samples) const;
-    [[nodiscard]] double confidenceDeviation(double meanLogit, const std::vector<CLOPSample>& samples) const;
-    void updateDesignWeights(std::vector<CLOPSample>& samples) const;
-    [[nodiscard]] std::vector<double> computeEstimatedOptimum(const std::vector<CLOPSample>& samples) const;
-
-    [[nodiscard]] size_t featureCount() const;
-    [[nodiscard]] std::vector<double> buildFeatureVector(const std::vector<double>& normalizedValues) const;
-    [[nodiscard]] double evaluateQuadratic(const LogisticModel& model, const std::vector<double>& normalizedValues) const;
 
     EngineConfig baseEngine_;
     EngineConfig baselineEngine_;
     CLOPConfig config_;
+    std::unique_ptr<CLOPModel> model_;
     std::shared_ptr<StartPositions> startPositions_;
     GameManagerPool* pool_ = nullptr;
 
