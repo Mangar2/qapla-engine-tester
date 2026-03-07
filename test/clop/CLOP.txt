@@ -1,0 +1,563 @@
+--- PAGE 1 ---
+CLOP: Conﬁdent Local Optimization for
+Noisy Black-Box Parameter Tuning
+R´ emi Coulom
+Universit´ e de Lille, INRIA, CNRS, France
+Abstract. Artiﬁcial intelligence in games often leads to the problem
+of parameter tuning. Some heuristics may have coeﬃcients, a nd they
+should be tuned to maximize the win rate of the program. A possi ble
+approach is to build local quadratic models of the win rate as a function
+of program parameters. Many local regression algorithms ha ve already
+been proposed for this task, but they are usually not robust en ough
+to deal automatically and eﬃciently with very noisy outputs and non-
+negative Hessians. The CLOP principle, which stands for Conﬁ dent Local
+OPtimization, is a new approach to local regression that over comes all
+these problems in a simple and eﬃcient way. CLOP discards samp les
+whose estimated value is conﬁdently inferior to the mean of a ll samples.
+Experiments demonstrate that, when the function to be optimi zed is
+smooth, this method outperforms all other tested algorithm s.
+1 Introduction
+Authors of programs that play games, such as chess or Go, are o ften faced with
+the problem of optimizing parameters. A game-playing progr am relies on heuris-
+tics for position evaluation, search-tree pruning, or time management. Most of
+these heuristics have parameters, and tuning them may impro ve strength.
+When optimizing parameters, a major diﬃculty is measuring s trength. The
+most usual approach is very costly: strength is measured by t he win rate against
+a reference opponent. In order to obtain an accurate measure ment, it is necessary
+to play many games, which takes a lot of computation time.
+Since it is so costly, authors of game-playing programs some times try to avoid
+measuring win rates. Playing games may be replaced by testin g over a database
+of one-move problems. It may also be replaced by machine-lea rning algorithms,
+such as temporal-diﬀerence methods [1,2].
+Tuning parameters without measuring win rates may sometime s work, but it
+is dangerous. It is dangerous in the sense that it does not gua rantee an optimal
+strength: optimizing a criterion such as temporal diﬀerenc e does not necessarily
+ﬁnd parameters that maximize the probability of winning.
+Besides having no guarantee in terms of strength optimizati on, many learning
+algorithms also have a limited scope. For instance, tempora l-diﬀerence methods
+can tune an evaluation function, but not selectivity or time management.
+For a reliable and generic parameter-optimization method, it is necessary to
+measure strength with the outcome of games. The challenge is to get as close as
+possible to the optimal win rate with as few games as possible .
+
+--- PAGE 2 ---
+2 R´ emi Coulom
+1.1 Problem Deﬁnition
+More formally, the problem addressed in this paper is the est imation of an op-
+timal value x∗ of a vector of n continuous bounded parameters x ∈ [−1, 1]n.
+Performance of a vector of parameters x is measured by its probability of suc-
+cess f (x) ∈ [0, 1]. The value of f (x) is not known, but can be estimated by
+observing the outcome of independent Bernoulli trials that succeed with proba-
+bility f (x). These trials are observed in sequence. For each trial, par ameters can
+be chosen in the [ −1, 1]n domain. After each trial, the optimization algorithm
+recommends a vector of parameters ˜x. The performance of the algorithm is mea-
+sured by the simple regret f (x∗) − f (˜x). The objective is to ﬁnd an algorithm
+that will make the simple regret go to zero as fast as possible .
+The notion of “simple regret” is named in opposition to the mo re usual “on-
+line regret” of continuum-armed bandits algorithms [3,4]. When tuning a game-
+playing program, losing games does not matter. The objectiv e is to optimize the
+ﬁnal strength of the program, regardless of losses suﬀered w hile training.
+The function f to be optimized will be assumed to have no local optima. The
+main diﬃculty that CLOP addresses is not getting out of trick y local optima,
+but dealing with noise.
+1.2 Noisy Optimization
+Because it has so many important applications in engineerin g, the problem of
+optimizing continuous parameters from noisy observations has been studied a
+lot. Many algorithms have been already proposed, even for th e special case of
+binary response.
+One of the oldest methods for optimization is stochastic gra dient ascent. The
+principle of this approach is based on collecting samples of the function around
+the current parameters. These samples are used to estimate t he gradient of the
+function. Parameters are then modiﬁed with a small step in th e direction of
+the noisy gradient estimate. The most primitive form of this idea is the Kiefer-
+Wolfowitz algorithm [5]. The idea of Kiefer and Wolfowitz wa s improved in the
+multivariate case with the SPSA algorithm [6]. Several seco nd-order reﬁnements
+of SPSA were proposed [7,8].
+Another kind of approach is population-based algorithms, s uch as evolution
+strategies or genetic algorithms [9,10,11]. These methods operate over a set of
+points in parameter space, called the population. They iterate the following pro-
+cess: ﬁrst, evaluate all elements of the population; then, d iscard those that per-
+form badly; then, generate new elements similar to those tha t perform well.
+Yet another approach is simulated annealing [12]. Simulate d annealing is
+often used for combinatorial optimization with noiseless p erformance measure-
+ments. But it was generalized to the optimization of noisy fu nctions [13], and to
+the optimization of continuous parameters [14].
+
+--- PAGE 3 ---
+CLOP: Conﬁdent Local Optimization for Noisy Black-Box Paramet er Tuning 3
+1.3 Using Response-Surface Models
+The algorithms presented so far often have to make a trade-oﬀ between fast
+inaccurate evaluation of many diﬀerent parameter values, a nd slow accurate
+evaluation of few diﬀerent parameter values. This trade-oﬀ is usually tuned by
+a meta-parameter that indicates the number of samples that a re collected for
+each parameter value. In order to reduce noise, it may be nece ssary to replicate
+many independent measurements at the same point.
+Many of these algorithms are also incremental, and discard o ld data. This
+may lead to a non-optimal use of all available information.
+An approach that does not forget data and requires no trade-o ﬀ between fast
+and accurate evaluation is the response-surface methodolo gy [15]. The response-
+surface methodology ﬁts a model to data, and performs optimi zation on the
+model. With response-surface models, it is not necessary to run more than one
+trial for each parameter value, which allows a dense coverag e of parameter space.
+An important question when optimizing with response-surfa ce models is the
+choice of a model. A possibility is to choose non-parametric models that are
+general enough to ﬁt any function [16,17,18,19,20,21,22]. Another approach is to
+use simpler models (linear or quadratic), over a shrinking d omain [23,24,25,26].
+The ﬁrst approach is able to ﬁnd the global optimum of a functi on with many
+local optima, whereas the second approach only performs loc al optimization.
+Existing algorithms based on local regression all have some major limitations.
+The traditional response-surface methodology is not compl etely automated, and
+requires human judgment. Q2 [24] is very similar to CLOP, exc ept for its cri-
+terion for shrinking the region of interest (ROI): a sample i s discarded only if
+there is a good conﬁdence that the maximum of the quadratic re gression lies
+within the ROI. This does not work if the Hessian is not deﬁnit e negative, which
+happens frequently in practice (for instance, if one parame ter turns out to have
+no inﬂuence on strength). Noisy UOBYQA [25] uses a similar cr iterion, and it
+has the same defect. In addition, noisy UOBYQA takes the next sample at the
+estimated location of the optimum, which was found to be a ver y ineﬃcient sam-
+pling policy [24]. The trust-region method of Elster and Neu maier [23] does not
+work in the very noisy case because it estimates the best para meters as those
+that got the best result so far. STRONG [26] has a proof of conv ergence, but
+experiments show poor empirical performance compared to si mple stochastic
+gradient, and the algorithm is extremely complicated.
+The algorithm presented in this paper can deal in a simple, au tomatic and
+robust way with very noisy observations and a non-negative H essian. The main
+diﬀerence with previous algorithms is in its criterion for d eciding when to stop
+shrinking the regression area: the worst sample is discarde d if its estimated value
+according to the regression is inferior with some level of co nﬁdence to the mean
+of all the remaining samples. Section 2 gives a detailed desc ription of the algo-
+rithm and an intuitive analysis of its asymptotic rate of con vergence. Section 3
+presents empirical data that demonstrate its good performa nce compared to
+many alternative algorithms.
+
+--- PAGE 4 ---
+4 R´ emi Coulom
+2 Algorithm
+The general idea of the optimization algorithm is to perform regression over all
+the data, and then remove the worst samples (according to the regression) as
+long as enough samples are left. Samples are not removed one b y one, because it
+would be too ineﬃcient when the number of samples is high. Ins tead, a weight
+function, w, is computed with a formula that gives a weight close to zero t o
+samples whose estimated strength is conﬁdently inferior to the average strength
+of samples. This process is iterated until convergence. Con vergence is guaranteed
+by not allowing a weight to increase.
+2.1 Detailed Algorithm Description
+Algorithm 1 Quadratic CLOP
+procedure QuadraticCLOP(H, x1, y 1, . . . ,xN , y N )
+w0 ← λx.1 ⊲ a function of x that returns 1
+W0 ← N
+k ← 0
+repeat
+w ← λx.mink
+i=0 wi(x) ⊲ weight function
+k ← k + 1
+qk ← QuadraticLogisticRegression(w, x1, y 1, . . . ,xN , y N )
+µ k ← LogisticMean(w, x1, y 1, . . . ,xN , y N )
+σ k ← ConfidenceDeviation(w, x1, y 1, . . . ,xN , y N )
+wk ← λx.e(qk(x)−µk)/(Hσk)
+Wk ← Σ N
+i=1 min
+(
+w(xi), w k(xi)
+)
+until Wk > 0.99 × Wk−1
+xN +1 ← Random(w) ⊲ next sample, distributed like w
+˜x ← Σ N +1
+i=1 w(xi)xi/Σ N +1
+i=1 w(xi) ⊲ estimated optimal
+end procedure
+The details of the optimization algorithm for quadratic reg ression are given
+in Algorithm 1. The ﬁrst parameter of the function is a positi ve number H
+that indicates how local the regression will be. ( xi, yi) are pairs of past inputs
+and their outputs. yi may be either 0 (loss) or 1 (win). QuadraticLogisti-
+cRegression is a function that performs weighted quadratic logistic reg ression,
+that is to say f (x) is approximated at iteration k by 1/
+(
+1 +e−qk(x))
+, where qk is
+a quadratic function. LogisticMean is logistic regression by a constant. Both
+QuadraticLogisticRegression and LogisticMean compute the maximum
+a posteriori with a Gaussian prior of variance 100. ConfidenceDeviation is
+the standard deviation of the posterior of LogisticMean.
+
+--- PAGE 5 ---
+CLOP: Conﬁdent Local Optimization for Noisy Black-Box Paramet er Tuning 5
+The next sample is chosen at random (using Gibbs sampling) by using w
+as a probability density. The theory of optimal design oﬀers many alternatives
+[27,28], but sampling according to w outperformed them in experiments. A prob-
+lem with optimal design is that it assumes that the model perf ectly ﬁts the data,
+which is almost always wrong in practice. Even when lack of ﬁt is taken into
+consideration [29], these algorithms take samples near the edge of the sampling
+domain. Samples near the edge are rapidly discarded when the domain is shrink-
+ing. It might be possible to do better, but sampling accordin g to w is simple and
+works well.
+For quadratic regression, the maximum is estimated by the we ighted average
+of samples. Another possibility would be to maximize the qua dratic regression,
+but weighted average turned out to be more robust and perform better. In par-
+ticular, it works even if the regression is not deﬁnite negat ive.
+2.2 Choice of H and Asymptotic Rate of Convergence
+The most important meta-parameter of this algorithm is H. Besides H, other
+parameters are the priors of regressions, and the 0.99 const ant that decides the
+end of the loop. But these have very little inﬂuence on perfor mance. H tunes
+the bias-variance trade-oﬀ by making regression more or les s local, and should
+be chosen carefully.
+δ δ
+(a) Bias only: noiseless observa-
+tions, f is cubic. Regret: O
+(
+δ4)
+.
+δ δ
+O
+(
+N −1/2)
+(b) Variance only: noisy observations, f is
+quadratic. Expected regret: O
+(
+N −1δ−2)
+.
+Fig. 1. These ﬁgures illustrate an intuitive derivation of the opti mal asymptotic
+bias-variance trade-oﬀ for local quadratic regression in d imension one [30]. As-
+suming N observations are made at x∗, x∗−δ, and x∗+δ, it is possible to calculate
+expected simple regret in both situations. The optimal trad e-oﬀ is when they
+are the same, which gives δ = O
+(
+N −1/6)
+, and a simple regret of O
+(
+N −2/3)
+. It
+was proved that O
+(
+N −2/3)
+is optimal when optimizing functions with bounded
+third-order derivatives [31], that is to say no algorithm ca n do better.
+Figure 1 shows an analysis of the asymptotic bias-variance t rade-oﬀ. In Al-
+gorithm 1, the “height” of the local regression is Hσ k. It should be proportional
+to the square of the “width” δ. If we assume that σk = O
+(
+N −1/2)
+, this means
+that the optimal asymptotic rate of convergence is obtained with H = O(N 1/6).
+An attempt at ﬁnding a more precise optimal value for H [30] shows that
+it depends on the magnitude of the cubic term: if the function to be optimized
+
+--- PAGE 6 ---
+6 R´ emi Coulom
+is perfectly quadratic, then H = ∞ is optimal. Otherwise, H should be smaller.
+Also, in the small-sample case, terms of degree four or more m ight not be negli-
+gible. So, it is diﬃcult to ﬁnd the optimal value of H. But, as will be shown in
+Section 3.1, choosing a constant value of H = 3 works very well in practice, in a
+very wide range of situations.
+It is worth noting that the principle of CLOP is universal, an d can be applied
+to any kind of regression, not only quadratic. So it is possib le to use cubic regres-
+sion or any other arbitrary polynomial regression instead. Such an approach may
+reach the optimal bound of Chen [31], that is to say O
+(
+N −s/(s+1))
+simple regret
+for polynomial regression of degree s, provided f is smooth enough. Figure 5
+shows an experiment where cubic regression does outperform the best possible
+quadratic regression.
+3 Experiments
+The performance of CLOP was measured with artiﬁcial problem s. Table 1, Fig. 2,
+and Fig. 3 show the artiﬁcial functions that were optimized. When an exponent
+is added to a problem name, it means that the dimension is mult iplied by this
+exponent, and r(x) is the average of r(x) for each dimension (see Fig. 3 for the
+example of Log2). The source code of the program that produced these results
+is available at http://remi.coulom.free.fr/CLOP/.
+T able 1. Problem deﬁnitions. f (x) = 1 /
+(
+1 + e−r(x))
+. x ∈ [−1, 1]n.
+Log n = 1 r(x) = 2 log(4 x + 4.1) − 4x − 3
+Flat n = 1 r(x) = 0 .2/
+(
+1 + 6(x + 0.6)2 + (x + 0.6)3)
+Power n = 1 r(x) = 0 .05(x + 1)2 − ((x + 1)/ 2)20
+Angle n = 1 r(x) = 1 +
+{√
+2 − 2√0.3 − x if x < −0.2,√
+2 − √x + 2.2 otherwise .
+Step n = 1 r(x) =
+
+
+
+
+
+
+
+
+
+−2 if x < −0.8,
+−2 + 6(x + 0.8) if − 0.8 < x < −0.3,
+−(x + 0.3)/ 1.1 if − 0.3 < x < 0.8,
+−2 otherwise .
+Rosenbrock n = 2 r(x) = 1 .0 − 0.1
+(
+(1 − a)2 + (b − a2)2)
+, a = 4x1, b = 10x2 + 4
+Correlated n = 2 r(x) = 0 .2(g(10(x1 + x2 + 0.1)) + g(x1 − x2 + 0.9)) + 0.2,
+with g(x) = −x4 + x3 − x2
+3.1 Eﬀect of Meta-Parameter H
+Figure 4 shows the eﬀect of H when optimizing three diﬀerent functions. As pre-
+dicted in section 2.2, the optimal value of H depends on the quadraticity of the
+function to be optimized. For a moderately non-quadratic fu nction such as Log,
+
+--- PAGE 7 ---
+CLOP: Conﬁdent Local Optimization for Noisy Black-Box Paramet er Tuning 7
+(a) Log (b) Flat (c) Power (d) Angle (e) Step
+Fig. 2. Plots of one-dimensional problems. x∗ is indicated by a vertical line.
+(a) Rosenbrock (b) Correlated (c) Log2
+Fig. 3. Plots of two-dimensional problems. Lines of constant proba bility are
+plotted every 0.1. x∗ is indicated by a cross.
+higher values of H perform better than for a strongly non-quadratic function
+such as Power. Results conﬁrm the O
+(
+N −2/3)
+asymptotic simple regret with
+H = O
+(
+N 1/6)
+. Although it is not clear how to ﬁnd the optimal value of H in
+practice, using a constant value of H = 3 seems to perform well in all cases.
+3.2 Comparison with Other Algorithms
+Figures 5 and 6 compares CLOP to many algorithms. CLOP is best for smooth
+functions, works similarly for Angle, and does not work well for Step.
+The population-based algorithms that were tested are varia tions of the Cross-
+Entropy method (CEM), using an independent Gaussian distri bution. The ba-
+sic version [9] was tested, as well as a version improved by dy namic param-
+eter smoothing [10]. Initial population distribution was u niform random over
+[−1, 1]n. Meta-parameters of the algorithms were: population = 100, elite = 10,
+initial batch size = 10, batch-size growth rate = 1.15, smoot hing = 0.9, dynamic
+smoothing (improved version only) = 0.1. UH-CMA-ES [11] was tested too, but
+it was clearly not designed for that kind of problem, and it do es not work well.
+Results were not plotted, because it sometimes fails to rema in within the [ −1, 1]
+interval, even when started at x = 0 with a small variance.
+Another algorithm that was tested is UCT [32], applied to a re cursive binary
+partitioning of parameter space. ˜x is determined by choosing the child with the
+highest win rate.
+Finally, the SPSA algorithm [6] was tested. SPSA ∗ is plain SPSA, with man-
+ually optimized meta-parameters ( a = 3, A = 0, α = 1, c = 0 .1, γ = 1 /6)
+starting at θ0 = 0. It performed very well for Log, reaching the O
+(
+N −2/3)
+
+--- PAGE 8 ---
+8 R´ emi Coulom
+H = 12
+H = 10
+H = 8
+H = 6
+H = 4
+H = 3
+H = 2
+H = 1
+H = 0 .8N 1/6
+101 102 103 104 105 106 10710−5
+10−4
+10−3
+10−2
+10−1
+(a) Log
+H = 12
+H = 10
+H = 8
+H = 6
+H = 4
+H = 3
+H = 2
+H = 1
+101 102 103 104 105 106 10710−4
+10−3
+10−2
+10−1
+100
+(b) Log5
+H = 12
+H = 10
+H = 8
+H = 6
+H = 4
+H = 3
+H = 2
+H = 1
+101 102 103 104 105 106 10710−5
+10−4
+10−3
+10−2
+10−1
+(c) Power
+Fig. 4. Eﬀect of meta-parameter H. Simple regret (averaged over 1,000 replica-
+tions) is plotted as a function of the number of samples.
+
+--- PAGE 9 ---
+CLOP: Conﬁdent Local Optimization for Noisy Black-Box Paramet er Tuning 9
+Quadratic CLOP, H = 3
+Quadratic CLOP, H = 0 .8N 1/6
+Cubic CLOP, H = 0 .8N 1/4
+RSPSA
+SPSA∗
+CEM (Chaslot et al. )
+CEM (Hu & Hu)
+UCT
+101 102 103 104 105 106 10710−6
+10−5
+10−4
+10−3
+10−2
+10−1
+100
+Fig. 5. Comparison of many algorithms applied to the Log problem
+(a) Log (b) Log2 (c) Log5 (d) Flat
+(e) Rosenbrock (f) Rosenbrock2 (g) Rosenbrock5 (h) Power
+(i) Correlated (j) Correlated2 (k) Angle (l) Step
+Fig. 6. Many problems. Scale: regret from 10 −5 to 1, samples from 10 to 10 7.
+Legend: Quadratic CLOP ( H = 3), UCT, CEM (Hu & Hu).
+
+--- PAGE 10 ---
+10 R´ emi Coulom
+optimal asymptotic rate of convergence. But the performanc e of SPSA is very
+sensitive to a good choice of meta-parameters, and these val ues do not work in
+practice for other problems. Many adaptive forms of SPSA hav e been proposed
+to automatically tune meta-parameters. RSPSA [7] is one suc h algorithm. Its
+meta-parameters were manually chosen to minimize simple re gret at 10 5 sam-
+ples (batch size = 1000, η+ = 1, η− = 0 .9, δ0 = 0 .019, δ− = 0, δ+ = 0 .02,
+ρ = 25). These meta-parameters clearly overﬁt the problem, bu t they still do
+not outperform CLOP. Enhanced Adaptive SPSA (E2SPSA [8]) is another form
+of SPSA with better convergence guarantees. E2SPSA was not t ested, but it can
+be expected that it would be at least twice slower than SPSA ∗, because half
+of the samples it collects are not used for gradient estimati on. Also, E2SPSA
+only adapts a, but not c. So it probably could not work well in problems such as
+Correlated. Still, the good performance of SPSA ∗ is a clear sign that adaptive
+forms of SPSA could approach the performance of CLOP.
+An aspect worth mentioning is the computational cost of thes e algorithms.
+Because logistic regression is a costly operation, CLOP ten ds to be slower. But it
+can be made fast with a few tricks. First, w does not have to be re-computed at
+every sample: when the regression has been computed with N samples, 1 + N/10
+samples are collected without updating the regression. An a dditional speed-up
+can be obtained by taking more than one sample at the same loca tion. Exper-
+iments were run by averaging 1,000 runs of 10 7 samples, on a 24-core PC. For
+the Log problem, CEM takes 1’20”, CLOP 9’57”, and UCT 21’19”. UCT is
+slow because it was not particularly optimized, but it could certainly be sped-up
+considerably by using replications, too. Anyway, the cost o f these algorithms is
+negligible compared to the cost of playing even super-fast g ames.
+4 Conclusion
+In summary, CLOP is a new approach to black-box optimization with local
+response-surface models. CLOP is completely automated, ro bust to very noisy
+outputs, and to non-negative Hessians. The algorithm is ver y simple, and has
+only one meta parameter, H, that does not have a critical inﬂuence on per-
+formance. In practice, using a constant value of H = 3 works very well in a
+wide range of function shapes and experiment size. Experime nts demonstrate
+the excellent performance of CLOP for optimizing smooth fun ctions.
+In the future, CLOP could be applied to less noisy problems. I t might even be
+possible to make it work eﬃciently for completely noiseless black-box optimiza-
+tion. This would probably require low-discrepancy algorit hms (like in Q2 [24]),
+rather than random sampling. Another interesting question is the application
+of CLOP to other forms of regression. Quadratic regression i s the most obvi-
+ous and popular approach for local optimization, but, as was demonstrated in
+experiments, using more complex forms of regression, such a s cubic regression,
+might produce better results. Finally, although the CLOP al gorithm turned out
+to be extremely reliable in experiments, it would be good to h ave a mathematical
+proof of its convergence.
+
+--- PAGE 11 ---
+CLOP: Conﬁdent Local Optimization for Noisy Black-Box Paramet er Tuning 11
+Acknowledgments
+This work was supported in part by the IST Programme of the Eur opean Com-
+munity, under the PASCAL2 Network of Excellence, IST-2007-216886. This work
+was supported in part by Ministry of Higher Education and Res earch, Nord-Pas
+de Calais Regional Council and FEDER through the “CPER 2007– 2013”. This
+publication reﬂects only the author’s views.
+References
+1. Samuel, A.L.: Some studies in machine learning using the g ame of checkers. IBM
+Journal 3(3) (July 1959) 210–229
+2. Tesauro, G.: Temporal diﬀerence learning and TD-Gammon. Co mmunications of
+the ACM 38(3) (March 1995) 58–68
+3. Agrawal, R.: The continuum-armed bandit problem. SIAM Jou rnal on Control
+and Optimization 33(6) (November 1995) 1926–1951
+4. Coquelin, P.A., Munos, R.: Bandit algorithms for tree sear ch. In: Proceedings of
+the 23rd Conference on Uncertainty in Artiﬁcial Intelligen ce. (2007)
+5. Kiefer, J., Wolfowitz, J.: Stochastic estimation of the maxim um of a regression
+function. Annals of Mathematical Statistics 23(3) (1952) 4 62–466
+6. Spall, J.C.: Multivariate stochastic approximation using a simultaneous perturba-
+tion gradient approximation. IEEE Transactions on Automati c Control 37 (1992)
+332–341
+7. Kocsis, L., Szepesv´ ari, C.: Universal parameter optimisa tion in games based on
+SPSA. Machine Learning 63(3) (June 2006) 249–286
+8. Spall, J.C.: Feedback and weighting mechanisms for improvi ng Jacobian estimates
+in the adaptive simultaneous perturbation algorithm. IEEE Transactions on Au-
+tomatic Control 54(6) (June 2009) 1216–1229
+9. Chaslot, G.M.J.B., Winands, M.H.M., Szita, I., van den Herik, H.J.: Cross-entropy
+for Monte-Carlo tree search. ICGA Journal 31(3) (September 20 08) 145–156
+10. Hu, J., Hu, P.: On the performance of the cross-entropy meth od. In Rossetti, M.D.,
+Hill, R.R., Johansson, B., Dunkin, A., Ingalls, R.G., eds.: Pro ceedings of the 2009
+Winter Simulation Conference. (2009) 459–468
+11. Hansen, N., Niederberger, A.S.P., Guzzella, L., Koumouts akos, P.: A method for
+handling uncertainty in evolutionary optimization with an application to feedback
+control of combustion. IEEE Transactions on Evolutionary C omputation 13(1)
+(2009) 180–197
+12. Kirkpatrick, S., Gelatt, Jr., C.D., Vecchi, M.P.: Optimizatio n by simulated anneal-
+ing. Science 220(4598) (1983) 671–680
+13. Branke, J., Meisel, S., Schmidt, C.: Simulated annealing in the presence of noise.
+Journal of Heuristics 14 (2008) 627–654
+14. Locatelli, M.: Simulated annealing algorithms for cont inuous global optimization.
+In: Handbook of Global Optimization II, Kluwer Academic Publis hers (2002) 179–
+230
+15. Box, G.E.P., Wilson, K.B.: On the experimental attainment of op timum conditions
+(with discussion). Journal of the Royal Statistical Society 13(1) (1951) 1–45
+16. Salganicoﬀ, M., Ungar, L.H.: Active exploration and lear ning in real-valued spaces
+using multi-armed bandit allocation indices. In Prieditis , A., Russell, S.J., eds.:
+Proceedings of the Twelfth International Conference on Mac hine Learning, Morgan
+Kaufmann (1995) 480–487
+
+--- PAGE 12 ---
+12 R´ emi Coulom
+17. Jones, D.R., Schonlau, M., Welch, W.J.: Eﬃcient global opti mization of expensive
+black-box functions. Journal of Global Optimization 13 (1998) 4 55–492
+18. Anderson, B.S., Moore, A.W., Cohn, D.: A nonparametric ap proach to noisy and
+costly optimization. In Langley, P., ed.: Proceedings of th e Seventeenth Interna-
+tional Conference on Machine Learning, Morgan Kaufmann (200 0) 17–24
+19. Huang, D., Allen, T.T., Notz, W.I., Zeng, N.: Global optimi zation of stochastic
+black-box systems via sequential kriging meta-models. Journal of Global Optimiza-
+tion 34(3) (March 2006) 441–466
+20. Villemonteix, J., Vazquez, E., Walter, E.: An informationa l approach to the global
+optimization of expensive-to-evaluate functions. Journal o f Global Optimization
+(September 2008)
+21. Deng, G., Ferris, M.C.: Extension of the DIRECT optimizati on algorithm for
+noisy functions. In Henderson, S.G., Biller, B., Hsieh, M.H. , Shortle, J., Tew, J.D.,
+Barton, R.R., eds.: Proceedings of the 2007 Winter Simulatio n Conference. (2007)
+497–504
+22. Hutter, F., Bartz-Beielstein, T., Hoos, H., Leyton-Brow n, K., Murphy, K.: Sequen-
+tial model-based parameter optimisation: an experimental i nvestigation of auto-
+mated and interactive approaches. In Bartz-Beielstein, T. , Chiarandini, M., Pa-
+quete, L., Preuß, M., eds.: Empirical Methods for the Analysis of Optimization
+Algorithms. Springer (2010) 361–411
+23. Elster, C., Neumaier, A.: A method of trust region type for minimizing noisy
+functions. Computing 58(1) (March 1997) 31–46
+24. Moore, A.W., Schneider, J.G., Boyan, J.A., Lee, M.S.: Q2: Memo ry-based active
+learning for optimizing noisy continuous functions. In Sha vlik, J., ed.: Proceedings
+of the Fifteenth International Conference of Machine Learn ing, Morgan Kaufmann
+(1998) 386–394
+25. Deng, G., Ferris, M.C.: Adaptation of the UOBYQA algorithm f or noisy functions.
+In Perrone, L.F., Wieland, F.P., Liu, J., Lawson, B.G., Nicol, D .M., Fujimoto, R.M.,
+eds.: Proceedings of the 2006 Winter Simulation Conference. (2006) 312–319
+26. Chang, K.H., Hong, L.J., Wan, H.: Stochastic trust region g radient-free method
+(STRONG)—a new response-surface-based algorithm in simulat ion optimization.
+In Henderson, S.G., Biller, B., Hsieh, M.H., Shortle, J., Tew, J.D., Barton, R.R.,
+eds.: Proceedings of the 2007 Winter Simulation Conference. (2007) 346–354
+27. Chaloner, K.: Bayesian design for estimating the turning point of a quadratic
+regression. Communications in Statistics—Theory and Meth ods 18(4) (1989) 1385–
+1400
+28. Fackle Fornius, E.: Optimal Design of Experiments for the Qua dratic Logistic
+Model. PhD thesis, Department of Statistics, Stockholm Univ ersity (2008)
+29. Wiens, D.P.: Robustness of design for the testing of lack o f ﬁt and for estimation in
+binary response models. Computational Statistics & Data An alysis 54(12) (2010)
+3371–3378
+30. Boesch, E.: Minimizing the mean of a random variable with one real parameter
+(2010)
+31. Chen, H.: Lower rate of convergence for locating a maximum of a function. The
+Annals of Statistics 16(3) (1988) 1330–1334
+32. Kocsis, L., Szepesv´ ari, C.: Bandit-based Monte-Carlo pl anning. In F¨ urnkranz, J.,
+Scheﬀer, T., Spiliopoulou, M., eds.: Proceedings of the 15t h European Conference
+on Machine Learning, Berlin, Germany (2006)
