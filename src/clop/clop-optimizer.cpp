@@ -37,6 +37,184 @@ namespace QaplaTester {
 
 namespace {
 
+[[nodiscard]] double safeSqrt(double value) {
+    return std::sqrt(std::max(value, 0.0));
+}
+
+[[nodiscard]] TableData buildDiagnosticsTable(
+    const CLOPConfig& config,
+    const std::vector<CLOPSample>& samples,
+    const std::vector<double>& previousEstimate,
+    const std::vector<double>& currentEstimate,
+    size_t completedSamples,
+    size_t activeSamples,
+    size_t pendingSamples,
+    uint64_t modelGeneration) {
+
+    double minOutcome = 1.0;
+    double maxOutcome = 0.0;
+    double minDesignWeight = std::numeric_limits<double>::max();
+    double maxDesignWeight = 0.0;
+    double sumEffectiveWeight = 0.0;
+    double sumEffectiveWeightSq = 0.0;
+    double weightedOutcomeSum = 0.0;
+    double weightedOutcomeSqSum = 0.0;
+
+    for (const auto& sample : samples) {
+        minOutcome = std::min(minOutcome, sample.outcome);
+        maxOutcome = std::max(maxOutcome, sample.outcome);
+        minDesignWeight = std::min(minDesignWeight, sample.designWeight);
+        maxDesignWeight = std::max(maxDesignWeight, sample.designWeight);
+
+        const double effectiveWeight = sample.designWeight * sample.observationWeight;
+        sumEffectiveWeight += effectiveWeight;
+        sumEffectiveWeightSq += effectiveWeight * effectiveWeight;
+        weightedOutcomeSum += effectiveWeight * sample.outcome;
+        weightedOutcomeSqSum += effectiveWeight * sample.outcome * sample.outcome;
+    }
+
+    if (samples.empty()) {
+        minOutcome = 0.0;
+        maxOutcome = 0.0;
+        minDesignWeight = 0.0;
+        maxDesignWeight = 0.0;
+    }
+
+    const double weightedOutcomeMean =
+        sumEffectiveWeight > 0.0 ? weightedOutcomeSum / sumEffectiveWeight : 0.0;
+    const double weightedOutcomeVar =
+        sumEffectiveWeight > 0.0
+            ? std::max(weightedOutcomeSqSum / sumEffectiveWeight - weightedOutcomeMean * weightedOutcomeMean, 0.0)
+            : 0.0;
+    const double weightedOutcomeStd = safeSqrt(weightedOutcomeVar);
+
+    const double effectiveSampleSize =
+        sumEffectiveWeightSq > 0.0 ? (sumEffectiveWeight * sumEffectiveWeight) / sumEffectiveWeightSq : 0.0;
+
+    double avgAbsDeltaFromPrevious = 0.0;
+    double maxAbsDeltaFromPrevious = 0.0;
+    double avgAbsDeltaFromDefault = 0.0;
+    double maxAbsDeltaFromDefault = 0.0;
+
+    if (!currentEstimate.empty()) {
+        for (size_t index = 0; index < currentEstimate.size(); ++index) {
+            const double previous = index < previousEstimate.size() ? previousEstimate[index] : currentEstimate[index];
+            const double deltaFromPrevious = std::abs(currentEstimate[index] - previous);
+            const double deltaFromDefault = std::abs(currentEstimate[index] - config.parameters[index].defaultValue);
+
+            avgAbsDeltaFromPrevious += deltaFromPrevious;
+            maxAbsDeltaFromPrevious = std::max(maxAbsDeltaFromPrevious, deltaFromPrevious);
+            avgAbsDeltaFromDefault += deltaFromDefault;
+            maxAbsDeltaFromDefault = std::max(maxAbsDeltaFromDefault, deltaFromDefault);
+        }
+
+        const double parameterCount = static_cast<double>(currentEstimate.size());
+        avgAbsDeltaFromPrevious /= parameterCount;
+        avgAbsDeltaFromDefault /= parameterCount;
+    }
+
+    TableData table;
+    table.columnWidths = { 32, 14 };
+    table.headers = { "Metric", "Value" };
+    table.body = {
+        {"modelGeneration", modelGeneration},
+        {"samplesTotal", samples.size()},
+        {"samplesCompleted", completedSamples},
+        {"samplesActive", activeSamples},
+        {"samplesPending", pendingSamples},
+        {"weightDesignMin", minDesignWeight},
+        {"weightDesignMax", maxDesignWeight},
+        {"weightEffectiveSum", sumEffectiveWeight},
+        {"weightEffectiveESS", effectiveSampleSize},
+        {"outcomeMin", minOutcome},
+        {"outcomeMax", maxOutcome},
+        {"outcomeWeightedMean", weightedOutcomeMean},
+        {"outcomeWeightedStd", weightedOutcomeStd},
+        {"estimateAvgAbsDeltaPrev", avgAbsDeltaFromPrevious},
+        {"estimateMaxAbsDeltaPrev", maxAbsDeltaFromPrevious},
+        {"estimateAvgAbsDeltaDefault", avgAbsDeltaFromDefault},
+        {"estimateMaxAbsDeltaDefault", maxAbsDeltaFromDefault},
+    };
+
+    return table;
+}
+
+[[nodiscard]] TableData buildSignalTable(
+    const CLOPConfig& config,
+    const std::vector<CLOPSample>& samples,
+    const std::vector<double>& currentEstimate) {
+
+    TableData table;
+    table.columnWidths = { 24, 14, 14, 14, 14, 14 };
+    table.headers = {
+        "Parameter",
+        "Corr(value,out)",
+        "RangeMin",
+        "RangeMax",
+        "Estimated",
+        "DeltaDefault"
+    };
+
+    if (samples.empty()) {
+        return table;
+    }
+
+    for (size_t parameterIndex = 0; parameterIndex < config.parameters.size(); ++parameterIndex) {
+        double sumWeight = 0.0;
+        double sumX = 0.0;
+        double sumY = 0.0;
+        double sumXX = 0.0;
+        double sumYY = 0.0;
+        double sumXY = 0.0;
+        double minValue = std::numeric_limits<double>::max();
+        double maxValue = -std::numeric_limits<double>::max();
+
+        for (const auto& sample : samples) {
+            const double weight = std::max(sample.designWeight * sample.observationWeight, 0.0);
+            const double x = sample.values[parameterIndex];
+            const double y = sample.outcome;
+
+            minValue = std::min(minValue, x);
+            maxValue = std::max(maxValue, x);
+
+            sumWeight += weight;
+            sumX += weight * x;
+            sumY += weight * y;
+            sumXX += weight * x * x;
+            sumYY += weight * y * y;
+            sumXY += weight * x * y;
+        }
+
+        double corr = 0.0;
+        if (sumWeight > 0.0) {
+            const double meanX = sumX / sumWeight;
+            const double meanY = sumY / sumWeight;
+            const double varX = std::max(sumXX / sumWeight - meanX * meanX, 0.0);
+            const double varY = std::max(sumYY / sumWeight - meanY * meanY, 0.0);
+            const double covXY = sumXY / sumWeight - meanX * meanY;
+            const double denom = safeSqrt(varX) * safeSqrt(varY);
+            if (denom > 0.0) {
+                corr = covXY / denom;
+            }
+        }
+
+        const double estimated =
+            parameterIndex < currentEstimate.size() ? currentEstimate[parameterIndex] : config.parameters[parameterIndex].defaultValue;
+        const double deltaFromDefault = estimated - config.parameters[parameterIndex].defaultValue;
+
+        table.body.push_back({
+            config.parameters[parameterIndex].name,
+            corr,
+            minValue,
+            maxValue,
+            estimated,
+            deltaFromDefault,
+        });
+    }
+
+    return table;
+}
+
 [[nodiscard]] std::vector<CLOPModelSample> toModelSamples(const std::vector<CLOPSample>& samples) {
     std::vector<CLOPModelSample> modelSamples;
     modelSamples.reserve(samples.size());
@@ -232,6 +410,11 @@ void CLOPOptimizer::recomputeThreadFunction() {
     while (!stopWorker_) {
         std::vector<CLOPSample> modelSnapshot;
         std::vector<CLOPSample> pendingBatch;
+        std::vector<double> previousEstimatedParameters;
+        size_t completedSamplesSnapshot = 0;
+        size_t activeSamplesSnapshot = 0;
+        size_t pendingSamplesSnapshot = 0;
+        uint64_t nextModelGeneration = 0;
         bool reachedSampleLimit = false;
 
         {
@@ -258,6 +441,11 @@ void CLOPOptimizer::recomputeThreadFunction() {
 
             recomputeRunning_ = true;
             modelSnapshot = samples_;
+            previousEstimatedParameters = estimatedParameters_;
+            completedSamplesSnapshot = completedSamples_;
+            activeSamplesSnapshot = activeSamples_.size();
+            pendingSamplesSnapshot = pendingResults_.size();
+            nextModelGeneration = modelGeneration_ + 1;
             pendingBatch.swap(pendingResults_);
             reachedSampleLimit = completedSamples_ >= config_.samples;
             lock.unlock();
@@ -268,6 +456,16 @@ void CLOPOptimizer::recomputeThreadFunction() {
         model_->updateDesignWeights(modelSamples);
         applyModelWeights(modelSamples, modelSnapshot);
         auto nextEstimatedParameters = model_->computeEstimatedOptimum(modelSamples);
+        auto diagnosticsTable = buildDiagnosticsTable(
+            config_,
+            modelSnapshot,
+            previousEstimatedParameters,
+            nextEstimatedParameters,
+            completedSamplesSnapshot,
+            activeSamplesSnapshot,
+            pendingSamplesSnapshot,
+            nextModelGeneration);
+        auto signalTable = buildSignalTable(config_, modelSnapshot, nextEstimatedParameters);
 
         bool shouldLog = false;
         bool isFinishedNow = false;
@@ -295,6 +493,8 @@ void CLOPOptimizer::recomputeThreadFunction() {
 
         if (shouldLog || isFinishedNow) {
             Logger::reportLogger().logTable("clopStatus", getStatusTable(), TraceLevel::result);
+            Logger::reportLogger().logTable("clopDiagnostics", diagnosticsTable, TraceLevel::result);
+            Logger::reportLogger().logTable("clopSignal", signalTable, TraceLevel::result);
         }
 
         stateCondition_.notify_all();
