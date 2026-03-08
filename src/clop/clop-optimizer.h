@@ -105,16 +105,12 @@ private:
         std::vector<CLOPSample> modelSnapshot;
         std::vector<CLOPSample> pendingBatch;
         std::vector<double> previousEstimatedParameters;
+        std::vector<double> nextEstimatedParameters;
         size_t completedSamples = 0;
         size_t activeSamples = 0;
         size_t pendingSamples = 0;
-        size_t signalEvidenceSample = 0;
         uint64_t nextModelGeneration = 0;
         bool reachedSampleLimit = false;
-        bool signalEvidenceAvailable = false;
-        bool shouldRecomputeSignal = false;
-        CLOPSignalEvidence signalEvidence{};
-        std::vector<double> nextEstimatedParameters;
         TableData diagnosticsTable;
         TableData indicatorTable;
         TableData signalTable;
@@ -150,10 +146,8 @@ private:
     std::vector<double> estimatedParameters_;
     size_t completedSamples_ = 0;
     size_t lastLoggedCompletedSamples_ = 0;
-    size_t lastSignalEvidenceSample_ = 0;
     uint64_t modelGeneration_ = 0;
     size_t nextSampleIndex_ = 0;
-    CLOPSignalEvidence lastSignalEvidence_{};
 
     std::vector<CLOPSample> activeSamples_;
     uint32_t nextRound_ = 0;

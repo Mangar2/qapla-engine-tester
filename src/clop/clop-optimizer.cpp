@@ -132,41 +132,15 @@ namespace {
 
 [[nodiscard]] TableData buildIndicatorTable(
     const CLOPConfig& config,
-    const std::vector<double>& previousEstimate,
-    const std::vector<double>& currentEstimate,
     size_t completedSamples,
-    uint64_t modelGeneration,
-    const CLOPSignalEvidence& signalEvidence) {
-
-    double avgAbsDeltaFromPrevious = 0.0;
-    if (!currentEstimate.empty()) {
-        for (size_t index = 0; index < currentEstimate.size(); ++index) {
-            const double previous = index < previousEstimate.size() ? previousEstimate[index] : currentEstimate[index];
-            avgAbsDeltaFromPrevious += std::abs(currentEstimate[index] - previous);
-        }
-        avgAbsDeltaFromPrevious /= static_cast<double>(currentEstimate.size());
-    }
-
-    double avgRangeSpan = 0.0;
-    for (const auto& parameter : config.parameters) {
-        avgRangeSpan += std::max(parameter.maxValue - parameter.minValue, 0.0);
-    }
-    if (!config.parameters.empty()) {
-        avgRangeSpan /= static_cast<double>(config.parameters.size());
-    }
-
-    const double normalizedStepPercent =
-        avgRangeSpan > std::numeric_limits<double>::epsilon() ? (avgAbsDeltaFromPrevious / avgRangeSpan) * 100.0 : 0.0;
-
+    uint64_t modelGeneration) {
     const auto progressText = std::format("{}/{}", completedSamples, config.samples);
 
-    std::string phase = "collecting";
+    std::string phase = "searching (model-guided sampling)";
     if (completedSamples < config.warmupSamples) {
-        phase = "warmup";
-    } else if (normalizedStepPercent > config.indicatorThresholds.searchingStepPercentMin) {
-        phase = "searching";
-    } else {
-        phase = "stabilizing";
+        phase = "warmup (random initialization samples)";
+    } else if (completedSamples >= config.samples) {
+        phase = "stabilizing (target reached, waiting for final settle)";
     }
 
     TableData table;
@@ -175,11 +149,7 @@ namespace {
     table.body = {
         {"recomputeCycles", modelGeneration},
         {"sampleProgress", progressText},
-        {"normalizedStepPercent", normalizedStepPercent},
         {"phase", phase},
-        {"signalDeltaLogLoss", signalEvidence.available ? signalEvidence.deltaLogLoss : 0.0},
-        {"signalPNoise", signalEvidence.available ? signalEvidence.pNoise : 1.0},
-        {"signalZ", signalEvidence.available ? signalEvidence.zScore : 0.0},
     };
 
     return table;
@@ -329,10 +299,8 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
         activeSamples_.clear();
         completedSamples_ = 0;
         lastLoggedCompletedSamples_ = 0;
-        lastSignalEvidenceSample_ = 0;
         modelGeneration_ = 0;
         nextSampleIndex_ = 0;
-        lastSignalEvidence_ = {};
         nextRound_ = 0;
         recomputeRunning_ = false;
         initialized_ = true;
@@ -478,9 +446,6 @@ bool CLOPOptimizer::collectRecomputeSnapshot(RecomputeSnapshot& snapshot) {
     snapshot.completedSamples = completedSamples_;
     snapshot.activeSamples = activeSamples_.size();
     snapshot.pendingSamples = pendingResults_.size();
-    snapshot.signalEvidenceSample = lastSignalEvidenceSample_;
-    snapshot.signalEvidenceAvailable = lastSignalEvidence_.available;
-    snapshot.signalEvidence = lastSignalEvidence_;
     snapshot.nextModelGeneration = modelGeneration_ + 1;
     snapshot.pendingBatch.swap(pendingResults_);
     snapshot.reachedSampleLimit = completedSamples_ >= config_.samples;
@@ -506,25 +471,10 @@ void CLOPOptimizer::computeRecomputeSnapshot(RecomputeSnapshot& snapshot) {
         snapshot.pendingSamples,
         snapshot.nextModelGeneration);
 
-    const auto signalInterval = std::max(config_.signalTest.intervalSamples, 1U);
-    snapshot.shouldRecomputeSignal =
-        !snapshot.signalEvidenceAvailable
-        || snapshot.reachedSampleLimit
-        || snapshot.completedSamples >= snapshot.signalEvidenceSample + signalInterval;
-    if (snapshot.shouldRecomputeSignal) {
-        snapshot.signalEvidence = model_->computeSignalEvidence(
-            modelSamples,
-            config_.signalTest,
-            static_cast<uint32_t>(snapshot.nextModelGeneration));
-    }
-
     snapshot.indicatorTable = buildIndicatorTable(
         config_,
-        snapshot.previousEstimatedParameters,
-        snapshot.nextEstimatedParameters,
         snapshot.completedSamples,
-        snapshot.nextModelGeneration,
-        snapshot.signalEvidence);
+        snapshot.nextModelGeneration);
     snapshot.signalTable = buildSignalTable(config_, snapshot.modelSnapshot, snapshot.nextEstimatedParameters);
 }
 
@@ -536,10 +486,6 @@ void CLOPOptimizer::commitRecomputeSnapshot(
     std::scoped_lock lock(stateMutex_);
     samples_ = snapshot.modelSnapshot;
     estimatedParameters_ = snapshot.nextEstimatedParameters;
-    if (snapshot.shouldRecomputeSignal) {
-        lastSignalEvidence_ = snapshot.signalEvidence;
-        lastSignalEvidenceSample_ = completedSamples_;
-    }
     ++modelGeneration_;
     recomputeRunning_ = false;
     lastRecomputeAt_ = std::chrono::steady_clock::now();
