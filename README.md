@@ -667,9 +667,7 @@ Define the optimizer with `--clop` and define each tuned parameter with one `--c
 
 - `recomputeCycles` — Number of model recomputations already performed.
 - `sampleProgress` — Completed samples vs configured target (for example `1000/40000`).
-- `normalizedStepPercent` — Relative estimate movement vs average parameter range in percent.
-- `phase` — Current optimizer state (`warmup`, `searching`, `stabilizing`).
-- `signalDeltaLogLoss`, `signalPNoise`, `signalZ` — Data-driven signal evidence from cross-validation + permutation noise test.
+- `phase` — Current optimizer state with explanation (`warmup`, `searching`, `stabilizing`).
 
 ### Parameter definitions (`--clopvalue`)
 
