@@ -46,7 +46,7 @@ TEST_CASE("CLOPOptimizer initialization edge cases", "[clop][optimizer]") {
     config.openingsFile = testOpeningsFilePath();
     config.samples = 10;
     config.gamesPerSample = 8;
-    config.parameters.push_back({"Param1", 10.0, 0.0, 20.0});
+    config.parameters.push_back({"Param1", 0.0, 20.0});
 
     CLOPOptimizer optimizer;
 
@@ -95,8 +95,8 @@ TEST_CASE("CLOPOptimizer valid initialization", "[clop][optimizer]") {
     config.samples = 10;
     config.gamesPerSample = 8;
     
-    SECTION("Single parameter initialization default values") {
-        config.parameters.push_back({"TestParam", 50.0, 0.0, 100.0});
+    SECTION("Single parameter initialization uses midpoint") {
+        config.parameters.push_back({"TestParam", 0.0, 100.0});
         
         CLOPOptimizer optimizer;
         REQUIRE_NOTHROW(optimizer.createCLOP(engine, config));
@@ -109,9 +109,9 @@ TEST_CASE("CLOPOptimizer valid initialization", "[clop][optimizer]") {
     }
     
     SECTION("Multiple parameter initialization") {
-        config.parameters.push_back({"Param1", 10.0, 0.0, 20.0});
-        config.parameters.push_back({"Param2", 50.0, 25.0, 75.0});
-        config.parameters.push_back({"Param3", 100.0, 50.0, 150.0});
+        config.parameters.push_back({"Param1", 0.0, 20.0});
+        config.parameters.push_back({"Param2", 25.0, 75.0});
+        config.parameters.push_back({"Param3", 50.0, 150.0});
         
         CLOPOptimizer optimizer;
         REQUIRE_NOTHROW(optimizer.createCLOP(engine, config));

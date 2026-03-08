@@ -110,12 +110,12 @@ void CLOPModel::updateDesignWeights(std::vector<CLOPModelSample>& samples) const
 
 std::vector<double> CLOPModel::computeEstimatedOptimum(const std::vector<CLOPModelSample>& samples) const {
     if (samples.empty()) {
-        std::vector<double> defaults;
-        defaults.reserve(config_.parameters.size());
+        std::vector<double> midpointValues;
+        midpointValues.reserve(config_.parameters.size());
         for (const auto& parameter : config_.parameters) {
-            defaults.push_back(parameter.defaultValue);
+            midpointValues.push_back((parameter.minValue + parameter.maxValue) * 0.5);
         }
-        return defaults;
+        return midpointValues;
     }
 
     std::vector<double> weightedSum(config_.parameters.size(), 0.0);
@@ -129,12 +129,12 @@ std::vector<double> CLOPModel::computeEstimatedOptimum(const std::vector<CLOPMod
     }
 
     if (totalWeight <= std::numeric_limits<double>::epsilon()) {
-        std::vector<double> defaults;
-        defaults.reserve(config_.parameters.size());
+        std::vector<double> midpointValues;
+        midpointValues.reserve(config_.parameters.size());
         for (const auto& parameter : config_.parameters) {
-            defaults.push_back(parameter.defaultValue);
+            midpointValues.push_back((parameter.minValue + parameter.maxValue) * 0.5);
         }
-        return defaults;
+        return midpointValues;
     }
 
     std::vector<double> estimated(weightedSum.size(), 0.0);

@@ -42,7 +42,6 @@ namespace {
 }
 
 [[nodiscard]] TableData buildDiagnosticsTable(
-    const CLOPConfig& config,
     const std::vector<CLOPSample>& samples,
     const std::vector<double>& previousEstimate,
     const std::vector<double>& currentEstimate,
@@ -93,24 +92,18 @@ namespace {
 
     double avgAbsDeltaFromPrevious = 0.0;
     double maxAbsDeltaFromPrevious = 0.0;
-    double avgAbsDeltaFromDefault = 0.0;
-    double maxAbsDeltaFromDefault = 0.0;
 
     if (!currentEstimate.empty()) {
         for (size_t index = 0; index < currentEstimate.size(); ++index) {
             const double previous = index < previousEstimate.size() ? previousEstimate[index] : currentEstimate[index];
             const double deltaFromPrevious = std::abs(currentEstimate[index] - previous);
-            const double deltaFromDefault = std::abs(currentEstimate[index] - config.parameters[index].defaultValue);
 
             avgAbsDeltaFromPrevious += deltaFromPrevious;
             maxAbsDeltaFromPrevious = std::max(maxAbsDeltaFromPrevious, deltaFromPrevious);
-            avgAbsDeltaFromDefault += deltaFromDefault;
-            maxAbsDeltaFromDefault = std::max(maxAbsDeltaFromDefault, deltaFromDefault);
         }
 
-        const double parameterCount = static_cast<double>(currentEstimate.size());
+        const auto parameterCount = static_cast<double>(currentEstimate.size());
         avgAbsDeltaFromPrevious /= parameterCount;
-        avgAbsDeltaFromDefault /= parameterCount;
     }
 
     TableData table;
@@ -132,8 +125,101 @@ namespace {
         {"outcomeWeightedStd", weightedOutcomeStd},
         {"estimateAvgAbsDeltaPrev", avgAbsDeltaFromPrevious},
         {"estimateMaxAbsDeltaPrev", maxAbsDeltaFromPrevious},
-        {"estimateAvgAbsDeltaDefault", avgAbsDeltaFromDefault},
-        {"estimateMaxAbsDeltaDefault", maxAbsDeltaFromDefault},
+    };
+
+    return table;
+}
+
+[[nodiscard]] size_t quadraticFeatureCount(size_t parameterCount) {
+    const size_t linearTerms = parameterCount;
+    const size_t diagonalTerms = parameterCount;
+    const size_t crossTerms = parameterCount * (parameterCount - 1) / 2;
+    return 1 + linearTerms + diagonalTerms + crossTerms;
+}
+
+[[nodiscard]] TableData buildIndicatorTable(
+    const CLOPConfig& config,
+    const std::vector<CLOPSample>& samples,
+    const std::vector<double>& previousEstimate,
+    const std::vector<double>& currentEstimate,
+    size_t completedSamples,
+    uint64_t modelGeneration) {
+
+    const auto& thresholds = config.indicatorThresholds;
+
+    double sumEffectiveWeight = 0.0;
+    double sumEffectiveWeightSq = 0.0;
+    for (const auto& sample : samples) {
+        const double effectiveWeight = sample.designWeight * sample.observationWeight;
+        sumEffectiveWeight += effectiveWeight;
+        sumEffectiveWeightSq += effectiveWeight * effectiveWeight;
+    }
+
+    const double effectiveSampleSize =
+        sumEffectiveWeightSq > 0.0 ? (sumEffectiveWeight * sumEffectiveWeight) / sumEffectiveWeightSq : 0.0;
+    const double effectiveShare = samples.empty() ? 0.0 : effectiveSampleSize / static_cast<double>(samples.size());
+
+    double avgAbsDeltaFromPrevious = 0.0;
+    if (!currentEstimate.empty()) {
+        for (size_t index = 0; index < currentEstimate.size(); ++index) {
+            const double previous = index < previousEstimate.size() ? previousEstimate[index] : currentEstimate[index];
+            avgAbsDeltaFromPrevious += std::abs(currentEstimate[index] - previous);
+        }
+        avgAbsDeltaFromPrevious /= static_cast<double>(currentEstimate.size());
+    }
+
+    double avgRangeSpan = 0.0;
+    for (const auto& parameter : config.parameters) {
+        avgRangeSpan += std::max(parameter.maxValue - parameter.minValue, 0.0);
+    }
+    if (!config.parameters.empty()) {
+        avgRangeSpan /= static_cast<double>(config.parameters.size());
+    }
+
+    const double normalizedStepPercent =
+        avgRangeSpan > std::numeric_limits<double>::epsilon() ? (avgAbsDeltaFromPrevious / avgRangeSpan) * 100.0 : 0.0;
+
+    const size_t modelFeatureCount = quadraticFeatureCount(config.parameters.size());
+    const double effectivePerFeature =
+        modelFeatureCount > 0 ? effectiveSampleSize / static_cast<double>(modelFeatureCount) : 0.0;
+    const double progressPercent =
+        config.samples > 0U ? (static_cast<double>(completedSamples) * 100.0 / static_cast<double>(config.samples)) : 0.0;
+
+    std::string phase = "collecting";
+    if (progressPercent < thresholds.warmupProgressPercent) {
+        phase = "warmup";
+    } else if (effectiveShare > thresholds.explorationEffectiveShareMin) {
+        phase = "exploration";
+    } else if (normalizedStepPercent > thresholds.searchingStepPercentMin) {
+        phase = "searching";
+    } else {
+        phase = "stabilizing";
+    }
+
+    std::string confidence = "low";
+    if (effectiveShare <= thresholds.confidenceHighEffectiveShareMax
+        && normalizedStepPercent <= thresholds.confidenceHighStepPercentMax
+        && effectivePerFeature >= thresholds.confidenceHighEffectivePerFeatureMin)
+    {
+        confidence = "high";
+    } else if (effectiveShare <= thresholds.confidenceMediumEffectiveShareMax
+        && normalizedStepPercent <= thresholds.confidenceMediumStepPercentMax
+        && effectivePerFeature >= thresholds.confidenceMediumEffectivePerFeatureMin)
+    {
+        confidence = "medium";
+    }
+
+    TableData table;
+    table.columnWidths = { 32, 18 };
+    table.headers = { "Indicator", "Value" };
+    table.body = {
+        {"modelGeneration", modelGeneration},
+        {"progressPercent", progressPercent},
+        {"effectiveShare", effectiveShare},
+        {"effectivePerFeature", effectivePerFeature},
+        {"normalizedStepPercent", normalizedStepPercent},
+        {"phase", phase},
+        {"confidence", confidence},
     };
 
     return table;
@@ -145,14 +231,13 @@ namespace {
     const std::vector<double>& currentEstimate) {
 
     TableData table;
-    table.columnWidths = { 24, 14, 14, 14, 14, 14 };
+    table.columnWidths = { 24, 14, 14, 14, 14 };
     table.headers = {
         "Parameter",
         "Corr(value,out)",
         "RangeMin",
         "RangeMax",
-        "Estimated",
-        "DeltaDefault"
+        "Estimated"
     };
 
     if (samples.empty()) {
@@ -199,8 +284,9 @@ namespace {
         }
 
         const double estimated =
-            parameterIndex < currentEstimate.size() ? currentEstimate[parameterIndex] : config.parameters[parameterIndex].defaultValue;
-        const double deltaFromDefault = estimated - config.parameters[parameterIndex].defaultValue;
+            parameterIndex < currentEstimate.size()
+                ? currentEstimate[parameterIndex]
+                : (config.parameters[parameterIndex].minValue + config.parameters[parameterIndex].maxValue) * 0.5;
 
         table.body.push_back({
             config.parameters[parameterIndex].name,
@@ -208,7 +294,6 @@ namespace {
             minValue,
             maxValue,
             estimated,
-            deltaFromDefault,
         });
     }
 
@@ -266,7 +351,7 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
     estimatedParameters_.clear();
     estimatedParameters_.reserve(config.parameters.size());
     for (const auto& parameter : config.parameters) {
-        estimatedParameters_.push_back(parameter.defaultValue);
+        estimatedParameters_.push_back((parameter.minValue + parameter.maxValue) * 0.5);
     }
 
     startPositions_ = std::make_shared<StartPositions>();
@@ -457,13 +542,19 @@ void CLOPOptimizer::recomputeThreadFunction() {
         applyModelWeights(modelSamples, modelSnapshot);
         auto nextEstimatedParameters = model_->computeEstimatedOptimum(modelSamples);
         auto diagnosticsTable = buildDiagnosticsTable(
-            config_,
             modelSnapshot,
             previousEstimatedParameters,
             nextEstimatedParameters,
             completedSamplesSnapshot,
             activeSamplesSnapshot,
             pendingSamplesSnapshot,
+            nextModelGeneration);
+        auto indicatorTable = buildIndicatorTable(
+            config_,
+            modelSnapshot,
+            previousEstimatedParameters,
+            nextEstimatedParameters,
+            completedSamplesSnapshot,
             nextModelGeneration);
         auto signalTable = buildSignalTable(config_, modelSnapshot, nextEstimatedParameters);
 
@@ -493,8 +584,11 @@ void CLOPOptimizer::recomputeThreadFunction() {
 
         if (shouldLog || isFinishedNow) {
             Logger::reportLogger().logTable("clopStatus", getStatusTable(), TraceLevel::result);
-            Logger::reportLogger().logTable("clopDiagnostics", diagnosticsTable, TraceLevel::result);
-            Logger::reportLogger().logTable("clopSignal", signalTable, TraceLevel::result);
+            Logger::reportLogger().logTable("clopIndicator", indicatorTable, TraceLevel::result);
+            if (config_.trace) {
+                Logger::reportLogger().logTable("clopDiagnostics", diagnosticsTable, TraceLevel::result);
+                Logger::reportLogger().logTable("clopSignal", signalTable, TraceLevel::result);
+            }
         }
 
         stateCondition_.notify_all();
@@ -674,14 +768,13 @@ TableData CLOPOptimizer::getStatusTable() const {
     std::scoped_lock lock(stateMutex_);
 
     TableData table;
-    table.columnWidths = { 24, 12, 12, 12, 14 };
-    table.headers = { "Parameter", "Initial", "Estimated", "Min", "Max" };
+    table.columnWidths = { 24, 12, 12, 14 };
+    table.headers = { "Parameter", "Estimated", "Min", "Max" };
 
     for (size_t index = 0; index < config_.parameters.size(); ++index) {
         const auto& parameter = config_.parameters[index];
         table.body.push_back({
             parameter.name,
-            parameter.defaultValue,
             estimatedParameters_[index],
             parameter.minValue,
             parameter.maxValue
