@@ -40,15 +40,27 @@ using CLOPParameterList = std::vector<CLOPParameterConfig>;
  * @brief Thresholds used by the runtime CLOP indicator evaluation.
  */
 struct CLOPIndicatorThresholds {
-    double warmupProgressPercent = 15.0;
-    double explorationEffectiveShareMin = 0.9;
     double searchingStepPercentMin = 0.2;
-    double confidenceHighEffectiveShareMax = 0.75;
-    double confidenceHighStepPercentMax = 0.1;
-    double confidenceHighEffectivePerFeatureMin = 15.0;
-    double confidenceMediumEffectiveShareMax = 0.85;
-    double confidenceMediumStepPercentMax = 0.2;
-    double confidenceMediumEffectivePerFeatureMin = 10.0;
+};
+
+/**
+ * @brief Configuration for data-driven CLOP signal evidence test.
+ */
+struct CLOPSignalTestConfig {
+    uint32_t recentSamples = 1500;
+    uint32_t folds = 3;
+    uint32_t permutations = 32;
+    uint32_t intervalSamples = 250;
+};
+
+/**
+ * @brief Result of the data-driven CLOP signal evidence test.
+ */
+struct CLOPSignalEvidence {
+    bool available = false;
+    double deltaLogLoss = 0.0;
+    double pNoise = 1.0;
+    double zScore = 0.0;
 };
 
 /**
@@ -57,6 +69,7 @@ struct CLOPIndicatorThresholds {
 struct CLOPConfig {
     CLOPParameterList parameters;
     CLOPIndicatorThresholds indicatorThresholds;
+    CLOPSignalTestConfig signalTest;
     bool trace = false;
     uint32_t maxActivePairs = 32;
     uint32_t samples = 100;

@@ -74,10 +74,29 @@ public:
      */
     [[nodiscard]] std::vector<double> computeEstimatedOptimum(const std::vector<CLOPModelSample>& samples) const;
 
+    /**
+     * @brief Computes data-driven signal evidence by cross-validated model-vs-noise comparison.
+     * @param samples Weighted model samples.
+     * @param testConfig Signal test configuration from CLOPConfig.
+     * @param seed Random seed for fold shuffling and permutations.
+     * @return Signal evidence metrics.
+     */
+    [[nodiscard]] CLOPSignalEvidence computeSignalEvidence(
+        const std::vector<CLOPModelSample>& samples,
+        const CLOPSignalTestConfig& testConfig,
+        uint32_t seed) const;
+
 private:
     struct LogisticModel {
         std::vector<double> coefficients;
     };
+
+    [[nodiscard]] double computeDeltaLogLoss(
+        const std::vector<CLOPModelSample>& samples,
+        size_t offset,
+        const std::vector<size_t>& foldIds,
+        uint32_t folds,
+        const std::vector<double>* overriddenOutcomes) const;
 
     [[nodiscard]] LogisticModel fitQuadraticLogisticRegression(const std::vector<CLOPModelSample>& samples) const;
     [[nodiscard]] double fitLogisticMean(const std::vector<CLOPModelSample>& samples) const;
