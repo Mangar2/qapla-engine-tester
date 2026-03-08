@@ -36,7 +36,10 @@
 #include "../config/adjudication-config.h"
 #include "../epd/epd-manager.h"
 #include "../spsa/spsa-optimizer.h"
-#include "../clop/clop-optimizer.h"
+#include "../clop/clop-types.h"
+
+#include <memory>
+#include <vector>
 #include "../mcp/mcp-server.h"
 
 #include <fstream>

@@ -23,6 +23,7 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
+#include <random>
 
 namespace QaplaTester {
 
@@ -40,6 +41,34 @@ namespace {
 
 [[nodiscard]] double clampExpInput(double value) {
     return std::clamp(value, -40.0, 40.0);
+}
+
+[[nodiscard]] double clampProbability(double value) {
+    return std::clamp(value, 1e-9, 1.0 - 1e-9);
+}
+
+[[nodiscard]] std::vector<size_t> buildFoldIds(size_t recentCount, uint32_t folds, std::mt19937& rng) {
+    std::vector<size_t> sampleIndex(recentCount, 0);
+    std::iota(sampleIndex.begin(), sampleIndex.end(), 0);
+    std::shuffle(sampleIndex.begin(), sampleIndex.end(), rng);
+
+    std::vector<size_t> foldIds(recentCount, 0);
+    for (size_t index = 0; index < recentCount; ++index) {
+        foldIds[sampleIndex[index]] = index % static_cast<size_t>(folds);
+    }
+    return foldIds;
+}
+
+[[nodiscard]] std::vector<double> extractRecentOutcomes(
+    const std::vector<CLOPModelSample>& samples,
+    size_t offset,
+    size_t recentCount) {
+
+    std::vector<double> outcomes(recentCount, 0.0);
+    for (size_t localIndex = 0; localIndex < recentCount; ++localIndex) {
+        outcomes[localIndex] = samples[offset + localIndex].outcome;
+    }
+    return outcomes;
 }
 
 } // namespace
@@ -143,6 +172,120 @@ std::vector<double> CLOPModel::computeEstimatedOptimum(const std::vector<CLOPMod
     }
 
     return estimated;
+}
+
+double CLOPModel::computeDeltaLogLoss(
+    const std::vector<CLOPModelSample>& samples,
+    size_t offset,
+    const std::vector<size_t>& foldIds,
+    uint32_t folds,
+    const std::vector<double>* overriddenOutcomes) const {
+
+    const size_t recentCount = foldIds.size();
+    double modelLogLoss = 0.0;
+    double nullLogLoss = 0.0;
+
+    for (size_t fold = 0; fold < static_cast<size_t>(folds); ++fold) {
+        std::vector<CLOPModelSample> trainingSamples;
+        trainingSamples.reserve(recentCount);
+
+        double weightedOutcomeSum = 0.0;
+        double weightedOutcomeWeight = 0.0;
+
+        for (size_t localIndex = 0; localIndex < recentCount; ++localIndex) {
+            if (foldIds[localIndex] == fold) {
+                continue;
+            }
+            const size_t globalIndex = offset + localIndex;
+            auto trainingSample = samples[globalIndex];
+            if (overriddenOutcomes != nullptr) {
+                trainingSample.outcome = (*overriddenOutcomes)[localIndex];
+            }
+            trainingSamples.push_back(std::move(trainingSample));
+
+            const double effectiveWeight =
+                trainingSamples.back().designWeight * trainingSamples.back().observationWeight;
+            weightedOutcomeSum += effectiveWeight * trainingSamples.back().outcome;
+            weightedOutcomeWeight += effectiveWeight;
+        }
+
+        if (trainingSamples.empty()) {
+            continue;
+        }
+
+        const double nullProbability = clampProbability(
+            weightedOutcomeWeight > 0.0 ? weightedOutcomeSum / weightedOutcomeWeight : 0.5);
+        const auto model = fitQuadraticLogisticRegression(trainingSamples);
+
+        for (size_t localIndex = 0; localIndex < recentCount; ++localIndex) {
+            if (foldIds[localIndex] != fold) {
+                continue;
+            }
+
+            const size_t globalIndex = offset + localIndex;
+            const auto& validationSample = samples[globalIndex];
+            const double outcome = overriddenOutcomes != nullptr
+                ? (*overriddenOutcomes)[localIndex]
+                : validationSample.outcome;
+            const double weight = validationSample.designWeight * validationSample.observationWeight;
+
+            const double predicted = clampProbability(sigmoid(
+                evaluateQuadratic(model, validationSample.normalizedValues)));
+
+            modelLogLoss -= weight * (outcome * std::log(predicted) + (1.0 - outcome) * std::log(1.0 - predicted));
+            nullLogLoss -= weight * (outcome * std::log(nullProbability) + (1.0 - outcome) * std::log(1.0 - nullProbability));
+        }
+    }
+
+    return nullLogLoss - modelLogLoss;
+}
+
+CLOPSignalEvidence CLOPModel::computeSignalEvidence(
+    const std::vector<CLOPModelSample>& samples,
+    const CLOPSignalTestConfig& testConfig,
+    uint32_t seed) const {
+
+    CLOPSignalEvidence evidence;
+    if (samples.size() < 30 || testConfig.folds < 2 || testConfig.permutations == 0) {
+        return evidence;
+    }
+
+    const size_t recentCount = std::min(samples.size(), static_cast<size_t>(std::max(testConfig.recentSamples, 30U)));
+    const size_t offset = samples.size() - recentCount;
+
+    std::mt19937 rng(seed == 0U ? 5489U : seed);
+    const auto foldIds = buildFoldIds(recentCount, testConfig.folds, rng);
+    const double observedDelta = computeDeltaLogLoss(samples, offset, foldIds, testConfig.folds, nullptr);
+    auto permutedOutcomes = extractRecentOutcomes(samples, offset, recentCount);
+
+    size_t noiseGreaterEqual = 0;
+    double noiseSum = 0.0;
+    double noiseSqSum = 0.0;
+    for (uint32_t permutationIndex = 0; permutationIndex < testConfig.permutations; ++permutationIndex) {
+        std::shuffle(permutedOutcomes.begin(), permutedOutcomes.end(), rng);
+        const double noiseDelta = computeDeltaLogLoss(
+            samples,
+            offset,
+            foldIds,
+            testConfig.folds,
+            &permutedOutcomes);
+        if (noiseDelta >= observedDelta) {
+            ++noiseGreaterEqual;
+        }
+        noiseSum += noiseDelta;
+        noiseSqSum += noiseDelta * noiseDelta;
+    }
+
+    const double permutationCount = static_cast<double>(testConfig.permutations);
+    const double noiseMean = noiseSum / permutationCount;
+    const double noiseVar = std::max(noiseSqSum / permutationCount - noiseMean * noiseMean, 0.0);
+    const double noiseStd = std::sqrt(noiseVar);
+
+    evidence.available = true;
+    evidence.deltaLogLoss = observedDelta;
+    evidence.pNoise = static_cast<double>(noiseGreaterEqual) / permutationCount;
+    evidence.zScore = noiseStd > 0.0 ? (observedDelta - noiseMean) / noiseStd : 0.0;
+    return evidence;
 }
 
 CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::vector<CLOPModelSample>& samples) const {

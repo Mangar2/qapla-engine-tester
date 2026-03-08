@@ -130,34 +130,13 @@ namespace {
     return table;
 }
 
-[[nodiscard]] size_t quadraticFeatureCount(size_t parameterCount) {
-    const size_t linearTerms = parameterCount;
-    const size_t diagonalTerms = parameterCount;
-    const size_t crossTerms = parameterCount * (parameterCount - 1) / 2;
-    return 1 + linearTerms + diagonalTerms + crossTerms;
-}
-
 [[nodiscard]] TableData buildIndicatorTable(
     const CLOPConfig& config,
-    const std::vector<CLOPSample>& samples,
     const std::vector<double>& previousEstimate,
     const std::vector<double>& currentEstimate,
     size_t completedSamples,
-    uint64_t modelGeneration) {
-
-    const auto& thresholds = config.indicatorThresholds;
-
-    double sumEffectiveWeight = 0.0;
-    double sumEffectiveWeightSq = 0.0;
-    for (const auto& sample : samples) {
-        const double effectiveWeight = sample.designWeight * sample.observationWeight;
-        sumEffectiveWeight += effectiveWeight;
-        sumEffectiveWeightSq += effectiveWeight * effectiveWeight;
-    }
-
-    const double effectiveSampleSize =
-        sumEffectiveWeightSq > 0.0 ? (sumEffectiveWeight * sumEffectiveWeight) / sumEffectiveWeightSq : 0.0;
-    const double effectiveShare = samples.empty() ? 0.0 : effectiveSampleSize / static_cast<double>(samples.size());
+    uint64_t modelGeneration,
+    const CLOPSignalEvidence& signalEvidence) {
 
     double avgAbsDeltaFromPrevious = 0.0;
     if (!currentEstimate.empty()) {
@@ -179,47 +158,28 @@ namespace {
     const double normalizedStepPercent =
         avgRangeSpan > std::numeric_limits<double>::epsilon() ? (avgAbsDeltaFromPrevious / avgRangeSpan) * 100.0 : 0.0;
 
-    const size_t modelFeatureCount = quadraticFeatureCount(config.parameters.size());
-    const double effectivePerFeature =
-        modelFeatureCount > 0 ? effectiveSampleSize / static_cast<double>(modelFeatureCount) : 0.0;
-    const double progressPercent =
-        config.samples > 0U ? (static_cast<double>(completedSamples) * 100.0 / static_cast<double>(config.samples)) : 0.0;
+    const auto progressText = std::format("{}/{}", completedSamples, config.samples);
 
     std::string phase = "collecting";
-    if (progressPercent < thresholds.warmupProgressPercent) {
+    if (completedSamples < config.warmupSamples) {
         phase = "warmup";
-    } else if (effectiveShare > thresholds.explorationEffectiveShareMin) {
-        phase = "exploration";
-    } else if (normalizedStepPercent > thresholds.searchingStepPercentMin) {
+    } else if (normalizedStepPercent > config.indicatorThresholds.searchingStepPercentMin) {
         phase = "searching";
     } else {
         phase = "stabilizing";
-    }
-
-    std::string confidence = "low";
-    if (effectiveShare <= thresholds.confidenceHighEffectiveShareMax
-        && normalizedStepPercent <= thresholds.confidenceHighStepPercentMax
-        && effectivePerFeature >= thresholds.confidenceHighEffectivePerFeatureMin)
-    {
-        confidence = "high";
-    } else if (effectiveShare <= thresholds.confidenceMediumEffectiveShareMax
-        && normalizedStepPercent <= thresholds.confidenceMediumStepPercentMax
-        && effectivePerFeature >= thresholds.confidenceMediumEffectivePerFeatureMin)
-    {
-        confidence = "medium";
     }
 
     TableData table;
     table.columnWidths = { 32, 18 };
     table.headers = { "Indicator", "Value" };
     table.body = {
-        {"modelGeneration", modelGeneration},
-        {"progressPercent", progressPercent},
-        {"effectiveShare", effectiveShare},
-        {"effectivePerFeature", effectivePerFeature},
+        {"recomputeCycles", modelGeneration},
+        {"sampleProgress", progressText},
         {"normalizedStepPercent", normalizedStepPercent},
         {"phase", phase},
-        {"confidence", confidence},
+        {"signalDeltaLogLoss", signalEvidence.available ? signalEvidence.deltaLogLoss : 0.0},
+        {"signalPNoise", signalEvidence.available ? signalEvidence.pNoise : 1.0},
+        {"signalZ", signalEvidence.available ? signalEvidence.zScore : 0.0},
     };
 
     return table;
@@ -369,8 +329,10 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
         activeSamples_.clear();
         completedSamples_ = 0;
         lastLoggedCompletedSamples_ = 0;
+        lastSignalEvidenceSample_ = 0;
         modelGeneration_ = 0;
         nextSampleIndex_ = 0;
+        lastSignalEvidence_ = {};
         nextRound_ = 0;
         recomputeRunning_ = false;
         initialized_ = true;
@@ -491,103 +453,130 @@ void CLOPOptimizer::schedulerThreadFunction() {
     }
 }
 
+bool CLOPOptimizer::collectRecomputeSnapshot(RecomputeSnapshot& snapshot) {
+    std::unique_lock lock(stateMutex_);
+    recomputeCondition_.wait_for(lock, std::chrono::milliseconds(200), [this]() {
+        return stopWorker_ || !pendingResults_.empty();
+    });
+
+    if (stopWorker_) {
+        return false;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    const bool inRecomputeCooldown =
+        !pendingResults_.empty()
+        && lastRecomputeAt_ != std::chrono::steady_clock::time_point{}
+        && now - lastRecomputeAt_ < minRecomputeInterval_;
+    if (inRecomputeCooldown || pendingResults_.empty()) {
+        return false;
+    }
+
+    recomputeRunning_ = true;
+    snapshot.modelSnapshot = samples_;
+    snapshot.previousEstimatedParameters = estimatedParameters_;
+    snapshot.completedSamples = completedSamples_;
+    snapshot.activeSamples = activeSamples_.size();
+    snapshot.pendingSamples = pendingResults_.size();
+    snapshot.signalEvidenceSample = lastSignalEvidenceSample_;
+    snapshot.signalEvidenceAvailable = lastSignalEvidence_.available;
+    snapshot.signalEvidence = lastSignalEvidence_;
+    snapshot.nextModelGeneration = modelGeneration_ + 1;
+    snapshot.pendingBatch.swap(pendingResults_);
+    snapshot.reachedSampleLimit = completedSamples_ >= config_.samples;
+    return true;
+}
+
+void CLOPOptimizer::computeRecomputeSnapshot(RecomputeSnapshot& snapshot) {
+    snapshot.modelSnapshot.insert(
+        snapshot.modelSnapshot.end(),
+        snapshot.pendingBatch.begin(),
+        snapshot.pendingBatch.end());
+
+    auto modelSamples = toModelSamples(snapshot.modelSnapshot);
+    model_->updateDesignWeights(modelSamples);
+    applyModelWeights(modelSamples, snapshot.modelSnapshot);
+    snapshot.nextEstimatedParameters = model_->computeEstimatedOptimum(modelSamples);
+    snapshot.diagnosticsTable = buildDiagnosticsTable(
+        snapshot.modelSnapshot,
+        snapshot.previousEstimatedParameters,
+        snapshot.nextEstimatedParameters,
+        snapshot.completedSamples,
+        snapshot.activeSamples,
+        snapshot.pendingSamples,
+        snapshot.nextModelGeneration);
+
+    const auto signalInterval = std::max(config_.signalTest.intervalSamples, 1U);
+    snapshot.shouldRecomputeSignal =
+        !snapshot.signalEvidenceAvailable
+        || snapshot.reachedSampleLimit
+        || snapshot.completedSamples >= snapshot.signalEvidenceSample + signalInterval;
+    if (snapshot.shouldRecomputeSignal) {
+        snapshot.signalEvidence = model_->computeSignalEvidence(
+            modelSamples,
+            config_.signalTest,
+            static_cast<uint32_t>(snapshot.nextModelGeneration));
+    }
+
+    snapshot.indicatorTable = buildIndicatorTable(
+        config_,
+        snapshot.previousEstimatedParameters,
+        snapshot.nextEstimatedParameters,
+        snapshot.completedSamples,
+        snapshot.nextModelGeneration,
+        snapshot.signalEvidence);
+    snapshot.signalTable = buildSignalTable(config_, snapshot.modelSnapshot, snapshot.nextEstimatedParameters);
+}
+
+void CLOPOptimizer::commitRecomputeSnapshot(
+    const RecomputeSnapshot& snapshot,
+    bool& shouldLog,
+    bool& isFinishedNow) {
+
+    std::scoped_lock lock(stateMutex_);
+    samples_ = snapshot.modelSnapshot;
+    estimatedParameters_ = snapshot.nextEstimatedParameters;
+    if (snapshot.shouldRecomputeSignal) {
+        lastSignalEvidence_ = snapshot.signalEvidence;
+        lastSignalEvidenceSample_ = completedSamples_;
+    }
+    ++modelGeneration_;
+    recomputeRunning_ = false;
+    lastRecomputeAt_ = std::chrono::steady_clock::now();
+
+    if (config_.outcomeInterval != 0U) {
+        const size_t previousBucket = lastLoggedCompletedSamples_ / config_.outcomeInterval;
+        const size_t currentBucket = completedSamples_ / config_.outcomeInterval;
+        shouldLog = currentBucket > previousBucket;
+        if (shouldLog) {
+            lastLoggedCompletedSamples_ = completedSamples_;
+        }
+    }
+    if (snapshot.reachedSampleLimit && pendingResults_.empty() && activeSamples_.empty()) {
+        finished_ = true;
+    }
+    isFinishedNow = finished_;
+}
+
 void CLOPOptimizer::recomputeThreadFunction() {
     while (!stopWorker_) {
-        std::vector<CLOPSample> modelSnapshot;
-        std::vector<CLOPSample> pendingBatch;
-        std::vector<double> previousEstimatedParameters;
-        size_t completedSamplesSnapshot = 0;
-        size_t activeSamplesSnapshot = 0;
-        size_t pendingSamplesSnapshot = 0;
-        uint64_t nextModelGeneration = 0;
-        bool reachedSampleLimit = false;
-
-        {
-            std::unique_lock lock(stateMutex_);
-            recomputeCondition_.wait_for(lock, std::chrono::milliseconds(200), [this]() {
-                return stopWorker_ || !pendingResults_.empty();
-            });
-
-            if (stopWorker_) {
-                break;
-            }
-
-            const auto now = std::chrono::steady_clock::now();
-            if (!pendingResults_.empty() &&
-                lastRecomputeAt_ != std::chrono::steady_clock::time_point{} &&
-                now - lastRecomputeAt_ < minRecomputeInterval_)
-            {
-                continue;
-            }
-
-            if (pendingResults_.empty()) {
-                continue;
-            }
-
-            recomputeRunning_ = true;
-            modelSnapshot = samples_;
-            previousEstimatedParameters = estimatedParameters_;
-            completedSamplesSnapshot = completedSamples_;
-            activeSamplesSnapshot = activeSamples_.size();
-            pendingSamplesSnapshot = pendingResults_.size();
-            nextModelGeneration = modelGeneration_ + 1;
-            pendingBatch.swap(pendingResults_);
-            reachedSampleLimit = completedSamples_ >= config_.samples;
-            lock.unlock();
+        RecomputeSnapshot snapshot;
+        if (!collectRecomputeSnapshot(snapshot)) {
+            continue;
         }
 
-        modelSnapshot.insert(modelSnapshot.end(), pendingBatch.begin(), pendingBatch.end());
-        auto modelSamples = toModelSamples(modelSnapshot);
-        model_->updateDesignWeights(modelSamples);
-        applyModelWeights(modelSamples, modelSnapshot);
-        auto nextEstimatedParameters = model_->computeEstimatedOptimum(modelSamples);
-        auto diagnosticsTable = buildDiagnosticsTable(
-            modelSnapshot,
-            previousEstimatedParameters,
-            nextEstimatedParameters,
-            completedSamplesSnapshot,
-            activeSamplesSnapshot,
-            pendingSamplesSnapshot,
-            nextModelGeneration);
-        auto indicatorTable = buildIndicatorTable(
-            config_,
-            modelSnapshot,
-            previousEstimatedParameters,
-            nextEstimatedParameters,
-            completedSamplesSnapshot,
-            nextModelGeneration);
-        auto signalTable = buildSignalTable(config_, modelSnapshot, nextEstimatedParameters);
+        computeRecomputeSnapshot(snapshot);
 
         bool shouldLog = false;
         bool isFinishedNow = false;
-        {
-            std::scoped_lock lock(stateMutex_);
-            samples_ = std::move(modelSnapshot);
-            estimatedParameters_ = std::move(nextEstimatedParameters);
-            ++modelGeneration_;
-            recomputeRunning_ = false;
-            lastRecomputeAt_ = std::chrono::steady_clock::now();
-
-            if (config_.outcomeInterval != 0U) {
-                const size_t previousBucket = lastLoggedCompletedSamples_ / config_.outcomeInterval;
-                const size_t currentBucket = completedSamples_ / config_.outcomeInterval;
-                shouldLog = currentBucket > previousBucket;
-                if (shouldLog) {
-                    lastLoggedCompletedSamples_ = completedSamples_;
-                }
-            }
-            if (reachedSampleLimit && pendingResults_.empty() && activeSamples_.empty()) {
-                finished_ = true;
-            }
-            isFinishedNow = finished_;
-        }
+        commitRecomputeSnapshot(snapshot, shouldLog, isFinishedNow);
 
         if (shouldLog || isFinishedNow) {
             Logger::reportLogger().logTable("clopStatus", getStatusTable(), TraceLevel::result);
-            Logger::reportLogger().logTable("clopIndicator", indicatorTable, TraceLevel::result);
+            Logger::reportLogger().logTable("clopIndicator", snapshot.indicatorTable, TraceLevel::result);
             if (config_.trace) {
-                Logger::reportLogger().logTable("clopDiagnostics", diagnosticsTable, TraceLevel::result);
-                Logger::reportLogger().logTable("clopSignal", signalTable, TraceLevel::result);
+                Logger::reportLogger().logTable("clopDiagnostics", snapshot.diagnosticsTable, TraceLevel::result);
+                Logger::reportLogger().logTable("clopSignal", snapshot.signalTable, TraceLevel::result);
             }
         }
 
@@ -668,7 +657,7 @@ void CLOPOptimizer::onPairFinished(PairTournament* sender) {
     std::optional<CLOPSample> finishedSample;
     {
         std::scoped_lock lock(stateMutex_);
-        const auto iterator = std::find_if(activeSamples_.begin(), activeSamples_.end(),
+        const auto iterator = std::ranges::find_if(activeSamples_,
             [sender](const CLOPSample& sample) {
                 return sample.pairing != nullptr && sample.pairing.get() == sender;
             });

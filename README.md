@@ -659,6 +659,18 @@ Define the optimizer with `--clop` and define each tuned parameter with one `--c
 - **`priorvariance`** (Optional, Default: `100.0`)  
   Gaussian prior variance for logistic regressions.
 
+- **`trace`** (Optional, Default: `false`)  
+  Enables detailed CLOP trace tables (`clopDiagnostics`, `clopSignal`).
+  The compact runtime table `clopIndicator` is always shown.
+
+### Runtime indicator (`clopIndicator`)
+
+- `recomputeCycles` — Number of model recomputations already performed.
+- `sampleProgress` — Completed samples vs configured target (for example `1000/40000`).
+- `normalizedStepPercent` — Relative estimate movement vs average parameter range in percent.
+- `phase` — Current optimizer state (`warmup`, `searching`, `stabilizing`).
+- `signalDeltaLogLoss`, `signalPNoise`, `signalZ` — Data-driven signal evidence from cross-validation + permutation noise test.
+
 ### Parameter definitions (`--clopvalue`)
 
 Each parameter to optimize requires:
