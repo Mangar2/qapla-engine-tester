@@ -664,14 +664,16 @@ Define the optimizer with `--clop` and define each tuned parameter with one `--c
 Each parameter to optimize requires:
 
 - `name` (UCI option name)
-- `default` (start value)
 - `min` (lower bound)
 - `max` (upper bound)
+
+Choose `min` and `max` so the range contains only meaningful test values.
+If you have a known baseline value (for example, a previous default/start value), choose `min` and `max` so this value is approximately centered in the range.
 
 ### Example (CLOP Run)
 
 ```bash
---engine conf="MyEngine" --openings file="openings.epd" --clop samples=150 gamespersample=12 h=3.0 --clopvalue name="Contempt" default=20 min=-50 max=50 --clopvalue name="KingSafety" default=120 min=50 max=300
+--engine conf="MyEngine" --openings file="openings.epd" --clop samples=150 gamespersample=12 h=3.0 --clopvalue name="Contempt" min=-50 max=50 --clopvalue name="KingSafety" min=50 max=300
 ```
 
 ---

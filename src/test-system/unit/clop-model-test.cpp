@@ -28,7 +28,7 @@ using namespace QaplaTester;
 
 TEST_CASE("CLOPModel converges to interior optimum on smooth synthetic landscape", "[clop][model]") {
     CLOPConfig config;
-    config.parameters.push_back({"Tunable", 50.0, 0.0, 100.0});
+    config.parameters.push_back({"Tunable", 0.0, 100.0});
     config.maxWeightIterations = 30;
     config.h = 3.0;
     config.priorVariance = 100.0;
@@ -60,14 +60,14 @@ TEST_CASE("CLOPModel converges to interior optimum on smooth synthetic landscape
     REQUIRE(std::isfinite(estimated[0]));
     REQUIRE(estimated[0] >= 0.0);
     REQUIRE(estimated[0] <= 100.0);
-    REQUIRE(estimated[0] > config.parameters[0].defaultValue + 5.0);
+    REQUIRE(estimated[0] > 55.0);
     REQUIRE(estimated[0] < 90.0);
 }
 
 TEST_CASE("CLOPModel remains finite with high observation weights", "[clop][model][stability]") {
     CLOPConfig config;
-    config.parameters.push_back({"ParamA", 20.0, -100.0, 100.0});
-    config.parameters.push_back({"ParamB", -10.0, -100.0, 100.0});
+    config.parameters.push_back({"ParamA", -100.0, 100.0});
+    config.parameters.push_back({"ParamB", -100.0, 100.0});
     config.maxWeightIterations = 30;
     config.h = 3.0;
     config.priorVariance = 100.0;

@@ -442,6 +442,7 @@ void QaplaSettings::setCLOPConfig() {
     m_clopConfig->gamesPerSample = clopGroup->get<unsigned int>("gamespersample");
     m_clopConfig->warmupSamples = clopGroup->get<unsigned int>("warmupsamples");
     m_clopConfig->outcomeInterval = clopGroup->get<unsigned int>("outcomeinterval");
+    m_clopConfig->trace = clopGroup->get<bool>("trace");
     m_clopConfig->maxWeightIterations = clopGroup->get<unsigned int>("maxweightiterations");
     m_clopConfig->h = clopGroup->get<double>("h");
     m_clopConfig->priorVariance = clopGroup->get<double>("priorvariance");
@@ -455,7 +456,6 @@ void QaplaSettings::setCLOPConfig() {
     for (const auto& valueGroup : clopValueGroups) {
         CLOPParameterConfig parameter;
         parameter.name = valueGroup.get<std::string>("name");
-        parameter.defaultValue = valueGroup.get<double>("default");
         parameter.minValue = valueGroup.get<double>("min");
         parameter.maxValue = valueGroup.get<double>("max");
         m_clopConfig->parameters.push_back(parameter);

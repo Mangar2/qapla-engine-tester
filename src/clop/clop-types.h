@@ -30,7 +30,6 @@ namespace QaplaTester {
  */
 struct CLOPParameterConfig {
     std::string name;
-    double defaultValue;
     double minValue;
     double maxValue;
 };
@@ -38,10 +37,27 @@ struct CLOPParameterConfig {
 using CLOPParameterList = std::vector<CLOPParameterConfig>;
 
 /**
+ * @brief Thresholds used by the runtime CLOP indicator evaluation.
+ */
+struct CLOPIndicatorThresholds {
+    double warmupProgressPercent = 15.0;
+    double explorationEffectiveShareMin = 0.9;
+    double searchingStepPercentMin = 0.2;
+    double confidenceHighEffectiveShareMax = 0.75;
+    double confidenceHighStepPercentMax = 0.1;
+    double confidenceHighEffectivePerFeatureMin = 15.0;
+    double confidenceMediumEffectiveShareMax = 0.85;
+    double confidenceMediumStepPercentMax = 0.2;
+    double confidenceMediumEffectivePerFeatureMin = 10.0;
+};
+
+/**
  * @brief Configuration for CLOP optimization execution.
  */
 struct CLOPConfig {
     CLOPParameterList parameters;
+    CLOPIndicatorThresholds indicatorThresholds;
+    bool trace = false;
     uint32_t maxActivePairs = 32;
     uint32_t samples = 100;
     uint32_t gamesPerSample = 8;

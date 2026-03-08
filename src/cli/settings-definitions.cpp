@@ -240,7 +240,9 @@ IMPORTANT: You MUST define all optimized parameters using the 'clopvalue' group.
         .name = "clopvalue",
         .description = "Defines a single parameter to optimize with CLOP",
         .longDescription = R"(Defines a parameter for CLOP optimization.
-All fields (name, default, min, max) are mandatory.
+All fields (name, min, max) are mandatory.
+Choose min/max so the search space contains only meaningful test values.
+If you have a known baseline value (previous default/start value), set min/max so this value is approximately centered in the range.
 Multiple 'clopvalue' groups can be defined to optimize several parameters simultaneously.)",
         .unique = false,
         .keys = Settings::getClopValueKeys()
@@ -923,12 +925,16 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopKeys() {
                                 .type = ValueType::UInt } },
         { "warmupsamples",    { .description = "Number of initial random samples before local fitting",
                                 .isRequired = false,
-                                .defaultValue = 8,
+                                .defaultValue = 500,
                                 .type = ValueType::UInt } },
         { "outcomeinterval",  { .description = "Interval in completed samples for status and outcome output",
                                 .isRequired = false,
                                 .defaultValue = 10,
                                 .type = ValueType::UInt } },
+        { "trace",            { .description = "Enable detailed CLOP trace output (diagnostics and signal tables)",
+                    .isRequired = false,
+                    .defaultValue = false,
+                    .type = ValueType::Bool } },
         { "maxweightiterations", { .description = "Maximum iterations for local weight refinement per sample",
                                 .isRequired = false,
                                 .defaultValue = 25,
@@ -961,10 +967,6 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getClopValueKeys() {
                         .isRequired = true,
                         .defaultValue = "",
                         .type = ValueType::String } },
-        { "default",   { .description = "Starting value for the parameter",
-                        .isRequired = true,
-                        .defaultValue = 0.0F,
-                        .type = ValueType::Float } },
         { "min",       { .description = "Minimum allowed value for the parameter",
                         .isRequired = true,
                         .defaultValue = 0.0F,
