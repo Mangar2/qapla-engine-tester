@@ -19,6 +19,7 @@
 
 #include "clop-optimizer.h"
 
+#include "clop-engine-selection.h"
 #include "clop-model.h"
 
 #include "../opening/opening-parser.h"
@@ -258,7 +259,7 @@ CLOPOptimizer::~CLOPOptimizer() {
     stop();
 }
 
-void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& config) {
+void CLOPOptimizer::createCLOP(const std::vector<EngineConfig>& engines, const CLOPConfig& config) {
     if (config.parameters.empty()) {
         throw AppError::makeInvalidParameters("CLOP requires at least one parameter to optimize.");
     }
@@ -272,8 +273,9 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
         throw AppError::makeInvalidParameters("CLOP requires an openings file.");
     }
 
-    baseEngine_ = engine;
-    baselineEngine_ = engine;
+    const auto optimizingEngineIndex = Clop::resolveOptimizingEngineIndex(engines);
+    baseEngine_ = engines[optimizingEngineIndex];
+    opponentEngines_ = Clop::createOpponentEngines(engines, optimizingEngineIndex);
     config_ = config;
     model_ = std::make_unique<CLOPModel>(config_);
     rng_.seed(config.openingsSeed);
@@ -301,6 +303,7 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
         lastLoggedCompletedSamples_ = 0;
         modelGeneration_ = 0;
         nextSampleIndex_ = 0;
+        nextOpponentIndex_ = 0;
         nextRound_ = 0;
         recomputeRunning_ = false;
         initialized_ = true;
@@ -317,6 +320,17 @@ void CLOPOptimizer::createCLOP(const EngineConfig& engine, const CLOPConfig& con
             config.h),
         "clop",
         TraceLevel::result);
+}
+
+EngineConfig CLOPOptimizer::getNextOpponentEngine() {
+    std::scoped_lock lock(stateMutex_);
+    if (opponentEngines_.empty()) {
+        throw AppError::makeInvalidParameters("CLOP requires at least one opponent engine.");
+    }
+
+    const auto& opponent = opponentEngines_[nextOpponentIndex_];
+    nextOpponentIndex_ = Clop::nextOpponentIndex(nextOpponentIndex_, opponentEngines_.size());
+    return opponent;
 }
 
 void CLOPOptimizer::scheduleCLOP(uint32_t concurrency, GameManagerPool& pool) {
@@ -560,6 +574,7 @@ void CLOPOptimizer::scheduleNextSample() {
 
     normalizedValues = createNormalizedSample(modeledSamples, estimatedParameters, scheduledCount);
     parameterValues = model_->denormalizeValues(normalizedValues);
+    const auto opponentEngine = getNextOpponentEngine();
 
     auto challengerEngine = createConfiguredEngine(parameterValues);
     challengerEngine.setName(std::format("{}_clop_sample{}", baseEngine_.getName(), sampleIndex));
@@ -575,7 +590,7 @@ void CLOPOptimizer::scheduleNextSample() {
     pairConfig.seed = static_cast<uint32_t>(rng_());
 
     auto pair = std::make_shared<PairTournament>();
-    pair->initialize(challengerEngine, baselineEngine_, pairConfig, startPositions_);
+    pair->initialize(challengerEngine, opponentEngine, pairConfig, startPositions_);
     pair->setVerbose(false);
     pair->setGameFinishedCallback([this](PairTournament* sender) {
         onPairFinished(sender);

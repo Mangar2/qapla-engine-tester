@@ -229,7 +229,7 @@ Multiple 'spsavalue' groups can be defined to optimize several parameters simult
         .description = "CLOP parameter optimization configuration",
         .longDescription = R"(Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression.
 The optimizer fits a local quadratic win model over sampled parameter vectors and updates a local design weight function.
-New samples are drawn according to this weight function and evaluated by self-play against the current baseline.
+New samples are drawn according to this weight function and evaluated against configured opponent engines.
 IMPORTANT: You MUST define all optimized parameters using the 'clopvalue' group.)",
         .unique = true,
         .keys = Settings::getClopKeys()

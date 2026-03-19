@@ -62,11 +62,11 @@ public:
     ~CLOPOptimizer();
 
     /**
-     * @brief Initializes CLOP with base engine and optimization config.
-     * @param engine Engine configuration to tune.
+      * @brief Initializes CLOP with engine list and optimization config.
+      * @param engines Engine configurations used for tuning and opponents.
      * @param config CLOP settings.
      */
-    void createCLOP(const EngineConfig& engine, const CLOPConfig& config);
+     void createCLOP(const std::vector<EngineConfig>& engines, const CLOPConfig& config);
 
     /**
      * @brief Starts CLOP scheduling.
@@ -132,10 +132,11 @@ private:
         const std::vector<CLOPSample>& modeledSamples,
         const std::vector<double>& estimatedParameters,
         size_t scheduledCount);
+    [[nodiscard]] EngineConfig getNextOpponentEngine();
     [[nodiscard]] EngineConfig createConfiguredEngine(const std::vector<double>& values) const;
 
     EngineConfig baseEngine_;
-    EngineConfig baselineEngine_;
+    std::vector<EngineConfig> opponentEngines_;
     CLOPConfig config_;
     std::unique_ptr<CLOPModel> model_;
     std::shared_ptr<StartPositions> startPositions_;
@@ -148,6 +149,7 @@ private:
     size_t lastLoggedCompletedSamples_ = 0;
     uint64_t modelGeneration_ = 0;
     size_t nextSampleIndex_ = 0;
+    size_t nextOpponentIndex_ = 0;
 
     std::vector<CLOPSample> activeSamples_;
     uint32_t nextRound_ = 0;
