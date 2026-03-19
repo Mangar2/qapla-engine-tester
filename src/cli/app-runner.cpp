@@ -514,7 +514,7 @@ AppReturnCode AppRunner::runClop(AppReturnCode code, bool background) {
 
     const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
     if (activeEngines.empty()) {
-        throw AppError::makeInvalidParameters("No engine defined for CLOP optimization.");
+        throw AppError::makeInvalidParameters("CLOP requires at least one engine.");
     }
 
     if (!Settings::QaplaSettings::instance().getOpenings()) {
@@ -526,7 +526,7 @@ AppReturnCode AppRunner::runClop(AppReturnCode code, bool background) {
 
     try {
         clopOptimizer_ = std::make_shared<CLOPOptimizer>();
-        clopOptimizer_->createCLOP(activeEngines.front(), *clopConfig);
+        clopOptimizer_->createCLOP(activeEngines, *clopConfig);
 
         const auto concurrencyResolution = resolveConfiguredConcurrency();
         const auto concurrency = concurrencyResolution.effectiveConcurrency;
