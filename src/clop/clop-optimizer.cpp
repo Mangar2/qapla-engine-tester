@@ -32,7 +32,6 @@
 #include <cmath>
 #include <format>
 #include <limits>
-#include <numeric>
 
 namespace QaplaTester {
 
@@ -473,7 +472,7 @@ void CLOPOptimizer::computeRecomputeSnapshot(RecomputeSnapshot& snapshot) {
         snapshot.pendingBatch.end());
 
     auto modelSamples = toModelSamples(snapshot.modelSnapshot);
-    model_->updateDesignWeights(modelSamples);
+    snapshot.weightDensity = model_->updateDesignWeights(modelSamples);
     applyModelWeights(modelSamples, snapshot.modelSnapshot);
     snapshot.nextEstimatedParameters = model_->computeEstimatedOptimum(modelSamples);
     snapshot.diagnosticsTable = buildDiagnosticsTable(
@@ -500,6 +499,7 @@ void CLOPOptimizer::commitRecomputeSnapshot(
     std::scoped_lock lock(stateMutex_);
     samples_ = snapshot.modelSnapshot;
     estimatedParameters_ = snapshot.nextEstimatedParameters;
+    weightDensity_ = snapshot.weightDensity;
     ++modelGeneration_;
     recomputeRunning_ = false;
     lastRecomputeAt_ = std::chrono::steady_clock::now();
@@ -553,8 +553,9 @@ void CLOPOptimizer::scheduleNextSample() {
     std::vector<double> estimatedParameters;
     std::vector<double> normalizedValues;
     std::vector<double> parameterValues;
+    CLOPWeightDensity density;
     size_t sampleIndex = 0;
-    size_t scheduledCount = 0;
+    size_t modelSampleCount = 0;
     uint64_t modelGeneration = 0;
 
     {
@@ -564,15 +565,16 @@ void CLOPOptimizer::scheduleNextSample() {
             return;
         }
 
-        modeledSamples = samples_;
+        modelSampleCount = samples_.size();
         estimatedParameters = estimatedParameters_;
+        density = weightDensity_;
         modelGeneration = modelGeneration_;
         sampleIndex = nextSampleIndex_;
         ++nextSampleIndex_;
-        scheduledCount = totalScheduled;
     }
 
-    normalizedValues = createNormalizedSample(modeledSamples, estimatedParameters, scheduledCount);
+    const auto normalizedEstimate = model_->normalizeValues(estimatedParameters);
+    normalizedValues = createNormalizedSample(modelSampleCount, normalizedEstimate, density);
     parameterValues = model_->denormalizeValues(normalizedValues);
     const auto opponentEngine = getNextOpponentEngine();
 
@@ -654,14 +656,14 @@ void CLOPOptimizer::onPairFinished(PairTournament* sender) {
 }
 
 std::vector<double> CLOPOptimizer::createNormalizedSample(
-    const std::vector<CLOPSample>& modeledSamples,
-    const std::vector<double>& estimatedParameters,
-    size_t scheduledCount) {
+    size_t modelSampleCount,
+    const std::vector<double>& normalizedEstimate,
+    const CLOPWeightDensity& density) {
 
     const size_t parameterCount = config_.parameters.size();
-    std::vector<double> sample(parameterCount, 0.0);
 
-    if (modeledSamples.size() < config_.warmupSamples) {
+    if (modelSampleCount < config_.warmupSamples || !density.valid) {
+        std::vector<double> sample(parameterCount, 0.0);
         std::uniform_real_distribution<double> randomDist(-1.0, 1.0);
         for (size_t index = 0; index < parameterCount; ++index) {
             sample[index] = randomDist(rng_);
@@ -669,40 +671,7 @@ std::vector<double> CLOPOptimizer::createNormalizedSample(
         return sample;
     }
 
-    const double totalWeight = std::accumulate(
-        modeledSamples.begin(),
-        modeledSamples.end(),
-        0.0,
-        [](double sum, const CLOPSample& sampleEntry) {
-            return sum + std::max(sampleEntry.designWeight, 0.0);
-        });
-
-    if (totalWeight <= std::numeric_limits<double>::epsilon()) {
-        return model_->normalizeValues(estimatedParameters);
-    }
-
-    std::uniform_real_distribution<double> selectDist(0.0, totalWeight);
-    const double target = selectDist(rng_);
-    double cumulative = 0.0;
-    const CLOPSample* selected = nullptr;
-    for (const auto& sampleEntry : modeledSamples) {
-        cumulative += std::max(sampleEntry.designWeight, 0.0);
-        if (cumulative >= target) {
-            selected = &sampleEntry;
-            break;
-        }
-    }
-    if (selected == nullptr) {
-        selected = &modeledSamples.back();
-    }
-
-    sample = selected->normalizedValues;
-    const double sigma = 0.6 / std::sqrt(static_cast<double>(scheduledCount) + 1.0);
-    std::normal_distribution<double> noiseDist(0.0, sigma);
-    for (size_t index = 0; index < parameterCount; ++index) {
-        sample[index] = std::clamp(sample[index] + noiseDist(rng_), -1.0, 1.0);
-    }
-    return sample;
+    return model_->sampleFromDensity(density, normalizedEstimate, rng_);
 }
 
 EngineConfig CLOPOptimizer::createConfiguredEngine(const std::vector<double>& values) const {

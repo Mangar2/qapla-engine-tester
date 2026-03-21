@@ -21,6 +21,7 @@
 
 #include "clop-types.h"
 
+#include <random>
 #include <vector>
 
 namespace QaplaTester {
@@ -64,8 +65,21 @@ public:
     /**
      * @brief Updates CLOP design weights for all samples.
      * @param samples Samples to reweight in-place.
+     * @return Converged weight density for subsequent Gibbs sampling.
      */
-    void updateDesignWeights(std::vector<CLOPModelSample>& samples) const;
+    [[nodiscard]] CLOPWeightDensity updateDesignWeights(std::vector<CLOPModelSample>& samples) const;
+
+    /**
+     * @brief Draws a new sample from the continuous CLOP weight density via Gibbs sampling.
+     * @param density Converged weight density from updateDesignWeights.
+     * @param startPoint Starting point in normalized [-1,1]^n domain.
+     * @param rng Random engine for sampling.
+     * @return New sample point in normalized domain.
+     */
+    [[nodiscard]] std::vector<double> sampleFromDensity(
+        const CLOPWeightDensity& density,
+        const std::vector<double>& startPoint,
+        std::mt19937& rng) const;
 
     /**
      * @brief Computes CLOP estimated optimum from weighted samples.
@@ -101,6 +115,16 @@ private:
     [[nodiscard]] LogisticModel fitQuadraticLogisticRegression(const std::vector<CLOPModelSample>& samples) const;
     [[nodiscard]] double fitLogisticMean(const std::vector<CLOPModelSample>& samples) const;
     [[nodiscard]] double confidenceDeviation(double meanLogit, const std::vector<CLOPModelSample>& samples) const;
+
+    struct ConditionalQuadratic {
+        double quadraticCoeff = 0.0;
+        double linearCoeff = 0.0;
+    };
+
+    [[nodiscard]] ConditionalQuadratic extractConditionalQuadratic(
+        const CLOPWeightDensity& density,
+        const std::vector<double>& point,
+        size_t dimension) const;
 
     [[nodiscard]] size_t featureCount() const;
     [[nodiscard]] std::vector<double> buildFeatureVector(const std::vector<double>& normalizedValues) const;
