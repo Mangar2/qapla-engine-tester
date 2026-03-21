@@ -47,6 +47,38 @@ namespace {
     return std::clamp(value, 1e-9, 1.0 - 1e-9);
 }
 
+[[nodiscard]] std::vector<double> solveByGaussElimination(
+	std::vector<double>& matrix,
+	const std::vector<double>& rhs,
+	size_t dimension) {
+
+	auto step = rhs;
+	for (size_t col = 0; col < dimension; ++col) {
+		const double pivot = matrix[col * dimension + col];
+		if (std::abs(pivot) < 1e-15) {
+			continue;
+		}
+		for (size_t row = col + 1; row < dimension; ++row) {
+			const double factor = matrix[row * dimension + col] / pivot;
+			for (size_t inner = col + 1; inner < dimension; ++inner) {
+				matrix[row * dimension + inner] -= factor * matrix[col * dimension + inner];
+			}
+			step[row] -= factor * step[col];
+		}
+	}
+	for (size_t col = dimension; col > 0; --col) {
+		const size_t idx = col - 1;
+		for (size_t inner = col; inner < dimension; ++inner) {
+			step[idx] -= matrix[idx * dimension + inner] * step[inner];
+		}
+		const double pivot = matrix[idx * dimension + idx];
+		if (std::abs(pivot) > 1e-15) {
+			step[idx] /= pivot;
+		}
+	}
+	return step;
+}
+
 [[nodiscard]] std::vector<size_t> buildFoldIds(size_t recentCount, uint32_t folds, std::mt19937& rng) {
     std::vector<size_t> sampleIndex(recentCount, 0);
     std::iota(sampleIndex.begin(), sampleIndex.end(), 0);
@@ -299,33 +331,22 @@ CLOPSignalEvidence CLOPModel::computeSignalEvidence(
 
 CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::vector<CLOPModelSample>& samples) const {
     LogisticModel model;
-    model.coefficients.assign(featureCount(), 0.0);
+    const auto numFeatures = featureCount();
+    model.coefficients.assign(numFeatures, 0.0);
 
     if (samples.empty()) {
         return model;
     }
 
-    constexpr size_t maxIterations = 20000;
-    constexpr double alpha = 0.05;
-    constexpr double beta1 = 0.9;
-    constexpr double beta2 = 0.999;
-    constexpr double epsilon = 1e-8;
+    constexpr size_t maxIterations = 50;
+    constexpr double convergenceThreshold = 1e-8;
 
-    const double totalEffectiveWeight = std::accumulate(
-        samples.begin(),
-        samples.end(),
-        0.0,
-        [](double sum, const CLOPModelSample& sampleEntry) {
-            return sum + sampleEntry.designWeight * sampleEntry.observationWeight;
-        });
-    const double normalizationFactor = 1.0 / std::max(totalEffectiveWeight, 1.0);
+    std::vector<double> gradient(numFeatures, 0.0);
+    std::vector<double> hessian(numFeatures * numFeatures, 0.0);
 
-    std::vector<double> gradient(model.coefficients.size(), 0.0);
-    std::vector<double> m(model.coefficients.size(), 0.0);
-    std::vector<double> v(model.coefficients.size(), 0.0);
-
-    for (size_t iteration = 1; iteration <= maxIterations; ++iteration) {
-        std::fill(gradient.begin(), gradient.end(), 0.0);
+    for (size_t iteration = 0; iteration < maxIterations; ++iteration) {
+        std::ranges::fill(gradient, 0.0);
+        std::ranges::fill(hessian, 0.0);
 
         for (const auto& sample : samples) {
             const auto features = buildFeatureVector(sample.normalizedValues);
@@ -335,33 +356,38 @@ CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::ve
                 features.begin(),
                 0.0);
             const double probability = sigmoid(linearValue);
-            const double weightedError =
-                sample.designWeight * sample.observationWeight * (sample.outcome - probability);
+            const double effectiveWeight = sample.designWeight * sample.observationWeight;
+            const double residual = effectiveWeight * (sample.outcome - probability);
+            const double hessianWeight = effectiveWeight * probability * (1.0 - probability);
 
-            for (size_t featureIndex = 0; featureIndex < features.size(); ++featureIndex) {
-                gradient[featureIndex] += weightedError * features[featureIndex];
+            for (size_t row = 0; row < numFeatures; ++row) {
+                gradient[row] += residual * features[row];
+                for (size_t col = row; col < numFeatures; ++col) {
+                    hessian[row * numFeatures + col] += hessianWeight * features[row] * features[col];
+                }
             }
         }
 
         double maxGrad = 0.0;
-        for (size_t featureIndex = 0; featureIndex < gradient.size(); ++featureIndex) {
-            gradient[featureIndex] -= model.coefficients[featureIndex] / config_.priorVariance;
-            gradient[featureIndex] *= normalizationFactor;
-
-            maxGrad = std::max(maxGrad, std::abs(gradient[featureIndex]));
-
-            // Adam Update (Gradient Ascent)
-            m[featureIndex] = beta1 * m[featureIndex] + (1.0 - beta1) * gradient[featureIndex];
-            v[featureIndex] = beta2 * v[featureIndex] + (1.0 - beta2) * (gradient[featureIndex] * gradient[featureIndex]);
-
-            const double m_hat = m[featureIndex] / (1.0 - std::pow(beta1, static_cast<double>(iteration)));
-            const double v_hat = v[featureIndex] / (1.0 - std::pow(beta2, static_cast<double>(iteration)));
-
-            model.coefficients[featureIndex] += alpha * m_hat / (std::sqrt(v_hat) + epsilon);
+        for (size_t row = 0; row < numFeatures; ++row) {
+            gradient[row] -= model.coefficients[row] / config_.priorVariance;
+            hessian[row * numFeatures + row] += 1.0 / config_.priorVariance;
+            maxGrad = std::max(maxGrad, std::abs(gradient[row]));
         }
 
-        if (maxGrad < 1e-6) {
+        if (maxGrad < convergenceThreshold) {
             break;
+        }
+
+        for (size_t row = 0; row < numFeatures; ++row) {
+            for (size_t col = row + 1; col < numFeatures; ++col) {
+                hessian[col * numFeatures + row] = hessian[row * numFeatures + col];
+            }
+        }
+
+        const auto step = solveByGaussElimination(hessian, gradient, numFeatures);
+        for (size_t featureIndex = 0; featureIndex < numFeatures; ++featureIndex) {
+            model.coefficients[featureIndex] += step[featureIndex];
         }
     }
 
@@ -374,46 +400,25 @@ double CLOPModel::fitLogisticMean(const std::vector<CLOPModelSample>& samples) c
     }
 
     double intercept = 0.0;
-    constexpr size_t maxIterations = 20000;
-    constexpr double alpha = 0.05;
-    constexpr double beta1 = 0.9;
-    constexpr double beta2 = 0.999;
-    constexpr double epsilon = 1e-8;
+    constexpr size_t maxIterations = 50;
+    constexpr double convergenceThreshold = 1e-8;
 
-    const double totalEffectiveWeight = std::accumulate(
-        samples.begin(),
-        samples.end(),
-        0.0,
-        [](double sum, const CLOPModelSample& sampleEntry) {
-            return sum + sampleEntry.designWeight * sampleEntry.observationWeight;
-        });
-    const double normalizationFactor = 1.0 / std::max(totalEffectiveWeight, 1.0);
-
-    double m = 0.0;
-    double v = 0.0;
-
-    for (size_t iteration = 1; iteration <= maxIterations; ++iteration) {
+    for (size_t iteration = 0; iteration < maxIterations; ++iteration) {
         const double probability = sigmoid(intercept);
         double gradient = -intercept / config_.priorVariance;
+        double hessian = 1.0 / config_.priorVariance;
 
         for (const auto& sample : samples) {
             const double effectiveWeight = sample.designWeight * sample.observationWeight;
             gradient += effectiveWeight * (sample.outcome - probability);
+            hessian += effectiveWeight * probability * (1.0 - probability);
         }
 
-        gradient *= normalizationFactor;
-
-        m = beta1 * m + (1.0 - beta1) * gradient;
-        v = beta2 * v + (1.0 - beta2) * (gradient * gradient);
-
-        const double m_hat = m / (1.0 - std::pow(beta1, static_cast<double>(iteration)));
-        const double v_hat = v / (1.0 - std::pow(beta2, static_cast<double>(iteration)));
-
-        intercept += alpha * m_hat / (std::sqrt(v_hat) + epsilon);
-
-        if (std::abs(gradient) < 1e-6) {
+        if (std::abs(gradient) < convergenceThreshold) {
             break;
         }
+
+        intercept += gradient / hessian;
     }
 
     return intercept;
