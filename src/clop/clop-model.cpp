@@ -296,8 +296,11 @@ CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::ve
         return model;
     }
 
-    constexpr size_t maxIterations = 120;
-    constexpr double learningRate = 0.03;
+    constexpr size_t maxIterations = 20000;
+    constexpr double alpha = 0.05;
+    constexpr double beta1 = 0.9;
+    constexpr double beta2 = 0.999;
+    constexpr double epsilon = 1e-8;
 
     const double totalEffectiveWeight = std::accumulate(
         samples.begin(),
@@ -309,8 +312,10 @@ CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::ve
     const double normalizationFactor = 1.0 / std::max(totalEffectiveWeight, 1.0);
 
     std::vector<double> gradient(model.coefficients.size(), 0.0);
+    std::vector<double> m(model.coefficients.size(), 0.0);
+    std::vector<double> v(model.coefficients.size(), 0.0);
 
-    for (size_t iteration = 0; iteration < maxIterations; ++iteration) {
+    for (size_t iteration = 1; iteration <= maxIterations; ++iteration) {
         std::fill(gradient.begin(), gradient.end(), 0.0);
 
         for (const auto& sample : samples) {
@@ -329,10 +334,25 @@ CLOPModel::LogisticModel CLOPModel::fitQuadraticLogisticRegression(const std::ve
             }
         }
 
+        double maxGrad = 0.0;
         for (size_t featureIndex = 0; featureIndex < gradient.size(); ++featureIndex) {
             gradient[featureIndex] -= model.coefficients[featureIndex] / config_.priorVariance;
             gradient[featureIndex] *= normalizationFactor;
-            model.coefficients[featureIndex] += learningRate * gradient[featureIndex];
+
+            maxGrad = std::max(maxGrad, std::abs(gradient[featureIndex]));
+
+            // Adam Update (Gradient Ascent)
+            m[featureIndex] = beta1 * m[featureIndex] + (1.0 - beta1) * gradient[featureIndex];
+            v[featureIndex] = beta2 * v[featureIndex] + (1.0 - beta2) * (gradient[featureIndex] * gradient[featureIndex]);
+
+            const double m_hat = m[featureIndex] / (1.0 - std::pow(beta1, static_cast<double>(iteration)));
+            const double v_hat = v[featureIndex] / (1.0 - std::pow(beta2, static_cast<double>(iteration)));
+
+            model.coefficients[featureIndex] += alpha * m_hat / (std::sqrt(v_hat) + epsilon);
+        }
+
+        if (maxGrad < 1e-6) {
+            break;
         }
     }
 
@@ -345,8 +365,11 @@ double CLOPModel::fitLogisticMean(const std::vector<CLOPModelSample>& samples) c
     }
 
     double intercept = 0.0;
-    constexpr size_t maxIterations = 120;
-    constexpr double learningRate = 0.05;
+    constexpr size_t maxIterations = 20000;
+    constexpr double alpha = 0.05;
+    constexpr double beta1 = 0.9;
+    constexpr double beta2 = 0.999;
+    constexpr double epsilon = 1e-8;
 
     const double totalEffectiveWeight = std::accumulate(
         samples.begin(),
@@ -357,7 +380,10 @@ double CLOPModel::fitLogisticMean(const std::vector<CLOPModelSample>& samples) c
         });
     const double normalizationFactor = 1.0 / std::max(totalEffectiveWeight, 1.0);
 
-    for (size_t iteration = 0; iteration < maxIterations; ++iteration) {
+    double m = 0.0;
+    double v = 0.0;
+
+    for (size_t iteration = 1; iteration <= maxIterations; ++iteration) {
         const double probability = sigmoid(intercept);
         double gradient = -intercept / config_.priorVariance;
 
@@ -367,7 +393,18 @@ double CLOPModel::fitLogisticMean(const std::vector<CLOPModelSample>& samples) c
         }
 
         gradient *= normalizationFactor;
-        intercept += learningRate * gradient;
+
+        m = beta1 * m + (1.0 - beta1) * gradient;
+        v = beta2 * v + (1.0 - beta2) * (gradient * gradient);
+
+        const double m_hat = m / (1.0 - std::pow(beta1, static_cast<double>(iteration)));
+        const double v_hat = v / (1.0 - std::pow(beta2, static_cast<double>(iteration)));
+
+        intercept += alpha * m_hat / (std::sqrt(v_hat) + epsilon);
+
+        if (std::abs(gradient) < 1e-6) {
+            break;
+        }
     }
 
     return intercept;
