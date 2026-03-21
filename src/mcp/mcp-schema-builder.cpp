@@ -162,7 +162,7 @@ void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, Jso
     properties["engine_copyName"] = JsonValue{ .data = createProperty("string", 
         "Target name when copying an engine. When using 'copy', you can concurrently specify any other engine parameter "
         "(e.g. engine_tc, engine_option_Hash, etc.) to immediately override these settings in the new copy. Do not copy and then update, this is unnecessary.") };
-    properties["engine_option_<name>"] = JsonValue{ .data = createProperty("string", 
+    properties["engine_option_name"] = JsonValue{ .data = createProperty("string", 
         "Set one or more UCI options. You can pass multiple arguments matching "
         "the pattern 'engine_option_<Name>' in a single call to update several options simultaneously. "
         "Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128."
