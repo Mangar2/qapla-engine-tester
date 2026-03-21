@@ -64,6 +64,16 @@ struct CLOPSignalEvidence {
 };
 
 /**
+ * @brief Converged weight density from the CLOP design-weight loop for Gibbs sampling.
+ */
+struct CLOPWeightDensity {
+    std::vector<double> coefficients;
+    double meanLogit = 0.0;
+    double sigma = 1.0;
+    bool valid = false;
+};
+
+/**
  * @brief Configuration for CLOP optimization execution.
  */
 struct CLOPConfig {

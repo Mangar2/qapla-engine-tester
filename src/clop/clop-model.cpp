@@ -105,9 +105,11 @@ std::vector<double> CLOPModel::normalizeValues(const std::vector<double>& values
     return normalized;
 }
 
-void CLOPModel::updateDesignWeights(std::vector<CLOPModelSample>& samples) const {
+CLOPWeightDensity CLOPModel::updateDesignWeights(std::vector<CLOPModelSample>& samples) const {
+    CLOPWeightDensity density;
+
     if (samples.empty()) {
-        return;
+        return density;
     }
 
     double previousSum = 0.0;
@@ -120,6 +122,10 @@ void CLOPModel::updateDesignWeights(std::vector<CLOPModelSample>& samples) const
         auto model = fitQuadraticLogisticRegression(samples);
         const double meanLogit = fitLogisticMean(samples);
         const double sigma = std::max(confidenceDeviation(meanLogit, samples), 1e-8);
+
+        density.coefficients = model.coefficients;
+        density.meanLogit = meanLogit;
+        density.sigma = sigma;
 
         double nextSum = 0.0;
         for (auto& sample : samples) {
@@ -135,6 +141,9 @@ void CLOPModel::updateDesignWeights(std::vector<CLOPModelSample>& samples) const
         }
         previousSum = nextSum;
     }
+
+    density.valid = true;
+    return density;
 }
 
 std::vector<double> CLOPModel::computeEstimatedOptimum(const std::vector<CLOPModelSample>& samples) const {
@@ -460,6 +469,79 @@ double CLOPModel::evaluateQuadratic(
         model.coefficients.end(),
         featureVector.begin(),
         0.0);
+}
+
+CLOPModel::ConditionalQuadratic CLOPModel::extractConditionalQuadratic(
+    const CLOPWeightDensity& density,
+    const std::vector<double>& point,
+    size_t dimension) const {
+
+    const size_t dim = config_.parameters.size();
+    ConditionalQuadratic result;
+
+    result.quadraticCoeff = density.coefficients[1 + dim + dimension];
+    result.linearCoeff = density.coefficients[1 + dimension];
+
+    size_t crossIndex = 2 * dim + 1;
+    for (size_t first = 0; first < dim; ++first) {
+        for (size_t second = first + 1; second < dim; ++second) {
+            if (first == dimension) {
+                result.linearCoeff += density.coefficients[crossIndex] * point[second];
+            } else if (second == dimension) {
+                result.linearCoeff += density.coefficients[crossIndex] * point[first];
+            }
+            ++crossIndex;
+        }
+    }
+
+    return result;
+}
+
+std::vector<double> CLOPModel::sampleFromDensity(
+    const CLOPWeightDensity& density,
+    const std::vector<double>& startPoint,
+    std::mt19937& rng) const {
+
+    const size_t dim = config_.parameters.size();
+    auto current = startPoint;
+    constexpr uint32_t gibbsSweeps = 10;
+    const double hSigma = config_.h * density.sigma;
+
+    for (uint32_t sweep = 0; sweep < gibbsSweeps; ++sweep) {
+        for (size_t paramIndex = 0; paramIndex < dim; ++paramIndex) {
+            const auto [quadA, quadB] = extractConditionalQuadratic(density, current, paramIndex);
+
+            const double scaledA = quadA / hSigma;
+            const double scaledB = quadB / hSigma;
+
+            if (scaledA < -1e-12) {
+                const double variance = -1.0 / (2.0 * scaledA);
+                const double mean = -scaledB / (2.0 * scaledA);
+                const double stddev = std::sqrt(variance);
+                std::normal_distribution<double> normalDist(mean, stddev);
+
+                constexpr int32_t maxAttempts = 1000;
+                bool accepted = false;
+                for (int32_t attempt = 0; attempt < maxAttempts; ++attempt) {
+                    const double candidate = normalDist(rng);
+                    if (candidate >= -1.0 && candidate <= 1.0) {
+                        current[paramIndex] = candidate;
+                        accepted = true;
+                        break;
+                    }
+                }
+                if (!accepted) {
+                    std::uniform_real_distribution<double> uniformDist(-1.0, 1.0);
+                    current[paramIndex] = uniformDist(rng);
+                }
+            } else {
+                std::uniform_real_distribution<double> uniformDist(-1.0, 1.0);
+                current[paramIndex] = uniformDist(rng);
+            }
+        }
+    }
+
+    return current;
 }
 
 } // namespace QaplaTester

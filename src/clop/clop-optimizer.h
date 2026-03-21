@@ -106,6 +106,7 @@ private:
         std::vector<CLOPSample> pendingBatch;
         std::vector<double> previousEstimatedParameters;
         std::vector<double> nextEstimatedParameters;
+        CLOPWeightDensity weightDensity;
         size_t completedSamples = 0;
         size_t activeSamples = 0;
         size_t pendingSamples = 0;
@@ -129,9 +130,9 @@ private:
     void onPairFinished(PairTournament* sender);
 
     [[nodiscard]] std::vector<double> createNormalizedSample(
-        const std::vector<CLOPSample>& modeledSamples,
-        const std::vector<double>& estimatedParameters,
-        size_t scheduledCount);
+        size_t modelSampleCount,
+        const std::vector<double>& normalizedEstimate,
+        const CLOPWeightDensity& density);
     [[nodiscard]] EngineConfig getNextOpponentEngine();
     [[nodiscard]] EngineConfig createConfiguredEngine(const std::vector<double>& values) const;
 
@@ -145,6 +146,7 @@ private:
     std::vector<CLOPSample> samples_;
     std::vector<CLOPSample> pendingResults_;
     std::vector<double> estimatedParameters_;
+    CLOPWeightDensity weightDensity_;
     size_t completedSamples_ = 0;
     size_t lastLoggedCompletedSamples_ = 0;
     uint64_t modelGeneration_ = 0;

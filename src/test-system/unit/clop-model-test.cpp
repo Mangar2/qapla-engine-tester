@@ -53,7 +53,8 @@ TEST_CASE("CLOPModel converges to interior optimum on smooth synthetic landscape
         samples.push_back(std::move(sample));
     }
 
-    REQUIRE_NOTHROW(model.updateDesignWeights(samples));
+    CLOPWeightDensity density;
+    REQUIRE_NOTHROW(density = model.updateDesignWeights(samples));
     const auto estimated = model.computeEstimatedOptimum(samples);
 
     REQUIRE(estimated.size() == 1);
@@ -95,7 +96,8 @@ TEST_CASE("CLOPModel remains finite with high observation weights", "[clop][mode
         }
     }
 
-    REQUIRE_NOTHROW(model.updateDesignWeights(samples));
+    CLOPWeightDensity density;
+    REQUIRE_NOTHROW(density = model.updateDesignWeights(samples));
 
     for (const auto& sample : samples) {
         REQUIRE(std::isfinite(sample.designWeight));
