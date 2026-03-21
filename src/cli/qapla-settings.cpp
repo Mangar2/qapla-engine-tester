@@ -463,10 +463,6 @@ void QaplaSettings::setCLOPConfig() {
         parameter.maxValue = valueGroup.get<double>("max");
         m_clopConfig->parameters.push_back(parameter);
     }
-
-    if (m_clopConfig->parameters.empty()) {
-        m_clopConfig = nullptr;
-    }
 }
 
 std::optional<CLOPConfig> QaplaSettings::getCLOPConfig() const {
