@@ -18,6 +18,7 @@
  */
 
 #include "game-context.h"
+#include "src/qapla-engine/move.h"
 
 namespace QaplaTester {
 
@@ -252,6 +253,22 @@ void GameContext::doMove(const MoveRecord& move)
     for (auto &player : players_)
     {
         player->doMove(move.move);
+    }
+}
+
+void GameContext::advance()
+{
+    QaplaBasics::Move move;
+    cancelCompute();
+    {
+        std::scoped_lock lock(gameRecordMutex_);
+        if (gameRecord_.advance()) {
+           move = gameRecord_.getMove(gameRecord_.nextMoveIndex() - 1).move;
+        }
+    }
+    for (auto &player : players_)
+    {
+        player->doMove(move);
     }
 }
 

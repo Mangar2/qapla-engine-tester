@@ -188,14 +188,33 @@ public:
     }
 
     /**
-     * @brief Adds a move to the game record.
-     * @param move The move to add.
+     * @brief Updates the move statistics at the current ply index in the game record.
+     * The move is only updated, if the chess move itself (move.move) is not changed.
+     * @param move The move to update.
      */
     void updateMove(const MoveRecord &move)
     {
         std::scoped_lock lock(gameRecordMutex_);
         gameRecord_.updateMove(move);
     }
+
+    /**
+    * @brief Updates the move statisticsat the specified ply index in the game record.
+    * The move is only updated, if the chess move itself (move.move) is not changed.
+    *
+    * @param ply The ply index to update.
+    * @param move The move to update.
+    */
+    void updateMove(uint32_t ply, const MoveRecord &move)
+    {
+        std::scoped_lock lock(gameRecordMutex_);
+        gameRecord_.updateMove(ply, move);
+    }
+
+    /**
+     * @brief Advances to the next move in the game record.
+     */
+    void advance();
 
     /**
      * @brief Sets the end state of the current game.

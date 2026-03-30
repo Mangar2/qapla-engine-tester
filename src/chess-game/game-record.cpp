@@ -80,19 +80,31 @@ void GameRecord::addMove(const MoveRecord &move)
     changeTracker_.trackUpdate();
 }
 
-bool GameRecord::updateMove(const MoveRecord &move)
+bool GameRecord::updateMove(uint32_t ply, const MoveRecord &move)
 {
-    if (currentPly_ == 0 || currentPly_ > moves_.size())
+    if (ply >= moves_.size())
     {
         return false;
     }
-    if (moves_[currentPly_ - 1].move != move.move)
+    if (moves_[ply].move != move.move)
     {
         return false;
     }
-    moves_[currentPly_ - 1] = move;
+    moves_[ply] = move;
     changeTracker_.trackModification();
     return true;
+}
+
+bool GameRecord::updateMove(const MoveRecord &move)
+{
+   return updateMove(currentPly_ - 1, move);
+}
+
+const MoveRecord& GameRecord::getMove(uint32_t ply) const {
+    if (ply >= moves_.size()) {
+        throw std::out_of_range("Ply index out of range");
+    }
+    return moves_[ply];
 }
 
 void GameRecord::setGameEnd(GameEndCause cause, GameResult result)
@@ -139,13 +151,15 @@ void GameRecord::setNextMoveIndex(uint32_t ply)
     }
 }
 
-void GameRecord::advance()
+bool GameRecord::advance()
 {
     if (currentPly_ < moves_.size())
     {
         changeTracker_.trackUpdate();
         ++currentPly_;
+        return true;
     }
+    return false;
 }
 
 void GameRecord::rewind()

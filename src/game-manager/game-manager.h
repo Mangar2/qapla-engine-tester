@@ -32,6 +32,7 @@
 #include <memory>
 #include <future>
 #include <mutex>
+#include <optional>
 
 namespace QaplaTester {
 
@@ -54,8 +55,10 @@ public:
         None = static_cast<std::uint8_t>(GameTask::Type::None),
         ComputeMove = static_cast<std::uint8_t>(GameTask::Type::ComputeMove),
         PlayGame = static_cast<std::uint8_t>(GameTask::Type::PlayGame),
-        FetchNextTask = static_cast<std::uint8_t>(GameTask::Type::PlayGame) + 1,
-        NotRunning = static_cast<std::uint8_t>(GameTask::Type::PlayGame) + 2
+        ReplayForward = static_cast<std::uint8_t>(GameTask::Type::ReplayForward),
+        ReplayBackward = static_cast<std::uint8_t>(GameTask::Type::ReplayBackward),
+        FetchNextTask = static_cast<std::uint8_t>(GameTask::Type::ReplayBackward) + 1,
+        NotRunning = static_cast<std::uint8_t>(GameTask::Type::ReplayBackward) + 2
     };
 
 	explicit GameManager(GameManagerPool* pool);
@@ -196,7 +199,7 @@ private:
      * - unique_lock required for condition_variable (allows unlock during wait)
      * 
      * Timeout Handling:
-     * - Every second, checks for engine timeouts during ComputeMove/PlayGame states
+    * - Every second, checks for engine timeouts during ComputeMove/PlayGame/Replay states
      * - Restarts unresponsive engines if configured
      * - Finalizes task if game ends or if restart occurred during ComputeMove
      * 
@@ -304,6 +307,12 @@ private:
 	 */
     bool checkForGameEnd(bool verbose = false);
     std::tuple<GameEndCause, GameResult> getGameResult();
+    [[nodiscard]] bool isReplayState() const;
+    [[nodiscard]] static bool isReplayState(ManagerState state);
+    [[nodiscard]] static bool isReplayTaskType(GameTask::Type taskType);
+    void handleReplayBestMove(const EngineEvent& event);
+    void handlePlayGame(const EngineEvent& event);
+    void handleReplayFollowUp(const EngineEvent& event);
 
     /**
      * @brief Signals that a computation has completed. 
@@ -377,6 +386,7 @@ private:
     std::shared_ptr<GameTaskProvider> taskProvider_;
 	std::atomic<ManagerState> managerState_ = ManagerState::NotRunning;
     std::string taskId_;
+    GameRecord referenceRecord_;
 
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };

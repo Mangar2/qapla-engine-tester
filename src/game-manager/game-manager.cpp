@@ -146,14 +146,21 @@ void GameManager::processQueue() {
             }
             nextTimeoutCheck = std::chrono::steady_clock::now() + timeoutInterval;
 
-            // Only check for timeouts during engine game/move
-            if (managerState_ != ManagerState::ComputeMove && managerState_ != ManagerState::PlayGame) {
+            const auto state = managerState_.load();
+
+            // Only check for timeouts during move/game/replay processing.
+            if (state != ManagerState::ComputeMove && state != ManagerState::PlayGame && !isReplayState(state)) {
                 continue;
             }
 
 			bool engineRestarted = gameContext_.checkForTimeoutsAndRestart();
+            const bool checkGameEndRequired = state == ManagerState::PlayGame;
+            const bool gameEnded = checkGameEndRequired ? checkForGameEnd() : false;
+            const bool restartRequiresFinalize = engineRestarted
+                && state != ManagerState::PlayGame
+                && !isReplayState(state);
 
-            if (checkForGameEnd() || (engineRestarted && managerState_ != ManagerState::PlayGame)) {
+            if (gameEnded || restartRequiresFinalize) {
                 finalizeTaskAndContinue();
             }
         }
@@ -244,7 +251,7 @@ void GameManager::processEvent(const EngineEvent& event) {
 
         if (event.type == EngineEvent::Type::EngineDisconnected) {
             handleEngineDisconnect(player, isWhitePlayer);
-            if (managerState_ != ManagerState::PlayGame) {
+            if (managerState_ != ManagerState::PlayGame && !isReplayState()) {
                 finalizeTaskAndContinue();
                 return;
             }
@@ -261,14 +268,6 @@ void GameManager::processEvent(const EngineEvent& event) {
             return;
         }
 
-        if (event.type == EngineEvent::Type::BestMove) {
-            handleBestMove(event);
-            if (managerState_ == ManagerState::ComputeMove) {
-                finalizeTaskAndContinue();
-                return;
-            }
-        }
-
         if (event.type == EngineEvent::Type::PonderMove) {
            handlePonderMove(event);
            return;
@@ -280,13 +279,21 @@ void GameManager::processEvent(const EngineEvent& event) {
             return;
         }
 
-        if (managerState_ == ManagerState::PlayGame) {
-            if (checkForGameEnd()) {
+        if (event.type == EngineEvent::Type::BestMove) {
+
+            if (managerState_ == ManagerState::ComputeMove) {
+                handleBestMove(event);
                 finalizeTaskAndContinue();
                 return;
             }
-            if (event.type == EngineEvent::Type::BestMove) {
-                computeNextMove(event);
+
+            if (managerState_ == ManagerState::PlayGame) {
+                handlePlayGame(event);
+                return;
+            }
+
+            if (isReplayState()) {
+                handleReplayFollowUp(event);
                 return;
             }
         }
@@ -318,6 +325,72 @@ void GameManager::handleBestMove(const EngineEvent& event) {
 		}
 	}
 
+}
+
+bool GameManager::isReplayState() const {
+    return isReplayState(managerState_.load());
+}
+
+bool GameManager::isReplayState(ManagerState state) {
+    return state == ManagerState::ReplayForward || state == ManagerState::ReplayBackward;
+}
+
+bool GameManager::isReplayTaskType(GameTask::Type taskType) {
+    return taskType == GameTask::Type::ReplayForward || taskType == GameTask::Type::ReplayBackward;
+}
+
+void GameManager::handleReplayBestMove(const EngineEvent& event) {
+    auto* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
+
+    if (player == nullptr || !isReplayState()) {
+        return;
+    }
+
+    (void)player->handleBestMove(event);
+    auto moveCopy = player->getCurrentMoveCopy();
+
+    const auto computedMoveIndex = referenceRecord_.nextMoveIndex();
+    const auto& referenceMove = referenceRecord_.getMove(computedMoveIndex);
+    moveCopy.replaceMove(referenceMove);
+    gameContext_.updateMove(computedMoveIndex, moveCopy);
+
+    if (managerState_ == ManagerState::ReplayForward) {
+        if (referenceRecord_.advance()) {
+            gameContext_.advance();
+        }
+    }
+    else if (managerState_ == ManagerState::ReplayBackward) {
+        referenceRecord_.rewind();
+        gameContext_.setNextMoveIndex(referenceRecord_.nextMoveIndex());
+    }
+
+}
+
+void GameManager::handlePlayGame(const EngineEvent& event) {
+    handleBestMove(event);
+
+    if (checkForGameEnd()) {
+        finalizeTaskAndContinue();
+        return;
+    }
+
+    computeNextMove(event);
+}
+
+void GameManager::handleReplayFollowUp(const EngineEvent& event) {
+    
+    handleReplayBestMove(event);
+
+    // The game ends once we have recomputed all moves of the reference record.
+    const auto nextMoveIndex = referenceRecord_.nextMoveIndex();
+    const auto moveCount = referenceRecord_.history().size();
+    if ((managerState_ == ManagerState::ReplayForward && nextMoveIndex >= moveCount)
+        || (managerState_ == ManagerState::ReplayBackward && nextMoveIndex == 0)) {
+        finalizeTaskAndContinue();
+        return;
+    }
+
+    computeNextMove(event);
 }
 
 void GameManager::handlePonderMove(const EngineEvent& event) {
@@ -448,15 +521,16 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     const auto& gameRecord = gameContext_.gameRecord();
 	auto* white = gameContext_.getWhite();
 	auto* black = gameContext_.getBlack();
+    const bool analyzeMove = isReplayState();
     auto [whiteTime, blackTime] = gameRecord.timeUsed();
     GoLimits goLimits = createGoLimits(
 		white->getTimeControl(), black->getTimeControl(),
         gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
 	if (gameRecord.isWhiteToMove()) {
-        white->computeMove(gameRecord, goLimits);
+        white->computeMove(gameRecord, goLimits, analyzeMove);
         black->allowPonder(gameRecord, goLimits, event);
     } else {
-		black->computeMove(gameRecord, goLimits);
+		black->computeMove(gameRecord, goLimits, analyzeMove);
         white->allowPonder(gameRecord, goLimits, event);
     }
 }
@@ -472,16 +546,31 @@ void GameManager::executeTask(std::optional<GameTask> task) {
     }
     // The tasks contains information how to play the next game including side switch
     gameContext_.setSideSwitched(task->switchSide);
-    auto& gameRecord = task->gameRecord;
+    referenceRecord_ = task->gameRecord;
+
+    auto size = referenceRecord_.history().size();
+    if (size == 0) {
+        finalizeTaskAndContinue();
+        return;
+    } 
+
+    if (isReplayTaskType(task->taskType)) {
+        if (task->taskType == GameTask::Type::ReplayForward) {
+            referenceRecord_.setNextMoveIndex(0);
+        }
+        else {
+            referenceRecord_.setNextMoveIndex(static_cast<uint32_t>(size - 1));
+        }
+    }
 
     // Also sets the engines names, Switched side must be set before to have the correct names.
-    setFromGameRecord(gameRecord);
+    setFromGameRecord(referenceRecord_);
 
     // We need to inform engines about time controls, if they are changed directly from the gui,
     // but not as part of a new game as then newGame() will inform the engines about time controls.
     bool informEngines = false;
     gameContext_.setTimeControls(
-        { gameRecord.getWhiteTimeControl(), gameRecord.getBlackTimeControl() }, informEngines);
+        { referenceRecord_.getWhiteTimeControl(), referenceRecord_.getBlackTimeControl() }, informEngines);
 
     managerState_ = static_cast<ManagerState>(task->taskType);
     taskId_ = task->taskId;
@@ -622,11 +711,13 @@ void GameManager::finalizeTaskAndContinue() {
             Logger::reportLogger().log(std::format("Error in setGameRecord for task {}: {}", taskId_, e.what()), TraceLevel::error);
         }
 
-        try {
-            pool_->getAdjudicationManager().onGameFinished(gameRecord);
-        }
-        catch (const std::exception& e) {
-            Logger::reportLogger().log(std::format("Error in adjudication manager for task {}: {}", taskId_, e.what()), TraceLevel::error);
+        if (!isReplayState()) {
+            try {
+                pool_->getAdjudicationManager().onGameFinished(gameRecord);
+            }
+            catch (const std::exception& e) {
+                Logger::reportLogger().log(std::format("Error in adjudication manager for task {}: {}", taskId_, e.what()), TraceLevel::error);
+            }
         }
 
         // Check if we are requested to pause
