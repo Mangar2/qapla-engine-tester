@@ -122,6 +122,14 @@ struct MoveRecord {
     [[nodiscard]] MoveRecord createMinimalCopy() const;
 
     /**
+     * @brief Replaces the move data with the reference move, keeping analysis data.
+     * Copies original, lan, san, move from the reference and clears ponderMove, comment, nag
+     * as they depend on the actual move played.
+     * @param referenceMove The move that was actually played.
+     */
+    void replaceMove(const MoveRecord& referenceMove);
+
+    /**
      * Convert this MoveRecord into a string containing the move (SAN) and
      * an optional comment constructed from the provided options. Does NOT
      * include the move number.

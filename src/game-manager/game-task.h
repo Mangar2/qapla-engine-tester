@@ -29,7 +29,9 @@ struct GameTask {
     enum class Type: std::uint8_t {
         None,
         ComputeMove,
-        PlayGame
+        PlayGame,
+        ReplayForward,
+        ReplayBackward
     };
 
     /** Unique identifier for tracking the task across engine interactions */

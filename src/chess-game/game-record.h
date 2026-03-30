@@ -130,6 +130,23 @@ public:
 	bool updateMove(const MoveRecord &move);
 
 	/**
+	 * @brief Updates the move at the specified ply index.
+	 * Note: the chess move itself (move.move) must not be changed.
+	 * 
+	 * @param ply The ply index to update.
+	 * @param move The move to update.
+	 * @return True if the update was successful, false otherwise.
+	 */
+	bool updateMove(uint32_t ply, const MoveRecord &move);
+
+	/**
+	 * @brief Returns the move record at the given ply index.
+	 * @param ply The ply index (0 = before first move).
+	 * @return The MoveRecord at the specified ply.
+	 * @throws std::out_of_range if the ply index is invalid.
+	 */
+	[[nodiscard]] const MoveRecord& getMove(uint32_t ply) const;
+	/**
 	 * @brief Returns the current ply index.
 	 * @return Index of the next move (0 = before first move)
 	 */
@@ -144,7 +161,7 @@ public:
 	/**
 	 * @brief Advances to the next ply if possible.
 	 */
-	void advance();
+	[[nodiscard]] bool advance();
 
 	/**
 	 * @brief Rewinds to the previous ply if possible.

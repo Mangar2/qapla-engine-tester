@@ -186,6 +186,16 @@ MoveRecord MoveRecord::createMinimalCopy() const {
     return result;
 }
 
+void MoveRecord::replaceMove(const MoveRecord& referenceMove) {
+    original = referenceMove.original;
+    lan_ = referenceMove.lan_;
+    san_ = referenceMove.san_;
+    move = referenceMove.move;
+    ponderMove.clear();
+    comment.clear();
+    nag.clear();
+}
+
 std::string MoveRecord::getGameEndText() const {
     std::ostringstream out;
     // Generate the game-end text
