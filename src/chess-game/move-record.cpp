@@ -172,6 +172,7 @@ std::string MoveRecord::evalString() const {
 MoveRecord MoveRecord::createMinimalCopy() const {
     MoveRecord result;
     result.lan_ = lan_;
+    result.original = original;
     result.timeMs = timeMs;
     result.scoreCp = scoreCp;
     result.scoreMate = scoreMate;
