@@ -258,17 +258,22 @@ void GameContext::doMove(const MoveRecord& move)
 
 void GameContext::advance()
 {
-    QaplaBasics::Move move;
+    MoveRecord moveRecord;
+    bool advanced = false;
     cancelCompute();
     {
         std::scoped_lock lock(gameRecordMutex_);
         if (gameRecord_.advance()) {
-           move = gameRecord_.getMove(gameRecord_.nextMoveIndex() - 1).move;
+           moveRecord = gameRecord_.getMove(gameRecord_.nextMoveIndex() - 1);
+           advanced = true;
         }
     }
-    for (auto &player : players_)
-    {
-        player->doMove(move);
+    
+    if (advanced) {
+        for (auto &player : players_)
+        {
+            player->doMove(moveRecord);
+        }
     }
 }
 

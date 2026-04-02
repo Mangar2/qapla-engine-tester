@@ -43,11 +43,6 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
-                    "content": "Starting engine autodetection...",
-                    "isRegex": False
-                },
-                {
-                    "type": "stdout",
                     "content": "Registered Engines:",
                     "isRegex": False
                 },

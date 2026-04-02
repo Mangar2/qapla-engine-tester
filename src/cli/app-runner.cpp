@@ -576,7 +576,8 @@ AppReturnCode AppRunner::runSystemTest(AppReturnCode code, bool background) {
     const SystemTestConfig config {
         .maxCores = resolvedMaxCores,
         .step = systemTestGroup->get<uint32_t>("step"),
-        .stepTimeSeconds = systemTestGroup->get<uint32_t>("steptime")
+        .stepTimeSeconds = systemTestGroup->get<uint32_t>("steptime"),
+        .test = systemTestGroup->get<bool>("test")
     };
 
     try {

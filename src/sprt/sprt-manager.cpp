@@ -163,7 +163,12 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
     auto [cause, result] = record.getGameResult();
     auto duel = pairing_->getResult();
 
-    uint32_t resultIndex = record.getRound() - 1;
+    uint32_t round = record.getRound();
+    if (round == 0) {
+        Logger::reportLogger().log("Invalid round number 0 in setGameRecord", TraceLevel::error);
+        return;
+    }
+    uint32_t resultIndex = round - 1;
 
     auto configuredResult = updateSprtResultsForRound(resultIndex, true);
 

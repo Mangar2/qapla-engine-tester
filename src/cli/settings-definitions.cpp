@@ -647,7 +647,12 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSystemTestKeys() {
                         .longDescription = "Number of seconds to run one concurrency step before increasing to the next step.",
                         .isRequired = false,
                         .defaultValue = 30,
-                        .type = ValueType::UInt } }
+                        .type = ValueType::UInt } },
+        { "test",       { .description = "Enable checking for identical move calculations",
+                        .longDescription = "If enabled, checks that in replay mode each computed move matches the expected search depth of the original game.",
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool } }
     };
 }
 

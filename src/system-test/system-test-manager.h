@@ -36,6 +36,7 @@ struct SystemTestConfig {
     uint32_t maxCores = 1;
     uint32_t step = 1;
     uint32_t stepTimeSeconds = 30;
+    bool test = false;
 };
 
 class SystemTestManager : public GameTaskProvider {
@@ -78,11 +79,19 @@ public:
 
 private:
     struct StepAggregate {
+        struct PlyStats {
+            uint64_t count = 0;
+            double sumNps = 0.0;
+            double sumNpsSquared = 0.0;
+            uint32_t firstDepth = 0;
+            bool depthMismatchLogged = false;
+            std::string firstMove;
+            bool moveMismatchLogged = false;
+        };
         uint64_t games = 0;
         uint64_t samples = 0;
         uint64_t totalNodes = 0;
-        double weightedNpsSum = 0.0;
-        double weightedStandardDeviationSum = 0.0;
+        std::vector<PlyStats> plies;
     };
 
     struct StepResult {
@@ -96,11 +105,14 @@ private:
     };
 
     [[nodiscard]] GameTask createTask(uint64_t taskNumber) const;
+    void accumulatePlyStats(size_t ply, const MoveRecord& move);
     void updateStepIfRequired();
     void completeCurrentStepAndAdvance();
     [[nodiscard]] static StepResult buildStepResult(uint32_t concurrency, const StepAggregate& aggregate, uint64_t stepElapsedMs);
-    void logStepResult(const StepResult& result);
+    static void logStepResult(const StepResult& result, double baselineStandardDeviation);
     void resetAggregate();
+    [[nodiscard]] bool storeReplaySeedIfNeeded(const GameRecord& record);
+    void startReplayPhaseAfterSeed();
 
     EngineConfig engine_;
     SystemTestConfig config_;
@@ -112,10 +124,15 @@ private:
     mutable std::mutex stateMutex_;
     StepAggregate stepAggregate_;
     std::optional<double> baselineStandardDeviation_;
+    std::optional<GameRecord> replayRecord_;
+
+    size_t seedPlyCount_ = 0;
 
     std::atomic<uint64_t> nextTaskId_ = 1;
     std::atomic<bool> finished_ = false;
+    std::atomic<bool> replayReady_ = false;
     std::atomic<uint32_t> currentConcurrency_ = 1;
+    std::atomic<uint32_t> initialConcurrency_ = 1;
 };
 
 } // namespace QaplaTester

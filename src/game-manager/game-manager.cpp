@@ -548,13 +548,13 @@ void GameManager::executeTask(std::optional<GameTask> task) {
     gameContext_.setSideSwitched(task->switchSide);
     referenceRecord_ = task->gameRecord;
 
-    auto size = referenceRecord_.history().size();
-    if (size == 0) {
-        finalizeTaskAndContinue();
-        return;
-    } 
-
     if (isReplayTaskType(task->taskType)) {
+        auto size = referenceRecord_.history().size();
+        if (size == 0) {
+            // Replay tasks require predefined moves
+            finalizeTaskAndContinue();
+            return;
+        } 
         if (task->taskType == GameTask::Type::ReplayForward) {
             referenceRecord_.setNextMoveIndex(0);
         }
