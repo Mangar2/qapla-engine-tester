@@ -226,6 +226,31 @@ def validate_stdout(actual_stdout: str, pattern: str, is_regex: bool = False) ->
         return False
 
 
+def resolve_tester_binary(config_name: str) -> str:
+    """Resolve tester binary path for current platform or explicit override."""
+    override_binary = os.getenv("QAPLA_IT_BINARY", "").strip()
+    if override_binary:
+        return override_binary
+
+    binary_suffix = ".exe" if os.name == "nt" else ""
+    return f"build/{config_name}/qapla-engine-tester{binary_suffix}"
+
+
+def apply_engines_override(args: List[str]) -> List[str]:
+    """Apply optional engines file override from environment."""
+    override_engines_file = os.getenv("QAPLA_IT_ENGINESFILE", "").strip()
+    if not override_engines_file:
+        return args
+
+    updated_args: List[str] = []
+    for arg_value in args:
+        if arg_value.startswith("--enginesfile="):
+            updated_args.append(f"--enginesfile={override_engines_file}")
+        else:
+            updated_args.append(arg_value)
+    return updated_args
+
+
 def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     """Execute a single test and validate results."""
     print()
@@ -262,7 +287,9 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
 
     # Build command
     args = shlex.split(test["args"], posix=True)
-    cmd = [f"build/{config_name}/qapla-engine-tester.exe"] + args
+    args = apply_engines_override(args)
+    tester_binary = resolve_tester_binary(config_name)
+    cmd = [tester_binary] + args
 
     print(f"  {Colors.GRAY}Running: {' '.join(cmd)}{Colors.RESET}")
     print()
