@@ -179,6 +179,15 @@ public:
     void stopMonteCarloTest();
 
     /**
+     * @brief Waits for the Monte Carlo test thread to finish without stopping it.
+     */
+    void waitMonteCarloCompletion() {
+        if (monteCarloThread_.joinable()) {
+            monteCarloThread_.join();
+        }
+    }
+
+    /**
      * @brief Clears the Monte Carlo test results.
      */
     void clearMonteCarloResult();

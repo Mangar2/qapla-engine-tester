@@ -411,6 +411,9 @@ AppReturnCode AppRunner::runSprt(AppReturnCode code, bool background) {
         auto manager = sprtManager_;
         if (isMontecarlo) {
             manager->runMonteCarloTest(*sprtConfig);
+            if (!background) {
+                manager->waitMonteCarloCompletion();
+            }
         } else {
             const auto& activeEngines = EngineWorkerFactory::getActiveEngines();
             SprtTournamentFile::setSaveCallback(
