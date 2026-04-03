@@ -111,10 +111,10 @@ namespace {
     table.headers = { "Metric", "Value" };
     table.body = {
         {"modelGeneration", modelGeneration},
-        {"samplesTotal", samples.size()},
-        {"samplesCompleted", completedSamples},
-        {"samplesActive", activeSamples},
-        {"samplesPending", pendingSamples},
+        {"samplesTotal", static_cast<std::uint64_t>(samples.size())},
+        {"samplesCompleted", static_cast<std::uint64_t>(completedSamples)},
+        {"samplesActive", static_cast<std::uint64_t>(activeSamples)},
+        {"samplesPending", static_cast<std::uint64_t>(pendingSamples)},
         {"weightDesignMin", minDesignWeight},
         {"weightDesignMax", maxDesignWeight},
         {"weightEffectiveSum", sumEffectiveWeight},
