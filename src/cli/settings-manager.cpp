@@ -20,6 +20,7 @@
 #include "settings-manager.h"
 
 #include "../base-elements/app-error.h"
+#include "../base-elements/markdown-output.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/ini-file.h"
 #include "../base-elements/file-helper.h"
@@ -747,32 +748,16 @@ namespace QaplaTester::Settings
     }
 
     void Manager::showMarkdown() {
-        const auto escapeMarkdown = [](const std::string& description, const std::string& longDescription) {
-            const auto& text = longDescription.empty() ? description : longDescription;
-            std::string result;
-            result.reserve(text.size());
-            for (const auto chr : text) {
-                if (chr == '|') {
-                    result += "\\|";
-                } else if (chr == '\n') {
-                    result += ' ';
-                } else {
-                    result += chr;
-                }
-            }
-            return result;
-        };
+        QaplaHelpers::MarkdownOutput markdown;
+        markdown.addHeading("Qapla Engine Tester - Parameter Reference");
+        appendGlobalMarkdownSection(markdown);
+        appendGroupMarkdownSections(markdown);
 
-        const auto formatDefault = [](const std::optional<Value>& defaultValue) -> std::string {
-            if (!defaultValue.has_value()) {
-                return {};
-            }
-            const auto& val = *defaultValue;
-            if (std::holds_alternative<std::string>(val) && std::get<std::string>(val).empty()) {
-                return {};
-            }
-            return formatHelpDefaultValue(val);
-        };
+        std::cout << markdown.toString();
+    }
+
+    void Manager::appendGlobalMarkdownSection(QaplaHelpers::MarkdownOutput& markdown) const {
+        markdown.addHeading("Global Parameters", 2);
 
         std::vector<std::pair<std::string, const ParameterDefinition*>> sortedGlobals;
         for (const auto& [key, def] : definitions_) {
@@ -782,20 +767,21 @@ namespace QaplaTester::Settings
         }
         std::ranges::sort(sortedGlobals, {}, &std::pair<std::string, const ParameterDefinition*>::first);
 
-        std::cout << "# Qapla Engine Tester - Parameter Reference\n\n";
-        std::cout << "## Global Parameters\n\n";
-        std::cout << "| Parameter | Type | Default | Description |\n";
-        std::cout << "|-----------|------|---------|-------------|\n";
+        std::vector<std::vector<std::string>> globalRows;
+        globalRows.reserve(sortedGlobals.size());
         for (const auto& [key, def] : sortedGlobals) {
-            auto desc = escapeMarkdown(def->description, def->longDescription);
-            auto defVal = formatDefault(def->defaultValue);
-            if (def->isRequired) {
-                defVal = "*required*";
-            }
-            std::cout << std::format("| --{} | {} | {} | {} |\n",
-                key, to_string(def->type), defVal, desc);
+            globalRows.emplace_back(std::vector<std::string>{
+                std::format("--{}", key),
+                to_string(def->type),
+                markdownDefaultValue(def->defaultValue, def->isRequired),
+                markdownDescription(def->description, def->longDescription)
+            });
         }
 
+        markdown.addTable({"Parameter", "Type", "Default", "Description"}, globalRows);
+    }
+
+    void Manager::appendGroupMarkdownSections(QaplaHelpers::MarkdownOutput& markdown) const {
         std::vector<std::pair<std::string, const GroupDefinition*>> sortedGroups;
         for (const auto& [name, def] : groupDefs_) {
             if (!def.ignore) {
@@ -805,24 +791,49 @@ namespace QaplaTester::Settings
         std::ranges::sort(sortedGroups, {}, &std::pair<std::string, const GroupDefinition*>::first);
 
         for (const auto& [name, def] : sortedGroups) {
-            std::cout << std::format("\n## --{}\n\n", name);
-            std::cout << escapeMarkdown(def->description, def->longDescription) << "\n\n";
+            markdown.addHeading(std::format("--{}", name), 2);
+            markdown.addParagraph(markdownDescription(def->description, def->longDescription));
 
-            std::cout << "| Parameter | Type | Default | Description |\n";
-            std::cout << "|-----------|------|---------|-------------|\n";
+            std::vector<std::vector<std::string>> groupRows;
+            groupRows.reserve(def->keys.size());
             for (const auto& [param, meta] : def->keys) {
                 if (meta.isHidden) {
                     continue;
                 }
-                auto desc = escapeMarkdown(meta.description, meta.longDescription);
-                auto defVal = formatDefault(meta.defaultValue);
-                if (meta.isRequired) {
-                    defVal = "*required*";
-                }
-                std::cout << std::format("| {} | {} | {} | {} |\n",
-                    param, to_string(meta.type), defVal, desc);
+                groupRows.emplace_back(std::vector<std::string>{
+                    param,
+                    to_string(meta.type),
+                    markdownDefaultValue(meta.defaultValue, meta.isRequired),
+                    markdownDescription(meta.description, meta.longDescription)
+                });
             }
+
+            markdown.addTable({"Parameter", "Type", "Default", "Description"}, groupRows);
         }
+    }
+
+    std::string Manager::markdownDescription(const std::string& description,
+        const std::string& longDescription) {
+        if (!longDescription.empty()) {
+            return longDescription;
+        }
+        return description;
+    }
+
+    std::string Manager::markdownDefaultValue(const std::optional<Value>& defaultValue,
+        bool isRequired) {
+        if (isRequired) {
+            return QaplaHelpers::MarkdownOutput::emphasis("required");
+        }
+        if (!defaultValue.has_value()) {
+            return {};
+        }
+        const auto& value = *defaultValue;
+        if (std::holds_alternative<std::string>(value)
+            && std::get<std::string>(value).empty()) {
+            return {};
+        }
+        return formatHelpDefaultValue(value);
     }
 
     Value Manager::parseValue(const ParsedParameter &arg, const ParameterDefinition &def)

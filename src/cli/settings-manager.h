@@ -28,6 +28,10 @@
 #include "../base-elements/ini-file.h"
 #include "../base-elements/stable-map.h"
 
+namespace QaplaHelpers {
+    class MarkdownOutput;
+}
+
 namespace QaplaTester::Settings {
 
     enum class ValueType : std::uint8_t { String, Int, UInt, Float, Bool, PathExists, ValidateOutputPath };
@@ -465,9 +469,15 @@ namespace QaplaTester::Settings {
 
         void showGlobalHelpParameters() const;
         void showGroupHelpParameters() const;
+        void appendGlobalMarkdownSection(QaplaHelpers::MarkdownOutput& markdown) const;
+        void appendGroupMarkdownSections(QaplaHelpers::MarkdownOutput& markdown) const;
 
         static std::string valueToString(const Value& value);
         static std::string formatHelpDefaultValue(const Value& value);
+        static std::string markdownDescription(const std::string& description,
+            const std::string& longDescription);
+        static std::string markdownDefaultValue(const std::optional<Value>& defaultValue,
+            bool isRequired);
 
         [[nodiscard]] const GroupInstance* findGroupInstance(const std::string& groupName, 
                                                             const QaplaHelpers::IniFile::KeyValueMap& criteria) const;
