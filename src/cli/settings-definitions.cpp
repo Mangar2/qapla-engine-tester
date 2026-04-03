@@ -152,8 +152,8 @@ Configs:
     // System test group
     Manager::instance().registerGroup({
         .name = "systemtest",
-        .description = "Measures NPS behavior while increasing game parallelism",
-        .longDescription = "Runs repeated games from one fixed start position with one engine configuration and increases game concurrency step by step. Logs average and total NPS in kNps plus NPS standard deviation per move, including a baseline standard deviation at low parallelism and additional standard deviation introduced by higher parallelism.",
+        .description = "Evaluates platform stability for parallel engine games",
+        .longDescription = "Evaluates how stable a platform allocates computation time to engines when running multiple games in parallel. Replays identical games at increasing concurrency levels and measures per-move NPS standard deviation. Helps determine the optimal number of concurrent games for tournament play on a given system.",
         .unique = true,
         .keys = Settings::getSystemTestKeys()
     });

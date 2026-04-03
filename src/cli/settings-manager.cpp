@@ -24,6 +24,7 @@
 #include "../base-elements/ini-file.h"
 #include "../base-elements/file-helper.h"
 
+#include <algorithm>
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -344,8 +345,13 @@ namespace QaplaTester::Settings
     void Manager::handleHelpRequest(const QaplaHelpers::ConfigData& configData)
     {
         for (const auto& [key, value] : configData.getGlobalParameters()) {
-            if (QaplaHelpers::to_lowercase(key) == "help") {
+            const auto lowerKey = QaplaHelpers::to_lowercase(key);
+            if (lowerKey == "help") {
                 showHelp();
+                exit(0);
+            }
+            if (lowerKey == "markdown") {
+                showMarkdown();
                 exit(0);
             }
         }
@@ -736,6 +742,85 @@ namespace QaplaTester::Settings
                     }
                 }
                 std::cout << "\n";
+            }
+        }
+    }
+
+    void Manager::showMarkdown() {
+        const auto escapeMarkdown = [](const std::string& description, const std::string& longDescription) {
+            const auto& text = longDescription.empty() ? description : longDescription;
+            std::string result;
+            result.reserve(text.size());
+            for (const auto chr : text) {
+                if (chr == '|') {
+                    result += "\\|";
+                } else if (chr == '\n') {
+                    result += ' ';
+                } else {
+                    result += chr;
+                }
+            }
+            return result;
+        };
+
+        const auto formatDefault = [](const std::optional<Value>& defaultValue) -> std::string {
+            if (!defaultValue.has_value()) {
+                return {};
+            }
+            const auto& val = *defaultValue;
+            if (std::holds_alternative<std::string>(val) && std::get<std::string>(val).empty()) {
+                return {};
+            }
+            return formatHelpDefaultValue(val);
+        };
+
+        std::vector<std::pair<std::string, const ParameterDefinition*>> sortedGlobals;
+        for (const auto& [key, def] : definitions_) {
+            if (!def.isHidden) {
+                sortedGlobals.emplace_back(key, &def);
+            }
+        }
+        std::ranges::sort(sortedGlobals, {}, &std::pair<std::string, const ParameterDefinition*>::first);
+
+        std::cout << "# Qapla Engine Tester - Parameter Reference\n\n";
+        std::cout << "## Global Parameters\n\n";
+        std::cout << "| Parameter | Type | Default | Description |\n";
+        std::cout << "|-----------|------|---------|-------------|\n";
+        for (const auto& [key, def] : sortedGlobals) {
+            auto desc = escapeMarkdown(def->description, def->longDescription);
+            auto defVal = formatDefault(def->defaultValue);
+            if (def->isRequired) {
+                defVal = "*required*";
+            }
+            std::cout << std::format("| --{} | {} | {} | {} |\n",
+                key, to_string(def->type), defVal, desc);
+        }
+
+        std::vector<std::pair<std::string, const GroupDefinition*>> sortedGroups;
+        for (const auto& [name, def] : groupDefs_) {
+            if (!def.ignore) {
+                sortedGroups.emplace_back(name, &def);
+            }
+        }
+        std::ranges::sort(sortedGroups, {}, &std::pair<std::string, const GroupDefinition*>::first);
+
+        for (const auto& [name, def] : sortedGroups) {
+            std::cout << std::format("\n## --{}\n\n", name);
+            std::cout << escapeMarkdown(def->description, def->longDescription) << "\n\n";
+
+            std::cout << "| Parameter | Type | Default | Description |\n";
+            std::cout << "|-----------|------|---------|-------------|\n";
+            for (const auto& [param, meta] : def->keys) {
+                if (meta.isHidden) {
+                    continue;
+                }
+                auto desc = escapeMarkdown(meta.description, meta.longDescription);
+                auto defVal = formatDefault(meta.defaultValue);
+                if (meta.isRequired) {
+                    defVal = "*required*";
+                }
+                std::cout << std::format("| {} | {} | {} | {} |\n",
+                    param, to_string(meta.type), defVal, desc);
             }
         }
     }

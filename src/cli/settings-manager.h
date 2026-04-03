@@ -314,6 +314,11 @@ namespace QaplaTester::Settings {
         void showHelp();
 
         /**
+         * @brief Outputs full parameter documentation in Markdown format to stdout.
+         */
+        void showMarkdown();
+
+        /**
          * @brief Sets a global CLI setting programmatically (e.g., from interactive input).
          * @param name The parameter name (must match a registered global setting).
          * @param value The value to assign, in string form.
