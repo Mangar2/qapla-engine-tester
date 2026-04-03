@@ -64,4 +64,26 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/epd",
         },
+        {
+            "name": "epd-depth-fixed",
+            "description": "EPD test with fixed depth=8 - verifies depth-limited search mode",
+            "args": "--settingsfile=test/integration/epd/test-epd.ini --epd depth=8 minsuccess=0",
+            "log_path": "test/integration/log/epd",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "logFiles", "path": "", "pattern": "epd-report*.log", "count": 1},
+            ],
+            "cleanup": "test/integration/log/epd",
+        },
+        {
+            "name": "epd-nodes-fixed",
+            "description": "EPD test with fixed nodes=100000 - verifies node-limited search mode",
+            "args": "--settingsfile=test/integration/epd/test-epd.ini --epd nodes=100000 minsuccess=0",
+            "log_path": "test/integration/log/epd",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "logFiles", "path": "", "pattern": "epd-report*.log", "count": 1},
+            ],
+            "cleanup": "test/integration/log/epd",
+        },
     ]

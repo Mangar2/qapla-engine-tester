@@ -89,4 +89,16 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/sprt"
         },
+        {
+            "name": "sprt-montecarlo",
+            "description": "SPRT Monte Carlo simulation - no engines needed, pure statistical simulation",
+            "args": "--sprt montecarlo=true eloH0=0 eloH1=10 alpha=0.05 beta=0.05 maxgames=3000 --logging path=test/integration/log/sprt/montecarlo",
+            "log_path": "test/integration/log/sprt/montecarlo",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Running SPRT Monte carlo simulation", "isRegex": False},
+                {"type": "stdout", "content": "H0 Accepted", "isRegex": False},
+            ],
+            "cleanup": "test/integration/log/sprt/montecarlo",
+        },
     ]
