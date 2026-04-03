@@ -1,93 +1,79 @@
-﻿# Qapla Engine Tester
+# Qapla Engine Tester
 
-**Version**: Prerelease 0.4.0  
+**Version**: 0.5.0  
 **Author**: Volker Böhm  
 **Repository**: [https://github.com/Mangar2/qapla-engine-tester](https://github.com/Mangar2/qapla-engine-tester)
 
 Qapla Engine Tester is a command-line tool for running tournaments and analyzing or testing UCI-compatible chess engines. It provides the following core features:
 
-- **Tournament play** with support for Gauntlet and Round-Robin formats  
-- **SPRT testing** to statistically compare engine strength via engine-vs-engine matches  
-- **Opening book support** for tournaments and tests via PGN, EPD, or raw formats  
+- **Tournament play** with Gauntlet and Round-Robin formats  
+- **SPRT testing** to statistically compare engine strength  
+- **Resumable tournaments** (Tournament & SPRT) via result files for interrupted runs  
+- **SPSA optimization** for automated engine parameter tuning  
+- **CLOP optimization** using confident local optimization  
+- **EPD-based position analysis** across multiple engines in parallel  
+- **NPS stability system test** to evaluate platform stability for parallel engine games  
+- **Full WinBoard/XBoard engine support** alongside UCI  
+- **Opening book support** via PGN, EPD, or raw formats  
 - **Pondering** support and **fully parallel gameplay** across any number of games  
 - **Interactive mode** to change concurrency, inspect status, or stop runs gracefully  
-- **Resumeable tournaments** via result files for interrupted runs  
-- **Flexible configuration** entirely via command-line, settings file, or both  
-- **EPD-based position analysis** across multiple engines in parallel  
+- **MCP server mode** for AI-assisted engine testing  
 - **Stress and compliance testing** for UCI engine behavior  
-- **Batch mode** support with different return codes by outcome
+- **Flexible configuration** via command-line, settings file, or both  
+- **Batch mode** with structured return codes for CI integration
 
 All features are fully configurable and optimized for multi-core systems.
 
-## 📚 Table of Contents
+> **Full parameter reference**: See [PARAMETERS.md](PARAMETERS.md) for a complete, auto-generated list of all CLI options and their defaults.
 
-- [Qapla Engine Tester](#qapla-engine-tester)
-- [🆕 What's New in Version 0.4.0](#whats-new-in-version-040)
-- [Comparison with cutechess-cli](#comparison-with-cutechess-cli)
-- [⚡ Ultra-Fast Testing](#-ultra-fast-testing)
-- [🔁 General Options](#-general-options)
-- [🔚 Return Codes for Batch Processing](#-return-codes-for-batch-processing)
-- [Engine `.ini` Configuration (--enginesfile)](#-engine-ini-configuration---enginesfile)
-- [🗂️ Settings File Support (`--settingsfile`)](#️-settings-file-support---settingsfile)
-- [💬 Interactive Mode](#-interactive-mode)
-- [⚙️ `--engine` Group — Define Engine Configuration via CLI](#️---engine-group--define-engine-configuration-via-cli)
-- [♻️ `--each` Group — Shared Engine Options](#️---each-group--shared-engine-options)
-- [📄 `--epd` Group — EPD Position Analysis](#---epd-Group--EPD-Position-Analysis)
-- [📤 `--pgnoutput` Group — PGN Output Settings](#---pgnoutput-group--pgn-output-settings)
-- [♟️ `--openings` Group — Opening Selection Settings](#️---openings-group--opening-selection-settings)
-- [🏆 `--tournament` Group — Tournament Mode](#---tournament-Group--Tournament-Mode)
-- [📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)](#---sprt-group--sequential-probability-ratio-test-sprt)
-- [🎯 `--clop` Group — Confident Local Optimization (CLOP)](#---clop-group--confident-local-optimization-clop)
-- [🧾 Tournament Result Files](#-tournament-result-files)
-- [🧪 Engine Testing Suite — Protocol & Stability Validation](#-engine-testing-suite--protocol--stability-validation)
+## Table of Contents
+
+- [What's New in Version 0.5.0](#-whats-new-in-version-050)
+- [Ultra-Fast Testing](#-ultra-fast-testing)
+- [General Options](#-general-options)
+- [Return Codes for Batch Processing](#-return-codes-for-batch-processing)
+- [Configuration Precedence](#-configuration-precedence)
+- [Engine .ini Configuration](#engine-ini-configuration---enginesfile)
+- [Settings File Support](#️-settings-file-support---settingsfile)
+- [Interactive Mode](#-interactive-mode)
+- [Shared Engine Options (--each)](#️---each-group--shared-engine-options)
+- [EPD Position Analysis](#-epd-position-analysis)
+- [PGN Output](#-pgn-output)
+- [Opening Selection](#️-opening-selection)
+- [Tournament Mode](#-tournament-mode)
+- [SPRT Testing](#-sprt--sequential-probability-ratio-test)
+- [SPSA Optimization](#-spsa-parameter-optimization)
+- [CLOP Optimization](#-clop--confident-local-optimization)
+- [Tournament and SPRT Result Files](#-tournament-and-sprt-result-files)
+- [Engine Testing Suite](#-engine-testing-suite)
+- [NPS Stability System Test](#-nps-stability-system-test)
+- [MCP Server Mode](#-mcp-server-mode)
 - [Example Combined Run](#example-combined-run)
-- [Platform and Installation](#platform-and-installation)
+- [Platform and Installation](#️-platform-and-installation)
 - [Limitations](#limitations)
 - [Feedback](#feedback)
 
 ---
 
-## 🆕 What's New in Version 0.4.0
+## 🆕 What's New in Version 0.5.0
 
-Version 0.4.0 introduces several major features that significantly extend Qapla's flexibility, control, and test coverage:
+- **MCP Server Mode** — Qapla can now run as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
 
-- **Tournament System**  
-  Full support for **Gauntlet** and **Round-Robin** tournament formats, including advanced repetition, color control, rating tracking, and resumable result files.
+- **SPSA Parameter Optimization** — New `--spsa` and `--spsavalue` groups for automated UCI parameter tuning using Simultaneous Perturbation Stochastic Approximation.
 
-- - **Settings File Support**  
-  All CLI options can now be defined in `.ini`-style config files. Supports grouped sections for engines, tournaments, openings, and output. Enables clean reuse and modular test definitions.
+- **NPS Stability System Test** — The new `--systemtest` mode evaluates how stable a platform allocates computation time to engines when running multiple games in parallel. It replays identical games at increasing concurrency levels and measures per-move NPS standard deviation. This helps determine how many parallel games can be played in tournaments without results being distorted by platform issues such as CPU overload or performance/efficiency core scheduling.
 
-- **Interactive Mode**  
-  A new real-time command interface allows on-the-fly control of active runs: adjust concurrency, abort tests, or query progress without restarting.
+- **Full WinBoard/XBoard Engine Support** — Engines using the WinBoard (XBoard) protocol are now fully supported alongside UCI engines in all modes.
 
-- **Pondering Support**  
-  Engine pondering is now supported in both single tests and tournaments, enabling realistic latency scenarios and testing of ponder-hit efficiency.
+- **EPD Depth and Node Limits** — EPD analysis can now run with fixed `depth` or `nodes` limits instead of time-based search, enabling hardware-independent benchmarks.
 
-- **PGN-Based Opening Selection**  
-  Opening positions can now be extracted from `.pgn` files, complementing `.epd` and raw FEN input. Combined with the `plies` option, this allows deep opening testing from real games.
+- **Engine CLI Arguments** — Engines can now receive command-line arguments via `args=...` in their configuration.
 
-- **Linux Support**
-  Linux is now a first-class platform with full support for all features, including tournaments, SPRT, and EPD analysis. The tester is fully cross-platform compatible.
+- **Logging Overhaul** — Engine logging and trace settings are now grouped under `--logging` instead of individual global flags, with support for per-engine log files.
 
-These additions make Qapla suitable not only for statistical testing, but also for full-scale tournament automation with complex input and evaluation setups.
+- **Settings Refactoring** — Internal settings management has been restructured for better extensibility and MCP integration.
 
----
-
-## Comparison with cutechess-cli
-
-Qapla Engine Tester supports UCI engines playing standard chess in **Gauntlet**, **Round-Robin**, and **SPRT** tournaments.  
-Command-line options are largely **compatible** with `cutechess-cli`, but uses two "--" instead of one (e.g., `--engine` instead of `-engine`).
-
-Unlike `cutechess-cli`, Qapla Engine Tester does **not** support WinBoard engines, chess variants, or additional tournament types beyond those listed above.
-
-### What I like most about Qapla Engine Tester 
-
-- Tournaments are **resumable and extendable** thanks to persistent result files
-- A built-in **interactive mode** allows changing concurrency, viewing status, or terminating gracefully
-- Full **configuration via file** is supported, not just via CLI options
-- **Per-engine logging** can be enabled for detailed debugging or analysis
-- Includes an **engine behavior report** after each run to help identify compliance or stability issues
-- Ultra fast testing mode for high-throughput scenarios with minimal overhead
+These additions make Qapla suitable not only for statistical testing, but also for full-scale tournament automation, AI-driven testing workflows, and hardware benchmarking.
 
 ---
 
@@ -112,28 +98,7 @@ This demonstrates Qapla's capability for ultra-fast, large-scale testing with ex
 
 ## 🔁 General Options
 
-These options configure the overall behavior of the tester and apply across all test types.
-
-- **`--concurrency`** (Required, Default: `10`)  
-  Defines the maximum number of engines running in parallel. This controls how many games or analysis tasks are executed at the same time. Use this to take advantage of multi-core systems.
-
-- **`--enginesfile`** (Optional)  
-  Path to an INI file that defines reusable engine configurations. This file serves as a database of named engine setups (e.g. executable path, UCI options, etc.). It does not select or activate any engines by itself — engines must always be specified explicitly via `--engine`. The tester will match engine names against this file if `conf=name` is used in a `--engine` definition.
-
-- **`--enginelog`** (Optional, Default: `false`)  
-  Enables detailed logging of the UCI protocol communication between the tester and each engine. Useful for debugging engine behavior or verifying protocol compliance.
-
-- **`--logpath`** (Optional, Default: `.`)  
-  Sets the output directory for log files, including engine logs and test summaries. The directory must exist beforehand. If not specified, logs are written to the current working directory.
-
-- **`--rapid`** (Optional, Default: `false`)
-  Disables processing of all `info` lines from engines to minimize overhead. Optimized for ultra-short time control games and high-throughput testing. Note: Disables PV checking, bestmove validation, and analysis features like depth/bestscore tracking or early termination based on evaluation.
-
-- **`--settingsfile`** (Optional)  
-  Path to a `.ini` file containing predefined settings. These can be used alongside or instead of command-line options.
-
-- **`--interactive`** (Optional, Default: `false`)  
-  Enables interactive mode to adjust concurrency, query status, or terminate the run gracefully.
+Global options control the overall behavior of the tester and apply across all test types. Key settings include the number of parallel engines (`--concurrency`), an optional engine registry file (`--enginesfile`), a settings file for reusable configurations (`--settingsfile`), interactive mode (`--interactive`), and a rapid mode (`--rapid`) that suppresses engine info lines for maximum throughput.
 
 ---
 
@@ -176,6 +141,27 @@ Use these codes in automation scripts to check for test outcomes or failure caus
 
 ---
 
+## 🔀 Configuration Precedence
+
+Qapla supports multiple configuration sources. When the same setting appears in more than one source, the following priority applies (highest first):
+
+1. **Tournament/SPRT result files** — When a tournament or SPRT result file is specified and already exists, all settings stored in that file take absolute precedence. Using a result file tells the program "continue this tournament/SPRT exactly as configured". This ensures consistency when resuming interrupted runs.
+2. **Command-line arguments** — CLI parameters override settings from the settings file and engines file. This is ideal for batch runs where a base configuration is stored in a settings file and only the varying parameters are passed via CLI.
+3. **Settings file (`--settingsfile`)** — Supports all CLI options in INI format. Lower priority than CLI, allowing selective overrides.
+4. **Engines file (`--enginesfile`)** — Contains only engine definitions. Engines are referenced from other configuration sources via the `conf` parameter. Engine options specified inline (e.g., in `--engine conf=... option.Hash=256`) override values from the engines file.
+
+### Engine Option Precedence
+
+Within engine configuration specifically:
+
+1. **Inline via `--engine`** — Highest priority. Overrides all others.
+2. **Via `--each`** — Shared defaults for all engines. Overridden by individual `--engine`.
+3. **From `--enginesfile` via `conf=...`** — Base configuration. Overridden by both.
+
+> See [PARAMETERS.md](PARAMETERS.md#--engine) for all available engine sub-options.
+
+---
+
 ## Engine `.ini` Configuration (--enginesfile)
 
 [engine]  
@@ -207,17 +193,24 @@ To use a settings file, pass the path via:
 --settingsfile=path/to/config.ini
 ```
 
+### Settings File Format
+
+The settings file uses INI format and maps directly to CLI parameters. Section headers correspond to CLI parameter groups (e.g., `--tournament` becomes `[tournament]`), and keys within each section match the CLI sub-parameters. Global options appear at the top without a section header.
+
 ### Example `config.ini` file:
 
 ```ini
-enginesfile=C:\Development\qapla-engine-tester\test\engines.ini
-logpath=log
-enginelog=true
+enginesfile=C:\Chess\engines.ini
 concurrency=10
+
+[logging]
+engine=true
+path=log
+mode=each
 
 [tournament]
 type=gauntlet
-resultfile=log/tournamet.tour
+file=log/tournament.tour
 rounds=2
 games=8
 repeat=2
@@ -227,25 +220,21 @@ conf=Qapla 0.3.2
 gauntlet=true
 
 [engine]
-conf=Qapla 0.3.2
-trace=all
-
-[engine]
 conf=Qapla 0.3.1
 
 [each]
+proto=uci
 tc=10+0.02
 
 [pgnoutput]
-file=log/test.pgn
+file=log/games.pgn
 
 [openings]
 order=random
-file=C:\Development\qapla-engine-tester\test\book8ply.raw
-format=raw
+file=C:\Chess\book8ply.raw
 ```
 
-All CLI options are fully supported inside the file, including multiple engines and grouped sections. Command-line arguments override values from the settings file if both are present.
+All CLI options are fully supported inside the file, including multiple `[engine]` sections and all grouped parameters. Command-line arguments override values from the settings file if both are present — see [Configuration Precedence](#-configuration-precedence).
 
 ---
 
@@ -277,104 +266,21 @@ This mode is particularly useful during long tournaments or test runs where dyna
 
 ---
 
-## ⚙️ `--engine` Group — Define Engine Configuration via CLI
-
-Defines an engine to be used in a test. This option can be specified multiple times to configure multiple engines or multiple variants of the same engine. Engine definitions can be given inline or refer to named entries from the configuration file via `conf`.
-
-You may combine this with `--enginesfile`, but note: **all engines must always be explicitly listed using `--engine`**, even if defined in the configuration file.
-
-### Option Precedence (Highest Wins)
-
-When multiple sources define the same UCI option for an engine, the following priority rules apply (from highest to lowest):
-
-1. **Inline via `--engine`**  
-   Highest priority. Values specified directly in `--engine` override all others.
-2. **Via `--each`**  
-   Shared options for all engines. Overridden by values in individual `--engine` definitions.
-3. **From `--enginesfile` via `conf=...`**  
-   Base configuration loaded from the file. Can be overridden by `--each` and `--engine`.
-
-### Sub-options
-
-These options configure a single engine instance. Each `--engine` on the command line accepts the following sub-options:
-
-- **`conf`** (Optional)  
-  Refers to the name of an engine defined in the configuration file (`--enginesfile`). If set, all fields from that entry will be used unless overridden by CLI values.
-
-- **`name`** (Optional if `conf` is used)  
-  Logical name of the engine used internally in logs and result output. If neither `conf` nor `name` is provided, the engine command (`cmd`) will be used as fallback.
-
-- **`cmd`** (Required if `conf` is not used)  
-  Path to the engine executable.
-
-- **`dir`** (Optional, Default: `.`)  
-  Working directory for the engine process. Relative paths (e.g. for NNUE or config files) are resolved from here.
-
-- **`proto`** (Optional, Default: `uci`)  
-  Engine protocol. Only `uci` is supported currently. `xboard` is reserved for future use.
-
-- **`tc`** (Optional)  
-  Time control in format `moves/time+inc` (e.g. `40/60+0.5`). Use `inf` for infinite time. Must be set per engine.
-
-- **`ponder`** (Optional)  
-  Enables pondering mode for the engine, if supported.
-
-- **`gauntlet`** (Optional, Default: `false`)  
-  Marks the engine as part of the gauntlet pool. Relevant for Gauntlet tournaments.
-
-- **`trace`** (Optional)  
-  Sets engine trace level: `none`, `command`, or `all`. Requires `--enginelog` to be active.
-
-- **`option.[name]`** (Optional, repeatable)  
-  Defines UCI options for the engine (e.g. `option.Threads=4`).
-
-
-### Examples
-
-Basic engine definition (fully inline):
-
-```bash
---engine name="MyEngine" cmd="stockfish.exe" proto=uci option.Hash=128 option.Threads=4
---enginesfile=engines.ini --engine conf=sf option.Threads=2
-```
-
----
-
 ## ♻️ `--each` Group — Shared Engine Options
 
-Defines default values that apply to **all** engines unless overridden in their respective `--engine` definitions. This is useful for setting common UCI options or protocols without repeating them.
-
-### Sub-options
-
-- **`dir`** (Optional, Default: `.`)  
-  Sets the working directory for all engines. Can be overridden individually in each `--engine` definition.
-
-- **`proto`** (Optional, Default: `uci`)  
-  Defines the protocol used by all engines (`uci`). `xboard` is not yet implemented. Can be overridden per engine.
-
-- **`tc`** (Optional)  
-  Sets a shared time control for all engines. Can be overridden per engine.
-
-- **`ponder`** (Optional, Default: `false`)  
-  Enables pondering mode globally for all engines, if supported.
-
-- **`trace`** (Optional, Default: `command`)  
-  Sets trace level globally: `none`, `command`, or `all`. Requires `--enginelog` to be enabled.
-
-- **`option.[name]`** (Optional, repeatable)  
-  Defines shared UCI options for all engines (e.g. `option.Threads=2`). These can be overridden in individual `--engine` definitions.
+Defines default values that apply to **all** engines unless overridden in their respective `--engine` definitions. Useful for setting a common time control, protocol, or UCI options without repeating them for each engine.
 
 ### Example
 
 ```bash
---each option.Threads=2 proto=uci
+--each option.Threads=2 proto=uci tc=10+0.02
 --engine name=engineA cmd=./engineA
 --engine name=engineB cmd=./engineB option.Threads=4
 ```
 
 ---
 
-## 📄 --epd Group — EPD Position Analysis
+## 📄 EPD Position Analysis
 
 Qapla Engine Tester supports efficient EPD-based analysis across multiple engines in parallel, utilizing all available CPU cores. It reads `.epd` files containing `bm` (best move) tags and compares each engine´s output against the expected move.
 
@@ -404,396 +310,158 @@ Each row shows:
 The output is saved automatically to a log file named like:  
 `epd-report-YYYY-MM-DD_HH-MM-SS.log`
 
-### `--epd` Group — Analysis Configuration
-
-Defines how the EPD testset should be executed. One testset can be applied to all engines in parallel.
-
-- **`file`** (Required)  
-  Path to the `.epd` file to analyze. The file must exist and contain `bm` tags for validation.
-
-- **`maxtime`** (Optional, Default: `20`)  
-  Maximum time (in seconds) each engine is allowed to think per position.
-
-- **`mintime`** (Optional, Default: `2`)  
-  Minimum amount of time (in seconds) before the engine is allowed to stop after finding a correct move.
-
-- **`seenplies`** (Optional, Default: `0`)  
-  The expected move must be visible in the principal variation for at least this many plies before early stopping is triggered. Use `0` to disable early stopping of the analysis.
-
-- **`depth`** (Optional, Default: `0`)  
-  Fixed search depth per position. `0` means not set. If `depth > 0`, the EPD run uses fixed depth and ignores `maxtime`, `mintime`, and `seenplies`.
-
-- **`nodes`** (Optional, Default: `0`)  
-  Fixed node limit per position. `0` means not set. If `nodes > 0`, the EPD run uses fixed nodes and ignores `maxtime`, `mintime`, and `seenplies`.
-
-`depth` and `nodes` are alternatives and must not both be greater than `0` at the same time.
-
-- **`minsuccess`** (Optional, Default: `0`)  
-  Minimum percentage of correct best moves required. Can be used as a pass/fail threshold in batch testing.
-
-### Example
+### Examples
 
 ```bash
 --epd file="endgames.epd" maxtime=30 seenplies=3
-```
-
-```bash
 --epd file="endgames.epd" depth=12
-```
-
-```bash
 --epd file="endgames.epd" nodes=500000
 ```
 
 ---
 
-## 📤 `--pgnoutput` Group — PGN Output Settings
+## 📤 PGN Output
 
-Defines how game results should be saved in PGN (Portable Game Notation) format. This includes file handling, metadata selection, and optional engine annotations such as depth, eval, and PV.
-
-This group is used for all game-based tests (e.g. `--sprt`, `--roundrobin`) to specify where and how the PGN should be written.
-
-### Sub-options
-
-- **`file`** (Required)  
-  Path to the PGN file where all games will be saved. The file will be created if it doesn't exist.
-
-- **`append`** (Optional, Default: `true`)  
-  If enabled, new games will be appended to the existing PGN file. If disabled, the file is overwritten at the start of each run.
-
-- **`finished`** (Optional, Default: `true`)  
-  Save only games that were finished (i.e. not crashed or aborted). If disabled, all games are written regardless of status.
-
-- **`min`** (Optional, Default: `false`)  
-  If enabled, saves a minimal PGN with only essential headers and moves — omits metadata and annotations.
-
-- **`clock`** (Optional, Default: `true`)  
-  Include time remaining for each player after each move (if available from engine output).
-
-- **`eval`** (Optional, Default: `true`)  
-  Include the engine's evaluation score in PGN comments for each move.
-
-- **`depth`** (Optional, Default: `true`)  
-  Include the search depth reached when the move was selected.
-
-- **`pv`** (Optional, Default: `false`)  
-  Include the full principal variation (PV) in PGN comments. Useful for debugging or engine analysis.
+Controls how game results are saved in PGN format. Use this for any game-based test mode (SPRT, tournament, SPSA) to specify the output file and select which annotations to include — such as clock times, evaluation scores, search depth, and principal variations.
 
 ### Example
 
 ```bash
---pgnoutput file="games.pgn" append=true fi=true eval=true pv=true
+--pgnoutput file="games.pgn" append=true eval=true pv=true
 ```
 
 ---
 
-## ♟️ `--openings` Group — Opening Selection Settings
+## ♟️ Opening Selection
 
-Controls how opening positions are assigned to games. Required for all game-based test types such as `--sprt` or `--roundrobin`. You can use `.epd`, `.pgn`, or raw FEN files as input and configure selection order, plies to play, and how openings are rotated.
-
-### Sub-options
-
-- **`file`** (Required)  
-  Path to a file containing the opening positions. The format can be `.epd`, `.pgn`, or a raw text file with FEN strings (one per line).
-
-- **`format`** (Optional, Default: `epd`)  
-  Format of the opening file. Supported values:  
-  - `epd` — Standard `.epd` file with optional tags  
-  - `pgn` — Games from which the last position is extracted  (not yet implemented)
-  - `raw` — Plain text FEN strings (one per line)
-
-- **`order`** (Optional, Default: `sequential`)  
-  Determines how positions are picked from the list:  
-  - `sequential` — Use positions in order  
-  - `random` — Shuffle the order
-
-- **`plies`** (Optional, Default: `all`)  
-  Maximum number of plies to play from the PGN opening before engines take over.  
-  Accepts an integer or `all`.  
-  - `all`: plays the full PGN sequence before engines begin.  
-  - `0`: engines start immediately from the PGN start position. Only meaningful if the PGN defines a custom start position via FEN  
-  Only applicable when using PGN input.
-
-- **`start`** (Optional, Default: `1`)  
-  Index of the first position to use (1-based). Useful for splitting test segments.
-
-- **`policy`** (Optional, Default: `default`)  
-  Defines when a new opening position is selected from the opening file:  
-  - `default` — Assigns a **fresh sequence** of openings at the start of each round. This sequence is **reused identically across all engine pairings** in that round to ensure fair comparison. The repeat setting controls how many games are played per opening.
-  - `encounter` — Picks a new opening only when the **names of the two engines** change. The player colors do **not** matter. All games between the same engine pair (e.g., Qapla vs. Spike), regardless of side, will use the **same opening**. The `-repeat` setting is ignored in this mode.
-  - `round` — Picks a new opening at the **start of each round**, reusing the same opening for all games in that round, regardless of engines or colors.
+Controls how opening positions are assigned to games. Required for all game-based test types such as SPRT, tournaments, or SPSA. Supports `.epd`, `.pgn`, and raw FEN files as input, with configurable selection order (sequential or random), ply depth for PGN openings, and policies for when to switch to the next opening.
 
 ### Example
 
 ```bash
---openings file="openings.pgn" format=pgn order=random plies=8 policy=round
+--openings file="openings.pgn" order=random plies=8 policy=round
 ```
 
 ---
 
-## 🏆 --tournament Group — Tournament Mode
+## 🏆 Tournament Mode
 
 Qapla Engine Tester supports automated tournaments between multiple engines using **Gauntlet** or **Round-Robin** formats. Tournaments are fully configurable and resumable via result files.
 
-To activate tournament mode, define a `[tournament]` section in a settings file or use CLI options.
-
-### Supported Parameters
-
-- **`type`** (Required, Default: `gauntlet`)  
-  Tournament type: `gauntlet` or `round-robin`.
-
-- **`resultfile`** (Optional)  
-  File to save tournament outcome. Enables resume and extend.
-
-- **`append`** (Optional, Default: `false`)  
-  Append to result file instead of overwriting it.
-
-- **`event`** (Optional)  
-  Optional event name for PGN or logging.
-
-- **`games`** (Optional, Default: `2`)  
-  Number of games per pairing. Total games = `games` × `rounds`.
-
-- **`rounds`** (Optional, Default: `1`)  
-  Repeat all pairings this many times.
-
-- **`repeat`** (Optional, Default: `2`)  
-  Number of consecutive games played per opening. Commonly set to 2 to alternate colors with the same line.
-
-- **`noswap`** (Optional, Default: `false`)  
-  Disable automatic color swap after each game.
-
-- **`ratinginterval`** (Optional, Default: `100`)  
-  Interval (in games) for printing current Elo estimates with confidence margins. Ratings are scaled around averageelo and updated as games progress.
-
-- **`averageelo`** (Optional, Default: `2600`)  
-  Set average Elo level for scaling rating output.
-
-- **`outcomeinterval`** (Optional, Default: `0`)  
-  Interval (in games) for printing a detailed outcome table, showing win/loss/draw breakdowns by result type (e.g. checkmate, stalemate, repetition). Use 0 to disable.
+In **Gauntlet** mode, one or more engines marked with `gauntlet=true` play against all other engines. In **Round-Robin** mode, every engine plays against every other engine. You can control the number of games per pairing, rounds, color swapping, and rating output intervals.
 
 ---
 
-## 📊 `--sprt` Group — Sequential Probability Ratio Test (SPRT)
+## 📊 SPRT — Sequential Probability Ratio Test
 
-Enables a formal statistical strength comparison between two engines using the Sequential Probability Ratio Test (SPRT). This test continuously evaluates win/draw/loss results and stops early when one of the hypotheses (H₀ or H₁) is statistically confirmed, or a maximum number of games is reached.
+Enables a formal statistical strength comparison between two engines. The test continuously evaluates win/draw/loss results and stops early when one of the hypotheses (H₀ or H₁) is statistically confirmed, or a maximum number of games is reached.
 
-Additionally, a **Monte Carlo simulation mode** is available to help understand how reliable a given SPRT configuration is under different Elo differences.
+SPRT determines whether a **Challenger** engine (marked with `gauntlet=true`, or the first engine) is stronger than a **Baseline** engine:
 
-### Sub-options
+- **H₀ (Null)**: Challenger Elo ≤ Baseline + eloH0
+- **H₁ (Alternative)**: Challenger Elo ≥ Baseline + eloH1
 
-- **`elolower`** (Optional, Default: `0`)  
-  Defines the **lower bound** of the Elo interval for the alternative hypothesis (H₁).  
-  → H₁ is accepted if Engine 1 appears stronger than Engine 2 by at least this amount.
+Common configurations:
+- **Improvement test**: `eloH0=0 eloH1=5` — detect a gain of at least 5 Elo
+- **Regression test**: `eloH0=-5 eloH1=0` — detect a loss of at least 5 Elo
 
-- **`eloupper`** (Optional, Default: `10`)  
-  Defines the **upper bound** of the Elo interval for the null hypothesis (H₀).  
-  → H₀ is accepted if Engine 1 does **not** appear stronger than this threshold.
-
-- **`alpha`** (Optional, Default: `0.05`)  
-  Probability of accepting H₁ when H₀ is actually true (Type I error).
-
-- **`beta`** (Optional, Default: `0.05`)  
-  Probability of accepting H₀ when H₁ is actually true (Type II error).
-
-- **`maxgames`** (Optional, Default: `0` = unlimited)  
-  Defines a hard cap on the number of games. If neither hypothesis is confirmed by this point, the result is "No Decision".
-
-- **`montecarlo`** (Optional, Default: `false`)  
-  Runs a Monte Carlo simulation **instead of a real SPRT test**.  
-  This mode simulates 1000 virtual SPRT runs for each Elo difference in the range −25 to +25 (in 5 Elo steps), using the given `alpha`, `beta`, and `maxgames` settings.
-
-  Output shows how often H₀ or H₁ would be accepted at each Elo level — giving you insight into how "sensitive" or "conclusive" the test configuration is.
+Additionally, a **Monte Carlo simulation mode** (`montecarlo=true`) is available to evaluate how reliable a given SPRT configuration is under different Elo differences, without running real games.
 
 ### Monte Carlo Output Example
+```
 Running SPRT Monte carlo simulation:  | Elo range: [0, 10] | alpha: 0.05, beta: 0.02 | maxGames: 3000
 Simulated elo difference:    -25  No Decisions:    0.6%  H0 Accepted:   99.4%  H1 Accepted:    0.0%  Average Games: 1400.9
-Simulated elo difference:    -20  No Decisions:    2.8%  H0 Accepted:   97.2%  H1 Accepted:    0.0%  Average Games: 1622.2
-Simulated elo difference:    -15  No Decisions:   11.6%  H0 Accepted:   88.4%  H1 Accepted:    0.0%  Average Games: 1873.2
-Simulated elo difference:    -10  No Decisions:   28.4%  H0 Accepted:   71.4%  H1 Accepted:    0.2%  Average Games: 2233.1
-Simulated elo difference:     -5  No Decisions:   48.6%  H0 Accepted:   50.5%  H1 Accepted:    0.9%  Average Games: 2534.1
 Simulated elo difference:      0  No Decisions:   68.8%  H0 Accepted:   28.7%  H1 Accepted:    2.5%  Average Games: 2738.1
-Simulated elo difference:      5  No Decisions:   79.7%  H0 Accepted:   11.8%  H1 Accepted:    8.5%  Average Games: 2802.7
-Simulated elo difference:     10  No Decisions:   78.6%  H0 Accepted:    3.6%  H1 Accepted:   17.8%  Average Games: 2781.3
-Simulated elo difference:     15  No Decisions:   61.9%  H0 Accepted:    1.0%  H1 Accepted:   37.1%  Average Games: 2590.7
-Simulated elo difference:     20  No Decisions:   36.0%  H0 Accepted:    0.0%  H1 Accepted:   64.0%  Average Games: 2239.2
 Simulated elo difference:     25  No Decisions:   19.6%  H0 Accepted:    0.0%  H1 Accepted:   80.4%  Average Games: 1931.9
-his helps you evaluate:
-- How often your settings produce **conclusive** results
-- Whether the `alpha`/`beta` values and `maxgames` are well chosen
-- How the test reacts to various true Elo gaps between engines
-
-### Example (SPRT Test)
-
-```bash
---sprt elolower=0 eloupper=10 alpha=0.05 beta=0.05 maxgames=3000
 ```
-
----
-
-## 🎯 `--clop` Group — Confident Local Optimization (CLOP)
-
-CLOP is a local black-box optimizer for noisy outcomes. It tunes engine options by repeatedly:
-
-1. fitting a weighted quadratic logistic model,
-2. updating local sample weights,
-3. sampling a new candidate from that local distribution,
-4. evaluating that candidate in self-play.
-
-Define the optimizer with `--clop` and define each tuned parameter with one `--clopvalue` group.
-
-### Sub-options (`--clop`)
-
-- **`samples`** (Optional, Default: `100`)  
-  Maximum number of evaluated parameter vectors.
-
-- **`gamespersample`** (Optional, Default: `8`)  
-  Number of self-play games per sampled parameter vector.
-
-- **`warmupsamples`** (Optional, Default: `8`)  
-  Number of initial random samples before local quadratic fitting dominates.
-
-- **`h`** (Optional, Default: `3.0`)  
-  Locality parameter of CLOP weighting. Lower values enforce stronger locality.
-
-- **`priorvariance`** (Optional, Default: `100.0`)  
-  Gaussian prior variance for logistic regressions.
-
-- **`trace`** (Optional, Default: `false`)  
-  Enables detailed CLOP trace tables (`clopDiagnostics`, `clopSignal`).
-  The compact runtime table `clopIndicator` is always shown.
-
-### Runtime indicator (`clopIndicator`)
-
-- `recomputeCycles` — Number of model recomputations already performed.
-- `sampleProgress` — Completed samples vs configured target (for example `1000/40000`).
-- `phase` — Current optimizer state with explanation (`warmup`, `searching`, `stabilizing`).
-
-### Parameter definitions (`--clopvalue`)
-
-Each parameter to optimize requires:
-
-- `name` (UCI option name)
-- `min` (lower bound)
-- `max` (upper bound)
-
-Choose `min` and `max` so the range contains only meaningful test values.
-If you have a known baseline value (for example, a previous default/start value), choose `min` and `max` so this value is approximately centered in the range.
-
-### Example (CLOP Run)
-
-```bash
---engine conf="MyEngine" --openings file="openings.epd" --clop samples=150 gamespersample=12 h=3.0 --clopvalue name="Contempt" min=-50 max=50 --clopvalue name="KingSafety" min=50 max=300
-```
-
----
-
-## 🧾 Tournament Result Files
-
-Qapla Engine Tester supports resumable and extendable tournaments by writing structured result files. These files record the outcome of each round and pairing, allowing partial runs to continue later without repeating finished games.
-
-This mechanism works for **all tournament types**, including **Gauntlet**, **Round-Robin**, and **SPRT**.
-
-> ⚠️ Result files do **not** define a tournament. You must still provide the full tournament configuration via CLI or settings file.
-
-### How It Works
-
-- If a `resultfile` is specified and already exists, it is automatically loaded at startup.
-- The tester matches finished games from the result file with the current tournament configuration.
-- Any game that matches an existing result (including engine settings) is **skipped**.
-
-### Matching Logic
-
-- Engine configurations must match **exactly**, including paths, protocols, and UCI options (e.g. `Hash=64` vs. `Hash=128` are treated as different).
-- The rest of the tournament definition may vary (e.g. number of games, rounds, participating engines). Qapla uses all results that match current pairings.
-
-This flexible matching allows you to:
-- Extend tournaments with more games or rounds  
-- Continue interrupted runs  
-- Remove or add engines — existing valid pairings will still be counted
-
-### Example Result File (Excerpt)
-
-```ini
-[Qapla 0.3.2 [gauntlet]]
-protocol=uci
-executablePath=C:\Chess\delivery\Qapla0.3.2\Qapla0.3.2-win-x86.exe
-workingDirectory=.
-tc=10.0+0.02
-Hash=64
-
-[Qapla 0.3.1]
-protocol=uci
-executablePath=C:\Chess\delivery\Qapla0.3.1\Qapla0.3.1-win-x86.exe
-workingDirectory=.
-tc=10.0+0.02
-Hash=64
-
-[round 1 engines Qapla 0.3.2 [gauntlet] vs Qapla 0.3.1]
-games: ==1001=0
-wincauses: checkmate:3
-drawcauses: threefold repetition:2,50-move rule:1
-losscauses: checkmate:2
-```
-
----
-
-## 🧪 Engine Testing Suite — Protocol & Stability Validation
-
-This test mode simulates a variety of real-world and edge-case conditions to validate the **UCI protocol compliance**, robustness, and time behavior of an engine. It is particularly useful for engine developers who want to verify correct responses to time controls, commands, and abnormal inputs.
-
-Tests can be optionally customized by enabling or disabling specific modules.
-
-### Covered Test Modules
-
-- Engine startup and shutdown behavior  
-- UCI option handling and crash resistance  
-- Time control and `movetime` compliance  
-- Infinite analysis mode behavior  
-- Pondering behavior and stability  
-- Engine-vs-engine simulation (with optional correctness scoring)  
-- Detection of crashes, hangs, or protocol violations  
-- Detailed **PASS/FAIL** reporting per test case
-
-### Selective Test Control
-
-The following flags allow you to skip individual tests. All are optional. By default, all tests run unless explicitly excluded.
-
-- **`underrun`** (Optional, Default: `false`)  
-  Check for engines that return a move **too quickly** under `movetime` constraints.
-
-- **`timeusage`** (Optional, Default: `false`)  
-  Verifies that engines **use the full available time** within tolerance in timed test games.
-
-- **`noponder`** (Optional, Default: `false`)  
-  Skip test that verifies engine behavior during **pondering**.
-
-- **`noepd`** (Optional, Default: `false`)  
-  Skip EPD-based correctness tests using simple best-move positions.
-
-- **`nomemory`** (Optional, Default: `false`)  
-  Skip test that checks whether the engine honors memory-related options (e.g. `Hash`).
-
-- **`nooption`** (Optional, Default: `false`)  
-  Skip crash-resistance tests related to invalid or malformed UCI options.
-
-- **`nostop`** (Optional, Default: `false`)  
-  Skip test that verifies whether an engine reacts properly to `stop` immediately after `go`.
-
-- **`nowait`** (Optional, Default: `false`)  
-  Skip test that checks whether engines **remain running** during `go infinite` and don’t terminate spontaneously.
-
-- **`numgames`** (Optional, Default: `20`)  
-  Number of engine-vs-engine test games to run. Focuses on time control and correctness scoring, not crash/protocol checks.
 
 ### Example
 
 ```bash
---test numgames=40 level=2 nooption=true nostop=true
+--sprt eloH0=0 eloH1=5 alpha=0.05 beta=0.05 maxgames=10000
+```
+
+---
+
+## 🔬 SPSA Parameter Optimization
+
+Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm. Parameters are perturbed in multiple iterations to find optimal values that maximize playing strength. The process requires two engines; the second engine is automatically configured with perturbed parameters.
+
+Define the optimizer with `--spsa` and each tuned parameter with `--spsavalue` (specifying `name`, `default`, `min`, `max`, and `step`).
+
+### Example
+
+```bash
+--spsa iterations=100 gamespersample=30 learningrate=0.002 \
+  --spsavalue name="Contempt" default=0 min=-50 max=50 step=10 \
+  --spsavalue name="KingSafety" default=100 min=50 max=300 step=25
+```
+
+---
+
+## 🎯 CLOP — Confident Local Optimization
+
+CLOP is a local black-box optimizer for noisy outcomes. It tunes UCI engine options by repeatedly fitting a weighted quadratic logistic model, sampling new candidate parameter vectors from the resulting local distribution, and evaluating them in self-play.
+
+Define the optimizer with `--clop` and each tuned parameter with `--clopvalue` (specifying `name`, `min`, `max`). Choose min/max so the search space contains only meaningful test values, with any known baseline value approximately centered in the range.
+
+### Example
+
+```bash
+--clop samples=150 gamespersample=12 h=3.0 \
+  --clopvalue name="Contempt" min=-50 max=50 \
+  --clopvalue name="KingSafety" min=50 max=300
+```
+
+---
+
+## 🧾 Tournament and SPRT Result Files
+
+Tournament and SPRT result files serve a dual purpose: they store game results **and** the complete configuration used for the run. This makes them self-contained — when you specify an existing result file, Qapla reads all settings from it and continues the tournament or SPRT test exactly as originally configured.
+
+Result files are available for both **tournaments** (`--tournament file=...`) and **SPRT** (`--sprt file=...`).
+
+### How It Works
+
+- When a result file is specified and already exists, Qapla loads **all settings** from it automatically.
+- Settings from a result file take **absolute precedence** — higher priority than CLI arguments, settings files, or engines files. This ensures consistency when resuming a run.
+- Already completed games are skipped; only remaining games are played.
+- Result files are periodically saved during the run (configurable via `saveintervalS`).
+
+### Use Cases
+
+- **Resume an interrupted run** — Simply pass the result file again. All configuration and progress is restored automatically.
+- **Continue with more games** — Increase rounds or games in the result file configuration, and Qapla will play only the new pairings.
+
+> **Tip**: You can set up your entire tournament or SPRT configuration via CLI or settings file for the initial run. On subsequent runs, pass only the result file — no other configuration is needed.
+
+---
+
+## 🧪 Engine Testing Suite
+
+The `--test` mode simulates a variety of real-world and edge-case conditions to validate **UCI protocol compliance**, robustness, and time behavior of an engine. It is particularly useful for engine developers who want to verify correct responses to time controls, commands, and abnormal inputs.
+
+### Covered Areas
+
+- Engine startup and shutdown behavior
+- UCI option handling and crash resistance
+- Time control and `movetime` compliance
+- Infinite analysis and pondering stability
+- Engine-vs-engine simulation with correctness scoring
+- Detection of crashes, hangs, or protocol violations
+- Detailed **PASS/FAIL** reporting per test case
+
+Individual test modules can be selectively enabled or disabled (e.g. `noponder=true`, `noepd=true`).
+
+### Example
+
+```bash
+--test numgames=40 nooption=true nostop=true
 ```
 
 ### Report Example
 
+```
 [Important]  
 FAIL Computing a move returns a legal move         (1 failed)  
 PASS Engine starts and stops fast and without problems  
@@ -805,18 +473,43 @@ PASS Infinite compute move must not exit on its own
 [Notes]  
 FAIL No movetime underrun                         (5 failed)  
 PASS Simple EPD tests, expected moves found  
+```
+
+
+---
+
+## 📡 NPS Stability System Test
+
+The `--systemtest` mode evaluates how stable a platform allocates computation time to engines when running multiple games in parallel. This helps determine the optimal number of concurrent games for tournament play on a given system.
+
+### How It Works
+
+A single engine configuration replays identical games at increasing concurrency levels. At each step, per-move NPS (nodes per second) is measured and the standard deviation is computed. Higher NPS variation indicates that the platform is less stable under load — for example due to CPU overload, performance/efficiency core scheduling, or hyperthreading contention.
+
+### What It Answers
+
+- How many parallel games can run on this platform without distorting tournament results?
+- Is it better to use only physical cores or also virtual CPUs (hyperthreading)?
+- At what concurrency level does NPS stability degrade significantly?
+
+---
+
+## 📡 MCP Server Mode
+
+When started with `--mcp`, Qapla runs as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
 
 ---
 
 ## Example Combined Run
 
 ```bash
-./qapla-engine-tester --concurrency=16 --enginelog=true --engine cmd="myengine.exe" --epd file="endgames.epd" maxtime=60 seenplies=3 --test
+./qapla-engine-tester --concurrency=16 --engine cmd="myengine.exe" --epd file="endgames.epd" maxtime=60 seenplies=3 --test
 ```
 
 This will:
 1. Run an EPD analysis for the engine
 2. Then perform the test suite
+
 
 ---
 
@@ -843,8 +536,8 @@ The fastchess SPRT implementation provides optimized Maximum Likelihood Estimati
 
 ## Limitations
 
-- Only UCI protocol is supported, Winboard is not yet supported
-- No GUI, command-line only
+— Does not support Chess960
+
 
 ---
 

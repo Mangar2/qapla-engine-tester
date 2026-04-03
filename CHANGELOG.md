@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2026-01-18
+## [0.5.0] - 2026-04-03
 
 ### Added
+
+- **MCP server**: Model Context Protocol support for AI-assisted engine testing
+  - Tool-based interface for SPRT, SPSA, CLOP, EPD, tournament and engine test
+  - Job scheduler with queue/background execution
+  - Preconfigured settings files support
+  - JSON result notifications and log file access
 
 - **Per-instance engine logging**: New `[logging]` configuration group
   - `logging.path`: Path to the logging directory
@@ -41,6 +47,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Weighted local quadratic logistic regression with confidence-based sampling
   - Integrated into CLI task dispatch and MCP tooling with queue/background support
 
+- **System test**: New `--systemtest` mode for NPS stability analysis
+  - Evaluates how stable a platform allocates computation time to engines when running multiple games in parallel
+  - Replays identical games at increasing concurrency levels
+  - Per-step NPS statistics with standard deviation to determine optimal concurrency
+
+- **EPD enhancements**: Support for `depth` and `nodes` search limits in EPD tests
+
+- **WinBoard/XBoard engine support**: Full support for WinBoard/XBoard protocol engines alongside UCI
+
+- **Engine command-line arguments**: New support for passing arguments to engine executables
+
 - **SPRT final result logging**: Log file now includes final SPRT decision and statistics
+
+### Changed
+
+- **Centralized settings management**: Refactored configuration into `Settings::Manager` with `fromManager` pattern across all config classes
+- **Source tree reorganization**: Moved modules into dedicated subdirectories (game-manager, engine-handling, etc.)
+- **Adjudication enabled in rapid mode**
 
 
