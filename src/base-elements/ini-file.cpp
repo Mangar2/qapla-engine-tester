@@ -19,7 +19,9 @@
 
 #include "ini-file.h"
 #include "string-helper.h"
+#include "app-error.h"
 #include <fstream>
+#include <format>
 
 namespace QaplaHelpers {
 
@@ -122,6 +124,12 @@ namespace QaplaHelpers {
                 }
             } else {
                 auto eqPos = trimmed.find('=');
+                if (!inSection) {
+                    throw QaplaTester::AppError::makeInvalidParameters(
+                        std::format("Command line argument '{}' is invalid. Top-level parameters must start with '--'. "
+                        "For example: '--{}'.", trimmed, trimmed)
+                    );
+                }
                 if (eqPos != std::string::npos) {
                     std::string key = trimmed.substr(0, eqPos);
                     std::string value = trimmed.substr(eqPos + 1);
