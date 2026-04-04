@@ -17,6 +17,7 @@
 *.pem
 /.vscode/
 /.VSCodeCounter/
+/.github/
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
