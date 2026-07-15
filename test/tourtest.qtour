@@ -28,34 +28,13 @@ trace=command
 restart=auto
 tc=3.0+0.01
 
-[engine]
-id=tournament
-name=Qapla-A
-cmd=/Users/volkerbohm/dev/qapla/engine-tester/test/engines/Qapla
-dir=.
-proto=uci
-trace=command
-restart=auto
-tc=3.0+0.01
-gauntlet=true
-
-[engine]
-id=tournament
-name=Qapla-B
-cmd=/Users/volkerbohm/dev/qapla/engine-tester/test/engines/Qapla
-dir=.
-proto=uci
-trace=command
-restart=auto
-tc=3.0+0.01
-
 [tournament]
 id=tournament
 type=gauntlet
 saveintervals=10
 append=false
 games=10
-rounds=2
+rounds=3
 repeat=2
 noswap=false
 ratinginterval=100
@@ -76,81 +55,30 @@ id=tournament
 round=1
 engineA=Qapla-A
 engineB=Qapla-B
-games===1=1=0101
-wincauses=checkmate:4
-drawcauses=threefold repetition:4
-losscauses=checkmate:2
-
-[round]
-id=tournament
-round=1
-engineA=Qapla-A
-engineB=Qapla-B
-games=00=1001=11
-wincauses=checkmate:4
-drawcauses=threefold repetition:2
-losscauses=checkmate:4
-
-[round]
-id=tournament
-round=1
-engineA=Qapla-A
-engineB=Qapla-B
-games=00=0111=10
-wincauses=checkmate:4
-drawcauses=threefold repetition:2
-losscauses=checkmate:4
-
-[round]
-id=tournament
-round=1
-engineA=Qapla-A
-engineB=Qapla-B
-games==010==0=10
-wincauses=checkmate:2
-drawcauses=threefold repetition:4
-losscauses=checkmate:4
+games=0101111=10
+wincauses=checkmate:6
+drawcauses=threefold repetition:1
+losscauses=checkmate:3
 
 [round]
 id=tournament
 round=2
 engineA=Qapla-A
 engineB=Qapla-B
-games==00=11==1=
+games=0=01=01000
+wincauses=checkmate:2
+drawcauses=threefold repetition:1
+drawcauses=50-move rule:1
+losscauses=checkmate:6
+
+[round]
+id=tournament
+round=3
+engineA=Qapla-A
+engineB=Qapla-B
+games==11=0=1=0=
 wincauses=checkmate:3
 drawcauses=threefold repetition:4
 drawcauses=50-move rule:1
 losscauses=checkmate:2
-
-[round]
-id=tournament
-round=2
-engineA=Qapla-A
-engineB=Qapla-B
-games=1=====1===
-wincauses=checkmate:2
-drawcauses=threefold repetition:3
-drawcauses=50-move rule:2
-drawcauses=insufficient material:3
-
-[round]
-id=tournament
-round=2
-engineA=Qapla-A
-engineB=Qapla-B
-games=0=01=10==0
-wincauses=checkmate:2
-drawcauses=threefold repetition:4
-losscauses=checkmate:4
-
-[round]
-id=tournament
-round=2
-engineA=Qapla-A
-engineB=Qapla-B
-games==0101=00=1
-wincauses=checkmate:3
-drawcauses=threefold repetition:2
-drawcauses=insufficient material:1
-losscauses=checkmate:4
 

@@ -92,8 +92,11 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
         
-        loadFromFile(sprtFile, false, false);
-        loadFromFile(tournamentFile, false, false);
+        // Engines must come solely from --settingsfile/--enginesfile/CLI. The state file already
+        // has its own [engine] copies (written on save) that would otherwise be re-added here,
+        // duplicating every engine and thus every pairing when a run is resumed.
+        loadFromFile(sprtFile, false, false, std::nullopt, {"engine"});
+        loadFromFile(tournamentFile, false, false, std::nullopt, {"engine"});
     }
 
     if (Settings::Manager::instance().get<bool>("mcp")) {
@@ -107,7 +110,8 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     m_rapid = Helper::applyEngineSettings(Manager::instance(), "engine");
 }
 
-void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite, std::optional<std::string> id) {
+void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite,
+    std::optional<std::string> id, const std::vector<std::string>& excludeSections) {
     if (fileName.empty()) {
         return;
     }
@@ -120,6 +124,9 @@ void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError,
     }
     QaplaHelpers::ConfigData fileData;
     fileData.load(file);
+    for (const auto& sectionName : excludeSections) {
+        fileData.removeSections(sectionName);
+    }
     if (id.has_value()) {
         fileData.setKeyInAllSections("id", *id);
     }

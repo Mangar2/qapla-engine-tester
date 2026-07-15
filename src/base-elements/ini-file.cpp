@@ -205,7 +205,13 @@ namespace QaplaHelpers {
         sectionTree_[name][id].push_back(section);
     }
 
-    void ConfigData::setSectionList(const std::string& name, const std::string& id, 
+    void ConfigData::removeSections(const std::string& name) {
+        if (sectionTree_.erase(name) > 0) {
+            setDirty(true);
+        }
+    }
+
+    void ConfigData::setSectionList(const std::string& name, const std::string& id,
         const IniFile::SectionList& sectionList)
     {
         setDirty(true);

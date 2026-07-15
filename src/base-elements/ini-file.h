@@ -225,6 +225,12 @@ public:
     void addSection(const IniFile::Section& section);
 
     /**
+     * @brief Removes all sections with the given name (all ids).
+     * @param name The name of the sections to remove.
+     */
+    void removeSections(const std::string& name);
+
+    /**
      * @brief Sets a specific section in the configuration data.
      * If a section with the same name and id already exists, it will be replaced.
      * @param section The section to set.

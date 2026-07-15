@@ -181,9 +181,11 @@ private:
      * @param throwOnError If true, throws an error if the file cannot be opened
      * @param overwrite If true, existing values in the manager are overwritten
      * @param id Optional identifier to set in all loaded sections
+     * @param excludeSections Section names to drop from the file before applying it
      */
-    void loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite, 
-        std::optional<std::string> id = std::nullopt);
+    void loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite,
+        std::optional<std::string> id = std::nullopt,
+        const std::vector<std::string>& excludeSections = {});
 
     /**
      * @brief Reads logger configuration from CLI settings
