@@ -18,6 +18,7 @@
 /.vscode/
 /.VSCodeCounter/
 /.github/
+/test/engines/
 
 
 # User-specific files (MonoDevelop/Xamarin Studio)
