@@ -18,7 +18,7 @@
  */
 
 #include "game-context.h"
-#include "src/qapla-engine/move.h"
+#include "../qapla-engine/move.h"
 
 namespace QaplaTester {
 
