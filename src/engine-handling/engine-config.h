@@ -197,6 +197,17 @@ public:
     bool& gauntlet() { return gauntlet_; }
 
 	/**
+	 * @brief Sets whether this engine is selected (e.g. for a tournament).
+	 * @param selected True if the engine is selected, false otherwise.
+	 */
+	void setSelected(bool selected) { selected_ = selected; }
+	/**
+	 * @brief Checks whether this engine is selected.
+	 * @return True if selected, false otherwise.
+	 */
+	[[nodiscard]] bool isSelected() const { return selected_; }
+
+	/**
 	 * @brief Sets whether scores are from white's point of view.
 	 * @param enabled True if scores are from white's POV, false otherwise.
 	 */
@@ -279,6 +290,7 @@ public:
         visitor("ponder", ponder_ ? "true" : "false");
         visitor("gauntlet", gauntlet_ ? "true" : "false");
         visitor("whitepov", scoreFromWhitePov_ ? "true" : "false");
+        visitor("selected", selected_ ? "true" : "false");
 
         for (const auto& [key, value] : internalKeys_) {
             visitor(key, value);

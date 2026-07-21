@@ -183,31 +183,40 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void  EngineConfig::setValue(const std::string& key, const std::string& value) {
-    std::set<std::string> internalKeys = { "id", "selected" };
-    if (key == "name") { setName(value); }
-    else if (key == "originalname") { originalName_ = value; }
-    else if (key == "author") { setAuthor(value); }
-    else if (key == "cmd") { setCmd(value); }
-    else if (key == "dir") { setDir(value); }
-    else if (key == "args") { setArgs(value); }
-    else if (key == "tc") { setTimeControl(value); }
-    else if (key == "gauntlet") {
+    static const std::set<std::string> internalKeys = { "id" };
+    // Recognized keys are matched case-insensitively (consistent with Settings::Manager
+    // and with EngineConfig::toSection(), which writes e.g. "originalName" in mixed case).
+    // Unrecognized keys fall through to setOptionValue() with their original casing intact,
+    // since real UCI option names are case-sensitive.
+    const std::string lowerKey = QaplaHelpers::to_lowercase(key);
+    if (lowerKey == "name") { setName(value); }
+    else if (lowerKey == "originalname") { originalName_ = value; }
+    else if (lowerKey == "author") { setAuthor(value); }
+    else if (lowerKey == "cmd") { setCmd(value); }
+    else if (lowerKey == "dir") { setDir(value); }
+    else if (lowerKey == "args") { setArgs(value); }
+    else if (lowerKey == "tc") { setTimeControl(value); }
+    else if (lowerKey == "gauntlet") {
         if (value == "true" || value == "1" || value.empty()) { setGauntlet(true); }
         else if (value == "false" || value == "0") { setGauntlet(false); }
     }
-    else if (key == "ponder") {
+    else if (lowerKey == "ponder") {
         if (value == "true" || value == "1" || value.empty()) { setPonder(true); }
         else if (value == "false" || value == "0") { setPonder(false); }
     }
-    else if (key == "whitepov") {
+    else if (lowerKey == "whitepov") {
         if (value == "true" || value == "1" || value.empty()) { setScoreFromWhitePov(true); }
         else if (value == "false" || value == "0") { setScoreFromWhitePov(false); }
     }
-    else if (key == "trace") { setTraceLevel(value); }
-    else if (key == "restart") { restart_ = parseRestartOption(value); }
-    else if (key == "proto") { setProtocol(value); }
-    else if (internalKeys.contains(key)) {
-        internalKeys_[key] = value;
+    else if (lowerKey == "selected") {
+        if (value == "true" || value == "1" || value.empty()) { setSelected(true); }
+        else if (value == "false" || value == "0") { setSelected(false); }
+    }
+    else if (lowerKey == "trace") { setTraceLevel(value); }
+    else if (lowerKey == "restart") { restart_ = parseRestartOption(value); }
+    else if (lowerKey == "proto") { setProtocol(value); }
+    else if (internalKeys.contains(lowerKey)) {
+        internalKeys_[lowerKey] = value;
     }
     else {
         setOptionValue(key, value);
