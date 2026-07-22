@@ -33,10 +33,14 @@
 #include "../opening/pgn-save.h"
 #include "../game-manager/game-manager-pool.h"
 #include "../game-manager/adjudication-manager.h"
+#include "../game-manager/game-state.h"
+#include "../perft/perft.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/json-helper.h"
 #include "../base-elements/oss-tools.h"
+#include "../base-elements/string-helper.h"
 #include "../base-elements/table-format.h"
+#include "../base-elements/timer.h"
 #include "settings-manager.h"
 
 #include <format>
@@ -269,6 +273,64 @@ AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnC
         }
         code = logChecklist(code);
     }
+    return code;
+}
+
+AppReturnCode AppRunner::runPerft(const Settings::GroupInstance& perft, AppReturnCode code) {
+    Settings::QaplaSettings::instance().applyLoggerConfig("perft-report");
+
+    const auto position = perft.get<std::string>("position");
+    const auto depth = perft.get<uint32_t>("depth");
+    const auto divide = perft.get<bool>("divide");
+    const auto showFen = perft.get<bool>("showfen");
+    const bool isStartPos = QaplaHelpers::to_lowercase(position) == "startpos";
+
+    GameState state;
+    if (!state.setFen(isStartPos, position)) {
+        throw AppError::makeInvalidParameters("Invalid FEN for perft: '" + position + "'");
+    }
+
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    logStartConcurrency("perft", concurrencyResolution);
+    Logger::reportLogger().logStatus(
+        std::format("Running perft: position='{}', depth={}, concurrency={}",
+            isStartPos ? "startpos" : position, depth, concurrencyResolution.effectiveConcurrency),
+        "perft", TraceLevel::result);
+
+    QaplaHelpers::Timer timer;
+    timer.start();
+    const auto result = Perft::run(state, depth, concurrencyResolution.effectiveConcurrency, divide, showFen);
+    timer.stop();
+
+    if (divide && !result.divide.empty()) {
+        TableData table;
+        table.headers = { "Move", "Nodes" };
+        table.columnWidths = { 10, 16 };
+        if (showFen) {
+            table.headers.emplace_back("Fen after move");
+            table.columnWidths.push_back(70);
+        }
+        for (const auto& entry : result.divide) {
+            std::vector<TableCell> row;
+            row.emplace_back(entry.move);
+            row.emplace_back(entry.nodes);
+            if (showFen) {
+                row.emplace_back(entry.fenAfter);
+            }
+            table.body.push_back(std::move(row));
+        }
+        Logger::reportLogger().logTable("perftDivide", table, TraceLevel::result);
+    }
+
+    const auto elapsedMs = timer.elapsedMs();
+    const double elapsedSeconds = static_cast<double>(elapsedMs) / 1000.0;
+    const double nps = elapsedSeconds > 0.0 ? static_cast<double>(result.nodes) / elapsedSeconds : 0.0;
+
+    Logger::reportLogger().logStatus(
+        std::format("perft finished: depth={} nodes={} time={} nps={:.0f}",
+            depth, result.nodes, QaplaHelpers::formatMs(elapsedMs), nps),
+        "perft", TraceLevel::result);
+
     return code;
 }
 
@@ -744,13 +806,19 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
         hasTask = true;
     }
 
+    if (shouldRunTask(Cli::TaskType::Perft) && Settings::Manager::instance().getGroupInstance("perft")) {
+        currentTask_ = Cli::TaskType::Perft;
+        returnCode = runPerft(*Settings::Manager::instance().getGroupInstance("perft"), returnCode);
+        hasTask = true;
+    }
+
     if (!hasTask) {
         if (forcedTask != Cli::TaskType::None) {
             throw AppError::makeInvalidParameters(std::format(
                 "No '{}' task configuration found. The selected task is forced in MCP mode.",
                 Cli::getTaskId(forcedTask)));
         }
-        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, --clop, or --systemtest.");
+        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, --clop, --systemtest, or --perft.");
     }
 
     hasExecutedDispatcherRun = true;

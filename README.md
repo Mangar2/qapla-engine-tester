@@ -13,6 +13,7 @@ Qapla Engine Tester is a command-line tool for running tournaments and analyzing
 - **CLOP optimization** using confident local optimization  
 - **EPD-based position analysis** across multiple engines in parallel  
 - **NPS stability system test** to evaluate platform stability for parallel engine games  
+- **Perft (move generator node count test)** with parallel root-move divide  
 - **Full WinBoard/XBoard engine support** alongside UCI  
 - **Opening book support** via PGN, EPD, or raw formats  
 - **Pondering** support and **fully parallel gameplay** across any number of games  
@@ -47,6 +48,7 @@ All features are fully configurable and optimized for multi-core systems.
 - [Tournament and SPRT Result Files](#-tournament-and-sprt-result-files)
 - [Engine Testing Suite](#-engine-testing-suite)
 - [NPS Stability System Test](#-nps-stability-system-test)
+- [Perft — Move Generator Node Count Test](#-perft--move-generator-node-count-test)
 - [MCP Server Mode](#-mcp-server-mode)
 - [Example Combined Run](#example-combined-run)
 - [Platform and Installation](#️-platform-and-installation)
@@ -491,6 +493,42 @@ A single engine configuration replays identical games at increasing concurrency 
 - How many parallel games can run on this platform without distorting tournament results?
 - Is it better to use only physical cores or also virtual CPUs (hyperthreading)?
 - At what concurrency level does NPS stability degrade significantly?
+
+---
+
+## 🌳 Perft — Move Generator Node Count Test
+
+The `--perft` mode runs a classic perft (**per**formance **t**est): it counts the number of leaf nodes reached by exhaustively playing out all legal move sequences from a position to a fixed depth. This is the standard way to verify that a move generator is correct (no missing or illegal moves) and to benchmark its raw speed. Perft does not require any engine — it only uses Qapla's own, fully legal move generator.
+
+### How It Works
+
+Starting from the given position, all legal root moves are generated once and distributed across worker threads (bounded by `--concurrency`, and never more threads than there are root moves). Each thread walks its assigned root moves independently — doing/undoing moves and recursing — and the totals are summed at the end. Since the last ply only needs a move *count* rather than a move *list*, moves are not played out at the final ply.
+
+### Options
+
+- `position`: `startpos` (default) or any FEN string
+- `depth`: search depth in plies (default `1`)
+- `divide`: print a per-root-move node count breakdown (default `true`)
+- `showfen`: also print the resulting FEN after each root move in the divide output (default `true`)
+
+### Example
+
+```bash
+--concurrency=8 --perft position="r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" depth=4
+```
+
+### Example Output
+
+```
+Move       | Nodes            | Fen after move
+-----------+------------------+------------------------------------------------------------------------
+a2a3       | 106743           | r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/P1N2Q1p/1PPBBPPP/R3K2R b KQkq - 0 1
+b2b3       | 133233           | r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/1PN2Q1p/P1PBBPPP/R3K2R b KQkq - 0 1
+...
+perft finished: depth=4 nodes=4085603 time=00:00.138 nps=29605819
+```
+
+The final line reports the total node count, elapsed time, and nodes per second (NPS).
 
 ---
 

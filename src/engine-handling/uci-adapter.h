@@ -69,11 +69,17 @@ public:
     }
 
     /**
-     * @brief Handles a ponder miss by sending 'stop' and waiting for bestmove.
+     * @brief A ponder miss is answered with a bestmove after sending 'stop'.
      */
-    EngineEvent::Type handlePonderMiss() override {
-        moveNow();
+    EngineEvent::Type waitAfterPonderMissHandshake() override {
         return EngineEvent::Type::BestMove;
+    }
+
+    /**
+     * @brief Handles a ponder miss by sending 'stop'; the engine answers with bestmove.
+     */
+    void handlePonderMiss() override {
+        moveNow();
     }
 
     EngineEvent readEvent() override;

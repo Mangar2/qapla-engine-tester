@@ -17,6 +17,7 @@ namespace QaplaTester::Cli {
         Clop,
         SystemTest,
         Test,
+        Perft,
         All,
         None
     };
@@ -30,6 +31,7 @@ namespace QaplaTester::Cli {
             case TaskType::Clop: return ClopFile::id;
             case TaskType::SystemTest: return "systemtest";
             case TaskType::Test: return "test";
+            case TaskType::Perft: return "perft";
             case TaskType::All: return "all";
             default: return "none";
         }
@@ -56,6 +58,9 @@ namespace QaplaTester::Cli {
         }
         if (name == "test") {
             return TaskType::Test;
+        }
+        if (name == "perft") {
+            return TaskType::Perft;
         }
         if (name == "all") {
             return TaskType::All;

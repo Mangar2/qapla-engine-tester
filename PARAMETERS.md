@@ -127,6 +127,17 @@ Defines how start positions are selected
 | start | <number> | 1 | Index of first opening (1-based) |
 | policy | string | default | Opening switch policy: default, encounter, round |
 
+## --perft
+
+Runs perft (performance test), counting the number of leaf nodes reached after playing out all legal move sequences to a fixed depth. Used to verify move generator correctness and speed. With 'divide' enabled (default), the node count is broken down per root move. Root moves are distributed across up to 'concurrency' threads.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| position | string | startpos | Position to search from. Use 'startpos' for the standard initial position, or any other value is parsed as a FEN string. |
+| depth | <number> | 1 | Search depth in plies |
+| divide | <bool> | true | If true, prints the node count for each legal root move separately, in addition to the total. If false, only the total node count is printed. |
+| showfen | <bool> | true | If true and 'divide' is enabled, the resulting FEN after each root move is printed alongside its node count. |
+
 ## --pgnoutput
 
 PGN output settings

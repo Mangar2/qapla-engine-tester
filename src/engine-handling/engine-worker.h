@@ -239,7 +239,7 @@ public:
 	 * @brief Sets the type of handshake to wait for. It is public to be used for testing purposes.
 	 */
 	void setWaitForHandshake(EngineEvent::Type type) {
-		waitForHandshake_ = type;
+		armHandshake(type);
 	}
 
 	/**
@@ -322,7 +322,31 @@ private:
 	 * @param event The event to send.
 	 */
 	void sendEvent(EngineEvent&& event) const;
-	
+
+	/**
+	 * @brief Arms the handshake: the next engine event of the given type is consumed as handshake.
+	 *
+	 * Clears a possibly stale handshakeReceived_ flag. Must be called before the command that
+	 * triggers the handshake is written to the engine, otherwise the reply can cross with the
+	 * arming and the armed handshake would swallow an unrelated later event of the same type.
+	 */
+	void armHandshake(EngineEvent::Type type) {
+		std::scoped_lock lock(handshakeMutex_);
+		waitForHandshake_ = type;
+		handshakeReceived_ = false;
+	}
+
+	/**
+	 * @brief Signals the handshake as completed (used when no handshake event will arrive).
+	 */
+	void notifyHandshake() {
+		{
+			std::scoped_lock lock(handshakeMutex_);
+			handshakeReceived_ = true;
+		}
+		handshakeCv_.notify_all();
+	}
+
 	static constexpr std::chrono::seconds ReadyTimeoutNormal{ 3 };
 	static constexpr std::chrono::seconds BestMoveTimeout{ 2 };
 	static constexpr std::chrono::seconds ReadyTimeoutProtocolOk{ 5 };

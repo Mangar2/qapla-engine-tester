@@ -57,6 +57,14 @@ public:
     [[nodiscard]] static AppReturnCode runTest(const Settings::GroupInstance& test, AppReturnCode code);
 
     /**
+     * @brief Runs perft (node count enumeration) for the configured position.
+     * @param perft The settings for the perft run.
+     * @param code Current application return code.
+     * @return Updated application return code.
+     */
+    [[nodiscard]] static AppReturnCode runPerft(const Settings::GroupInstance& perft, AppReturnCode code);
+
+    /**
      * @brief Runs the EPD test mode.
      * @param code Current application return code.
      * @param background If true, starts in background and returns immediately.

@@ -57,7 +57,7 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             readThread_ = std::thread(&EngineWorker::readLoop, this);
             // Define expected response for the reader before initiating the protocol command.
             // This ensures the read thread knows which handshake response to watch for.
-            waitForHandshake_ = EngineEvent::Type::ProtocolOk;
+            armHandshake(EngineEvent::Type::ProtocolOk);
             adapter.startProtocol();
             if (!waitForHandshake(ReadyTimeoutProtocolOk)) {
                 if (adapter.isProtocolOkRequired()) {
@@ -66,7 +66,7 @@ void EngineWorker::asyncStartup(const OptionValues& optionValues) {
             }
             if (!options.empty()) {
                 adapter.setOptionValues(options);
-				waitForHandshake_ = EngineEvent::Type::ReadyOk;
+                armHandshake(EngineEvent::Type::ReadyOk);
                 adapter.askForReady();
                 if (!waitForHandshake(ReadyTimeoutOption)) {
                     throw std::runtime_error("Engine " + getEngineName() + " failed ready ok handshake after setoptions");
@@ -169,12 +169,18 @@ bool EngineWorker::waitForHandshake(std::chrono::milliseconds timeout) {
     }
     bool received = handshakeReceived_;
     handshakeReceived_ = false;
+    if (!received) {
+        // Timed out: disarm the handshake. A late reply is then forwarded to the GameManager
+        // as a regular event (fenced by the SendingComputeMove marker) instead of staying
+        // armed and swallowing the bestmove of a later compute command.
+        waitForHandshake_ = EngineEvent::Type::None;
+    }
     return received;
 }
 
 bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
     post([this](EngineAdapter& adapter) {
-        waitForHandshake_ = EngineEvent::Type::ReadyOk;
+        armHandshake(EngineEvent::Type::ReadyOk);
         adapter.askForReady();
         });
     return waitForHandshake(timeout);
@@ -182,19 +188,13 @@ bool EngineWorker::requestReady(std::chrono::milliseconds timeout) {
 
 bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
     post([this, wait](EngineAdapter& adapter) {
-        waitForHandshake_ = EngineEvent::Type::None;
-        if (wait) {
-            waitForHandshake_ = adapter.waitAfterMoveNowHandshake();
-            if (waitForHandshake_ == EngineEvent::Type::None) {
-                // Notify for handshake right away
-                {
-                    std::scoped_lock lock(handshakeMutex_);
-                    handshakeReceived_ = true;
-                }
-                handshakeCv_.notify_all();
-            }
-        }
+        auto handshakeType = wait ? adapter.waitAfterMoveNowHandshake() : EngineEvent::Type::None;
+        armHandshake(handshakeType);
         adapter.moveNow();
+        if (wait && handshakeType == EngineEvent::Type::None) {
+            // No handshake possible, notify right away
+            notifyHandshake();
+        }
         });
     if (!wait) {
         return true;
@@ -204,19 +204,13 @@ bool EngineWorker::moveNow(bool wait, std::chrono::milliseconds timeout) {
 
 bool EngineWorker::stopCompute(bool wait, std::chrono::milliseconds timeout) {
     post([this, wait](EngineAdapter& adapter) {
-        waitForHandshake_ = EngineEvent::Type::None;
-        if (wait) {
-            waitForHandshake_ = adapter.waitAfterMoveNowHandshake();
-            if (waitForHandshake_ == EngineEvent::Type::None) {
-                // Notify for handshake right away
-                {
-                    std::scoped_lock lock(handshakeMutex_);
-                    handshakeReceived_ = true;
-                }
-                handshakeCv_.notify_all();
-            }
-        }
+        auto handshakeType = wait ? adapter.waitAfterMoveNowHandshake() : EngineEvent::Type::None;
+        armHandshake(handshakeType);
         adapter.stop();
+        if (wait && handshakeType == EngineEvent::Type::None) {
+            // No handshake possible, notify right away
+            notifyHandshake();
+        }
         });
     if (!wait) {
         return true;
@@ -226,14 +220,15 @@ bool EngineWorker::stopCompute(bool wait, std::chrono::milliseconds timeout) {
 
 bool EngineWorker::handlePonderMiss(std::chrono::milliseconds timeout) {
     post([this](EngineAdapter& adapter) {
-        waitForHandshake_ = adapter.handlePonderMiss();
-        if (waitForHandshake_ == EngineEvent::Type::None) {
+        // Arm the handshake before handlePonderMiss() sends anything. Otherwise the engine's
+        // bestmove can cross with the arming: it is then forwarded as a regular event while
+        // the handshake stays armed and swallows the bestmove of the next compute command.
+        auto handshakeType = adapter.waitAfterPonderMissHandshake();
+        armHandshake(handshakeType);
+        adapter.handlePonderMiss();
+        if (handshakeType == EngineEvent::Type::None) {
             // Notify for handshake right away (XBoard case)
-            {
-                std::scoped_lock lock(handshakeMutex_);
-                handshakeReceived_ = true;
-            }
-            handshakeCv_.notify_all();
+            notifyHandshake();
         }
         });
     return waitForHandshake(timeout);
@@ -241,7 +236,7 @@ bool EngineWorker::handlePonderMiss(std::chrono::milliseconds timeout) {
 
 bool EngineWorker::setOption(const std::string& name, const std::string& value) {
     post([this, name, value](EngineAdapter& adapter) {
-        waitForHandshake_ = EngineEvent::Type::ReadyOk;
+        armHandshake(EngineEvent::Type::ReadyOk);
         adapter.setTestOption(name, value);
         adapter.askForReady();
         });
@@ -250,7 +245,7 @@ bool EngineWorker::setOption(const std::string& name, const std::string& value) 
 
 bool EngineWorker::setOptionValues(const OptionValues& optionValues) {
 	post([this, optionValues](EngineAdapter& adapter) {
-        waitForHandshake_ = EngineEvent::Type::ReadyOk;
+        armHandshake(EngineEvent::Type::ReadyOk);
 		adapter.setOptionValues(optionValues);
 		adapter.askForReady();
 		});
@@ -316,14 +311,21 @@ void EngineWorker::readLoop() {
         try {
             EngineEvent event = adapter_->readEvent();
 
-            if (event.type == waitForHandshake_) {
-                {
-                    std::scoped_lock lock(handshakeMutex_);
+            bool isHandshake = false;
+            {
+                std::scoped_lock lock(handshakeMutex_);
+                // Type::None must never match: it is the disarmed state, and a None event
+                // matching it would set a stale handshakeReceived_ flag causing a later
+                // waitForHandshake() to return immediately without a real handshake.
+                if (waitForHandshake_ != EngineEvent::Type::None && event.type == waitForHandshake_) {
                     // We wait for a single handshake. waitForHandshake_ must be set
                     // again for each new handshake request.
                     waitForHandshake_ = EngineEvent::Type::None;
                     handshakeReceived_ = true;
+                    isHandshake = true;
                 }
+            }
+            if (isHandshake) {
                 handshakeCv_.notify_all();
                 continue;
             }

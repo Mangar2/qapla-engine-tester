@@ -94,9 +94,14 @@ public:
     EngineEvent::Type waitAfterMoveNowHandshake() override;
 
     /**
+     * @brief XBoard engines don't send bestmove when pondering is stopped, no handshake possible.
+     */
+    EngineEvent::Type waitAfterPonderMissHandshake() override;
+
+    /**
      * @brief Handles a ponder miss - XBoard engines don't send bestmove when pondering is stopped.
      */
-    EngineEvent::Type handlePonderMiss() override;
+    void handlePonderMiss() override;
 
     /**
      * @brief Starts a new game with the given parameters.

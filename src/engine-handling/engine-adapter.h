@@ -124,10 +124,16 @@ public:
     [[nodiscard]] virtual EngineEvent::Type waitAfterMoveNowHandshake() = 0;
 
     /**
-     * @brief Handles a ponder miss (opponent played a different move than expected).
-     * @return The event type to wait for as handshake (BestMove for UCI, None for XBoard).
+     * @brief Returns the handshake event type a ponder miss produces, without sending anything.
+     * (BestMove for UCI, None for XBoard). Allows arming the handshake before handlePonderMiss()
+     * sends any command, so the engine's reply cannot cross with the arming.
      */
-    [[nodiscard]] virtual EngineEvent::Type handlePonderMiss() = 0;
+    [[nodiscard]] virtual EngineEvent::Type waitAfterPonderMissHandshake() = 0;
+
+    /**
+     * @brief Handles a ponder miss (opponent played a different move than expected).
+     */
+    virtual void handlePonderMiss() = 0;
 
     /**
      * @brief Informs the engine that pondering is permitted.

@@ -149,6 +149,18 @@ Configs:
         .keys = Settings::getTestKeys()
     });
 
+    // Perft group
+    Manager::instance().registerGroup({
+        .name = "perft",
+        .description = "Counts leaf nodes reached from a position by exhaustive move enumeration",
+        .longDescription = R"(Runs perft (performance test), counting the number of leaf nodes reached
+after playing out all legal move sequences to a fixed depth. Used to verify move generator correctness
+and speed. With 'divide' enabled (default), the node count is broken down per root move.
+Root moves are distributed across up to 'concurrency' threads.)",
+        .unique = true,
+        .keys = Settings::getPerftKeys()
+    });
+
     // System test group
     Manager::instance().registerGroup({
         .name = "systemtest",
@@ -618,10 +630,39 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
                         .isRequired = false, 
                         .defaultValue = false, 
                         .type = ValueType::Bool } },
-        { "nocompute",  { .description = "Skip test for single compute game", 
+        { "nocompute",  { .description = "Skip test for single compute game",
                         .longDescription = "Disables the single self-play game test used to verify end-to-end move flow. (long running, full engine vs. engine game)",
-                        .isRequired = false, 
-                        .defaultValue = false, 
+                        .isRequired = false,
+                        .defaultValue = false,
+                        .type = ValueType::Bool } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getPerftKeys() {
+    return {
+        { "id",       { .description = "Identifier for the configuration",
+                        .isRequired = false,
+                        .defaultValue = "perft",
+                        .type = ValueType::String,
+                        .isHidden = true } },
+        { "position", { .description = "Position to search from: 'startpos' or a FEN string",
+                        .longDescription = "Position to search from. Use 'startpos' for the standard initial position, or any other value is parsed as a FEN string.",
+                        .isRequired = false,
+                        .defaultValue = "startpos",
+                        .type = ValueType::String } },
+        { "depth",    { .description = "Search depth in plies",
+                        .isRequired = false,
+                        .defaultValue = 1,
+                        .type = ValueType::UInt } },
+        { "divide",   { .description = "Show a per-root-move node count breakdown",
+                        .longDescription = "If true, prints the node count for each legal root move separately, in addition to the total. If false, only the total node count is printed.",
+                        .isRequired = false,
+                        .defaultValue = true,
+                        .type = ValueType::Bool } },
+        { "showfen",  { .description = "Include the FEN after each root move in the divide output",
+                        .longDescription = "If true and 'divide' is enabled, the resulting FEN after each root move is printed alongside its node count.",
+                        .isRequired = false,
+                        .defaultValue = true,
                         .type = ValueType::Bool } }
     };
 }
