@@ -38,9 +38,10 @@ void GameContext::updateEngineNames()
     gameRecord_.setBlackEngineName(blackName);
 }
 
-void GameContext::playerRestartEngine(PlayerContext* player, bool differentThread)
+void GameContext::playerRestartEngine(PlayerContext* player, const std::string& reason,
+    bool differentThread, TraceLevel traceLevel)
 {
-    player->restartEngine(differentThread);
+    player->restartEngine(reason, differentThread, traceLevel);
     if (eventCallback_)
     {
         player->getEngine()->setEventSink(eventCallback_);
@@ -98,7 +99,7 @@ void GameContext::ensureStarted()
     {
         if (player->getEngine()->isStopped())
         {
-            playerRestartEngine(player.get(), true);
+            playerRestartEngine(player.get(), "engine is not running at game start", true);
         }
     }
 }
@@ -110,7 +111,7 @@ void GameContext::restartPlayer(const std::string &id)
     {
         if (player->getIdentifier() == id)
         {
-            playerRestartEngine(player.get(), true);
+            playerRestartEngine(player.get(), "engine restart was requested", true);
         }
     }
 }
@@ -420,7 +421,7 @@ void GameContext::restartIfConfigured()
 
         if (player->getEngine()->getConfig().getRestartOption() == RestartOption::Always)
         {
-            playerRestartEngine(player.get(), false);
+            playerRestartEngine(player.get(), "engine restart between games is configured (restart = always)", false);
         }
     }
 }

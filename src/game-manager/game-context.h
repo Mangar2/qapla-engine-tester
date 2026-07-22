@@ -335,9 +335,12 @@ private:
      * @brief Restarts the engine for the given player.
      *
      * @param player The player whose engine should be restarted.
+     * @param reason Why the engine is restarted; logged to the engine log before quit is sent.
      * @param differentThread If true, the restart is triggered from a different thread.
+     * @param traceLevel Log level for the reason message.
      */
-    void playerRestartEngine(PlayerContext* player, bool differentThread = true);
+    void playerRestartEngine(PlayerContext* player, const std::string& reason,
+        bool differentThread = true, TraceLevel traceLevel = TraceLevel::info);
 
     /**
      * @brief Sets the current position for all players based on the game record.

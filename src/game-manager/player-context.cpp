@@ -323,7 +323,9 @@ bool PlayerContext::checkEngineTimeout() {
         overrun = moveElapsedMs > timeLeft + OVERRUN_TIMEOUT;
         if (moveElapsedMs > timeLeft) {
 			engine_->moveNow();
-			restarted = restartIfNotReady();
+			restarted = restartIfNotReady(std::format(
+                "engine exceeded its thinking time without sending a bestmove (elapsed {} ms, time left {} ms)",
+                moveElapsedMs, timeLeft));
             gameState_.setGameResult(restarted ? GameEndCause::Disconnected : GameEndCause::Timeout, 
                 white ? GameResult::BlackWins : GameResult::WhiteWins);
             if (!restarted) {
@@ -336,11 +338,15 @@ bool PlayerContext::checkEngineTimeout() {
 	} else if ((goLimits_.moveTimeMs.has_value() && *goLimits_.moveTimeMs < moveElapsedMs)) {
         overrun = moveElapsedMs > *goLimits_.moveTimeMs + OVERRUN_TIMEOUT;
         engine_->moveNow();
-        restarted = restartIfNotReady();
+        restarted = restartIfNotReady(std::format(
+            "engine exceeded the fixed movetime without sending a bestmove (elapsed {} ms, movetime {} ms)",
+            moveElapsedMs, *goLimits_.moveTimeMs));
     }
 	if (overrun && !restarted) {
         // We are here, if the engine responded with isready but still does not play a move
-        restartEngine();
+        restartEngine(std::format(
+            "engine answered isready but sent no bestmove for more than {} ms after its time ran out",
+            OVERRUN_TIMEOUT));
         restarted = true;
 	}
     if (restarted) {
@@ -352,28 +358,33 @@ bool PlayerContext::checkEngineTimeout() {
 void PlayerContext::handleDisconnect(bool isWhitePlayer) {
     gameState_.setGameResult(GameEndCause::Disconnected, isWhitePlayer ? GameResult::BlackWins : GameResult::WhiteWins);
     logReport("no-disconnect", false, "Engine disconnected unexpectedly.");
-    restartEngine();
+    restartEngine("engine disconnected unexpectedly");
 }
 
-void PlayerContext::restartEngine(bool outside) {
+void PlayerContext::restartEngine(const std::string& reason, bool outside, TraceLevel traceLevel) {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::restart; Cannot restart without an engine.");
 	}
     if (!isEventQueueThread && !outside) {
-		std::cerr 
-            << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed.\n" 
+		std::cerr
+            << "PlayerContext::restartEngine called outside of the GameManager thread. This is not allowed.\n"
             << std::flush;
         throw AppError::make("PlayerContext::restart; Cannot restart engine outside of the GameManager thread.");
 	}
+    // Log the reason before replacing the engine so the message appears in the engine log
+    // directly before the quit command sent to the old engine instance.
+    const auto& eid = engine_->getIdentifier();
+    EngineLogger::engineLogger({.engineId = eid}).log(
+        std::format("{} Sending quit and restarting engine, reason: {}", eid, reason), traceLevel);
     computeState_ = ComputeState::Idle;
     // Create a fully initialized new engine instance (incl. UCI handshake)
     engine_ = EngineWorkerFactory::restart(*engine_);
 }
 
-bool PlayerContext::restartIfNotReady() {
+bool PlayerContext::restartIfNotReady(const std::string& reason) {
     std::chrono::seconds WAIT_READY{ 1 };
 	if (engine_ && !engine_->requestReady(WAIT_READY)) {
-        restartEngine();
+        restartEngine(reason + "; engine also did not answer isready within 1s");
 		return true;
 	}
     return false;

@@ -334,16 +334,24 @@ void EngineWorker::readLoop() {
 				continue; 
 			}
 
-            const auto type = event.type;
-            sendEvent(std::move(event));
-			if (type == EngineEvent::Type::EngineDisconnected) {
+			if (event.type == EngineEvent::Type::EngineDisconnected) {
 				// disconnected engines would lead to endless looping so we need to terminate the read thread
 				disconnected_ = true;
+                if (workerState_ == WorkerState::stopped) {
+                    // The engine was stopped intentionally (quit has been sent, e.g. for a restart
+                    // with new options). The closed pipe is expected here - neither an error nor
+                    // a disconnect event for the GameManager.
+                    EngineLogger::engineLogger({.engineId = identifier_}).log(
+                        std::format("Engine {}, id {} terminated after quit (expected)",
+                            getEngineName(), getIdentifier()), TraceLevel::info);
+                    continue;
+                }
                 workerState_ = WorkerState::failure;
                 std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
                 Logger::reportLogger().log(msg, TraceLevel::error);
                 EngineLogger::engineLogger({.engineId = identifier_}).log(msg, TraceLevel::error);
 			}
+            sendEvent(std::move(event));
         }
 		catch (const std::exception& e) {
 			Logger::reportLogger().log("Exception in readLoop, id " + getIdentifier() + " "

@@ -88,12 +88,17 @@ public:
 
     /**
      * @brief Restarts the engine process.
-     * 
+     *
+     * @param reason Why the engine is restarted. Logged to the engine log directly before
+     * the quit command is sent, to make error situations identifiable in the protocol.
 	 * @param outsideThread If true, the restart will be performed outside the engine thread.
+     * @param traceLevel Log level for the reason message (error for error situations,
+     * info for regular restarts like configured restarts between games).
      *
      * Terminates the current engine instance and starts a new one.
      */
-    void restartEngine(bool outsideThread = false);
+    void restartEngine(const std::string& reason, bool outsideThread = false,
+        TraceLevel traceLevel = TraceLevel::error);
 
     /**
      * @brief Reports the result of a check (success or failure).
@@ -413,7 +418,12 @@ private:
         }
     }
 
-    bool restartIfNotReady();
+    /**
+     * @brief Restarts the engine if it does not answer isready in time.
+     * @param reason The error situation that triggered the check; part of the logged restart reason.
+     * @return true if the engine was restarted.
+     */
+    bool restartIfNotReady(const std::string& reason);
 
     /**
      * @brief Validates a PV against a game state.
