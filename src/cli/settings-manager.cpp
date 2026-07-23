@@ -151,11 +151,17 @@ namespace QaplaTester::Settings
         return *arg.value;
     }
 
-    Value Manager::parsePathIsValid(const ParsedParameter& arg)
+    Value Manager::parsePathIsValid(const ParsedParameter& arg, bool isRequired)
     {
         if (!arg.value)
         {
             throw AppError::makeInvalidParameters("Missing value for \"" + arg.original + "\"");
+        }
+        // An empty value on an optional path means "not configured" (e.g. no tournament
+        // state file set yet) and must round-trip cleanly rather than fail path validation.
+        if (!isRequired && arg.value->empty())
+        {
+            return std::string();
         }
         QaplaHelpers::validateOutputPath(*arg.value);
         return *arg.value;
@@ -850,7 +856,7 @@ namespace QaplaTester::Settings
             case ValueType::PathExists:
                 return parsePathExists(arg);
             case ValueType::ValidateOutputPath:
-                return parsePathIsValid(arg);
+                return parsePathIsValid(arg, def.isRequired);
             default:
                 return parseString(arg);
         }

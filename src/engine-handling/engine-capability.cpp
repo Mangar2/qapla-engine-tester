@@ -38,7 +38,7 @@ using QaplaTester::EngineProtocol;
   * @return A JSON-Line formatted string representing the EngineOption.
   */
 static std::string to_string(const EngineOption& option) {
-    std::string json = std::format(R"({{"name": "{}", "type": "{}"")", option.name, EngineOption::to_string(option.type));
+    std::string json = std::format(R"({{"name": "{}", "type": "{}")", option.name, EngineOption::to_string(option.type));
 
     if (!option.defaultValue.empty()) {
         json += std::format(R"(, "defaultValue": "{}")", option.defaultValue);
@@ -94,7 +94,14 @@ static std::vector<std::string> tokenize(const std::string& str) {
         else if (!insideString && (c == '{' || c == '}' || c == '[' || c == ']' || c == ':' || c == ',')) {
             // If we encounter a special character outside a string
             if (!currentToken.empty()) {
-                tokens.push_back(QaplaHelpers::trim(currentToken));
+                // currentToken may be pure whitespace here (e.g. the single space between
+                // ':' and '[' in `"vars": [...]`): trim before checking emptiness, or a
+                // spurious empty token gets inserted right before the '[', which then
+                // fails the parser's `tokens[i] != "["` check for array-valued keys.
+                auto trimmed = QaplaHelpers::trim(currentToken);
+                if (!trimmed.empty()) {
+                    tokens.push_back(std::move(trimmed));
+                }
                 currentToken.clear();
             }
             tokens.push_back(std::string(1, c)); // Add the special character as a token
@@ -108,7 +115,10 @@ static std::vector<std::string> tokenize(const std::string& str) {
 
     // Add the last token (if any)
     if (!currentToken.empty()) {
-        tokens.push_back(QaplaHelpers::trim(currentToken));
+        auto trimmed = QaplaHelpers::trim(currentToken);
+        if (!trimmed.empty()) {
+            tokens.push_back(std::move(trimmed));
+        }
     }
 
     return tokens;
