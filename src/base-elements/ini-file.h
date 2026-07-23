@@ -41,7 +41,11 @@ public:
          */
         void addEntry(const std::string& key, const std::string& value) {
             if (key == "id") {
-                // Ensure 'id' is always the first entry if it exists
+                // "id" is a singular scoping identifier, never a repeatable key: replace
+                // any existing occurrence (also self-heals sections with a stale/duplicate
+                // "id" from an older, buggy save) instead of appending a second one, and
+                // ensure it stays the first entry if it exists.
+                std::erase_if(entries, [](const auto& entry) { return entry.first == "id"; });
                 entries.insert(entries.begin(), { key, value });
             } else {
                 entries.emplace_back(key, value);

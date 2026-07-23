@@ -417,7 +417,7 @@ namespace QaplaTester::Settings {
         static Value parseFloat(const ParsedParameter& arg);
         static Value parseString(const ParsedParameter& arg);
         static Value parsePathExists(const ParsedParameter& arg);
-        static Value parsePathIsValid(const ParsedParameter& arg);
+        static Value parsePathIsValid(const ParsedParameter& arg, bool isRequired);
 
         /**
          * @brief Splits a raw command line argument into syntactic parts.
