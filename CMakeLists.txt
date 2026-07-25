@@ -13,9 +13,10 @@ option(BUILD_UNIT_TESTS "Build unit tests" OFF)
 # Main executable
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX "src/test-system/unit/.*\\.cpp$")
+list(FILTER SOURCES EXCLUDE REGEX "src/json/test/.*\\.cpp$")
 add_executable(qapla-engine-tester ${SOURCES})
 target_compile_definitions(qapla-engine-tester PRIVATE _REENTRANT)
-target_include_directories(qapla-engine-tester PRIVATE .)
+target_include_directories(qapla-engine-tester PRIVATE . src)
 
 if(APPLE)
     # macOS: pthread
@@ -45,10 +46,12 @@ if(BUILD_UNIT_TESTS)
     file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
     list(FILTER LIB_SOURCES EXCLUDE REGEX "src/qapla-engine-tester\\.cpp$")
     list(FILTER LIB_SOURCES EXCLUDE REGEX "src/test-system/unit/.*\\.cpp$")
+    list(FILTER LIB_SOURCES EXCLUDE REGEX "src/json/test/.*\\.cpp$")
 
     # Create library from main sources (excluding main)
     add_library(qapla-lib STATIC ${LIB_SOURCES})
     target_compile_definitions(qapla-lib PRIVATE _REENTRANT)
+    target_include_directories(qapla-lib PUBLIC . src)
 
     if(APPLE)
         target_link_libraries(qapla-lib PRIVATE pthread)
@@ -60,6 +63,8 @@ if(BUILD_UNIT_TESTS)
 
     # Collect unit test sources
     file(GLOB_RECURSE UNIT_TEST_SOURCES CONFIGURE_DEPENDS "src/test-system/unit/*.cpp")
+    file(GLOB_RECURSE JSON_UNIT_TEST_SOURCES CONFIGURE_DEPENDS "src/json/test/*.cpp")
+    list(APPEND UNIT_TEST_SOURCES ${JSON_UNIT_TEST_SOURCES})
 
     # Create unit test executable
     add_executable(qapla-unit-tests ${UNIT_TEST_SOURCES})
