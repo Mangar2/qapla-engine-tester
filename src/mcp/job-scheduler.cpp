@@ -161,86 +161,71 @@ size_t JobScheduler::clearQueuedJobs() {
     return removedCount;
 }
 
-JsonValue JobScheduler::queueStatusJson() const {
+Json::JsonValue JobScheduler::queueStatusJson() const {
     std::scoped_lock lock(mutex_);
 
-    JsonValue::Object root;
-    root["running"] = JsonHelper::makeBool(activeJob_.has_value());
-    root["queue_length"] = JsonHelper::makeNumber(static_cast<double>(queuedJobs_.size()));
+    auto root = Json::JsonValue::object();
+    root["running"] = activeJob_.has_value();
+    root["queue_length"] = static_cast<double>(queuedJobs_.size());
 
     if (activeJob_.has_value()) {
-        JsonValue::Object activeObject;
-        activeObject["job_id"] = JsonHelper::makeString(activeJob_->jobId);
-        activeObject["type"] = JsonHelper::makeString(typeName(activeJob_->jobType));
-        activeObject["job_intent"] = JsonHelper::makeString(activeJob_->jobIntent);
-        activeObject["state"] = JsonHelper::makeString(stateName(activeJob_->state));
-        activeObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(activeJob_->createdAt));
-        activeObject["started_at"] = JsonHelper::makeNumber(toUnixSeconds(activeJob_->startedAt));
-        activeObject["cancel_requested"] = JsonHelper::makeBool(activeJob_->cancellationRequested);
-        root["active_job"] = JsonHelper::makeObject(std::move(activeObject));
+        auto& active = root["active_job"];
+        active["job_id"] = activeJob_->jobId;
+        active["type"] = typeName(activeJob_->jobType);
+        active["job_intent"] = activeJob_->jobIntent;
+        active["state"] = stateName(activeJob_->state);
+        active["created_at"] = toUnixSeconds(activeJob_->createdAt);
+        active["started_at"] = toUnixSeconds(activeJob_->startedAt);
+        active["cancel_requested"] = activeJob_->cancellationRequested;
     }
 
-    JsonValue::Array queuedArray;
+    auto& queuedArray = root["queued_jobs"] = Json::JsonValue::array();
     for (const auto& queuedJob : queuedJobs_) {
-        JsonValue::Object queuedObject;
-        queuedObject["job_id"] = JsonHelper::makeString(queuedJob.jobId);
-        queuedObject["type"] = JsonHelper::makeString(typeName(queuedJob.jobType));
-        queuedObject["job_intent"] = JsonHelper::makeString(queuedJob.jobIntent);
-        queuedObject["state"] = JsonHelper::makeString(stateName(queuedJob.state));
-        queuedObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(queuedJob.createdAt));
-        queuedArray.push_back(JsonHelper::makeObject(std::move(queuedObject)));
+        auto& entry = queuedArray[queuedArray.size()];
+        entry["job_id"] = queuedJob.jobId;
+        entry["type"] = typeName(queuedJob.jobType);
+        entry["job_intent"] = queuedJob.jobIntent;
+        entry["state"] = stateName(queuedJob.state);
+        entry["created_at"] = toUnixSeconds(queuedJob.createdAt);
     }
-    root["queued_jobs"] = JsonValue{ .data = std::move(queuedArray) };
 
-    JsonValue::Array finishedArray;
+    auto& finishedArray = root["finished_jobs"] = Json::JsonValue::array();
     for (const auto& finishedJob : finishedJobs_) {
-        JsonValue::Object finishedObject;
-        finishedObject["job_id"] = JsonHelper::makeString(finishedJob.jobId);
-        finishedObject["type"] = JsonHelper::makeString(typeName(finishedJob.jobType));
-        finishedObject["job_intent"] = JsonHelper::makeString(finishedJob.jobIntent);
-        finishedObject["state"] = JsonHelper::makeString(stateName(finishedJob.state));
-        finishedObject["created_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.createdAt));
-        finishedObject["started_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.startedAt));
-        finishedObject["finished_at"] = JsonHelper::makeNumber(toUnixSeconds(finishedJob.finishedAt));
-        finishedObject["return_code"] = JsonHelper::makeNumber(static_cast<double>(static_cast<int>(finishedJob.returnCode)));
-        finishedObject["return_code_text"] = JsonHelper::makeString(finishedJob.returnCodeText);
+        auto& entry = finishedArray[finishedArray.size()];
+        entry["job_id"] = finishedJob.jobId;
+        entry["type"] = typeName(finishedJob.jobType);
+        entry["job_intent"] = finishedJob.jobIntent;
+        entry["state"] = stateName(finishedJob.state);
+        entry["created_at"] = toUnixSeconds(finishedJob.createdAt);
+        entry["started_at"] = toUnixSeconds(finishedJob.startedAt);
+        entry["finished_at"] = toUnixSeconds(finishedJob.finishedAt);
+        entry["return_code"] = static_cast<double>(static_cast<int>(finishedJob.returnCode));
+        entry["return_code_text"] = finishedJob.returnCodeText;
         if (!finishedJob.reportUri.empty()) {
-            finishedObject["report_uri"] = JsonHelper::makeString(finishedJob.reportUri);
+            entry["report_uri"] = finishedJob.reportUri;
         }
         if (!finishedJob.resultUri.empty()) {
-            finishedObject["result_uri"] = JsonHelper::makeString(finishedJob.resultUri);
+            entry["result_uri"] = finishedJob.resultUri;
         }
-        if (!finishedJob.taskStatusJson.empty()) {
-            std::string_view statusJsonView = finishedJob.taskStatusJson;
-            finishedObject["task_status"] = JsonHelper::parse(statusJsonView);
+        if (!finishedJob.taskStatus.is_null()) {
+            entry["task_status"] = finishedJob.taskStatus;
         }
         if (!finishedJob.errorMessage.empty()) {
-            finishedObject["error"] = JsonHelper::makeString(finishedJob.errorMessage);
+            entry["error"] = finishedJob.errorMessage;
         }
-        finishedArray.push_back(JsonHelper::makeObject(std::move(finishedObject)));
     }
-    root["finished_jobs"] = JsonValue{ .data = std::move(finishedArray) };
 
-    return JsonHelper::makeObject(std::move(root));
+    return root;
 }
 
-JsonValue JobScheduler::finishedResultsJson() const {
+Json::JsonValue JobScheduler::finishedResultsJson() const {
     const auto statusSnapshot = queueStatusJson();
 
-    JsonValue::Object root;
-    JsonValue::Array results;
-
-    if (statusSnapshot.isObject()) {
-        const auto& statusObject = statusSnapshot.asObject();
-        if (const auto iterator = statusObject.find("finished_jobs");
-            iterator != statusObject.end() && iterator->second.isArray()) {
-            results = iterator->second.asArray();
-        }
-    }
-
-    root["count"] = JsonHelper::makeNumber(static_cast<double>(results.size()));
-    root["results"] = JsonValue{ .data = std::move(results) };
-    return JsonHelper::makeObject(std::move(root));
+    auto root = Json::JsonValue::object();
+    const auto& results = statusSnapshot.at("finished_jobs");
+    root["count"] = static_cast<double>(results.size());
+    root["results"] = results;
+    return root;
 }
 
 size_t JobScheduler::clearFinishedResults() {
@@ -357,7 +342,7 @@ void JobScheduler::enrichFinishedJob(QueueJob& jobEntry) {
 
     const auto taskType = Cli::getTaskType(jobEntry.toolName);
     if (taskType != Cli::TaskType::None) {
-        jobEntry.taskStatusJson = AppRunner::getTaskStatusJson(taskType);
+        jobEntry.taskStatus = AppRunner::getTaskStatus(taskType);
     }
 }
 

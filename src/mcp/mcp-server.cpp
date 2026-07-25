@@ -22,7 +22,6 @@
 #include "mcp-engine-tool.h"
 #include "job-scheduler.h"
 #include "mcp-background-tools.h"
-#include "../base-elements/json-helper.h"
 #include "mcp-converter.h"
 #include "settings-reporter.h"
 
@@ -80,32 +79,21 @@ void McpServer::initialize() {
     silenceLoggers();
 
     // Set up MCP logging callback for report logger
-    Logger::reportLogger().setMcpCallback([](std::string_view payload, std::string_view toolName) {
-        JsonValue::Object params;
-        params["level"] = JsonValue{ .data = std::string("info") };
-        params["logger"] = JsonValue{ .data = std::string(toolName.empty() ? "qapla" : toolName) };
-
-        auto payloadCopy = std::string(payload);
-        std::string_view payloadView = payloadCopy;
-        try {
-            params["data"] = JsonHelper::parse(payloadView);
-        } catch (...) {
-            JsonValue::Object fallback;
-            fallback["type"] = JsonValue{ .data = std::string("invalidLoggerPayload") };
-            fallback["raw"] = JsonValue{ .data = payloadCopy };
-            params["data"] = JsonValue{ .data = fallback };
-        }
-        
+    Logger::reportLogger().setMcpCallback([](Json::JsonValue payload, std::string_view toolName) {
+        auto params = Json::JsonValue::object();
+        params["level"] = "info";
+        params["logger"] = toolName.empty() ? std::string("qapla") : std::string(toolName);
+        params["data"] = std::move(payload);
         sendNotification("notifications/message", params);
     });
 
     // Set up MCP notification callback for engine autodetection
     QaplaConfiguration::EngineCapabilities::setNotificationCallback(
         [](const std::string& message, [[maybe_unused]] const std::string& type) {
-        JsonValue::Object params;
-        params["level"] = JsonValue{ .data = std::string("info") };
-        params["logger"] = JsonValue{ .data = std::string("autodetect") };
-        params["data"] = JsonValue{ .data = message };
+        auto params = Json::JsonValue::object();
+        params["level"] = "info";
+        params["logger"] = "autodetect";
+        params["data"] = message;
         sendNotification("notifications/message", params);
     });
 
@@ -126,19 +114,18 @@ void McpServer::initialize() {
 }
 
 AppReturnCode McpServer::run() {
-    
+
     while (true) {
         const auto message = messageChannel_.readMessage();
         if (!message.has_value()) {
             break; // EOF or error
         }
 
-        if (!message->isObject()) {
+        if (!message->is_object()) {
             continue;
         }
 
-        const auto& jsonObject = message->asObject();
-        if (processMessage(jsonObject) != AppReturnCode::NoError) {
+        if (processMessage(message->as_object()) != AppReturnCode::NoError) {
             break;
         }
     }
@@ -147,37 +134,32 @@ AppReturnCode McpServer::run() {
     return AppReturnCode::NoError;
 }
 
-AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
+AppReturnCode McpServer::processMessage(const Json::JsonValue::Object& jsonObject) {
     if (!jsonObject.contains("method")) {
         return AppReturnCode::NoError;
     }
 
-    const std::string& method = jsonObject.at("method").asString();
+    const std::string& method = jsonObject.at("method").as_string();
 
     if (method == "initialize") {
         // Respond to handshake
-        JsonValue response;
-        JsonValue::Object responseBody;
-        responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+        auto response = Json::JsonValue::object();
+        response["jsonrpc"] = "2.0";
         if (jsonObject.contains("id")) {
-            responseBody["id"] = jsonObject.at("id");
+            response["id"] = jsonObject.at("id");
         }
 
-        JsonValue::Object resultData;
-        resultData["protocolVersion"] = JsonValue{ .data = std::string("2024-11-05") };
+        auto& result = response["result"] = Json::JsonValue::object();
+        result["protocolVersion"] = "2024-11-05";
 
-        JsonValue::Object capabilities;
-        capabilities["tools"] = JsonValue{ .data = JsonValue::Object() }; 
-        capabilities["resources"] = JsonValue{ .data = JsonValue::Object() };
-        resultData["capabilities"] = JsonValue{ .data = capabilities };
+        auto& capabilities = result["capabilities"] = Json::JsonValue::object();
+        capabilities["tools"] = Json::JsonValue::object();
+        capabilities["resources"] = Json::JsonValue::object();
 
-        JsonValue::Object serverInformation;
-        serverInformation["name"] = JsonValue{ .data = std::string("Qapla Engine Tester") };
-        serverInformation["version"] = JsonValue{ .data = std::string("0.5.0") };
-        resultData["serverInfo"] = JsonValue{ .data = serverInformation };
+        auto& serverInformation = result["serverInfo"] = Json::JsonValue::object();
+        serverInformation["name"] = "Qapla Engine Tester";
+        serverInformation["version"] = "0.5.0";
 
-        responseBody["result"] = JsonValue{ .data = resultData };
-        response.data = responseBody;
         capabilities_.autoDetect();
 
         messageChannel_.sendMessage(response);
@@ -205,24 +187,18 @@ AppReturnCode McpServer::processMessage(const JsonValue::Object& jsonObject) {
     return AppReturnCode::NoError;
 }
 
-void McpServer::sendNotification(const std::string& method, const JsonValue::Object& params) {
-    JsonValue notification;
-    JsonValue::Object body;
-    body["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
-    body["method"] = JsonValue{ .data = method };
-    body["params"] = JsonValue{ .data = params };
-    notification.data = body;
+void McpServer::sendNotification(const std::string& method, const Json::JsonValue& params) {
+    auto notification = Json::JsonValue::object();
+    notification["jsonrpc"] = "2.0";
+    notification["method"] = method;
+    notification["params"] = params;
     messageChannel_.sendMessage(notification);
 }
 
-void McpServer::listTools(const JsonValue& requestId) {
-    JsonValue response;
-    JsonValue::Object responseBody;
-    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
-    responseBody["id"] = requestId;
-
-    JsonValue::Object resultData;
-    JsonValue::Array tools;
+void McpServer::listTools(const Json::JsonValue& requestId) {
+    auto response = Json::JsonValue::object();
+    response["jsonrpc"] = "2.0";
+    response["id"] = requestId;
 
     const auto toolsToRegister = std::vector<McpSchemaBuilder::ToolInfo>{
         {
@@ -312,71 +288,65 @@ void McpServer::listTools(const JsonValue& requestId) {
 
     const auto& groupDefs = Settings::Manager::instance().getGroupDefinitions();
 
+    auto& tools = response["result"]["tools"] = Json::JsonValue::array();
     for (const auto& info : toolsToRegister) {
-        JsonValue::Object tool;
-        tool["name"] = JsonValue{ .data = toPublishedToolName(info.name) };
-        
+        auto& tool = tools[tools.size()];
+        tool["name"] = toPublishedToolName(info.name);
+
         // Use longDescription from main group if available
         std::string description(info.description);
         if (const auto it = groupDefs.find(std::string(info.name)); it != groupDefs.end() && !it->second.longDescription.empty()) {
             description = it->second.longDescription;
         }
-        tool["description"] = JsonValue{ .data = description };
-        tool["inputSchema"] = JsonValue{ .data = McpSchemaBuilder::createInputSchema(info, registeredNames) };
-        
-        tools.push_back(JsonValue{ .data = tool });
+        tool["description"] = description;
+        tool["inputSchema"] = McpSchemaBuilder::createInputSchema(info, registeredNames);
     }
-
-    resultData["tools"] = JsonValue{ .data = tools };
-    responseBody["result"] = JsonValue{ .data = resultData };
-    response.data = responseBody;
 
     messageChannel_.sendMessage(response);
 }
 
-void McpServer::callTool(const JsonValue::Object& jsonObject) {
-    if (!jsonObject.contains("params") || !jsonObject.at("params").isObject()) {
+void McpServer::callTool(const Json::JsonValue::Object& jsonObject) {
+    if (!jsonObject.contains("params") || !jsonObject.at("params").is_object()) {
         return;
     }
-    const auto& params = jsonObject.at("params").asObject();
+    const auto& params = jsonObject.at("params").as_object();
     if (!params.contains("name")) {
         return;
     }
 
-    const std::string requestedName = params.at("name").asString();
+    const std::string requestedName = params.at("name").as_string();
     const std::string name = toCanonicalToolName(requestedName);
-    JsonValue response;
-    JsonValue::Object responseBody;
-    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+    auto response = Json::JsonValue::object();
+    response["jsonrpc"] = "2.0";
     if (jsonObject.contains("id")) {
-        responseBody["id"] = jsonObject.at("id");
+        response["id"] = jsonObject.at("id");
     }
 
-    JsonValue::Object result;
-    JsonValue::Array content;
+    auto& result = response["result"] = Json::JsonValue::object();
+    auto content = Json::JsonValue::array();
     AppReturnCode returnCode = AppReturnCode::NoError;
 
     try {
-        const auto& arguments = params.at("arguments").asObject();
+        const auto& arguments = params.at("arguments").as_object();
 
         if (name == "read_report") {
             content = handleReadReport(arguments);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else if (name == "control") {
             content = handleControlTool(arguments);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else if (name == "manage_engines") {
             content = McpEngineTool::handleManageEngines(arguments, capabilities_);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else if (name == "set_logging") {
             content = handleSetLogging(arguments);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else if (name == "adjudicate") {
             content = handleAdjudicateTool(arguments);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else if (name == "list_settings") {
             content = handleListSettings(arguments);
-            result["isError"] = JsonValue{ .data = false };
+            result["isError"] = false;
         } else {
             // Handle active list and execution
             const Cli::TaskType taskType = Cli::TaskType::All;
@@ -387,30 +357,28 @@ void McpServer::callTool(const JsonValue::Object& jsonObject) {
                 McpEngineTool::setupActiveEngines(arguments, taskType, capabilities_);
             }
             content = runRunnerTool(name, arguments, returnCode);
-            
-            result["isError"] = JsonValue{ .data = (returnCode == AppReturnCode::GeneralError || 
-                                                  returnCode == AppReturnCode::InvalidParameters || 
-                                                  returnCode == AppReturnCode::EngineError || 
-                                                  returnCode == AppReturnCode::EngineMissbehaviour) };
+
+            result["isError"] = (returnCode == AppReturnCode::GeneralError ||
+                                  returnCode == AppReturnCode::InvalidParameters ||
+                                  returnCode == AppReturnCode::EngineError ||
+                                  returnCode == AppReturnCode::EngineMissbehaviour);
         }
     } catch (const std::exception& e) {
-        JsonValue::Object errorContent;
-        errorContent["type"] = JsonValue{ .data = std::string("text") };
-        errorContent["text"] = JsonValue{ .data = std::format("Error executing tool '{}': {}", requestedName, e.what()) };
-        content.push_back(JsonValue{ .data = errorContent });
-        result["isError"] = JsonValue{ .data = true };
+        content = Json::JsonValue::array();
+        auto& errorContent = content[0U];
+        errorContent["type"] = "text";
+        errorContent["text"] = std::format("Error executing tool '{}': {}", requestedName, e.what());
+        result["isError"] = true;
         returnCode = AppReturnCode::GeneralError;
     }
 
-    result["content"] = JsonValue{ .data = content };
-    responseBody["result"] = JsonValue{ .data = result };
-    response.data = responseBody;
+    result["content"] = std::move(content);
 
     messageChannel_.sendMessage(response);
 }
 
 QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
-    const JsonValue::Object& arguments, const std::string& defaultId) 
+    const Json::JsonValue::Object& arguments, const std::string& defaultId)
 {
     QaplaHelpers::ConfigData configData;
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section> sections;
@@ -433,7 +401,7 @@ QaplaHelpers::ConfigData McpServer::mapJsonToConfigData(
         if (!hasId) {
             section.addEntry("id", defaultId.empty() ? "all" : defaultId);
         }
-        
+
         configData.addSection(section);
     }
 
@@ -457,16 +425,16 @@ namespace {
     }
 }
 
-void McpServer::processParameter(const std::string& key, const JsonValue& value,
+void McpServer::processParameter(const std::string& key, const Json::JsonValue& value,
     std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
     QaplaHelpers::ConfigData& configData) {
 
-    if (value.isArray()) {
-        for (const auto& item : value.asArray()) {
-            if (item.isObject()) {
+    if (value.is_array()) {
+        for (const auto& item : value.as_array()) {
+            if (item.is_object()) {
                 QaplaHelpers::IniFile::Section s;
                 s.name = key;
-                for (const auto& [propKey, propVal] : item.asObject()) {
+                for (const auto& [propKey, propVal] : item.as_object()) {
                     s.addEntry(propKey, validateAndToString(propKey, propVal));
                 }
                 configData.addSection(s);
@@ -507,14 +475,12 @@ void McpServer::silenceLoggers() {
     Settings::Manager::instance().parseInput(mcpConfig, true);
 }
 
-void McpServer::listResources(const JsonValue& requestId) {
-    JsonValue response;
-    JsonValue::Object responseBody;
-    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
-    responseBody["id"] = requestId;
+void McpServer::listResources(const Json::JsonValue& requestId) {
+    auto response = Json::JsonValue::object();
+    response["jsonrpc"] = "2.0";
+    response["id"] = requestId;
 
-    JsonValue::Object resultData;
-    JsonValue::Array resources;
+    auto& resources = response["result"]["resources"] = Json::JsonValue::array();
 
     std::error_code ec;
     if (!BaseLogger::logPath_.empty() && std::filesystem::exists(BaseLogger::logPath_, ec)) {
@@ -526,14 +492,10 @@ void McpServer::listResources(const JsonValue& requestId) {
         }
     }
 
-    resultData["resources"] = JsonValue{ .data = resources };
-    responseBody["result"] = JsonValue{ .data = resultData };
-    response.data = responseBody;
-
     messageChannel_.sendMessage(response);
 }
 
-void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources) {
+void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry, Json::JsonValue& resources) {
     if (!entry.is_regular_file()) {
         return;
     }
@@ -548,23 +510,22 @@ void McpServer::addResourceIfValid(const std::filesystem::directory_entry& entry
     const std::string tool = extractToolName(filename);
     const bool isPgn = (extension == ".pgn");
 
-    JsonValue::Object resource;
-    resource["uri"] = JsonValue{ .data = std::format("qapla://reports/{}/{}", tool, filename) };
-    resource["name"] = JsonValue{ .data = filename };
-    resource["description"] = JsonValue{ .data = std::format("{} result for tool {}", isPgn ? "PGN" : "Log", tool) };
-    resource["mimeType"] = JsonValue{ .data = (isPgn ? std::string("text/x-chess-pgn") : std::string("text/plain")) };
-    resources.push_back(JsonValue{ .data = resource });
+    auto& resource = resources[resources.size()];
+    resource["uri"] = std::format("qapla://reports/{}/{}", tool, filename);
+    resource["name"] = filename;
+    resource["description"] = std::format("{} result for tool {}", isPgn ? "PGN" : "Log", tool);
+    resource["mimeType"] = isPgn ? "text/x-chess-pgn" : "text/plain";
 }
 
-JsonValue::Array McpServer::handleListSettings(const JsonValue::Object& arguments) {
+Json::JsonValue McpServer::handleListSettings(const Json::JsonValue::Object& arguments) {
     std::optional<std::vector<std::string>> groups;
 
-    if (arguments.contains("groups") && arguments.at("groups").isArray()) {
-        const auto& groupArray = arguments.at("groups").asArray();
+    if (arguments.contains("groups") && arguments.at("groups").is_array()) {
+        const auto& groupArray = arguments.at("groups").as_array();
         std::vector<std::string> groupList;
         for (const auto& g : groupArray) {
-            if (g.isString()) {
-                groupList.push_back(g.asString());
+            if (g.is_string()) {
+                groupList.push_back(g.as_string());
             }
         }
         groups = groupList;
@@ -576,20 +537,19 @@ JsonValue::Array McpServer::handleListSettings(const JsonValue::Object& argument
     std::optional<std::vector<SettingsReporter::Column>> columns;
     // Parsing columns from string names would be needed here if we expose it fully to JSON
     // For now assuming default columns for list_settings unless specialized logic is added.
-    
+
     std::string report = SettingsReporter::generateReport(groups, columns);
 
-    JsonValue::Array content;
-    JsonValue::Object contentObj;
-    contentObj["type"] = JsonValue{ .data = std::string("text") };
-    contentObj["text"] = JsonValue{ .data = report };
-    content.push_back(JsonValue{ .data = contentObj });
+    auto content = Json::JsonValue::array();
+    auto& contentObj = content[0U];
+    contentObj["type"] = "text";
+    contentObj["text"] = report;
     return content;
 }
 
 std::string McpServer::extractToolName(std::string_view filename) {
-    constexpr std::array prefixes = { 
-        std::string_view("report-"), 
+    constexpr std::array prefixes = {
+        std::string_view("report-"),
         std::string_view("engine-"),
         std::string_view("sprt-"),
         std::string_view("tournament-"),
@@ -619,26 +579,24 @@ std::string McpServer::extractToolName(std::string_view filename) {
     return "other";
 }
 
-void McpServer::readResource(const JsonValue::Object& jsonObject) {
-    if (!jsonObject.contains("params") || !jsonObject.at("params").isObject()) {
+void McpServer::readResource(const Json::JsonValue::Object& jsonObject) {
+    if (!jsonObject.contains("params") || !jsonObject.at("params").is_object()) {
         return;
     }
-    const auto& params = jsonObject.at("params").asObject();
+    const auto& params = jsonObject.at("params").as_object();
     if (!params.contains("uri")) {
         return;
     }
 
-    const std::string& uri = params.at("uri").asString();
-    
-    JsonValue response;
-    JsonValue::Object responseBody;
-    responseBody["jsonrpc"] = JsonValue{ .data = std::string("2.0") };
+    const std::string& uri = params.at("uri").as_string();
+
+    auto response = Json::JsonValue::object();
+    response["jsonrpc"] = "2.0";
     if (jsonObject.contains("id")) {
-        responseBody["id"] = jsonObject.at("id");
+        response["id"] = jsonObject.at("id");
     }
 
-    JsonValue::Object result;
-    JsonValue::Array contents;
+    auto& contents = response["result"]["contents"] = Json::JsonValue::array();
 
     // Handle qapla://reports/<tool>/<filename>
     if (uri.starts_with("qapla://reports/")) {
@@ -646,36 +604,31 @@ void McpServer::readResource(const JsonValue::Object& jsonObject) {
         if (lastSlash != std::string::npos) {
             std::string filename = uri.substr(lastSlash + 1);
             std::filesystem::path path = std::filesystem::path(BaseLogger::logPath_) / filename;
-            
+
             std::error_code ec;
             if (std::filesystem::exists(path, ec)) {
                 std::ifstream file(path);
                 if (file.is_open()) {
                     std::stringstream buffer;
                     buffer << file.rdbuf();
-                    
-                    JsonValue::Object content;
-                    content["uri"] = JsonValue{ .data = uri };
-                    content["text"] = JsonValue{ .data = buffer.str() };
-                    contents.push_back(JsonValue{ .data = content });
+
+                    auto& content = contents[contents.size()];
+                    content["uri"] = uri;
+                    content["text"] = buffer.str();
                 }
             }
         }
     }
 
-    result["contents"] = JsonValue{ .data = contents };
-    responseBody["result"] = JsonValue{ .data = result };
-    response.data = responseBody;
-
     messageChannel_.sendMessage(response);
 }
 
-JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments) {
+Json::JsonValue McpServer::handleReadReport(const Json::JsonValue::Object& arguments) {
     if (!arguments.contains("uri")) {
         throw std::runtime_error("Could not read report file: URI missing.");
     }
 
-    const std::string& uri = arguments.at("uri").asString();
+    const std::string& uri = arguments.at("uri").as_string();
     std::string filename;
     if (uri.starts_with("qapla://reports/")) {
         size_t lastSlash = uri.find_last_of('/');
@@ -693,13 +646,11 @@ JsonValue::Array McpServer::handleReadReport(const JsonValue::Object& arguments)
             if (file.is_open()) {
                 std::stringstream buffer;
                 buffer << file.rdbuf();
-                
-                JsonValue::Object textContent;
-                textContent["type"] = JsonValue{ .data = std::string("text") };
-                textContent["text"] = JsonValue{ .data = buffer.str() };
-                
-                JsonValue::Array content;
-                content.push_back(JsonValue{ .data = textContent });
+
+                auto content = Json::JsonValue::array();
+                auto& textContent = content[0U];
+                textContent["type"] = "text";
+                textContent["text"] = buffer.str();
                 return content;
             }
         }
@@ -725,14 +676,10 @@ std::string McpServer::formatRunSummary(const std::string& name, AppReturnCode c
     return summary;
 }
 
-JsonValue::Array McpServer::handleAdjudicateTool(const JsonValue::Object& arguments) {
-    JsonValue::Array content;
-    JsonValue::Object textContent;
-    textContent["type"] = JsonValue{ .data = std::string("text") };
-
+Json::JsonValue McpServer::handleAdjudicateTool(const Json::JsonValue::Object& arguments) {
     // Update global adjudication config
     auto inputConfig = mapJsonToConfigData(arguments);
-    
+
     const auto sectionNames = inputConfig.getAllSectionNames();
     for (const auto& name : sectionNames) {
         if (const auto sectionMap = inputConfig.getSectionMap(name)) {
@@ -743,30 +690,28 @@ JsonValue::Array McpServer::handleAdjudicateTool(const JsonValue::Object& argume
             }
         }
     }
-    
-    textContent["text"] = JsonValue{ .data = std::string("Global adjudication settings updated.") };
-    content.push_back(JsonValue{ .data = textContent });
+
+    auto content = Json::JsonValue::array();
+    auto& textContent = content[0U];
+    textContent["type"] = "text";
+    textContent["text"] = "Global adjudication settings updated.";
     return content;
 }
 
-JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments) {
-    JsonValue::Array content;
-    JsonValue::Object textContent;
-    textContent["type"] = JsonValue{ .data = std::string("text") };
+Json::JsonValue McpServer::handleControlTool(const Json::JsonValue::Object& arguments) {
+    const std::string command = arguments.at("command").as_string();
 
-    const std::string command = arguments.at("command").asString();
-    
     std::string result;
 
     if (command == "status") {
-        result = createCombinedControlStatus();
+        result = createCombinedControlStatus().stringify();
     } else if (command == "set_concurrency") {
-        if (!arguments.contains("value") || !arguments.at("value").isNumber()) {
+        if (!arguments.contains("value") || !arguments.at("value").is_number()) {
              throw AppError::makeInvalidParameters("Integer value required for set_concurrency.");
         }
-        const int value = static_cast<int>(arguments.at("value").asDouble());
+        const int value = static_cast<int>(arguments.at("value").as_number());
         AppRunner::setConcurrency(value);
-        const auto status = createCombinedControlStatus();
+        const auto status = createCombinedControlStatus().stringify();
         result = std::format("Concurrency set to {}.\nStatus: {}", value, status);
     } else if (command == "stop") {
         const auto activeCanceled = JobScheduler::instance().requestCancelActive(false);
@@ -781,11 +726,11 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
         result = std::format("All tasks stopped gracefully. Active queued-run canceled: {}. Cleared {} queued jobs.",
             activeCanceled ? "yes" : "no", clearedCount);
     } else if (command == "cancel_job") {
-        if (!arguments.contains("job_id") || !arguments.at("job_id").isString()) {
+        if (!arguments.contains("job_id") || !arguments.at("job_id").is_string()) {
             throw AppError::makeInvalidParameters("String job_id required for cancel_job.");
         }
 
-        const auto& jobId = arguments.at("job_id").asString();
+        const auto& jobId = arguments.at("job_id").as_string();
         const auto canceled = JobScheduler::instance().cancelJob(jobId, true);
         result = canceled
             ? std::format("Cancel requested for job '{}'.", jobId)
@@ -794,7 +739,7 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
         const auto clearedCount = JobScheduler::instance().clearQueuedJobs();
         result = std::format("Cleared {} queued jobs.", clearedCount);
     } else if (command == "list_results") {
-        result = JsonHelper::serialize(JobScheduler::instance().finishedResultsJson());
+        result = JobScheduler::instance().finishedResultsJson().stringify();
     } else if (command == "clear_results") {
         const auto clearedCount = JobScheduler::instance().clearFinishedResults();
         result = std::format("Cleared {} finished queue results.", clearedCount);
@@ -802,8 +747,10 @@ JsonValue::Array McpServer::handleControlTool(const JsonValue::Object& arguments
          throw AppError::makeInvalidParameters(std::format("Unknown control command '{}'.", command));
     }
 
-    textContent["text"] = JsonValue{ .data = result };
-    content.push_back(JsonValue{ .data = textContent });
+    auto content = Json::JsonValue::array();
+    auto& textContent = content[0U];
+    textContent["type"] = "text";
+    textContent["text"] = result;
     return content;
 }
 
@@ -827,19 +774,19 @@ void McpServer::mergeGlobalConfig(QaplaHelpers::ConfigData& target, const QaplaH
 std::pair<std::string, std::string> McpServer::getTaskConfigInfo(const std::string& name) {
     if (name == "sprt") {
         return {SprtTournamentFile::id, "sprt-report"};
-    } 
+    }
     if (name == "tournament") {
         return {TournamentFile::id, "tournament-report"};
-    } 
+    }
     if (name == "epd") {
         return {"", "epd-report"};
-    } 
+    }
     if (name == "test") {
         return {"", "test-report"};
-    } 
+    }
     if (name == "spsa") {
         return {"", "spsa-report"};
-    } 
+    }
     if (name == "clop") {
         return {"", "clop-report"};
     }
@@ -849,11 +796,11 @@ std::pair<std::string, std::string> McpServer::getTaskConfigInfo(const std::stri
     return {"", "report"};
 }
 
-void McpServer::prepareTaskFile(const std::string& name, JsonValue::Object& toolArgs) {
+void McpServer::prepareTaskFile(const std::string& name, Json::JsonValue::Object& toolArgs) {
     if (name == "sprt") {
         bool resume = false;
         if (toolArgs.contains("resume")) {
-            resume = toolArgs.at("resume").asBool();
+            resume = toolArgs.at("resume").as_boolean();
             toolArgs.erase("resume");
         }
 
@@ -864,11 +811,11 @@ void McpServer::prepareTaskFile(const std::string& name, JsonValue::Object& tool
              filename = QaplaHelpers::generateTimestampedFilename("sprt-tournament", BaseLogger::logPath_, "qsprt");
              lastSprtFile_ = filename;
         }
-        toolArgs["sprt_file"] = JsonValue{ .data = filename };
+        toolArgs["sprt_file"] = filename;
     } else if (name == "tournament") {
         bool resume = false;
         if (toolArgs.contains("resume")) {
-            resume = toolArgs.at("resume").asBool();
+            resume = toolArgs.at("resume").as_boolean();
             toolArgs.erase("resume");
         }
 
@@ -879,24 +826,24 @@ void McpServer::prepareTaskFile(const std::string& name, JsonValue::Object& tool
              filename = QaplaHelpers::generateTimestampedFilename("tournament-outcome", BaseLogger::logPath_, "qtour");
              lastTournamentFile_ = filename;
         }
-        toolArgs["tournament_file"] = JsonValue{ .data = filename };
+        toolArgs["tournament_file"] = filename;
     }
 }
 
-JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonValue::Object& arguments, 
+Json::JsonValue McpServer::runRunnerTool(const std::string& name, const Json::JsonValue::Object& arguments,
     AppReturnCode& returnCode) {
     auto toolArgs = arguments;  // Create a copy to modify
     bool background = false;
-    
+
     // Check for background execution parameter
     if (toolArgs.contains("mcp_background")) {
-        background = toolArgs.at("mcp_background").asBool();
+        background = toolArgs.at("mcp_background").as_boolean();
         toolArgs.erase("mcp_background"); // Remove so it doesn't fail settings parsing
     } else if (toolArgs.contains("background")) {
-        background = toolArgs.at("background").asBool();
+        background = toolArgs.at("background").as_boolean();
         toolArgs.erase("background");
     }
-    
+
     if (toolArgs.contains("engines")) {
         toolArgs.erase("engines");
     }
@@ -908,18 +855,17 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
     auto [_, reportBaseName] = getTaskConfigInfo(name);
 
     Logger::logBaseName_ = reportBaseName;
-    
+
     auto paramsConfig = mapJsonToConfigData(toolArgs);
     ensureTaskGroupSection(paramsConfig, name);
     QaplaHelpers::ConfigData configData = globalAdjudicationConfig_;
-    
+
     // Copy paramsConfig into configData
     mergeGlobalConfig(configData, paramsConfig);
-    
-    JsonValue::Array content;
-    JsonValue::Object textContent;
 
-    textContent["type"] = JsonValue{ .data = std::string("text") };
+    auto content = Json::JsonValue::array();
+    auto& textContent = content[0U];
+    textContent["type"] = "text";
 
     // Determine relevant groups for this tool to show configuration used
     std::vector<std::string> reportGroups = { "global" };
@@ -959,36 +905,34 @@ JsonValue::Array McpServer::runRunnerTool(const std::string& name, const JsonVal
         const auto jobId = JobScheduler::instance().enqueue(std::move(queueEntry));
         returnCode = AppReturnCode::NoError;
 
-        const auto queueStatus = JsonHelper::serialize(JobScheduler::instance().queueStatusJson());
-        const auto summary = createQueueStartSummary(name, jobId, queueStatus);
+        const auto summary = createQueueStartSummary(name, jobId, JobScheduler::instance().queueStatusJson());
         const auto settingsReport = generateSettingsReport();
-        textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
+        textContent["text"] = summary + "\n\n" + settingsReport;
     } else if (background) {
         returnCode = executeRunnerTool(configData, background, Cli::getTaskType(name));
         std::string summary = std::format("Tool '{}' started in background.", name);
         summary += std::format("\nReport Log might be available at: qapla://reports/{}/<timestamped_file>", name);
         const auto settingsReport = generateSettingsReport();
-        textContent["text"] = JsonValue{ .data = summary + "\n\n" + settingsReport };
+        textContent["text"] = summary + "\n\n" + settingsReport;
     } else {
         returnCode = executeRunnerTool(configData, background, Cli::getTaskType(name));
         std::string runSummary = formatRunSummary(name, returnCode);
         const auto settingsReport = generateSettingsReport();
-        textContent["text"] = JsonValue{ .data = runSummary + "\n\n" + settingsReport };
+        textContent["text"] = runSummary + "\n\n" + settingsReport;
     }
 
-    content.push_back(JsonValue{ .data = textContent });
     return content;
 }
 
-JsonValue::Array McpServer::handleSetLogging(const JsonValue::Object& arguments) {
+Json::JsonValue McpServer::handleSetLogging(const Json::JsonValue::Object& arguments) {
     auto configData = mapJsonToConfigData(arguments);
     Settings::Manager::instance().parseInput(configData, true);
 
     // 1. MCP Logging Level
     if (arguments.contains("logging_mcp")) {
         const auto& val = arguments.at("logging_mcp");
-        if (val.isString()) {
-            const std::string lvl = val.asString();
+        if (val.is_string()) {
+            const std::string lvl = val.as_string();
             TraceLevel mcpLevel = TraceLevel::result;
             if (lvl == "all") {
                 mcpLevel = TraceLevel::info;
@@ -1003,11 +947,11 @@ JsonValue::Array McpServer::handleSetLogging(const JsonValue::Object& arguments)
     if (arguments.contains("logging_engine")) {
         bool enable = true;
         const auto& val = arguments.at("logging_engine");
-        
-        if (val.isBool()) {
-            enable = val.asBool();
-        } else if (val.isString()) {
-            enable = (val.asString() == "true");
+
+        if (val.is_boolean()) {
+            enable = val.as_boolean();
+        } else if (val.is_string()) {
+            enable = (val.as_string() == "true");
         }
 
         if (enable) {
@@ -1016,22 +960,21 @@ JsonValue::Array McpServer::handleSetLogging(const JsonValue::Object& arguments)
              EngineLogger::engineLogger().setTraceLevel(TraceLevel::none, TraceLevel::none, TraceLevel::none);
         }
     }
-    
-    // 3. Log Path - already handled by mapJsonToConfigData? 
+
+    // 3. Log Path - already handled by mapJsonToConfigData?
     // mapJsonToConfigData handles generic keys. logging_path -> [logging] path.
     // But BaseLogger::logPath_ static member needs explicit update if not observing settings.
     if (arguments.contains("logging_path")) {
         const auto& val = arguments.at("logging_path");
-        if (val.isString()) {
-             BaseLogger::logPath_ = val.asString();
+        if (val.is_string()) {
+             BaseLogger::logPath_ = val.as_string();
         }
     }
 
-    JsonValue::Array content;
-    JsonValue::Object textContent;
-    textContent["type"] = JsonValue{ .data = std::string("text") };
-    textContent["text"] = JsonValue{ .data = std::string("Logging configuration updated.") };
-    content.push_back(JsonValue{ .data = textContent });
+    auto content = Json::JsonValue::array();
+    auto& textContent = content[0U];
+    textContent["type"] = "text";
+    textContent["text"] = "Logging configuration updated.";
     return content;
 }
 

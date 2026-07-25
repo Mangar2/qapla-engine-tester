@@ -18,7 +18,7 @@
  */
 #pragma once
 
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 #include "../engine-handling/engine-capabilities.h"
 #include "../cli/task-types.h"
 #include <string>
@@ -27,18 +27,18 @@ namespace QaplaTester::Mcp {
 
 class McpEngineTool {
 public:
-    static JsonValue::Array handleManageEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
-    static void setupActiveEngines(const JsonValue::Object& arguments, Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities);
+    static Json::JsonValue handleManageEngines(const Json::JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
+    static void setupActiveEngines(const Json::JsonValue::Object& arguments, Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities);
 
 private:
     [[nodiscard]] static std::string listEngines();
-    [[nodiscard]] static std::string getEngineDetails(const JsonValue::Object& arguments, const QaplaConfiguration::EngineCapabilities& capabilities);
-    static std::string addOrUpdateEngine(const JsonValue::Object& arguments, bool isUpdate, QaplaConfiguration::EngineCapabilities& capabilities);
-    static std::string copyEngine(const JsonValue::Object& arguments);
-    static std::string deleteEngine(const JsonValue::Object& arguments);
-    static std::string updateAllEngines(const JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
+    [[nodiscard]] static std::string getEngineDetails(const Json::JsonValue::Object& arguments, const QaplaConfiguration::EngineCapabilities& capabilities);
+    static std::string addOrUpdateEngine(const Json::JsonValue::Object& arguments, bool isUpdate, QaplaConfiguration::EngineCapabilities& capabilities);
+    static std::string copyEngine(const Json::JsonValue::Object& arguments);
+    static std::string deleteEngine(const Json::JsonValue::Object& arguments);
+    static std::string updateAllEngines(const Json::JsonValue::Object& arguments, QaplaConfiguration::EngineCapabilities& capabilities);
 
-    static void applyGlobalTimeControl(const std::vector<std::string>& engineNames, const JsonValue& tcValue, QaplaConfiguration::EngineCapabilities& capabilities);
+    static void applyGlobalTimeControl(const std::vector<std::string>& engineNames, const Json::JsonValue& tcValue, QaplaConfiguration::EngineCapabilities& capabilities);
     static void syncToEngineRegistry(const std::string& engineName);
 };
 

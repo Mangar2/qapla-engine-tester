@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 #include "../cli/settings-manager.h"
 #include <string>
 #include <string_view>
@@ -45,20 +45,20 @@ public:
      * @param registeredNames A string containing a comma-separated list of registered engine names.
      * @return The JSON object representing the input schema.
      */
-    [[nodiscard]] static JsonValue::Object createInputSchema(const ToolInfo& info, const std::string& registeredNames);
+    [[nodiscard]] static Json::JsonValue createInputSchema(const ToolInfo& info, const std::string& registeredNames);
 
 private:
-    static void addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties);
-    static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
-    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties);
-    static void addGlobalParameterSchema(const std::string& key, JsonValue::Object& properties);
-    
+    static void addParametersFromGroup(std::string_view groupName, Json::JsonValue& properties);
+    static void addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, Json::JsonValue& properties);
+    static void addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, Json::JsonValue& properties);
+    static void addGlobalParameterSchema(const std::string& key, Json::JsonValue& properties);
+
     // Specific tool helpers
-    static void addReadReportSchema(JsonValue::Object& properties, JsonValue::Array& required);
-    static void addControlSchema(JsonValue::Object& properties, JsonValue::Array& required);
-    static void addManageEnginesSchema(JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
-    static void addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties);
-    static void addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames);
+    static void addReadReportSchema(Json::JsonValue& properties, Json::JsonValue& required);
+    static void addControlSchema(Json::JsonValue& properties, Json::JsonValue& required);
+    static void addManageEnginesSchema(Json::JsonValue& properties, Json::JsonValue& required, const std::string& registeredNames);
+    static void addNonTaskSchema(const ToolInfo& info, Json::JsonValue& properties);
+    static void addStandardTaskSchema(const ToolInfo& info, Json::JsonValue& properties, Json::JsonValue& required, const std::string& registeredNames);
 };
 
 } // namespace QaplaTester::Mcp

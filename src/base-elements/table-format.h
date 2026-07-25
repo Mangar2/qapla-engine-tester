@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include "qapla-json.h"
+
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -135,12 +137,12 @@ public:
     [[nodiscard]] static std::string toText(const TableData& table);
 
     /**
-     * @brief Formats table data into a JSON payload string.
+     * @brief Formats table data into a JSON payload tree.
      * @param tableName Logical name of the table in the JSON payload.
      * @param table Source table data.
-     * @return Serialized JSON representation of the table.
+     * @return JSON representation of the table.
      */
-    [[nodiscard]] static std::string toJson(std::string_view tableName, const TableData& table);
+    [[nodiscard]] static Json::JsonValue toJsonValue(std::string_view tableName, const TableData& table);
 };
 
 } // namespace QaplaTester

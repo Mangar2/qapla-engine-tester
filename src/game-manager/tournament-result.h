@@ -21,6 +21,7 @@
 
 #include "../chess-game/game-result.h"
 #include "../chess-game/game-record.h"
+#include "../base-elements/qapla-json.h"
 
 #include <vector>
 #include <optional>
@@ -315,17 +316,17 @@ public:
     void printRatingTableUciStyle(std::ostream &os, int averageElo);
 
     /**
-     * @brief Returns the rating table as a JSON string.
+     * @brief Returns the rating table as a JSON value.
      * @param averageElo The base Elo level for scaling rating output.
-     * @return JSON string containing the rating table and statistics.
+     * @return JSON value containing the rating table and statistics.
      */
-    [[nodiscard]] std::string getRatingTableJson(int averageElo);
+    [[nodiscard]] Json::JsonValue getRatingTable(int averageElo);
 
     /**
-     * @brief Returns the outcome of the tournament as a JSON string.
-     * @return JSON string containing the outcome / cause statistics.
+     * @brief Returns the outcome of the tournament as a JSON value.
+     * @return JSON value containing the outcome / cause statistics.
      */
-    [[nodiscard]] std::string getOutcomeJson() const;
+    [[nodiscard]] Json::JsonValue getOutcome() const;
 
     /**
      * @brief Computes iterative Elo ratings and error estimates for all engines.

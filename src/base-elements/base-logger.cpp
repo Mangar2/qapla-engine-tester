@@ -19,28 +19,25 @@
 
 #include "base-logger.h"
 #include "file-helper.h"
-#include "json-helper.h"
 
 #include <iostream>
 
 namespace {
 
-[[nodiscard]] std::string toMcpTextPayload(std::string_view message) {
-    QaplaTester::Mcp::JsonValue::Object payloadObject;
-    payloadObject["type"] = QaplaTester::Mcp::JsonHelper::makeString("text");
-    payloadObject["message"] = QaplaTester::Mcp::JsonHelper::makeString(message);
-    const auto payload = QaplaTester::Mcp::JsonHelper::makeObject(std::move(payloadObject));
-    return QaplaTester::Mcp::JsonHelper::serialize(payload);
+[[nodiscard]] QaplaTester::Json::JsonValue toMcpTextPayload(std::string_view message) {
+    auto payload = QaplaTester::Json::JsonValue::object();
+    payload["type"] = "text";
+    payload["message"] = std::string(message);
+    return payload;
 }
 
-[[nodiscard]] std::string toMcpStatusPayload(std::string_view message, std::string_view toolName, bool overwrite) {
-    QaplaTester::Mcp::JsonValue::Object payloadObject;
-    payloadObject["type"] = QaplaTester::Mcp::JsonHelper::makeString("status");
-    payloadObject["message"] = QaplaTester::Mcp::JsonHelper::makeString(message);
-    payloadObject["tool"] = QaplaTester::Mcp::JsonHelper::makeString(toolName);
-    payloadObject["overwrite"] = QaplaTester::Mcp::JsonHelper::makeBool(overwrite);
-    const auto payload = QaplaTester::Mcp::JsonHelper::makeObject(std::move(payloadObject));
-    return QaplaTester::Mcp::JsonHelper::serialize(payload);
+[[nodiscard]] QaplaTester::Json::JsonValue toMcpStatusPayload(std::string_view message, std::string_view toolName, bool overwrite) {
+    auto payload = QaplaTester::Json::JsonValue::object();
+    payload["type"] = "status";
+    payload["message"] = std::string(message);
+    payload["tool"] = std::string(toolName);
+    payload["overwrite"] = overwrite;
+    return payload;
 }
 
 } // namespace
@@ -148,8 +145,7 @@ void BaseLogger::logTable(std::string_view tableName, const Table& table, TraceL
     }
 
     if (level <= mcpThreshold_ && mcpCallback_) {
-        const auto payload = TableFormat::toJson(tableName, table);
-        mcpCallback_(payload, "");
+        mcpCallback_(TableFormat::toJsonValue(tableName, table), "");
     }
 
     if (level <= cliThreshold_) {

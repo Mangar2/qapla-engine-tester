@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 #include "job-scheduler.h"
 
 #include <string>
@@ -32,13 +32,13 @@ namespace QaplaTester::Mcp {
  * @param arguments The MCP tool arguments object.
  * @return True when background execution is requested.
  */
-[[nodiscard]] bool isBackgroundRequested(const JsonValue::Object& arguments);
+[[nodiscard]] bool isBackgroundRequested(const Json::JsonValue::Object& arguments);
 
 /**
  * @brief Creates control status JSON with runner and queue information.
- * @return Serialized JSON status text.
+ * @return Combined runner and queue status.
  */
-[[nodiscard]] std::string createCombinedControlStatus();
+[[nodiscard]] Json::JsonValue createCombinedControlStatus();
 
 /**
  * @brief Checks whether a tool supports queued background execution.
@@ -59,7 +59,7 @@ namespace QaplaTester::Mcp {
  */
 [[nodiscard]] std::string extractJobIntentForQueue(
 	std::string_view toolName,
-	JsonValue::Object& toolArgs,
+	Json::JsonValue::Object& toolArgs,
 	bool background);
 
 /**
@@ -68,6 +68,6 @@ namespace QaplaTester::Mcp {
 [[nodiscard]] std::string createQueueStartSummary(
 	std::string_view toolName,
 	std::string_view jobId,
-	std::string_view queueStatusJson);
+	const Json::JsonValue& queueStatus);
 
 } // namespace QaplaTester::Mcp

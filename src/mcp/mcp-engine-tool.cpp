@@ -35,23 +35,23 @@ namespace QaplaTester::Mcp {
 
 namespace {
 
-    std::string jsonToString(const JsonValue& val) {
-        if (val.isString()) {
-            return val.asString();
+    std::string jsonToString(const Json::JsonValue& val) {
+        if (val.is_string()) {
+            return val.as_string();
         }
         // Convert bool to string "true"/"false" effectively
-        if (val.isBool()) {
-            return val.asBool() ? "true" : "false";
+        if (val.is_boolean()) {
+            return val.as_boolean() ? "true" : "false";
         }
-        if (val.isNumber()) {
-            double d = val.asDouble();
+        if (val.is_number()) {
+            double d = val.as_number();
             // preserve integer representation if possible for cleanliness
             if (d == static_cast<double>(static_cast<long long>(d))) {
                 return std::format("{}", static_cast<long long>(d));
             }
             return std::format("{}", d);
         }
-        return ""; 
+        return "";
     }
 
     std::string getReadableLabel(const std::string& key) {
@@ -65,7 +65,7 @@ namespace {
         return key;
     }
 
-    void populateSectionFromArgs(QaplaHelpers::IniFile::Section& section, const JsonValue::Object& arguments) {
+    void populateSectionFromArgs(QaplaHelpers::IniFile::Section& section, const Json::JsonValue::Object& arguments) {
         for (const auto& [key, val] : arguments) {
             // Mapping rules:
             // engine_name -> name
@@ -94,13 +94,13 @@ namespace {
     }
 }
 
-JsonValue::Array McpEngineTool::handleManageEngines(
-    const JsonValue::Object& arguments, 
-    QaplaConfiguration::EngineCapabilities& capabilities) 
+Json::JsonValue McpEngineTool::handleManageEngines(
+    const Json::JsonValue::Object& arguments,
+    QaplaConfiguration::EngineCapabilities& capabilities)
 {
     std::string command;
-    if (const auto it = arguments.find("command"); it != arguments.end() && it->second.isString()) {
-        command = it->second.asString();
+    if (const auto it = arguments.find("command"); it != arguments.end() && it->second.is_string()) {
+        command = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Missing 'command' parameter in manage_engines.");
     }
@@ -125,12 +125,11 @@ JsonValue::Array McpEngineTool::handleManageEngines(
         throw AppError::makeInvalidParameters(std::format("Unknown manage_engines command: {}", command));
     }
 
-    JsonValue::Array content;
-    JsonValue::Object textContent;
-    textContent["type"] = JsonValue{ .data = std::string("text") };
-    textContent["text"] = JsonValue{ .data = output };
-    content.push_back(JsonValue{ .data = textContent });
-    
+    auto content = Json::JsonValue::array();
+    auto& textContent = content[0U];
+    textContent["type"] = "text";
+    textContent["text"] = output;
+
     return content;
 }
 
@@ -149,10 +148,10 @@ std::string McpEngineTool::listEngines() {
     return output;
 }
 
-std::string McpEngineTool::getEngineDetails(const JsonValue::Object& arguments, const QaplaConfiguration::EngineCapabilities& capabilities) {
+std::string McpEngineTool::getEngineDetails(const Json::JsonValue::Object& arguments, const QaplaConfiguration::EngineCapabilities& capabilities) {
     std::string name;
-    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
-        name = it->second.asString();
+    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.is_string()) {
+        name = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Command 'details' requires 'engine_name'.");
     }
@@ -194,13 +193,13 @@ std::string McpEngineTool::getEngineDetails(const JsonValue::Object& arguments, 
 }
 
 std::string McpEngineTool::addOrUpdateEngine(
-    const JsonValue::Object& arguments, 
+    const Json::JsonValue::Object& arguments, 
     bool isUpdate, 
     QaplaConfiguration::EngineCapabilities& capabilities) 
 {
     std::string name;
-    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
-        name = it->second.asString();
+    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.is_string()) {
+        name = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Command requires 'engine_name'.");
     }
@@ -210,8 +209,8 @@ std::string McpEngineTool::addOrUpdateEngine(
     }
 
     // Path validation
-    if (const auto it = arguments.find("engine_cmd"); it != arguments.end() && it->second.isString()) {
-        const std::string path = it->second.asString();
+    if (const auto it = arguments.find("engine_cmd"); it != arguments.end() && it->second.is_string()) {
+        const std::string path = it->second.as_string();
         if (!path.empty() && !std::filesystem::exists(path)) {
              throw AppError::makeInvalidParameters(std::format("Engine executable not found at path: '{}'", path));
         }
@@ -236,17 +235,17 @@ std::string McpEngineTool::addOrUpdateEngine(
     return std::format("Engine '{}' {} successfully.", name, isUpdate ? "updated" : "added");
 }
 
-std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
+std::string McpEngineTool::copyEngine(const Json::JsonValue::Object& arguments) {
     std::string srcName;
-    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
-        srcName = it->second.asString();
+    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.is_string()) {
+        srcName = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Command 'copy' requires 'engine_name'.");
     }
 
     std::string destName;
-    if (const auto it = arguments.find("engine_copyName"); it != arguments.end() && it->second.isString()) {
-        destName = it->second.asString();
+    if (const auto it = arguments.find("engine_copyName"); it != arguments.end() && it->second.is_string()) {
+        destName = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Command 'copy' requires 'engine_copyName'.");
     }
@@ -272,10 +271,10 @@ std::string McpEngineTool::copyEngine(const JsonValue::Object& arguments) {
     return std::format("Engine '{}' copied to '{}'.", srcName, destName);
 }
 
-std::string McpEngineTool::deleteEngine(const JsonValue::Object& arguments) {
+std::string McpEngineTool::deleteEngine(const Json::JsonValue::Object& arguments) {
     std::string name;
-    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.isString()) {
-        name = it->second.asString();
+    if (const auto it = arguments.find("engine_name"); it != arguments.end() && it->second.is_string()) {
+        name = it->second.as_string();
     } else {
         throw AppError::makeInvalidParameters("Command 'delete' requires 'engine_name'.");
     }
@@ -298,7 +297,7 @@ std::string McpEngineTool::deleteEngine(const JsonValue::Object& arguments) {
 }
 
 std::string McpEngineTool::updateAllEngines(
-    const JsonValue::Object& arguments, 
+    const Json::JsonValue::Object& arguments, 
     QaplaConfiguration::EngineCapabilities& capabilities) 
 {
      auto& configManager = EngineWorkerFactory::getConfigManagerMutable();
@@ -307,8 +306,8 @@ std::string McpEngineTool::updateAllEngines(
      int count = 0;
      for (const auto& config : engines) {
          // Create a composite argument object for each engine
-         JsonValue::Object specificArgs = arguments;
-         specificArgs["engine_name"] = JsonValue{.data=config.getName()};
+         Json::JsonValue::Object specificArgs = arguments;
+         specificArgs["engine_name"] = config.getName();
          
          try {
              addOrUpdateEngine(specificArgs, true, capabilities);
@@ -321,14 +320,14 @@ std::string McpEngineTool::updateAllEngines(
      return std::format("Updated {} engines.", count);
 }
 
-void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, [[maybe_unused]] Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities) {
+void McpEngineTool::setupActiveEngines(const Json::JsonValue::Object& arguments, [[maybe_unused]] Cli::TaskType taskType, QaplaConfiguration::EngineCapabilities& capabilities) {
     if (!arguments.contains("engines")) {
         return; 
     }
     
     std::string engineList;
-    if (arguments.at("engines").isString()) {
-        engineList = arguments.at("engines").asString();
+    if (arguments.at("engines").is_string()) {
+        engineList = arguments.at("engines").as_string();
     } else {
         return;
     }
@@ -345,8 +344,8 @@ void McpEngineTool::setupActiveEngines(const JsonValue::Object& arguments, [[may
 
 
 void McpEngineTool::applyGlobalTimeControl(
-    const std::vector<std::string>& engineNames, 
-    const JsonValue& tcValue, 
+    const std::vector<std::string>& engineNames,
+    const Json::JsonValue& tcValue,
     QaplaConfiguration::EngineCapabilities& capabilities)
 {
     for (const auto& rawName : engineNames) {
@@ -355,10 +354,10 @@ void McpEngineTool::applyGlobalTimeControl(
             continue;
         }
 
-        JsonValue::Object updateArgs;
-        updateArgs["engine_name"] = JsonValue{ .data = name };
+        Json::JsonValue::Object updateArgs;
+        updateArgs["engine_name"] = name;
         updateArgs["engine_tc"] = tcValue;
-        
+
         // Use standard update mechanism
         addOrUpdateEngine(updateArgs, true, capabilities);
     }

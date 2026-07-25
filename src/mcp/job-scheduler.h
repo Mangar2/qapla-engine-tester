@@ -21,7 +21,7 @@
 
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 
 #include <atomic>
 #include <chrono>
@@ -69,7 +69,7 @@ struct QueueJob {
     std::string jobIntent;
     std::string reportBaseName;
     QaplaHelpers::ConfigData configData;
-    JsonValue::Object executionArguments;
+    Json::JsonValue::Object executionArguments;
 
     QueueJobState state = QueueJobState::Queued;
     AppReturnCode returnCode = AppReturnCode::NoError;
@@ -78,7 +78,7 @@ struct QueueJob {
     std::string reportFilename;
     std::string reportUri;
     std::string resultUri;
-    std::string taskStatusJson;
+    Json::JsonValue taskStatus;
 
     std::chrono::system_clock::time_point createdAt;
     std::chrono::system_clock::time_point startedAt;
@@ -146,12 +146,12 @@ public:
     /**
      * @brief Creates queue status JSON for MCP responses.
      */
-    [[nodiscard]] JsonValue queueStatusJson() const;
+    [[nodiscard]] Json::JsonValue queueStatusJson() const;
 
     /**
      * @brief Creates detailed JSON result list for all finished queue jobs.
      */
-    [[nodiscard]] JsonValue finishedResultsJson() const;
+    [[nodiscard]] Json::JsonValue finishedResultsJson() const;
 
     /**
      * @brief Clears all finished queue job results.

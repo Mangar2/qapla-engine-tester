@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/ini-file.h"
 #include "../cli/task-types.h"
@@ -52,13 +52,13 @@ private:
      * @brief Lists available resources.
      * @param requestId The message ID.
      */
-    static void listResources(const JsonValue& requestId);
+    static void listResources(const Json::JsonValue& requestId);
 
     /**
      * @brief Reads a resource.
      * @param jsonObject The request object.
      */
-    static void readResource(const JsonValue::Object& jsonObject);
+    static void readResource(const Json::JsonValue::Object& jsonObject);
 
     /**
      * @brief Silences loggers to prevent CLI output during MCP sessions.
@@ -70,20 +70,20 @@ private:
      * @param method The JSON-RPC method name.
      * @param params The parameters object.
      */
-    static void sendNotification(const std::string& method, const JsonValue::Object& params);
+    static void sendNotification(const std::string& method, const Json::JsonValue& params);
 
     /**
      * @brief Processes a single JSON-RPC request/notification.
      * @param jsonObject The parsed JSON-RPC object.
      * @return Application return code if the server should exit, NoError otherwise.
      */
-    static AppReturnCode processMessage(const JsonValue::Object& jsonObject);
+    static AppReturnCode processMessage(const Json::JsonValue::Object& jsonObject);
 
     /**
      * @brief Sends the tools/list result.
      * @param requestId The ID of the request.
      */
-    static void listTools(const JsonValue& requestId);
+    static void listTools(const Json::JsonValue& requestId);
 
     /**
      * @brief Maps JSON tool arguments to ConfigData using an underscore naming convention.
@@ -92,13 +92,13 @@ private:
      * @return ConfigData object prepared for QaplaSettings.
      */
     [[nodiscard]] static QaplaHelpers::ConfigData mapJsonToConfigData(
-        const JsonValue::Object& arguments, const std::string& defaultId = "");
+        const Json::JsonValue::Object& arguments, const std::string& defaultId = "");
 
     /**
      * @brief Executes a tool call.
      * @param jsonObject The request object.
      */
-    static void callTool(const JsonValue::Object& jsonObject);
+    static void callTool(const Json::JsonValue::Object& jsonObject);
 
     /**
      * @brief Extracts the tool name from a log filename.
@@ -112,28 +112,28 @@ private:
      * @param entry The directory entry to check.
      * @param resources The target resource array.
      */
-    static void addResourceIfValid(const std::filesystem::directory_entry& entry, JsonValue::Array& resources);
+    static void addResourceIfValid(const std::filesystem::directory_entry& entry, Json::JsonValue& resources);
 
     /**
      * @brief Handles the control tool.
      * @param arguments The tool arguments.
      * @return Result content array.
      */
-    static JsonValue::Array handleControlTool(const JsonValue::Object& arguments);
+    static Json::JsonValue handleControlTool(const Json::JsonValue::Object& arguments);
 
     /**
      * @brief Handles the list_settings tool to show configuration status.
      * @param arguments The tool arguments.
      * @return Result content array.
      */
-    static JsonValue::Array handleListSettings(const JsonValue::Object& arguments);
+    static Json::JsonValue handleListSettings(const Json::JsonValue::Object& arguments);
 
     /**
      * @brief Handles the read_report tool.
      * @param arguments The tool arguments.
      * @return Result content array.
      */
-    static JsonValue::Array handleReadReport(const JsonValue::Object& arguments);
+    static Json::JsonValue handleReadReport(const Json::JsonValue::Object& arguments);
 
     /**
      * @brief Executes a tool that uses the AppRunner dispatcher.
@@ -160,32 +160,32 @@ private:
      * @param otherGroupedSections Map of other section names to sections.
      * @param configData The target config data for global parameters.
      */
-    static void processParameter(const std::string& key, const JsonValue& value,
+    static void processParameter(const std::string& key, const Json::JsonValue& value,
         std::unordered_map<std::string, QaplaHelpers::IniFile::Section>& otherGroupedSections,
         QaplaHelpers::ConfigData& configData);
 
     /**
      * @brief Helpers for callTool to reduce complexity.
      */
-    static JsonValue::Array runRunnerTool(const std::string& name, const JsonValue::Object& arguments, AppReturnCode& returnCode);
+    static Json::JsonValue runRunnerTool(const std::string& name, const Json::JsonValue::Object& arguments, AppReturnCode& returnCode);
 
     static void mergeGlobalConfig(QaplaHelpers::ConfigData& target, const QaplaHelpers::ConfigData& source);
     static std::pair<std::string, std::string> getTaskConfigInfo(const std::string& name);
-    static void prepareTaskFile(const std::string& name, JsonValue::Object& toolArgs);
+    static void prepareTaskFile(const std::string& name, Json::JsonValue::Object& toolArgs);
 
     /**
      * @brief Handles the set_logging tool.
      * @param arguments The tool arguments.
      * @return Result content array.
      */
-    static JsonValue::Array handleSetLogging(const JsonValue::Object& arguments);
+    static Json::JsonValue handleSetLogging(const Json::JsonValue::Object& arguments);
 
     /**
      * @brief Handles the adjudication tool.
      * @param arguments The tool arguments.
      * @return Result content array.
      */
-    static JsonValue::Array handleAdjudicateTool(const JsonValue::Object& arguments);
+    static Json::JsonValue handleAdjudicateTool(const Json::JsonValue::Object& arguments);
 
     inline static QaplaConfiguration::EngineCapabilities capabilities_;
     inline static McpMessageChannel messageChannel_{ McpMessageChannelType::cli };

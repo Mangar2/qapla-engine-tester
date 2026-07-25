@@ -29,29 +29,22 @@
 
 namespace QaplaTester::Mcp {
 
-bool isBackgroundRequested(const JsonValue::Object& arguments) {
-    if (const auto iterator = arguments.find("mcp_background"); iterator != arguments.end() && iterator->second.isBool()) {
-        return iterator->second.asBool();
+bool isBackgroundRequested(const Json::JsonValue::Object& arguments) {
+    if (const auto iterator = arguments.find("mcp_background"); iterator != arguments.end() && iterator->second.is_boolean()) {
+        return iterator->second.as_boolean();
     }
 
-    if (const auto iterator = arguments.find("background"); iterator != arguments.end() && iterator->second.isBool()) {
-        return iterator->second.asBool();
+    if (const auto iterator = arguments.find("background"); iterator != arguments.end() && iterator->second.is_boolean()) {
+        return iterator->second.as_boolean();
     }
 
     return false;
 }
 
-std::string createCombinedControlStatus() {
-    auto runnerStatus = AppRunner::getStatus();
-    std::string_view runnerStatusView = runnerStatus;
-    auto runnerJson = JsonHelper::parse(runnerStatusView);
-    if (!runnerJson.isObject()) {
-        return runnerStatus;
-    }
-
-    auto rootObject = runnerJson.asObject();
-    rootObject["job_queue"] = JobScheduler::instance().queueStatusJson();
-    return JsonHelper::serialize(JsonHelper::makeObject(std::move(rootObject)));
+Json::JsonValue createCombinedControlStatus() {
+    auto status = AppRunner::getStatus();
+    status["job_queue"] = JobScheduler::instance().queueStatusJson();
+    return status;
 }
 
 bool isQueueableTool(std::string_view toolName) {
@@ -99,7 +92,7 @@ QueueJobType queueJobTypeForTool(std::string_view toolName) {
 
 std::string extractJobIntentForQueue(
     std::string_view toolName,
-    JsonValue::Object& toolArgs,
+    Json::JsonValue::Object& toolArgs,
     bool background)
 {
     if (!isQueueableTool(toolName)) {
@@ -114,12 +107,12 @@ std::string extractJobIntentForQueue(
         return "";
     }
 
-    if (!toolArgs.at("job_intent").isString()) {
+    if (!toolArgs.at("job_intent").is_string()) {
         throw AppError::makeInvalidParameters(
             std::format("String job_intent is required for {} jobs.", toolName));
     }
 
-    auto jobIntent = toolArgs.at("job_intent").asString();
+    auto jobIntent = toolArgs.at("job_intent").as_string();
     toolArgs.erase("job_intent");
 
     if (jobIntent.empty()) {
@@ -133,12 +126,12 @@ std::string extractJobIntentForQueue(
 std::string createQueueStartSummary(
     std::string_view toolName,
     std::string_view jobId,
-    std::string_view queueStatusJson)
+    const Json::JsonValue& queueStatus)
 {
     auto summary = std::format("Tool '{}' queued as '{}'.", toolName, jobId);
     summary += std::format("\nThe next queued '{}' job starts automatically after the running one finishes.", toolName);
     summary += "\nUse control/status to monitor and control/cancel_job to stop specific jobs.";
-    summary += std::format("\nQueue status: {}", queueStatusJson);
+    summary += std::format("\nQueue status: {}", queueStatus.stringify());
     return summary;
 }
 

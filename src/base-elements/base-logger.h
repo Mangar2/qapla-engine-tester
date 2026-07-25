@@ -154,7 +154,7 @@ public:
      * @brief Sets a callback for MCP JSON-RPC logging.
      * @param callback Function to call for MCP logging.
      */
-    void setMcpCallback(std::function<void(std::string_view, std::string_view)> callback) {
+    void setMcpCallback(std::function<void(Json::JsonValue, std::string_view)> callback) {
         mcpCallback_ = std::move(callback);
     }
 
@@ -208,7 +208,7 @@ protected:
     TraceLevel cliThreshold_ = TraceLevel::info;  ///< Console output threshold
     TraceLevel fileThreshold_ = TraceLevel::info;  ///< File output threshold
     TraceLevel mcpThreshold_ = TraceLevel::none;  ///< MCP output threshold
-    std::function<void(std::string_view, std::string_view)> mcpCallback_; ///< Callback for MCP logging
+    std::function<void(Json::JsonValue, std::string_view)> mcpCallback_; ///< Callback for MCP logging
     std::string filename_;                      ///< Current log filename
     std::string openedBasename_;                ///< Basename of the currently open log file
     std::string openedLogPath_;                 ///< Directory path of the currently open log file

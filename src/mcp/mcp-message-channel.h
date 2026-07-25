@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "../base-elements/json-helper.h"
+#include "../base-elements/qapla-json.h"
 
 #include <optional>
 #include <stdexcept>
@@ -69,40 +69,40 @@ public:
      * @brief Reads one MCP message from the configured transport.
      * @return Parsed JSON message, or empty optional on end of input.
      */
-    [[nodiscard]] std::optional<JsonValue> readMessage();
+    [[nodiscard]] std::optional<Json::JsonValue> readMessage();
 
     /**
      * @brief Sends one MCP message through the configured transport.
      * @param message JSON payload to transmit.
      */
-    void sendMessage(const JsonValue& message) const;
+    void sendMessage(const Json::JsonValue& message) const;
 
 private:
     /**
      * @brief Reads one message from CLI input.
      * @return Parsed JSON message, or empty optional on end of input.
      */
-    [[nodiscard]] std::optional<JsonValue> readCliMessage();
+    [[nodiscard]] std::optional<Json::JsonValue> readCliMessage();
 
     /**
      * @brief Tries to read a message body via Content-Length framing.
      * @param line Current input line that may contain a Content-Length header.
      * @return Parsed JSON message when framing is complete, otherwise empty optional.
      */
-    [[nodiscard]] static std::optional<JsonValue> tryReadByContentLength(const std::string& line);
+    [[nodiscard]] static std::optional<Json::JsonValue> tryReadByContentLength(const std::string& line);
 
     /**
      * @brief Tries to parse a complete JSON message from an accumulated buffer.
      * @param accumulated Buffer with pending input data.
      * @return Parsed JSON message when complete JSON is available, otherwise empty optional.
      */
-    [[nodiscard]] static std::optional<JsonValue> tryReadByBraceCounting(std::string& accumulated);
+    [[nodiscard]] static std::optional<Json::JsonValue> tryReadByBraceCounting(std::string& accumulated);
 
     /**
      * @brief Sends one message over CLI output.
      * @param message JSON payload to transmit.
      */
-    static void sendCliMessage(const JsonValue& message);
+    static void sendCliMessage(const Json::JsonValue& message);
 
     /**
      * @brief Creates an exception for transport types that are not implemented.

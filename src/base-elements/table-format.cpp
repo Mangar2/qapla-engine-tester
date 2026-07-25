@@ -18,7 +18,6 @@
  */
 
 #include "table-format.h"
-#include "json-helper.h"
 #include "string-helper.h"
 
 #include <algorithm>
@@ -71,19 +70,17 @@ namespace {
     }, cell.value);
 }
 
-[[nodiscard]] QaplaTester::Mcp::JsonValue formatCellForJson(const QaplaTester::TableCell& cell, std::string_view header) {
-    return std::visit([header](const auto& value) -> QaplaTester::Mcp::JsonValue {
+[[nodiscard]] QaplaTester::Json::JsonValue formatCellForJson(const QaplaTester::TableCell& cell, std::string_view header) {
+    return std::visit([header](const auto& value) -> QaplaTester::Json::JsonValue {
         using ValueType = std::decay_t<decltype(value)>;
         if constexpr (std::is_same_v<ValueType, std::string>) {
-            return QaplaTester::Mcp::JsonHelper::makeString(value);
+            return value;
         } else if constexpr (std::is_same_v<ValueType, std::int64_t>) {
-            return QaplaTester::Mcp::JsonHelper::makeNumber(static_cast<double>(value));
+            return static_cast<double>(value);
+        } else if (isCpColumn(header)) {
+            return std::round(value * 10.0) / 10.0;
         } else {
-            if (isCpColumn(header)) {
-                const auto rounded = std::round(value * 10.0) / 10.0;
-                return QaplaTester::Mcp::JsonHelper::makeNumber(rounded);
-            }
-            return QaplaTester::Mcp::JsonHelper::makeNumber(value);
+            return value;
         }
     }, cell.value);
 }
@@ -193,40 +190,35 @@ std::string TableFormat::toText(const TableData& table) {
     return stream.str();
 }
 
-std::string TableFormat::toJson(std::string_view tableName, const TableData& table) {
+Json::JsonValue TableFormat::toJsonValue(std::string_view tableName, const TableData& table) {
     const auto columnCount = detectColumnCount(table);
     const auto widths = createEffectiveWidths(table, columnCount);
 
-    Mcp::JsonValue::Array columns;
+    auto payload = Json::JsonValue::object();
+    payload["type"] = "table";
+    payload["name"] = std::string(tableName);
+
+    auto& columns = payload["columns"] = Json::JsonValue::array();
     for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex) {
         const auto headerValue = columnIndex < table.headers.size() ? table.headers[columnIndex] : std::string();
-        Mcp::JsonValue::Object columnObject;
-        columnObject["header"] = Mcp::JsonHelper::makeString(headerValue);
-        columnObject["width"] = Mcp::JsonHelper::makeNumber(static_cast<double>(widths[columnIndex]));
-        columns.push_back(Mcp::JsonHelper::makeObject(std::move(columnObject)));
+        auto& column = columns[columnIndex];
+        column["header"] = headerValue;
+        column["width"] = static_cast<double>(widths[columnIndex]);
     }
 
-    Mcp::JsonValue::Array rows;
+    auto& rows = payload["rows"] = Json::JsonValue::array();
     for (size_t rowIndex = 0; rowIndex < table.body.size(); ++rowIndex) {
-        Mcp::JsonValue::Array rowValues;
+        auto& rowValues = rows[rowIndex];
         for (size_t columnIndex = 0; columnIndex < columnCount; ++columnIndex) {
             const auto& header = columnIndex < table.headers.size() ? table.headers[columnIndex] : std::string_view();
             const auto& cellValue = columnIndex < table.body[rowIndex].size()
                 ? table.body[rowIndex][columnIndex]
                 : TableCell("");
-            rowValues.push_back(formatCellForJson(cellValue, header));
+            rowValues[columnIndex] = formatCellForJson(cellValue, header);
         }
-        rows.push_back(Mcp::JsonHelper::makeArray(std::move(rowValues)));
     }
 
-    Mcp::JsonValue::Object payloadObject;
-    payloadObject["type"] = Mcp::JsonHelper::makeString("table");
-    payloadObject["name"] = Mcp::JsonHelper::makeString(tableName);
-    payloadObject["columns"] = Mcp::JsonHelper::makeArray(std::move(columns));
-    payloadObject["rows"] = Mcp::JsonHelper::makeArray(std::move(rows));
-
-    const auto payload = Mcp::JsonHelper::makeObject(std::move(payloadObject));
-    return Mcp::JsonHelper::serialize(payload);
+    return payload;
 }
 
 } // namespace QaplaTester

@@ -68,7 +68,7 @@ McpMessageChannelType McpMessageChannel::getType() const {
     return type_;
 }
 
-std::optional<JsonValue> McpMessageChannel::readMessage() {
+std::optional<Json::JsonValue> McpMessageChannel::readMessage() {
     if (type_ == McpMessageChannelType::cli) {
         return readCliMessage();
     }
@@ -76,7 +76,7 @@ std::optional<JsonValue> McpMessageChannel::readMessage() {
     throw createUnsupportedTypeError(type_);
 }
 
-void McpMessageChannel::sendMessage(const JsonValue& message) const {
+void McpMessageChannel::sendMessage(const Json::JsonValue& message) const {
     if (type_ == McpMessageChannelType::cli) {
         sendCliMessage(message);
         return;
@@ -85,7 +85,7 @@ void McpMessageChannel::sendMessage(const JsonValue& message) const {
     throw createUnsupportedTypeError(type_);
 }
 
-std::optional<JsonValue> McpMessageChannel::readCliMessage() {
+std::optional<Json::JsonValue> McpMessageChannel::readCliMessage() {
     if (auto value = tryReadByBraceCounting(accumulated_); value.has_value()) {
         return value;
     }
@@ -110,7 +110,7 @@ std::optional<JsonValue> McpMessageChannel::readCliMessage() {
     return std::nullopt;
 }
 
-std::optional<JsonValue> McpMessageChannel::tryReadByContentLength(const std::string& line) {
+std::optional<Json::JsonValue> McpMessageChannel::tryReadByContentLength(const std::string& line) {
     const auto headerLine = QaplaHelpers::trim(line);
     if (!headerLine.starts_with("Content-Length:")) {
         return std::nullopt;
@@ -128,14 +128,13 @@ std::optional<JsonValue> McpMessageChannel::tryReadByContentLength(const std::st
     std::string content(length, '\0');
     std::cin.read(content.data(), static_cast<std::streamsize>(length));
     if (std::cin.gcount() == static_cast<std::streamsize>(length)) {
-        std::string_view contentView = content;
-        return JsonHelper::parse(contentView);
+        return Json::JsonValue::try_parse(content);
     }
 
     return std::nullopt;
 }
 
-std::optional<JsonValue> McpMessageChannel::tryReadByBraceCounting(std::string& accumulated) {
+std::optional<Json::JsonValue> McpMessageChannel::tryReadByBraceCounting(std::string& accumulated) {
     size_t openBraces = 0;
     size_t closeBraces = 0;
     bool inString = false;
@@ -157,31 +156,26 @@ std::optional<JsonValue> McpMessageChannel::tryReadByBraceCounting(std::string& 
 
         if (openBraces > 0 && openBraces == closeBraces) {
             std::string_view jsonInputView(accumulated.data(), currentPos);
-            try {
-                auto result = JsonHelper::parse(jsonInputView);
+            if (auto result = Json::JsonValue::try_parse(jsonInputView); result.has_value()) {
                 accumulated.erase(0, currentPos);
                 return result;
-            } catch (...) { // NOLINT(bugprone-empty-catch)
             }
         }
     }
 
     if (openBraces == 0 && !accumulated.empty()) {
-        std::string_view jsonInputView = accumulated;
-        try {
-            auto result = JsonHelper::parse(jsonInputView);
+        if (auto result = Json::JsonValue::try_parse(accumulated); result.has_value()) {
             accumulated.clear();
             return result;
-        } catch (...) { // NOLINT(bugprone-empty-catch)
         }
     }
 
     return std::nullopt;
 }
 
-void McpMessageChannel::sendCliMessage(const JsonValue& message) {
+void McpMessageChannel::sendCliMessage(const Json::JsonValue& message) {
     std::lock_guard lock(cliOutputMutex);
-    std::cout << JsonHelper::serialize(message) << "\n" << std::flush;
+    std::cout << message.stringify() << "\n" << std::flush;
 }
 
 std::runtime_error McpMessageChannel::createUnsupportedTypeError(McpMessageChannelType type) {

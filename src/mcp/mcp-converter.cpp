@@ -27,40 +27,40 @@ namespace QaplaTester::Mcp {
 
 namespace {
 
-Settings::Value convertByType(const std::string& key, Settings::ValueType type, const JsonValue& jsonVal) {
+Settings::Value convertByType(const std::string& key, Settings::ValueType type, const Json::JsonValue& jsonVal) {
     switch (type) {
         case Settings::ValueType::String:
         case Settings::ValueType::PathExists:
         case Settings::ValueType::ValidateOutputPath:
-            if (!jsonVal.isString()) {
+            if (!jsonVal.is_string()) {
                 throw AppError::makeInvalidParameters(std::format("Parameter '{}' expects a string value.", key));
             }
-            return jsonVal.asString();
+            return jsonVal.as_string();
 
         case Settings::ValueType::Int:
-            if (!jsonVal.isNumber()) {
+            if (!jsonVal.is_number()) {
                 throw AppError::makeInvalidParameters(std::format("Parameter '{}' expects an integer value.", key));
             }
-            return static_cast<int>(jsonVal.asDouble());
+            return static_cast<int>(jsonVal.as_number());
 
         case Settings::ValueType::UInt:
-            if (!jsonVal.isNumber()) {
+            if (!jsonVal.is_number()) {
                 throw AppError::makeInvalidParameters(std::format("Parameter '{}' expects an unsigned integer value.", key));
             }
-            return static_cast<unsigned int>(jsonVal.asDouble());
+            return static_cast<unsigned int>(jsonVal.as_number());
 
         case Settings::ValueType::Float:
-             if (!jsonVal.isNumber()) {
+             if (!jsonVal.is_number()) {
                 throw AppError::makeInvalidParameters(std::format("Parameter '{}' expects a number value.", key));
             }
-            return jsonVal.asDouble();
+            return jsonVal.as_number();
 
         case Settings::ValueType::Bool:
-            if (!jsonVal.isBool()) {
+            if (!jsonVal.is_boolean()) {
                 throw AppError::makeInvalidParameters(std::format("Parameter '{}' expects a boolean value.", key));
             }
-            return jsonVal.asBool();
-            
+            return jsonVal.as_boolean();
+
         default:
             throw AppError::makeInvalidParameters(std::format("Unsupported type for parameter '{}'.", key));
     }
@@ -91,7 +91,7 @@ std::string valueToString(const Settings::Value& val) {
 
 } // namespace
 
-Settings::Value convertJsonToEngineSetting(const std::string& key, const JsonValue& jsonVal) {
+Settings::Value convertJsonToEngineSetting(const std::string& key, const Json::JsonValue& jsonVal) {
     // 1. Check strict schema definitions
     static const auto engineKeys = Settings::getEngineKeys();
     auto it = engineKeys.find(key);
@@ -102,14 +102,14 @@ Settings::Value convertJsonToEngineSetting(const std::string& key, const JsonVal
 
     // 2. Handle dynamic options (e.g., option_Hash=128)
     if (key.starts_with("option_") || key.starts_with("option.")) {
-         if (jsonVal.isString()) {
-             return jsonVal.asString();
+         if (jsonVal.is_string()) {
+             return jsonVal.as_string();
          }
-         if (jsonVal.isBool()) {
-             return jsonVal.asBool() ? std::string("true") : std::string("false");
+         if (jsonVal.is_boolean()) {
+             return jsonVal.as_boolean() ? std::string("true") : std::string("false");
          }
-         if (jsonVal.isNumber()) {
-             double d = jsonVal.asDouble();
+         if (jsonVal.is_number()) {
+             double d = jsonVal.as_number();
              if (std::floor(d) == d) {
                  return std::to_string(static_cast<long long>(d));
              }
@@ -117,14 +117,14 @@ Settings::Value convertJsonToEngineSetting(const std::string& key, const JsonVal
          }
          throw AppError::makeInvalidParameters(std::format("Parameter '{}' has invalid value type.", key));
     }
-    
+
     // 3. Unknown key
     throw AppError::makeInvalidParameters(std::format("Unknown engine parameter: '{}'. Please check the parameter name.", key));
 }
 
-std::string validateAndToString(const std::string& key, const JsonValue& jsonVal) {
+std::string validateAndToString(const std::string& key, const Json::JsonValue& jsonVal) {
     auto& manager = Settings::Manager::instance();
-    
+
     // Check global definitions first
     const auto& globalDefs = manager.getDefinitions();
     if (auto it = globalDefs.find(key); it != globalDefs.end()) {
@@ -137,7 +137,7 @@ std::string validateAndToString(const std::string& key, const JsonValue& jsonVal
         // e.g. "sprt_alpha" -> group "sprt", key "alpha"
         const std::string groupName = key.substr(0, underscorePos);
         const std::string paramName = key.substr(underscorePos + 1);
-        
+
         const auto& groupDefs = manager.getGroupDefinitions();
         if (auto gIt = groupDefs.find(groupName); gIt != groupDefs.end()) {
             if (auto pIt = gIt->second.keys.find(paramName); pIt != gIt->second.keys.end()) {
@@ -146,16 +146,16 @@ std::string validateAndToString(const std::string& key, const JsonValue& jsonVal
             }
         }
     }
-    
+
     // Fallback for non-strict or unknown params (like tool specific args)
-    if (jsonVal.isString()) {
-        return jsonVal.asString();
+    if (jsonVal.is_string()) {
+        return jsonVal.as_string();
     }
-    if (jsonVal.isBool()) {
-        return jsonVal.asBool() ? "true" : "false";
+    if (jsonVal.is_boolean()) {
+        return jsonVal.as_boolean() ? "true" : "false";
     }
-    if (jsonVal.isNumber()) {
-        double d = jsonVal.asDouble();
+    if (jsonVal.is_number()) {
+        double d = jsonVal.as_number();
         if (std::floor(d) == d) {
             return std::to_string(static_cast<long long>(d));
         }

@@ -36,7 +36,6 @@
 #include "../game-manager/game-state.h"
 #include "../perft/perft.h"
 #include "../base-elements/logger.h"
-#include "../base-elements/json-helper.h"
 #include "../base-elements/oss-tools.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/table-format.h"
@@ -50,107 +49,86 @@ namespace QaplaTester {
 
 namespace {
 
-[[nodiscard]] Mcp::JsonValue makeEmptyObject() {
-    return Mcp::JsonHelper::makeObject({});
-}
-
-[[nodiscard]] Mcp::JsonValue parseJsonText(const std::string& serializedJson) {
-    std::string_view jsonView = serializedJson;
-    try {
-        return Mcp::JsonHelper::parse(jsonView);
-    } catch (...) {
-        return makeEmptyObject();
-    }
-}
-
-[[nodiscard]] Mcp::JsonValue createSprtStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createSprtStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::Sprt || !app.getSprtManager()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
     const auto result = app.getSprtManager()->computeSprt();
     const auto duel = app.getSprtManager()->getDuelResult();
-    Mcp::JsonValue::Object statusObject;
-    statusObject["llr"] = Mcp::JsonHelper::makeNumber(result.llr);
-    statusObject["lower_bound"] = Mcp::JsonHelper::makeNumber(result.lowerBound);
-    statusObject["upper_bound"] = Mcp::JsonHelper::makeNumber(result.upperBound);
-    statusObject["elo_h0"] = Mcp::JsonHelper::makeNumber(result.eloH0);
-    statusObject["elo_h1"] = Mcp::JsonHelper::makeNumber(result.eloH1);
-    statusObject["games"] = Mcp::JsonHelper::makeNumber(static_cast<double>(duel.total()));
-    statusObject["win_rate_percent"] = Mcp::JsonHelper::makeNumber(duel.engineARate() * 100.0);
-    statusObject["wins"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.winsA));
-    statusObject["losses"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.winsB));
-    statusObject["draws"] = Mcp::JsonHelper::makeNumber(static_cast<double>(result.draws));
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["llr"] = result.llr;
+    status["lower_bound"] = result.lowerBound;
+    status["upper_bound"] = result.upperBound;
+    status["elo_h0"] = result.eloH0;
+    status["elo_h1"] = result.eloH1;
+    status["games"] = static_cast<double>(duel.total());
+    status["win_rate_percent"] = duel.engineARate() * 100.0;
+    status["wins"] = static_cast<double>(result.winsA);
+    status["losses"] = static_cast<double>(result.winsB);
+    status["draws"] = static_cast<double>(result.draws);
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createTournamentStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createTournamentStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::Tournament || !app.getTournament()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
-    Mcp::JsonValue::Object statusObject;
-    const auto ratingJson = TableFormat::toJson("ratingTable", app.getTournament()->getRatingStatusTable());
-    const auto outcomeJson = TableFormat::toJson("outcome", app.getTournament()->getOutcomeStatusTable());
-    statusObject["rating"] = parseJsonText(ratingJson);
-    statusObject["outcome"] = parseJsonText(outcomeJson);
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["rating"] = TableFormat::toJsonValue("ratingTable", app.getTournament()->getRatingStatusTable());
+    status["outcome"] = TableFormat::toJsonValue("outcome", app.getTournament()->getOutcomeStatusTable());
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createEpdStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createEpdStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::Epd || !app.getEpdManager()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
-    Mcp::JsonValue::Object statusObject;
     const auto statusResult = app.getEpdManager()->getStatusResult();
-    const auto resultsJson = TableFormat::toJson("epdStatus", statusResult.statusTable);
-    statusObject["results"] = parseJsonText(resultsJson);
-
-    statusObject["total_nodes"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.totalNodes));
-    statusObject["solved"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.solvedCount));
-    statusObject["total"] = Mcp::JsonHelper::makeNumber(static_cast<double>(statusResult.totalCount));
-    statusObject["hit_rate_percent"] = Mcp::JsonHelper::makeNumber(statusResult.hitRatePercent);
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["results"] = TableFormat::toJsonValue("epdStatus", statusResult.statusTable);
+    status["total_nodes"] = static_cast<double>(statusResult.totalNodes);
+    status["solved"] = static_cast<double>(statusResult.solvedCount);
+    status["total"] = static_cast<double>(statusResult.totalCount);
+    status["hit_rate_percent"] = statusResult.hitRatePercent;
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createSpsaStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createSpsaStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::Spsa || !app.getSPSAOptimizer()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
-    Mcp::JsonValue::Object statusObject;
-    const auto parametersJson = TableFormat::toJson("spsaStatus", app.getSPSAOptimizer()->getStatusTable());
-    statusObject["parameters"] = parseJsonText(parametersJson);
-    statusObject["completed_iterations"] = Mcp::JsonHelper::makeNumber(
-        static_cast<double>(app.getSPSAOptimizer()->getCompletedIterations()));
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["parameters"] = TableFormat::toJsonValue("spsaStatus", app.getSPSAOptimizer()->getStatusTable());
+    status["completed_iterations"] = static_cast<double>(app.getSPSAOptimizer()->getCompletedIterations());
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createClopStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createClopStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::Clop || !app.getCLOPOptimizer()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
-    Mcp::JsonValue::Object statusObject;
-    const auto parametersJson = TableFormat::toJson("clopStatus", app.getCLOPOptimizer()->getStatusTable());
-    statusObject["parameters"] = parseJsonText(parametersJson);
-    statusObject["completed_samples"] = Mcp::JsonHelper::makeNumber(
-        static_cast<double>(app.getCLOPOptimizer()->getCompletedSamples()));
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["parameters"] = TableFormat::toJsonValue("clopStatus", app.getCLOPOptimizer()->getStatusTable());
+    status["completed_samples"] = static_cast<double>(app.getCLOPOptimizer()->getCompletedSamples());
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createSystemTestStatus(const AppRunner& app, Cli::TaskType currentTask) {
+[[nodiscard]] Json::JsonValue createSystemTestStatus(const AppRunner& app, Cli::TaskType currentTask) {
     if (currentTask != Cli::TaskType::SystemTest || !app.getSystemTestManager()) {
-        return makeEmptyObject();
+        return Json::JsonValue::object();
     }
 
-    Mcp::JsonValue::Object statusObject;
-    statusObject["finished"] = Mcp::JsonHelper::makeBool(app.getSystemTestManager()->isFinished());
-    return Mcp::JsonHelper::makeObject(std::move(statusObject));
+    auto status = Json::JsonValue::object();
+    status["finished"] = app.getSystemTestManager()->isFinished();
+    return status;
 }
 
-[[nodiscard]] Mcp::JsonValue createTaskStatusFor(const AppRunner& app, Cli::TaskType taskType) {
+[[nodiscard]] Json::JsonValue createTaskStatusFor(const AppRunner& app, Cli::TaskType taskType) {
     switch (taskType) {
         case Cli::TaskType::Sprt:
             return createSprtStatus(app, Cli::TaskType::Sprt);
@@ -165,7 +143,7 @@ namespace {
         case Cli::TaskType::SystemTest:
             return createSystemTestStatus(app, Cli::TaskType::SystemTest);
         default:
-            return makeEmptyObject();
+            return Json::JsonValue::object();
     }
 }
 
@@ -721,27 +699,27 @@ std::string AppRunner::getRunningGameCount() {
     return std::format("Running games: {}", GameManagerPool::getInstance().runningGameCount());
 }
 
-std::string AppRunner::getStatus() {
+Json::JsonValue AppRunner::getStatus() {
     auto& app = AppRunner::instance();
     const auto currentTask = app.currentTask_.load();
     const auto runningGames = GameManagerPool::getInstance().runningGameCount();
 
-    Mcp::JsonValue::Object rootObject;
-    rootObject["running_games"] = Mcp::JsonHelper::makeNumber(static_cast<double>(runningGames));
-    rootObject["current_task"] = Mcp::JsonHelper::makeString(Cli::getTaskId(currentTask));
-    rootObject["sprt"] = createTaskStatusFor(app, Cli::TaskType::Sprt);
-    rootObject["tournament"] = createTaskStatusFor(app, Cli::TaskType::Tournament);
-    rootObject["epd"] = createTaskStatusFor(app, Cli::TaskType::Epd);
-    rootObject["spsa"] = createTaskStatusFor(app, Cli::TaskType::Spsa);
-    rootObject["clop"] = createTaskStatusFor(app, Cli::TaskType::Clop);
-    rootObject["systemtest"] = createTaskStatusFor(app, Cli::TaskType::SystemTest);
+    auto root = Json::JsonValue::object();
+    root["running_games"] = static_cast<double>(runningGames);
+    root["current_task"] = Cli::getTaskId(currentTask);
+    root["sprt"] = createTaskStatusFor(app, Cli::TaskType::Sprt);
+    root["tournament"] = createTaskStatusFor(app, Cli::TaskType::Tournament);
+    root["epd"] = createTaskStatusFor(app, Cli::TaskType::Epd);
+    root["spsa"] = createTaskStatusFor(app, Cli::TaskType::Spsa);
+    root["clop"] = createTaskStatusFor(app, Cli::TaskType::Clop);
+    root["systemtest"] = createTaskStatusFor(app, Cli::TaskType::SystemTest);
 
-    return Mcp::JsonHelper::serialize(Mcp::JsonHelper::makeObject(std::move(rootObject)));
+    return root;
 }
 
-std::string AppRunner::getTaskStatusJson(Cli::TaskType taskType) {
+Json::JsonValue AppRunner::getTaskStatus(Cli::TaskType taskType) {
     const auto& app = AppRunner::instance();
-    return Mcp::JsonHelper::serialize(createTaskStatusFor(app, taskType));
+    return createTaskStatusFor(app, taskType);
 }
 
 AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask) {

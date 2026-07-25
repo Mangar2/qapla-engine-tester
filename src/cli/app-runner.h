@@ -20,6 +20,7 @@
 #pragma once
 
 #include "../base-elements/app-error.h"
+#include "../base-elements/qapla-json.h"
 #include "settings-manager.h"
 #include "task-types.h"
 
@@ -151,13 +152,13 @@ public:
     /**
      * @brief Returns the status of the runner including current task details.
      */
-    static std::string getStatus();
+    static Json::JsonValue getStatus();
 
     /**
-     * @brief Returns the status payload for one task as serialized JSON object.
+     * @brief Returns the status payload for one task as a JSON value.
      * @param taskType The task to query.
      */
-    static std::string getTaskStatusJson(Cli::TaskType taskType);
+    static Json::JsonValue getTaskStatus(Cli::TaskType taskType);
 
     [[nodiscard]] std::shared_ptr<Tournament> getTournament() const { return tournament_; }
     [[nodiscard]] std::shared_ptr<EpdManager> getEpdManager() const { return epdManager_; }

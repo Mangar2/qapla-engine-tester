@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -560,52 +561,54 @@ void TournamentResult::printSummary(std::ostream &os) const
     os << "\n" << std::flush;
 }
 
-std::string TournamentResult::getRatingTableJson(int averageElo) {
+Json::JsonValue TournamentResult::getRatingTable(int averageElo) {
     std::vector<Scored> list = computeAllElos(averageElo);
-    std::string json = R"({"type":"ratingTable","data":[)";
-    bool first = true;
+
+    auto root = Json::JsonValue::object();
+    root["type"] = "ratingTable";
+    auto& data = root["data"] = Json::JsonValue::array();
+
     int rank = 1;
     for (const auto& entry : list) {
-        if (!first) {
-            json += ",";
-        }
-        first = false;
         const auto& r = entry.result.aggregate(entry.engineName);
         const int total = r.total();
-        double drawPct = total > 0 ? 100.0 * r.draws / total : 0.0;
-        double scorePct = 100.0 * entry.score;
+        const double drawPct = total > 0 ? 100.0 * r.draws / total : 0.0;
+        const double scorePct = 100.0 * entry.score;
 
-        json += std::format(
-            R"({{"rank":{},"name":"{}","elo":{:.1f},"error":{},"games":{},"score":{:.2f},"drawPct":{:.1f}}})",
-            rank++, entry.engineName, entry.elo, entry.error, total, scorePct, drawPct
-        );
+        auto& row = data[data.size()];
+        row["rank"] = static_cast<double>(rank++);
+        row["name"] = entry.engineName;
+        row["elo"] = std::round(entry.elo * 10.0) / 10.0;
+        row["error"] = static_cast<double>(entry.error);
+        row["games"] = static_cast<double>(total);
+        row["score"] = std::round(scorePct * 100.0) / 100.0;
+        row["drawPct"] = std::round(drawPct * 10.0) / 10.0;
     }
-    json += R"(]})";
-    return json;
+
+    return root;
 }
 
-std::string TournamentResult::getOutcomeJson() const {
-    std::string json = R"({"type":"outcome","data":[)";
-    bool first = true;
+Json::JsonValue TournamentResult::getOutcome() const {
+    auto root = Json::JsonValue::object();
+    root["type"] = "outcome";
+    auto& data = root["data"] = Json::JsonValue::array();
+
     for (const auto& name : engineNames()) {
         auto optResult = forEngine(name);
         if (!optResult) {
             continue;
         }
 
-        if (!first) {
-            json += ",";
-        }
-        first = false;
-
         const auto& agg = optResult->aggregate(name);
-        json += std::format(
-            R"({{"name":"{}","wins":{},"losses":{},"draws":{},"total":{}}})",
-            name, agg.winsEngineA, agg.winsEngineB, agg.draws, agg.total()
-        );
+        auto& row = data[data.size()];
+        row["name"] = name;
+        row["wins"] = static_cast<double>(agg.winsEngineA);
+        row["losses"] = static_cast<double>(agg.winsEngineB);
+        row["draws"] = static_cast<double>(agg.draws);
+        row["total"] = static_cast<double>(agg.total());
     }
-    json += R"(]})";
-    return json;
+
+    return root;
 }
 
 } // namespace QaplaTester

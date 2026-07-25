@@ -42,10 +42,10 @@ namespace {
         }, *value);
     }
 
-    JsonValue::Object createProperty(const std::string& type, const std::string& description, const std::string& defaultValStr = "") {
-        JsonValue::Object prop;
-        prop["type"] = JsonValue{ .data = type };
-        
+    Json::JsonValue createProperty(const std::string& type, const std::string& description, const std::string& defaultValStr = "") {
+        auto prop = Json::JsonValue::object();
+        prop["type"] = type;
+
         std::string fullDesc = description;
         if (!defaultValStr.empty()) {
             if (!fullDesc.empty() && fullDesc.back() != ' ') {
@@ -53,7 +53,7 @@ namespace {
             }
             fullDesc += defaultValStr;
         }
-        prop["description"] = JsonValue{ .data = fullDesc };
+        prop["description"] = fullDesc;
         return prop;
     }
 
@@ -68,13 +68,13 @@ namespace {
     }
 }
 
-JsonValue::Object McpSchemaBuilder::createInputSchema(const ToolInfo& info, const std::string& registeredNames) {
-    JsonValue::Object inputSchema;
-    inputSchema["type"] = JsonValue{ .data = std::string("object") };
-    
-    JsonValue::Object properties;
-    JsonValue::Array required;
-    
+Json::JsonValue McpSchemaBuilder::createInputSchema(const ToolInfo& info, const std::string& registeredNames) {
+    auto inputSchema = Json::JsonValue::object();
+    inputSchema["type"] = "object";
+
+    auto& properties = inputSchema["properties"] = Json::JsonValue::object();
+    auto required = Json::JsonValue::array();
+
     if (info.name == "read_report") {
         addReadReportSchema(properties, required);
     } else if (info.name == "control") {
@@ -86,15 +86,14 @@ JsonValue::Object McpSchemaBuilder::createInputSchema(const ToolInfo& info, cons
     } else {
         addStandardTaskSchema(info, properties, required, registeredNames);
     }
-    
-    inputSchema["properties"] = JsonValue{ .data = properties };
-    if (!required.empty()) {
-        inputSchema["required"] = JsonValue{ .data = required };
+
+    if (required.size() > 0) {
+        inputSchema["required"] = std::move(required);
     }
     return inputSchema;
 }
 
-void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, JsonValue::Object& properties) {
+void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, Json::JsonValue& properties) {
     const auto& groupDefs = Settings::Manager::instance().getGroupDefinitions();
     const auto it = groupDefs.find(std::string(groupName));
     if (it == groupDefs.end()) {
@@ -108,44 +107,34 @@ void McpSchemaBuilder::addParametersFromGroup(std::string_view groupName, JsonVa
     }
 }
 
-void McpSchemaBuilder::addReadReportSchema(JsonValue::Object& properties, JsonValue::Array& required) {
-    properties["uri"] = JsonValue{ .data = createProperty("string", "The URI or filename of the report to read (e.g. qapla://reports/sprt/report.log)") };
-    required.push_back(JsonValue{ .data = std::string("uri") });
+void McpSchemaBuilder::addReadReportSchema(Json::JsonValue& properties, Json::JsonValue& required) {
+    properties["uri"] = createProperty("string", "The URI or filename of the report to read (e.g. qapla://reports/sprt/report.log)");
+    required.push_back("uri");
 }
 
-void McpSchemaBuilder::addControlSchema(JsonValue::Object& properties, JsonValue::Array& required) {
-    JsonValue::Object command = createProperty("string", "The operation to perform.");
-    command["enum"] = JsonValue{ .data = JsonValue::Array{ 
-        JsonValue{ .data = std::string("status") }, 
-        JsonValue{ .data = std::string("set_concurrency") }, 
-        JsonValue{ .data = std::string("stop") }, 
-        JsonValue{ .data = std::string("stop_nice") },
-        JsonValue{ .data = std::string("cancel_job") },
-        JsonValue{ .data = std::string("clear_queue") },
-        JsonValue{ .data = std::string("list_results") },
-        JsonValue{ .data = std::string("clear_results") }
-    } };
-    properties["command"] = JsonValue{ .data = command };
-    properties["value"] = JsonValue{ .data = createProperty("integer", "Value for the command (e.g. concurrency level).") };
-    properties["job_id"] = JsonValue{ .data = createProperty("string", "Job id for queue control commands like cancel_job.") };
-    required.push_back(JsonValue{ .data = std::string("command") });
+void McpSchemaBuilder::addControlSchema(Json::JsonValue& properties, Json::JsonValue& required) {
+    auto command = createProperty("string", "The operation to perform.");
+    auto& commandEnum = command["enum"] = Json::JsonValue::array();
+    for (const char* option : {"status", "set_concurrency", "stop", "stop_nice",
+                               "cancel_job", "clear_queue", "list_results", "clear_results"}) {
+        commandEnum.push_back(option);
+    }
+    properties["command"] = std::move(command);
+    properties["value"] = createProperty("integer", "Value for the command (e.g. concurrency level).");
+    properties["job_id"] = createProperty("string", "Job id for queue control commands like cancel_job.");
+    required.push_back("command");
 }
 
-void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames) {
-    JsonValue::Object command = createProperty("string", "The operation to perform on engines.");
-    command["enum"] = JsonValue{ .data = JsonValue::Array{ 
-        JsonValue{ .data = std::string("list") }, 
-        JsonValue{ .data = std::string("details") }, 
-        JsonValue{ .data = std::string("add") }, 
-        JsonValue{ .data = std::string("copy") }, 
-        JsonValue{ .data = std::string("update") }, 
-        JsonValue{ .data = std::string("delete") }, 
-        JsonValue{ .data = std::string("update_all") } 
-    } };
-    properties["command"] = JsonValue{ .data = command };
-    required.push_back(JsonValue{ .data = std::string("command") });
+void McpSchemaBuilder::addManageEnginesSchema(Json::JsonValue& properties, Json::JsonValue& required, const std::string& registeredNames) {
+    auto command = createProperty("string", "The operation to perform on engines.");
+    auto& commandEnum = command["enum"] = Json::JsonValue::array();
+    for (const char* option : {"list", "details", "add", "copy", "update", "delete", "update_all"}) {
+        commandEnum.push_back(option);
+    }
+    properties["command"] = std::move(command);
+    required.push_back("command");
 
-    properties["engine_name"] = JsonValue{ .data = createProperty("string", std::format("Primary engine name (Available: {})", registeredNames)) };
+    properties["engine_name"] = createProperty("string", std::format("Primary engine name (Available: {})", registeredNames));
 
     // Manually add engine parameters with engine_ prefix since the "engine" group is not unique
     const auto allEngineKeys = Settings::getEngineKeys();
@@ -154,50 +143,50 @@ void McpSchemaBuilder::addManageEnginesSchema(JsonValue::Object& properties, Jso
             key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
-        
+
         std::string desc = def.longDescription.empty() ? def.description : def.longDescription;
-        properties[std::format("engine_{}", key)] = JsonValue{ .data = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue)) };
+        properties[std::format("engine_{}", key)] = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue));
     }
 
-    properties["engine_copyName"] = JsonValue{ .data = createProperty("string", 
+    properties["engine_copyName"] = createProperty("string",
         "Target name when copying an engine. When using 'copy', you can concurrently specify any other engine parameter "
-        "(e.g. engine_tc, engine_option_Hash, etc.) to immediately override these settings in the new copy. Do not copy and then update, this is unnecessary.") };
-    properties["engine_option_name"] = JsonValue{ .data = createProperty("string", 
+        "(e.g. engine_tc, engine_option_Hash, etc.) to immediately override these settings in the new copy. Do not copy and then update, this is unnecessary.");
+    properties["engine_option_name"] = createProperty("string",
         "Set one or more UCI options. You can pass multiple arguments matching "
         "the pattern 'engine_option_<Name>' in a single call to update several options simultaneously. "
         "Syntax: engine_option_<OptionName>=<Value>. Example: engine_option_Hash=128."
-        "Use the 'details' command to list available options for a specific engine.") };
+        "Use the 'details' command to list available options for a specific engine.");
 }
 
-void McpSchemaBuilder::addNonTaskSchema(const ToolInfo& info, JsonValue::Object& properties) {
+void McpSchemaBuilder::addNonTaskSchema(const ToolInfo& info, Json::JsonValue& properties) {
     for (const auto& group : info.groups) {
         addParametersFromGroup(group, properties);
     }
 }
 
-void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Object& properties, JsonValue::Array& required, const std::string& registeredNames) {
-    properties["engines"] = JsonValue{ .data = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames)) };
-    required.push_back(JsonValue{ .data = std::string("engines") });
+void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, Json::JsonValue& properties, Json::JsonValue& required, const std::string& registeredNames) {
+    properties["engines"] = createProperty("string", std::format("Comma separated list of engine names from the registry (Available: {}).", registeredNames));
+    required.push_back("engines");
 
     if (info.name == "sprt" || info.name == "tournament" || info.name == "epd" ||
         info.name == "spsa" || info.name == "clop" || info.name == "test") {
-        properties["job_intent"] = JsonValue{ .data = createProperty(
+        properties["job_intent"] = createProperty(
             "string",
-            "Short and precise purpose of this queued job. Include key specifics like tested parameter/value and expected comparison goal.") };
-        required.push_back(JsonValue{ .data = std::string("job_intent") });
+            "Short and precise purpose of this queued job. Include key specifics like tested parameter/value and expected comparison goal.");
+        required.push_back("job_intent");
     }
 
     addGlobalParameterSchema("concurrency", properties);
     addGlobalParameterSchema("rapid", properties);
 
-    properties["mcp_background"] = JsonValue{ .data = createProperty("boolean", "If true, starts the task in background and returns immediately. Use 'control' tool to monitor.") };
+    properties["mcp_background"] = createProperty("boolean", "If true, starts the task in background and returns immediately. Use 'control' tool to monitor.");
 
     if (info.name == "sprt" || info.name == "tournament") {
-         properties["resume"] = JsonValue{ .data = createProperty("boolean", "If true, resumes sending results to the last used file. If false (default), creates a new timestamped file.") };
+         properties["resume"] = createProperty("boolean", "If true, resumes sending results to the last used file. If false (default), creates a new timestamped file.");
     }
 
     if (info.name == "sprt" || info.name == "tournament" || info.name == "spsa" || info.name == "clop") {
-        properties["engine_tc"] = JsonValue{ .data = createProperty("string", "Set the time control (engine_tc) for all participating engines. This also updates the engine configuration until the service is restarted.") };
+        properties["engine_tc"] = createProperty("string", "Set the time control (engine_tc) for all participating engines. This also updates the engine configuration until the service is restarted.");
     }
 
     for (const auto& group : info.groups) {
@@ -205,38 +194,30 @@ void McpSchemaBuilder::addStandardTaskSchema(const ToolInfo& info, JsonValue::Ob
     }
 }
 
-void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties) {
-    JsonValue::Object arrayProp;
-    arrayProp["type"] = JsonValue{ .data = std::string("array") };
-    
-    JsonValue::Object items;
-    items["type"] = JsonValue{ .data = std::string("object") };
-    
-    JsonValue::Object itemProperties;
-    JsonValue::Array itemRequired;
-    
+void McpSchemaBuilder::addArrayGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, Json::JsonValue& properties) {
+    auto arrayProp = Json::JsonValue::object();
+    arrayProp["type"] = "array";
+
+    auto items = Json::JsonValue::object();
+    items["type"] = "object";
+
+    auto& itemProperties = items["properties"] = Json::JsonValue::object();
     for (const auto& [key, keyDef] : def.keys) {
         if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
-        
-        std::string desc = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription;
-        itemProperties[key] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
-    }
-    
-    items["properties"] = JsonValue{ .data = itemProperties };
-    if (!itemRequired.empty()) {
-        items["required"] = JsonValue{ .data = itemRequired };
-    }
-    arrayProp["items"] = JsonValue{ .data = items };
 
-    std::string groupDesc = def.longDescription.empty() ? def.description : def.longDescription;
-    arrayProp["description"] = JsonValue{ .data = groupDesc };
-    
-    properties[groupName] = JsonValue{ .data = arrayProp };
+        std::string desc = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription;
+        itemProperties[key] = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue));
+    }
+
+    arrayProp["items"] = std::move(items);
+    arrayProp["description"] = def.longDescription.empty() ? def.description : def.longDescription;
+
+    properties[groupName] = std::move(arrayProp);
 }
 
-void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, JsonValue::Object& properties) {
+void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const Settings::GroupDefinition& def, Json::JsonValue& properties) {
     for (const auto& [key, keyDef] : def.keys) {
         if (key == "file" && (groupName == "sprt" || groupName == "tournament")) {
             continue;
@@ -249,24 +230,24 @@ void McpSchemaBuilder::addSingleGroupSchema(const std::string& groupName, const 
         if (keyDef.isHidden || key == "id" || key.find('[') != std::string::npos || key.find(']') != std::string::npos) {
             continue;
         }
-        
+
         std::string paramName = std::format("{}_{}", groupName, key);
         std::string desc = keyDef.longDescription.empty() ? keyDef.description : keyDef.longDescription;
-        
-        properties[paramName] = JsonValue{ .data = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue)) };
+
+        properties[paramName] = createProperty(getJsonType(keyDef.type), desc, formatDefaultValue(keyDef.defaultValue));
     }
 }
 
-void McpSchemaBuilder::addGlobalParameterSchema(const std::string& key, JsonValue::Object& properties) {
+void McpSchemaBuilder::addGlobalParameterSchema(const std::string& key, Json::JsonValue& properties) {
     const auto& globalDefs = Settings::Manager::instance().getDefinitions();
     const auto it = globalDefs.find(key);
     if (it == globalDefs.end()) {
         return;
     }
     const auto& def = it->second;
-    
+
     std::string desc = def.longDescription.empty() ? def.description : def.longDescription;
-    
+
     if (key == "concurrency") {
         const int cores = QaplaHelpers::getPhysicalCoreCount();
         if (cores > 0) {
@@ -274,7 +255,7 @@ void McpSchemaBuilder::addGlobalParameterSchema(const std::string& key, JsonValu
         }
     }
 
-    properties[key] = JsonValue{ .data = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue)) };
+    properties[key] = createProperty(getJsonType(def.type), desc, formatDefaultValue(def.defaultValue));
 }
 
 } // namespace QaplaTester::Mcp
