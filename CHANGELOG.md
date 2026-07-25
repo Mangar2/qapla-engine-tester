@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **JSON handling migrated to `src/json` (`mqtt::json::JsonValue`)**: replaces the
+  old `Mcp::JsonHelper`/`Mcp::JsonValue` (hand-written parser/serializer) across
+  table-format, base-logger, tournament-result, engine-capability, app-runner, and
+  the full MCP layer (converter, schema-builder, job-scheduler, background-tools,
+  engine-tool, message-channel, server).
+  - **String escaping fixed**: previously only `\"`, `\\`, `\n` were escaped;
+    control characters, `\t`, `\r`, and other required escapes are now handled
+    correctly. Rating-table/outcome JSON and MCP payloads containing such
+    characters (e.g. an engine name with `"` or `\`) are now valid JSON where
+    they previously were not.
+  - **Persisted engine-capability cache is now compact**: `option.*` lines
+    written to the capability INI cache no longer contain spaces after `:`/`,`.
+    Lines written by older builds (with spaces) still parse correctly.
+  - **Internal interfaces are tree-typed**: `AppRunner`, `TournamentResult`,
+    `TableFormat`, `JobScheduler`, and the MCP tool handlers now pass
+    `JsonValue` trees instead of pre-serialized JSON strings; `stringify()`/
+    `parse()` happen once each, at the real boundary (MCP stdio, persisted
+    capability line).
+  - **Stricter parsing at input boundaries**: malformed or empty JSON at the
+    MCP stdin boundary is rejected (mapped to a JSON-RPC parse error) instead
+    of silently returning null.
+
 ## [0.5.0] - 2026-04-03
 
 ### Added
