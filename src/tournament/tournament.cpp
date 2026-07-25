@@ -124,14 +124,26 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     changeTracker_.trackModification();
 }
 
-void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
-    const TournamentConfig& config) {
-    std::vector<EngineConfig> gauntlets;
-    std::vector<EngineConfig> opponents;
+void Tournament::partitionGauntletEngines(const std::vector<EngineConfig>& engines,
+    std::vector<EngineConfig>& gauntlets, std::vector<EngineConfig>& opponents) {
+    gauntlets.clear();
+    opponents.clear();
 
     for (const auto& e : engines) {
         (e.isGauntlet() ? gauntlets : opponents).push_back(e);
     }
+
+    if (gauntlets.empty() && !opponents.empty()) {
+        gauntlets.push_back(opponents.front());
+        opponents.erase(opponents.begin());
+    }
+}
+
+void Tournament::createGauntletPairings(const std::vector<EngineConfig>& engines,
+    const TournamentConfig& config) {
+    std::vector<EngineConfig> gauntlets;
+    std::vector<EngineConfig> opponents;
+    partitionGauntletEngines(engines, gauntlets, opponents);
 
     if (gauntlets.empty() || opponents.empty()) {
         throw AppError::make(
@@ -346,10 +358,6 @@ uint32_t Tournament::calculateTotalGames(const std::vector<EngineConfig>& engine
     // Separate gauntlets from opponents
     std::vector<EngineConfig> gauntlets;
     std::vector<EngineConfig> opponents;
-    
-    for (const auto& e : engines) {
-        (e.isGauntlet() ? gauntlets : opponents).push_back(e);
-    }
 
     // Determine tournament type and player/opponent counts
     size_t playerCount = 0;
@@ -357,8 +365,9 @@ uint32_t Tournament::calculateTotalGames(const std::vector<EngineConfig>& engine
     bool isSymmetric = false;
 
     if (config.type == "gauntlet") {
+        partitionGauntletEngines(engines, gauntlets, opponents);
         if (gauntlets.empty() || opponents.empty()) {
-            return 0; // Invalid gauntlet configuration
+            return 0; // Invalid gauntlet configuration (fewer than 2 engines)
         }
         playerCount = gauntlets.size();
         opponentCount = opponents.size();

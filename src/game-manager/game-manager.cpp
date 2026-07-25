@@ -748,6 +748,13 @@ void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     if (!managerState_.compare_exchange_strong(expected, ManagerState::FetchNextTask)) {
         return; // Already running
     }
+    {
+        // The manager was NotRunning, so every event still queued belongs to a previous
+        // run (e.g. a StopRunning enqueued by stop() on an already stopped manager).
+        // Processing it after the state switch above would tear down this fresh start.
+        std::scoped_lock lock(queueMutex_);
+        eventQueue_ = {};
+    }
     initializeFinishedFuture();
     // We do not need a lock for taskProvider_ because compare_exchange ensures 
     // only one thread proceeds past this point and managerState (NotRunning) transition 

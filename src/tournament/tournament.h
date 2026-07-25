@@ -214,6 +214,21 @@ private:
     void onGameFinished(PairTournament* sender);
     void checkAutoSave();
 
+    /**
+     * @brief Splits engines into the gauntlet group and the opponent group.
+     * @details If no engine is marked as gauntlet, the first engine (in the
+     *          given order) is used as the gauntlet engine instead of
+     *          rejecting the tournament -- this matches the documented CLI
+     *          behavior ("Challenger: Engine with 'gauntlet=true', or first
+     *          engine if no gauntlet flag") and the equivalent SPRT fallback
+     *          in SprtManager::createTournament.
+     * @param engines All participating engines, in selection order.
+     * @param gauntlets Output: the gauntlet engine(s).
+     * @param opponents Output: the remaining (opponent) engines.
+     */
+    static void partitionGauntletEngines(const std::vector<EngineConfig>& engines,
+        std::vector<EngineConfig>& gauntlets, std::vector<EngineConfig>& opponents);
+
     void createGauntletPairings(const std::vector<EngineConfig>& engines,
         const TournamentConfig& config);
 
