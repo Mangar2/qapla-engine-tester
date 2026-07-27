@@ -19,11 +19,6 @@
 
 #include "epd-reader.h"
 
-#include "../game-manager/game-state.h"
-
-#include "../qapla-engine/fenscanner.h"
-#include "../qapla-engine/movegenerator.h"
-
 #include <array>
 #include <sstream>
 #include <stdexcept>
@@ -175,13 +170,15 @@ EpdEntry EpdReader::parseEpdLine(const std::string& line) {
     input.startPos = 0;
     input.maxSearchLength = 10;
 
-    auto fenResult = parseFen(input);
+    auto fenResult = QaplaTester::parseFen(input);
     if (!fenResult.gameRecord) {
         return result;
     }
 
     result.fen = fenResult.gameRecord->getStartFen();
-    
+    result.whiteToMove = fenResult.gameRecord->isWhiteToMove();
+    result.startHalfmoves = fenResult.gameRecord->halfmoveNoAtPly(0) - 1;
+
     // Check for move list before operations
     auto posAfterMoves = parseMoveList(line, fenResult.nextPos, result);
     parseOperations(line, posAfterMoves, result);
@@ -190,48 +187,7 @@ EpdEntry EpdReader::parseEpdLine(const std::string& line) {
 }
 
 FenParserResult EpdReader::parseFen(const FenParserInput& input) {
-    FenParserResult result;
-    result.nextPos = input.startPos;
-
-    // skip blanks at the beginning
-    size_t startPos = input.fenString.find_first_not_of(' ', input.startPos);
-    if (startPos == std::string::npos) {
-        return result;
-    }
-
-    size_t searchLength = std::min(input.fenString.length(), input.maxSearchLength + startPos);
-    
-    for (; startPos < searchLength; ++startPos) {
-        
-        QaplaInterface::FenScanner scanner;
-        QaplaMoveGenerator::MoveGenerator position;
-        try {
-            result.nextPos = scanner.setBoard(input.fenString, position, startPos);
-            if (result.nextPos == 0) {
-                continue;
-            }
-            std::string fen = input.fenString.substr(startPos, result.nextPos - startPos);
-            GameState gameState;
-            gameState.setFen(false, fen);
-            
-            result.gameRecord = GameRecord();
-            result.gameRecord->setStartPosition(
-                false,                              // Not standard start position
-                fen,                                // FEN string
-                gameState.isWhiteToMove(),          // Who to move
-                gameState.getStartHalfmoves()       // Half-move clock
-            );
-            return result;
-        } catch (...) {
-            // Continue searching if GameState creation fails
-            continue;
-        }
-    }
-    if (!result.gameRecord) {
-        result.error = 1; 
-    }
-
-    return result;
+    return QaplaTester::parseFen(input);
 }
 
 bool EpdReader::isMoveNumber(const std::string& opcode) {

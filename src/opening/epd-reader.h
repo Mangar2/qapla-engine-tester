@@ -20,6 +20,7 @@
 #pragma once
 
 #include "../chess-game/game-record.h"
+#include "fen-parser.h"
 
 #include <string>
 #include <vector>
@@ -73,19 +74,9 @@ struct TraceEntry {
  */
 struct EpdEntry {
     std::string fen; ///< Full FEN string (first 4 fields only)
+    bool whiteToMove = true;   ///< Side to move, taken from the FEN
+    uint32_t startHalfmoves = 0; ///< Halfmove number at the position, taken from the FEN
     std::unordered_map<std::string, std::vector<std::string>> operations; ///< Opcode to operands
-};
-
-struct FenParserResult {
-    std::optional<GameRecord> gameRecord;
-    uint32_t error = 0;
-    size_t nextPos;
-};
-
-struct FenParserInput {
-    std::string fenString;              ///< The FEN string to parse
-    size_t startPos = 0;                ///< The position to start parsing from
-    size_t maxSearchLength = 10;        ///< The maximum length to search for a valid FEN
 };
 
 /**
@@ -207,6 +198,7 @@ public:
      * @brief Parses a FEN string starting from a given position.
      * @param input The FenParserInput structure containing the FEN string and parameters.
      * @return FenParserResult containing the parsed GameRecord and status.
+     * @deprecated Thin wrapper around QaplaTester::parseFen (fen-parser.h); call that directly.
      */
     [[nodiscard]]
     static FenParserResult parseFen(const FenParserInput& input);

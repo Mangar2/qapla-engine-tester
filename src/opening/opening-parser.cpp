@@ -143,7 +143,7 @@ void OpeningParser::registerEpdParser() {
             result.reserve(fullResult.entries.size());
             for (const auto& entry : fullResult.entries) {
                 GameRecord record;
-                record.setStartPosition(false, entry.fen, true, 0);
+                record.setStartPosition(false, entry.fen, entry.whiteToMove, entry.startHalfmoves);
                 result.push_back(std::move(record));
             }
             
