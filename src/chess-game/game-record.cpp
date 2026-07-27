@@ -178,7 +178,10 @@ std::pair<uint64_t, uint64_t> GameRecord::timeUsed() const
 
     for (size_t i = 0; i < currentPly_ && i < moves_.size(); ++i)
     {
-        if (i % 2 == 0)
+        // Ply parity alone is not enough: the game may start from a
+        // position where black is to move (e.g. an opening/EPD start).
+        const bool isWhiteMove = (i % 2 == 0) == isWhiteToMoveAtStart_;
+        if (isWhiteMove)
         {
             whiteTime += moves_[i].timeMs;
         }

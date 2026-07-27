@@ -307,8 +307,14 @@ GoLimits createGoLimits(
 
 	limits.hasTimeControl = true;
 
-    uint32_t wMovesPlayed = (halfMoves + 1) / 2;
-    uint32_t bMovesPlayed = halfMoves / 2;
+    // The side to move at the start position follows from the current side
+    // to move and the parity of the played half moves; the game may start
+    // from a position where black is to move (e.g. an opening/EPD start).
+    const bool whiteToMoveAtStart = (halfMoves % 2 == 0) ? whiteToMove : !whiteToMove;
+    uint32_t startSideMoves = (halfMoves + 1) / 2;
+    uint32_t otherSideMoves = halfMoves / 2;
+    uint32_t wMovesPlayed = whiteToMoveAtStart ? startSideMoves : otherSideMoves;
+    uint32_t bMovesPlayed = whiteToMoveAtStart ? otherSideMoves : startSideMoves;
 
     auto compute = [](const TimeControl& tc, uint32_t movesPlayed,
         uint64_t timeUsedMs, uint64_t& timeLeftMs, uint64_t& incrementMs, uint32_t& movesToGo) {

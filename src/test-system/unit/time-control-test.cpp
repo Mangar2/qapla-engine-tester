@@ -297,3 +297,42 @@ TEST_CASE("createGoLimits Regression", "[unit][time-control][go-limits]") {
         REQUIRE(limits.wtimeMs == 0);
     }
 }
+
+TEST_CASE("GoLimits with black to move at start", "[unit][time-control][go-limits]") {
+    // Games started from an opening/EPD position may begin with black to move.
+    // The per-side move counts must then be assigned by start side, not by
+    // the plain half-move parity.
+
+    SECTION("Increment goes to the side that actually moved") {
+        auto tc = TimeControl::parse("60+1");
+        // Black moved first (halfMoves = 1), white to move next.
+        // Black played 1 move and used 2500ms, white played none.
+        auto limits = createGoLimits(tc, tc, 1, 0, 2500, true);
+
+        // White: 60000 + 0*1000 - 0
+        REQUIRE(limits.wtimeMs == 60000);
+        // Black: 60000 + 1*1000 - 2500
+        REQUIRE(limits.btimeMs == 58500);
+    }
+
+    SECTION("No increment: only the mover loses time") {
+        auto tc = TimeControl::parse("60");
+        auto limits = createGoLimits(tc, tc, 1, 0, 2525, true);
+
+        REQUIRE(limits.wtimeMs == 60000);
+        REQUIRE(limits.btimeMs == 57475);
+    }
+
+    SECTION("movesToGo counts per side") {
+        auto tc = TimeControl::parse("40/60");
+        // Black started; after 3 half moves (b, w, b) white is to move.
+        // White played 1 move -> 39 to go.
+        auto limits = createGoLimits(tc, tc, 3, 1000, 2000, true);
+        REQUIRE(limits.movesToGo == 39);
+
+        // After 2 half moves (b, w) black is to move again.
+        // Black played 1 move -> 39 to go.
+        limits = createGoLimits(tc, tc, 2, 1000, 1000, false);
+        REQUIRE(limits.movesToGo == 39);
+    }
+}
