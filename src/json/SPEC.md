@@ -39,6 +39,10 @@ Parsing and serialization:
 - `std::string stringify() const` serializes to compact JSON using a two-phase path: first computes exact output size for the whole tree, then writes left-to-right into one pre-sized string buffer.
 - `std::string stringify_legacy() const` keeps the previous append-based serializer for regression comparison tests.
 
+### `json/json_pretty_print.h`
+
+- `std::string stringify_pretty(const JsonValue& inputValue, std::size_t indentWidth = 2)`: indented, human-readable JSON text (one member/element per line), for diagnostics/logging where compact JSON is hard to read. Objects/arrays are indented recursively; leaf values (string/number/boolean/null) are formatted via `stringify()` itself, so escaping and number formatting stay identical to the compact serializer. Object member order follows `stringify()` (alphabetical, since `Object` is a `std::map`).
+
 Type inspection and access:
 - `is_null`, `is_boolean`, `is_number`, `is_string`, `is_object`, `is_array`.
 - strict typed getters `as_*` that throw `JsonException(JsonError::InvalidType)` when incompatible.
