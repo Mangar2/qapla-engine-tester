@@ -46,6 +46,29 @@ inline double phiInv(double p) {
 }
 
 /**
+ * @brief Elo difference implied by a win/loss/draw record, using the logistic model.
+ *
+ * Kept separate from computeEloWithError() because callers that feed the value back into
+ * further computation must not use the rounded result: rounding to whole Elo discards up
+ * to half a point per duel, and where those errors are accumulated across many duels (see
+ * TournamentResult::computeAllElos) they can outweigh the actual difference between two
+ * engines. Rounding stays where it belongs -- at the point of display.
+ *
+ * @param wins Games won, @param losses Games lost, @param draws Games drawn.
+ * @return The Elo difference, or 0.0 if no games were played.
+ */
+inline double computeElo(int wins, int losses, int draws) {
+    const int total = wins + losses + draws;
+    if (total <= 0) {
+        return 0.0;
+    }
+
+    const double mu = (static_cast<double>(wins) + 0.5 * draws) / total;
+    const double p = std::clamp(mu, 1e-6, 1.0 - 1e-6);
+    return -400.0 * std::log10(1.0 / p - 1.0);
+}
+
+/**
  * @brief Computes Elo and error margin using logistic model and cutechess-style estimation.
  */
 inline std::pair<int, int> computeEloWithError(int wins, int losses, int draws) {
@@ -59,8 +82,7 @@ inline std::pair<int, int> computeEloWithError(int wins, int losses, int draws) 
     const double d = static_cast<double>(draws) / total;
     const double mu = w + 0.5 * d;
 
-    const double p = std::clamp(mu, 1e-6, 1.0 - 1e-6);
-    const double elo = -400.0 * std::log10(1.0 / p - 1.0);
+    const double elo = computeElo(wins, losses, draws);
 
     const double devW = w * std::pow(1.0 - mu, 2.0);
     const double devL = l * std::pow(0.0 - mu, 2.0);

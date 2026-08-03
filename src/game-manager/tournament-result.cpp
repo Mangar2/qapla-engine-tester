@@ -19,6 +19,7 @@
 
 #include "tournament-result.h"
 #include "../base-elements/elo-helper.h"
+#include "../sprt/sprt-calculation.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -397,8 +398,12 @@ double TournamentResult::averageOpponentElo(const Scored &s,
 std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(
     int baseElo, int passes, bool update) 
 {
-    constexpr double convergenceFactor = 0.5;
-    constexpr double weightConstant = 200.0;
+    // Damped Fisher scoring: a full step (1.0) can overshoot when an engine has only a
+    // handful of games, half a step converges to well below display precision within ~20
+    // passes while staying stable.
+    constexpr double damping = 0.5;
+    // d/dElo of the logistic expected score, without the p*(1-p) factor.
+    const double logisticSlope = std::log(10.0) / 400.0;
 
     initializeScoredEngines(update, baseElo);
     std::unordered_map<std::string, Scored*> scoredMap;
@@ -406,37 +411,65 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(
         scoredMap[s.engineName] = &s;
     }
 
+    // Fits each engine's rating so that its expected score against the current opponent
+    // ratings matches the points it actually scored (maximum likelihood over the logistic
+    // model, i.e. the same model SPRT tests against -- see SprtBase::logisticScore).
+    //
+    // Deliberately compares points rather than per-duel Elo differences: Elo is a
+    // non-linear function of the score, so averaging per-duel Elo values does not
+    // reproduce the Elo of the summed score. That is what previously allowed an engine to
+    // score more points than another against an identical opponent field and still be
+    // rated lower. Matching points instead makes the expected score strictly increasing in
+    // the engine's own rating, so with an identical opponent field more points must yield
+    // more Elo. It also gives the iteration a single fixed point, which the previous
+    // pairwise nudging did not have -- results were sensitive to the order in which duels
+    // happened to be visited.
+    //
+    // Still fully incremental: one pass costs the same as before (one visit per duel), and
+    // continuing from existing ratings after a newly finished game converges within a
+    // pass or two.
     for (int pass = 0; pass < passes; ++pass) {
 
         for (auto& s : scoredEngines_) {
-            const std::string& name = s.engineName;
+            double actualPoints = 0.0;
+            double expectedPoints = 0.0;
+            double slope = 0.0;
 
             for (const auto& duel : s.result.duels) {
-                if (duel.getEngineA() != name) {
+                if (duel.getEngineA() != s.engineName) {
                     continue;
                 }
-                std::string opponent = duel.getEngineB();
-                auto it = scoredMap.find(opponent);
+                auto it = scoredMap.find(duel.getEngineB());
                 if (it == scoredMap.end()) {
                     continue;
                 }
-                Scored* opponentScore = it->second;
 
-                int total = duel.total();
+                const int total = duel.total();
                 if (total == 0) {
                     continue;
                 }
 
-                int targetEloDiff = computeEloWithError(duel.winsEngineA, duel.winsEngineB, duel.draws).first;
-                double currentEloDiff = s.elo - opponentScore->elo;
-                double neededDelta = static_cast<double>(targetEloDiff) - currentEloDiff;
+                const double expectedScore = SprtBase::logisticScore(s.elo - it->second->elo);
+                actualPoints += duel.winsEngineA + 0.5 * duel.draws;
+                expectedPoints += total * expectedScore;
+                slope += total * logisticSlope * expectedScore * (1.0 - expectedScore);
+            }
 
-                double weight = static_cast<double>(total) / (total + weightConstant);
-                double delta = weight * convergenceFactor * neededDelta;
+            if (slope > 1e-12) {
+                s.elo += damping * (actualPoints - expectedPoints) / slope;
+            }
+        }
 
-                s.elo    += delta * 0.5;
-                opponentScore->elo -= delta * 0.5;
-                
+        // The likelihood only constrains rating *differences*, so the whole scale would
+        // drift freely; anchoring the mean keeps it on the caller's baseElo.
+        if (!scoredEngines_.empty()) {
+            double sum = 0.0;
+            for (const auto& s : scoredEngines_) {
+                sum += s.elo;
+            }
+            const double shift = baseElo - sum / static_cast<double>(scoredEngines_.size());
+            for (auto& s : scoredEngines_) {
+                s.elo += shift;
             }
         }
     }
