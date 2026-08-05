@@ -477,9 +477,13 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys() {
 
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
     return {
-        { "id",   { .description = "Identifier for the configuration", 
-                    .isRequired = false, 
-                    .defaultValue = "sprt", 
+        // Must match SprtTournamentFile::id: that is the id the state file is written and
+        // read under, and a section carrying any other id is silently skipped when saving
+        // (see SprtTournamentFile::save). The tournament group pairs up the same way, with
+        // its default id matching TournamentFile::id.
+        { "id",   { .description = "Identifier for the configuration",
+                    .isRequired = false,
+                    .defaultValue = "sprt-tournament",
                     .type = ValueType::String,
                     .isHidden = true } },
         { "file", { .description = "File to load/save tournament outcome", 
