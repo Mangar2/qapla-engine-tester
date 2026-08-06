@@ -227,13 +227,18 @@ def validate_stdout(actual_stdout: str, pattern: str, is_regex: bool = False) ->
 
 
 def resolve_tester_binary(config_name: str) -> str:
-    """Resolve tester binary path for current platform or explicit override."""
+    """Resolve tester binary path for current platform or explicit override.
+
+    The path is made absolute: Windows excludes the current directory from the
+    executable search when NoDefaultCurrentDirectoryInExePath is set, so a
+    relative binary path would not be found there.
+    """
     override_binary = os.getenv("QAPLA_IT_BINARY", "").strip()
     if override_binary:
-        return override_binary
+        return str(Path(override_binary).resolve())
 
     binary_suffix = ".exe" if os.name == "nt" else ""
-    return f"build/{config_name}/qapla-engine-tester{binary_suffix}"
+    return str(Path(f"build/{config_name}/qapla-engine-tester{binary_suffix}").resolve())
 
 
 def apply_engines_override(args: List[str]) -> List[str]:
@@ -256,23 +261,6 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     print()
     print(f"  {Colors.CYAN}Test: {test['name']}{Colors.RESET}")
 
-    # Copy source files to target location if specified
-    source_file_configs = []
-    if "source_files" in test and test["source_files"]:
-        import shutil
-        for config in test["source_files"]:
-            source = config["source"]
-            target = config["target"]
-            if os.path.exists(source):
-                try:
-                    shutil.copy2(source, target)
-                    source_file_configs.append(config)
-                except Exception as e:
-                    print(
-                        f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
-                        f"Failed to copy {source} to {target}: {e}"
-                    )
-
     # Run cleanup if specified
     if "cleanup" in test and test["cleanup"]:
         cleanup_path = test["cleanup"]
@@ -284,6 +272,32 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     # Ensure log directory exists
     log_path = test.get("log_path", "log")
     os.makedirs(log_path, exist_ok=True)
+
+    # Copy source files to their working location. This runs after the cleanup so
+    # that working copies inside the log directory survive it.
+    source_file_configs = []
+    if "source_files" in test and test["source_files"]:
+        import shutil
+        for config in test["source_files"]:
+            source = config["source"]
+            target = config["target"]
+            if os.path.exists(source):
+                try:
+                    target_directory = os.path.dirname(target)
+                    if target_directory:
+                        os.makedirs(target_directory, exist_ok=True)
+                    shutil.copy2(source, target)
+                    source_file_configs.append(config)
+                except Exception as e:
+                    print(
+                        f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
+                        f"Failed to copy {source} to {target}: {e}"
+                    )
+            else:
+                print(
+                    f"  {Colors.YELLOW}[WARN]{Colors.RESET} "
+                    f"Source file not found: {source}"
+                )
 
     # Build command
     args = shlex.split(test["args"], posix=True)

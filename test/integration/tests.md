@@ -171,14 +171,14 @@
 
 **pgnoutput-append**
 - **Why missing**: `append=true` is documented but all existing tests use `append=false`; the append path is never exercised
-- **Note**: Requires a minimal source PGN at `test/integration/sprt/pgnoutput-append.pgn.source` (one complete PGN game). `fileAppendOnly` verifies the original game is not overwritten
-- **args**: `--settingsfile=test/integration/sprt/test-sprt-maxgames.ini --pgnoutput file=test/integration/log/sprt/pgnappend/games.pgn append=true --logging engine=false path=test/integration/log/sprt/pgnappend`
-- **log_path**: `test/integration/log/sprt/pgnappend`
-- **cleanup**: `test/integration/log/sprt/pgnappend`
-- **source_files**: `[{"source": "test/integration/sprt/pgnoutput-append.pgn.source", "target": "test/integration/log/sprt/pgnappend/games.pgn"}]`
+- **Note**: Requires a minimal source PGN at `test/integration/pgnoutput/pgnoutput-append.pgn` (one complete PGN game). `fileAppendOnly` verifies the original game is not overwritten
+- **args**: `--settingsfile=test/integration/sprt/test-sprt-maxgames.ini --pgnoutput file=test/integration/log/pgnoutput/games.pgn append=true --logging engine=false path=test/integration/log/pgnoutput`
+- **log_path**: `test/integration/log/pgnoutput`
+- **cleanup**: `test/integration/log/pgnoutput`
+- **source_files**: `[{"source": "test/integration/pgnoutput/pgnoutput-append.pgn", "target": "test/integration/log/pgnoutput/games.pgn"}]`
 - **validators**:
   - `exitCode: 16`
-  - `fileAppendOnly path="test/integration/log/sprt/pgnappend/games.pgn"`
+  - `fileAppendOnly path="test/integration/log/pgnoutput/games.pgn"`
 
 ### spsa
 

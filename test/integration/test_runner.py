@@ -60,6 +60,14 @@ def load_test_module(test_file: Path) -> List[Dict[str, Any]]:
 
 def main():
     """Main entry point for test runner."""
+    # The summary uses check marks; on Windows consoles the default code page
+    # cannot encode them, which would abort the run with a UnicodeEncodeError.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
+
     parser = argparse.ArgumentParser(
         description="Run integration tests for Qapla Engine Tester"
     )

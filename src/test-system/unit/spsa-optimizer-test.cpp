@@ -20,6 +20,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 #include "spsa-test-helpers.h"
+#include "unit-test-helpers.h"
 #include "../../engine-handling/engine-config.h"
 #include "../../spsa/spsa-optimizer.h"
 #include "../../game-manager/game-manager-pool.h"
@@ -33,7 +34,7 @@ TEST_CASE("SPSA Optimizer initialization and configuration", "[spsa][optimizer]"
     engine.setName("TestEngine");
     
     SPSAConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.maxActivePairs = 2;
     config.gamesPerPair = 8;
     config.iterations = 5;
@@ -108,7 +109,7 @@ TEST_CASE("SPSA PairTournament configuration is correct", "[spsa][config]") {
     engine.setName("TestEngine");
     
     SPSAConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.maxActivePairs = 2;
     config.gamesPerPair = 8;
     config.iterations = 3;
@@ -146,7 +147,7 @@ TEST_CASE("SPSA with balanced game results keeps parameters unchanged", "[spsa][
     engine.setName("OptimizingEngine");
     
     SPSAConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.maxActivePairs = 2;
     config.gamesPerPair = 8;
     config.iterations = 3;
@@ -192,7 +193,7 @@ TEST_CASE("SPSA updates all parameters when one engine dominates", "[spsa][games
     engine.setName("MultiParamEngine");
     
     SPSAConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.maxActivePairs = 2;
     config.gamesPerPair = 8;
     config.iterations = 3;
@@ -274,7 +275,7 @@ TEST_CASE("SPSA processes multiple active pairs correctly", "[spsa][games][multi
     engine.setName("MultiPairEngine");
     
     SPSAConfig config;
-    config.openingsFile = "src/test-system/unit/test-openings.pgn";
+    config.openingsFile = testOpeningsFilePath();
     config.maxActivePairs = 10;
     config.gamesPerPair = 8;
     config.iterations = 10;

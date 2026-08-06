@@ -18,7 +18,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-#include <filesystem>
 #include "unit-test-helpers.h"
 #include "../../engine-handling/engine-config.h"
 #include "../../clop/clop-engine-selection.h"
@@ -28,16 +27,6 @@
 
 using namespace QaplaTester;
 using namespace QaplaTester::Test;
-
-namespace {
-
-[[nodiscard]] std::string testOpeningsFilePath() {
-    const auto testDirectory = std::filesystem::path(__FILE__).parent_path();
-    const auto openingsPath = testDirectory / "test-openings.pgn";
-    return openingsPath.generic_string();
-}
-
-} // namespace
 
 TEST_CASE("CLOPOptimizer initialization edge cases", "[clop][optimizer]") {
     EngineConfig engine;

@@ -50,13 +50,13 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "sprt-continuation",
             "description": "SPRT continuation from existing SPRT file",
-            "args": "--concurrency=2 --logging path=test/integration/log/sprt --sprt file=test/integration/sprt/test-sprt-file.qsprt",
+            "args": "--concurrency=2 --logging path=test/integration/log/sprt --sprt file=test/integration/log/sprt/test-sprt-file.qsprt",
             "log_path": "test/integration/log/sprt",
             "validators": [
                 {"type": "exitCode", "expected": 16},
                 {
                     "type": "fileContent",
-                    "path": "test/integration/sprt/test-sprt-file.qsprt",
+                    "path": "test/integration/log/sprt/test-sprt-file.qsprt",
                     "content": "games===",
                     "message": "Tournament results from source file were not reused (continuation failed)."
                 },
@@ -64,8 +64,8 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/sprt",
             "source_files": [
                 {
-                    "source": "test/integration/sprt/test-sprt-file.qsprt.source",
-                    "target": "test/integration/sprt/test-sprt-file.qsprt"
+                    "source": "test/integration/sprt/test-sprt-file.qsprt",
+                    "target": "test/integration/log/sprt/test-sprt-file.qsprt"
                 }
             ],
         },

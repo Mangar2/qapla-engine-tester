@@ -1,0 +1,11204 @@
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nf3 c6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. g3 Bf5 4. Bg2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B12"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. Bd3 dxe4 4. Bxe4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B18"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D35"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nc3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. a3 Be7 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D04"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bf5 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bf4 g6 3. e3 Bg7 4. c3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D31"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bf4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C03"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. Nd2 Be7 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "12"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "12"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Nc3 d5 3. Bf4 Bf5 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B40"]
+[Annotator "12"]
+[PlyCount "8"]
+
+1. e4 c5 2. Bc4 e6 3. Nf3 d5 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "12"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Nc3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D06"]
+[Annotator "13"]
+[PlyCount "8"]
+
+1. Nf3 d5 2. d4 Bf5 3. c4 e6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "13"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B50"]
+[Annotator "14"]
+[PlyCount "8"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. Nc3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D10"]
+[Annotator "14"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 c6 3. e3 Bf5 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "14"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "15"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Bd3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D53"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B30"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. d3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A50"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 b6 4. e3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D20"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 Nf6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D05"]
+[Annotator "16"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "17"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Nd2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E20"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 c6 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A46"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 Be7 4. Bd3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "18"]
+[PlyCount "8"]
+
+e4 c6 2. d4 d5 3. exd5 cxd5 4. Bf4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D05"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Bd3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C44"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Bc4 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. g3 c6 4. Bg2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D03"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bg5 h6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "18"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "18"]
+[PlyCount "8"]
+
+e4 c6 2. d4 d5 3. exd5 cxd5 4. Bf4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "19"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nc3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "19"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. c4 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C41"]
+[Annotator "19"]
+[PlyCount "8"]
+
+1. e4 e5 2. Nf3 d6 3. Bc4 Be7 4. O-O Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "19"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "19"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 h6 3. Bxf6 exf6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D11"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. c4 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 c6 3. c3 Bf5 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D30"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nf3 c6 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E14"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 a6 4. Nbd2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C28"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. e4 e5 2. Bc4 Nf6 3. d3 Nc6 4. a3 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A00"]
+[Annotator "20"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. a3 Be7 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D10"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nf3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D13"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A21"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. c4 e5 2. Nc3 Bb4 3. Nf3 Bxc3 4. dxc3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D31"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "21"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. e3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D35"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D10"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 c6 3. e3 Bf5 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B50"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 Nc6 4. O-O Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nc3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 c5 4. e3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A45"]
+[Annotator "22"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. e3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B28"]
+[Annotator "23"]
+[PlyCount "8"]
+
+1. e4 c5 2. Nf3 a6 3. d4 cxd4 4. Nxd4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E01"]
+[Annotator "24"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Nf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "24"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A11"]
+[Annotator "24"]
+[PlyCount "8"]
+
+1. Nf3 d5 2. c4 c6 3. e3 Nf6 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B13"]
+[Annotator "24"]
+[PlyCount "8"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "24"]
+[PlyCount "8"]
+
+1. d4 d5 2. e3 e6 3. Bd3 Nf6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "25"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nc3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D04"]
+[Annotator "25"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D00"]
+[Annotator "25"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. Bg5 d5 3. e3 e6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D04"]
+[Annotator "25"]
+[PlyCount "8"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bg4 4. Be2 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "25"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D35"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C24"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. e4 e5 2. Bc4 Nf6 3. d3 Bc5 4. Nf3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C50"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D20"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e5 4. Bxc4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D02"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "E00"]
+[Annotator "26"]
+[PlyCount "8"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D50"]
+[Annotator "27"]
+[PlyCount "8"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C45"]
+[Annotator "27"]
+[PlyCount "8"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 Nf6 4. Bxc4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 c5 2. Nf3 Nc6 3. Bc4 e6 4. O-O d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bf4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 c6 3. Bf4 Bf5 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Bg5 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 e5 2. Bc4 Nf6 3. d4 exd4 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c6 2. Nc3 d5 3. Nf3 Bg4 4. d4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bd3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 Nf6 2. Nc3 d5 3. exd5 Nxd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 c5 2. Nc3 e6 3. g3 Nc6 4. Bg2 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Bb4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. e3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 e5 2. Bc4 Nf6 3. d3 Nc6 4. c3 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 e6 2. d4 d5 3. e5 c5 4. Nf3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. Nf3 d5 2. g3 g6 3. Bg2 Bg7 4. d4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 e6 4. e3 c5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nf3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nf3 c6 4. Nbd2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. Nc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 a6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 e5 2. Nf3 d6 3. d4 Nd7 4. dxe5 dxe5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 c5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. b3 d5 2. Bb2 Bf5 3. e3 Nd7 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 Nf6 2. Nc3 d5 3. exd5 Nxd5 4. Bc4 Nb6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 d5 2. exd5 Nf6 3. Nf3 Nxd5 4. Bc4 Nb6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. d4 cxd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 Bf5 4. O-O e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 Nf6 4. Bxc4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 d6 4. d3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Bf4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 Be7 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. e4 e5 2. Nf3 d6 3. Bc4 Be7 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. Nf3 d5 2. g3 c5 3. Bg2 Nc6 4. d4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. Nf3 e6 3. g3 Be7 4. Bg2 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 Bf5 3. Nc3 e6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 Nf6 2. c4 e6 3. a3 b6 4. Nc3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. d3 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. e3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. e4 e5 2. Nf3 d6 3. Bc4 Be7 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. e3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 Nf6 3. Nc3 Bf5 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c5 2. c3 d5 3. exd5 Qxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. Nc3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bd3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d6 2. g3 g6 3. Bg2 Bg7 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Be7 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. O-O d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 c6 4. Nbd2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Be3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 c6 2. d4 d5 3. e5 c5 4. dxc5 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. O-O Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 e6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 c6 4. O-O Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. O-O a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 g6 3. g3 c6 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 c6 4. c3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c6 2. d4 d5 3. Nc3 dxe4 4. Nxe4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bf4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. Nc3 Nf6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 Nd7 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nf3 c6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. d4 d5 2. e4 dxe4 3. Nc3 Nf6 4. f3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. Nc3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. g3 Nf6 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Nf3 c5 3. dxc5 e6 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.09"]
+
+1. d4 d5 2. g3 Bf5 3. Bg2 Nf6 4. Nd2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.19"]
+
+1. d4 d5 2. e4 dxe4 3. f3 exf3 4. Nxf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bf5 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 Nf6 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Nf3 e6 3. g3 Nf6 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. a3 c6 3. Nf3 Nf6 4. Bf4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 g6 4. Nf3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. Nf3 Nf6 3. g3 Bf5 4. Bg2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Nf6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 c6 3. e3 e6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 c5 2. d4 cxd4 3. c3 dxc3 4. Bc4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 c5 2. d4 e6 3. Nc3 Nc6 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 c5 2. dxc5 e6 3. Nc3 Bxc5 4. Ne4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. Nf3 d5 2. d4 Bf5 3. g3 e6 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. Nf3 d5 3. exd5 exd5 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. Nf3 d5 2. d4 Nf6 3. e3 c6 4. Be2 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. Nf3 d5 2. d4 Nf6 3. e3 Bf5 4. Be2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Nf6 4. Bd3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 c6 3. e3 e6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 Bf5 3. c4 e6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. g3 Nf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. Nf3 a6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 Bf5 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. g3 c6 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Bg3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 e6 4. d4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 c6 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 e6 4. d4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 Nbd7 4. d4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. Nc3 dxc4 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 c6 3. c3 Nf6 4. Bf4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.17"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. Nf3 d5 2. c4 e6 3. cxd5 exd5 4. d4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. e4 dxe4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 c6 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 b6 4. Nc3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 b6 4. Bd3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 Bf5 3. Nc3 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bg3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. e3 Nf6 3. c4 e6 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 g6 3. e3 Bg7 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. c3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Bf5 3. c4 e6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bg5 c6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Nd2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Bxd6 cxd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. c3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 d5 4. Bg5 Be7 * 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 c6 3. Bf4 Nf6 4. h3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. Nc3 dxc4 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 a6 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Nf3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Bd3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 g6 4. Be2 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bg5 d5 3. e3 Bf5 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. Nf3 e6 3. g3 Be7 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 Nf6 3. c3 e6 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 c6 4. c3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 c6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. Nf3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 e6 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. c4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. c4 c5 3. dxc5 e6 4. Nf3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 e6 4. O-O Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 c5 2. b3 d6 3. Bb2 Nf6 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 c5 2. b3 Nc6 3. Bb2 d6 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 Nf6 2. Nf3 d5 3. c4 Bf5 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 c6 2. Be2 d5 3. exd5 cxd5 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 Be7 4. g3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. Nf3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Nc3 d5 3. Nf3 Bf5 4. Bf4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. e3 d5 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. a3 dxc4 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 e6 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.21"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. c4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Nc3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. g3 c6 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bg5 Bf5 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Bf5 3. c4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. e3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Bf4 c5 3. e3 cxd4 4. exd4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. Nf3 c6 3. Bf4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Bd3 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Be7 4. g3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nf6 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. c4 e6 2. Nc3 d5 3. d4 Be7 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. c4 e6 2. Nc3 d5 3. cxd5 exd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. c4 e6 2. Nc3 d5 3. d4 Be7 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bg5 Be7 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bg5 Be7 4. Bxf6 Bxf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 b6 4. Be2 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 e5 2. f4 d6 3. Nf3 Nc6 4. Bc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Nf3 b6 3. e3 Bb7 4. Bd3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. Nc3 d5 3. Bf4 c6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. Bg5 d5 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 c6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. Nc3 d5 3. Bf4 Bf5 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. c4 e5 2. g3 Nf6 3. Bg2 Nc6 4. Nf3 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 g6 4. Be2 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. c4 e6 3. Bg5 d5 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 Nf6 2. c4 e6 3. a3 Be7 4. Nc3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 Nf6 2. c4 e6 3. e3 d5 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bg5 d6 3. Bxf6 exf6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. h3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 c6 2. d4 d5 3. e5 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. e3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. c4 e6 3. Bg5 Be7 4. Nc3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. Nf3 e6 3. a3 d5 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. g3 e6 3. Bg2 Be7 4. Nf3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. Bf4 g6 3. e3 Bg7 4. Be2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 Nf6 2. Nf3 d6 3. g3 c6 4. Bg2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. Nf3 g6 3. Bf4 Bg7 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 Nf6 2. Bg5 h6 3. Bxf6 exf6 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. Bg5 c6 3. c3 d5 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Ne2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. Bd3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. Bg5 d5 3. e3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 d5 2. exd5 Nf6 3. d4 Nxd5 4. Bc4 Nb6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. Bd3 Nf6 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. Nf3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. Nf3 e6 3. c4 a6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 Nf6 2. c4 e6 3. g3 d5 4. Bg2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. Nf3 dxc4 4. Na3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 e6 3. g3 c6 4. Bg2 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 c6 3. e3 e6 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 e6 4. Bxf5 exf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. e3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 c5 2. Nf3 e6 3. g3 Nc6 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 Nf6 3. a3 c6 4. Bf4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. Nc3 a6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 c6 3. Nf3 a6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 c5 2. Nf3 d6 3. Bc4 e6 4. Bb3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 Be7 4. Be2 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. c3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 Be7 4. Bd3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. e3 c5 3. c3 cxd4 4. exd4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. c4 e6 3. e3 b6 4. Nc3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. Bg5 h6 3. Bh4 Nf6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bg5 Nf6 3. Bxf6 exf6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. e3 Be7 4. Nf3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 c5 2. dxc5 e6 3. Nf3 Bxc5 4. e3 d5 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 c6 3. c4 Nf6 4. Nc3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. e3 Be7 4. Nc3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 c5 2. dxc5 e6 3. e3 Bxc5 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. Nf3 e6 3. a3 d5 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 d5 2. exd5 Nf6 3. Be2 Nxd5 4. Bf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nc3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. h3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. Bg5 c5 3. dxc5 Nf6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 c6 2. Bf4 d5 3. e3 Nf6 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 Be7 4. e3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c3 e6 3. Bf4 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. Nd2 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 e6 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. c4 e6 3. e3 c5 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 c5 2. dxc5 e6 3. Bf4 Bxc5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c5 2. Nf3 e6 3. d4 a6 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 Bf5 3. c4 e6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 Nf6 3. c4 c6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. e3 Bf5 3. c4 e6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 c5 2. dxc5 e6 3. Nf3 Bxc5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 c5 2. dxc5 e5 3. e4 Bxc5 4. Bc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. c4 Na6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 c6 3. a3 g6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bg5 Nf6 3. Bxf6 exf6 4. Nf3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Nd2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. Nf3 c6 3. Bf4 Bg4 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.19"]
+
+1. d4 d5 2. Bf4 c6 3. e3 Bf5 4. c4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. Nf3 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Be7 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 c6 3. g3 Nf6 4. Bg2 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "0.10"]
+
+1. d4 Nf6 2. Bg5 b6 3. Bxf6 exf6 4. e3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "0.09"]
+
+1. c4 e6 2. Nc3 d5 3. cxd5 exd5 4. d4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 Nf6 3. c4 e6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. Nf3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 e6 3. Nf3 Nf6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Nf3 d5 3. a3 e6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. c3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. Bd3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Nc3 Bf5 3. Bf4 c6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. c4 Bf5 3. Nc3 e6 4. a3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. e3 Bf5 3. c4 c6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. e3 c6 3. c4 Nd7 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 e6 2. c4 c6 3. a3 d5 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 Bg4 3. g3 Bxf3 4. exf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nc3 Nf6 3. Bf4 a6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 c5 2. b3 e6 3. Bb2 d5 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nd7 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nf3 a6 4. g3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e5 2. f4 d6 3. Nf3 Nc6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 c5 2. dxc5 e6 3. e4 Bxc5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 g6 2. Nf3 c6 3. g3 Bg7 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Nbd7 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 Bf5 3. e3 e6 4. Nc3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Be7 4. Bb3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 Bg6 4. Bxg6 hxg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 c6 2. f4 d5 3. exd5 cxd5 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. e4 e6 2. Ne2 d5 3. exd5 exd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 e5 2. f4 d5 3. exd5 exf4 4. d4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 e6 3. c3 Bd6 4. Bg3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Bf5 3. c4 e6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. c4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 e6 3. c3 Be7 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. c4 e5 2. Nc3 Bb4 3. Nf3 Bxc3 4. dxc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 e6 3. e3 c6 4. Nd2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 a6 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nc3 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Nc3 d5 3. Nf3 Nbd7 4. Bf4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. e4 c6 2. Ne2 d5 3. exd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 e6 2. c4 d5 3. cxd5 exd5 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bf4 d6 3. e3 c6 4. Nd2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 c5 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. Bd3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bf4 b6 3. c4 e6 4. a3 Bb7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Bg5 h6 3. Bh4 Bf5 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. e3 Nf6 3. c4 e6 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Nf6 3. a3 Bf5 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Bd3 Bxf4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 g6 3. e3 Bg7 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e5 2. Nf3 Nc6 3. d4 exd4 4. Nxd4 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. c4 e5 2. g3 Nf6 3. Bg2 Bc5 4. e3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 Bg4 3. e3 e6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Nf3 e6 3. e3 a6 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Qc2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. f4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. Nf3 d5 2. g3 Nf6 3. Bg2 h6 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 Bg4 3. Bf4 Bxf3 4. exf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 c6 4. h3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 dxc4 3. Na3 e6 4. Nxc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. c4 c6 3. Bf4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. e3 a6 4. Nc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Nbd7 4. Bd3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bf4 c6 3. c3 Bf5 4. Nd2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 d5 2. exd5 Nf6 3. Bc4 Nxd5 4. d4 Nb6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. e4 e5 2. d4 exd4 3. c3 dxc3 4. Nxc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 e5 2. Nc3 Bb4 3. Bc4 Bxc3 4. dxc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. c4 e6 2. Nc3 Bb4 3. e3 Bxc3 4. dxc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 c6 3. e3 g6 4. Bd3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. Nf3 c6 3. g3 h6 4. Bg2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. Nf3 c5 3. dxc5 e6 4. e3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e5 2. Nc3 Nf6 3. g3 c6 4. Bg2 Bc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 d5 2. exd5 Nf6 3. c4 c6 4. d4 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 g6 3. Nc3 d5 4. Bf4 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.20"]
+
+1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 c6 3. c4 a6 4. Bf4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Nd2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 c6 2. g3 d5 3. exd5 cxd5 4. Bg2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 c6 2. Be2 d5 3. exd5 cxd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 Be7 4. c4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 Nf6 2. g3 d5 3. Bg2 e6 4. Nd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. c3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. a3 c6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 c6 3. Nc3 e6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 c6 3. Nd2 Nf6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. c4 e6 3. a3 a6 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 e6 3. a3 Be7 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 e6 4. Ne2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Bf5 3. c4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c4 e6 3. Nd2 f5 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c4 e6 3. a3 c6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. e4 d5 2. exd5 Nf6 3. Nc3 c6 4. Be2 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Ne7 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 f6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Be7 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. c4 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 c5 2. dxc5 Na6 3. Nf3 Nxc5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 h6 4. a3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. c4 e6 2. e3 d5 3. cxd5 exd5 4. d4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 d6 3. Bxf6 exf6 4. Nf3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 Nf6 2. Bf4 d6 3. e3 Nbd7 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. Bf4 Nf6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. g3 e6 3. Bg2 d5 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Nf3 e6 3. a3 d5 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 e5 2. Ne2 d5 3. exd5 Nf6 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 c5 3. c3 cxd4 4. cxd4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Nc3 c5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. e3 Nf6 3. Nf3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Nf3 e6 3. c3 Be7 4. Bf4 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. a3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 c6 3. c4 Nf6 4. Bd2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. c4 e6 3. a3 c5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. c3 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. a3 d5 2. c4 c6 3. cxd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 c6 3. e3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Bf4 c6 3. c3 Bf5 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bg4 4. Be2 Bxf3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. a3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 d5 3. e3 Nbd7 4. Bxf6 Nxf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. c4 dxc4 3. e3 Nf6 4. Bxc4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. c4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. e3 d5 3. Bd3 e6 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 d5 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Nf3 a6 3. e3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e5 2. Nf3 Nf6 3. Nxe5 d6 4. Nf3 Nxe4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Bf4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Nf6 3. a3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 e6 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 c6 2. d4 d6 3. Bc4 d5 4. exd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. g3 a6 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.17"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 c6 4. Bf4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nf6 4. Be2 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. c3 Nd7 4. Bf4 Ngf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nc3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Nf3 e6 3. e3 a6 4. Bd3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 e6 2. c4 d5 3. cxd5 exd5 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 a6 4. a3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. c4 e5 2. g3 Nf6 3. Bg2 d5 4. cxd5 Nxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 c6 2. Be2 d5 3. exd5 cxd5 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. c4 e5 2. Nc3 Nf6 3. g3 c6 4. Bg2 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. e4 c6 2. d3 d5 3. exd5 cxd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 e6 2. d4 d5 3. Be3 Nf6 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. Nd2 e6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Bg4 3. Bf4 Bxf3 4. exf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 a6 3. g3 Bf5 4. Bg2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 c6 3. e3 Bf5 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 a6 3. Bf4 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 a6 4. Nd2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.19"]
+
+1. Nf3 d5 2. g3 e6 3. Bg2 Bd6 4. d4 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 dxc4 3. e3 e6 4. Nd2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. e3 g6 4. a3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Bf4 e6 3. c3 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.17"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Be7 4. Bf4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 c6 3. c4 Nf6 4. Bf4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Nf6 4. Be2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 e6 3. e3 c6 4. c3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. h3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. a3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. Bf4 Bf5 3. c4 dxc4 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 e6 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.10"]
+
+1. e4 c6 2. Bc4 e6 3. a3 d5 4. exd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. a3 c6 3. Nf3 Bf5 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. a3 Nf6 *
+
+[Event "?"]
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. c3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 c6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 Bf5 3. Nf3 e6 4. a3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. e4 c6 2. Bc4 e6 3. Nf3 d5 4. exd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bg3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 Nc6 2. Bb5 a6 3. Bxc6 dxc6 4. d4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 e5 2. Nc3 Bb4 3. a3 Bxc3 4. dxc3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 c6 4. c3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. c3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Nf6 4. c3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. e3 Nf6 3. Nf3 Nbd7 4. Bd3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 c6 3. Nf3 e6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c3 Nf6 3. Bf4 e6 4. Nd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Nf3 e6 3. Bf4 Be7 4. c3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. e3 c6 3. Bd3 Nf6 4. h3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Nf3 e6 3. h3 Be7 4. Bf4 O-O *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 Nf6 2. Nd2 d5 3. Ngf3 g6 4. Nb3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. c3 d5 3. e3 Nbd7 4. Nf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nc3 Bf5 3. Nf3 e6 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Nc3 Bf5 3. Nf3 e6 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Nf3 c6 3. c3 Bg4 4. Bf4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 e6 3. a3 Be7 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. c4 Bf5 3. Nc3 e6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Bd6 4. Be2 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Bd6 4. Bd3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. e3 Nf6 3. Nf3 Nc6 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 c5 2. dxc5 e6 3. a3 Bxc5 4. c4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Nf6 3. Bd3 c6 4. c3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. e3 Nf6 3. Bd3 Bg4 4. Nf3 Bxf3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nc3 c6 3. g3 Bf5 4. Bg2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 e6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 d5 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. Bf4 d5 3. c4 e6 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Be7 4. g3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. c4 e5 3. e3 exd4 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c5 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 Nf6 2. e3 g6 3. a3 Bg7 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. c4 e6 3. a3 c5 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 e6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 e5 2. Nf3 Nc6 3. d4 exd4 4. Bc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 a6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. Nf3 Bf5 3. Nh4 Bg6 4. Nxg6 hxg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Bd3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 Nf6 2. c4 c6 3. Nf3 a6 4. e3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Bf4 e6 3. e3 Be7 4. Bd3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. e4 c6 2. Nc3 d5 3. Nf3 dxe4 4. Nxe4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. e4 c6 2. Nc3 d5 3. exd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. e4 c6 2. Nc3 d5 3. exd5 cxd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 Nf6 2. Bg5 d6 3. Bxf6 exf6 4. c3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 Nf6 2. c4 e6 3. a3 Be7 4. Bf4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 e5 2. f4 d5 3. exd5 Bc5 4. Qe2 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C01"]
+[Annotator "10"]
+[PlyCount "8"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. e3 Bxf4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. c4 e6 3. e3 d5 4. Bd3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c6 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 Nf6 2. c4 e6 3. a3 Be7 4. Bg5 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 Nd7 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. e3 Nf6 3. Bd3 e6 4. Ne2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.21"]
+
+1. d4 d5 2. Bf4 e6 3. e3 c6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. c4 Be7 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c6 2. Nf3 d5 3. e5 Bf5 4. Be2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Bc5 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.20"]
+
+1. d4 Nf6 2. c4 g6 3. Nc3 Bg7 4. e4 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 c5 2. Nc3 Nc6 3. Bb5 e6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. c4 e6 3. e3 Be7 4. Bd3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 e6 3. Nc3 dxc4 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bg3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bxd6 cxd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Nf3 e6 3. Bf4 Bd6 4. Bg3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 Nf6 2. Nf3 c5 3. dxc5 e6 4. e3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 e5 2. f4 exf4 3. Nf3 Ne7 4. d4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. e3 c5 3. dxc5 e6 4. a3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.07"]
+
+1. d4 d5 2. e3 Nf6 3. Be2 e6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.07"]
+
+1. d4 d5 2. a3 Nf6 3. g3 Bf5 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 a6 4. Bd3 Bxd3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. c4 c6 3. Nf3 e6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 d5 2. e3 Nf6 3. h3 e6 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 h6 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. Be2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Bf4 g6 3. e3 Bg7 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.28"]
+
+1. d4 Nf6 2. c4 d6 3. Nc3 c6 4. e4 e5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. a3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 d5 2. exd5 Nf6 3. d4 c6 4. Bd3 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 Nf6 2. c4 c5 3. dxc5 e6 4. Nc3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. e4 e6 2. d4 d5 3. Bd3 dxe4 4. Bxe4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 h6 3. Bxf6 exf6 4. c3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 Nf6 2. c3 e6 3. Nd2 d5 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 Nf6 2. g3 e6 3. a3 d5 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. e4 e5 2. Nc3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Bd6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. h3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.08"]
+
+1. d4 d5 2. c3 Nf6 3. g3 c6 4. Bg2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nf6 4. c3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bf4 d5 3. h3 c6 4. c3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Bf5 3. Nf3 e6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 d5 2. Bf4 Bf5 3. Nc3 a6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. Bf4 c6 3. e3 Nd7 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Bd3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. e3 Bf5 3. h3 e6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. c4 c6 3. Nf3 Nf6 4. Bd2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 Bf5 3. Nc3 e6 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e5 2. g3 Nf6 3. Bg2 Bc5 4. Nc3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Nd7 4. Nc3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Bf4 g6 3. e3 Bg7 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nc3 Nc6 3. Bf4 a6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 Nf6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. a3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. g3 c6 3. Bg2 Bf5 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.09"]
+
+1. d4 Nf6 2. Nf3 d5 3. c3 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. g3 c6 3. Bg2 d5 4. Bf4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nc3 e6 3. Bf4 Nf6 4. Nf3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. c4 c5 3. e3 cxd4 4. exd4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. h3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. e3 Nf6 3. c3 e6 4. Nd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. e3 c6 3. a3 Bf5 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. e3 Nf6 3. a3 Bg4 4. Be2 Bxe2 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 h6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Nf3 Qe7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. a3 h6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nf6 4. a3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Bg5 h6 3. Bh4 Nf6 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d6 2. g3 g6 3. Bg2 Bg7 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. Nf3 c6 3. e3 d6 4. Bc4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. g3 e6 3. Bg2 c6 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 c6 3. Bf4 Bf5 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. e3 e6 3. g3 Bd6 4. Bg2 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 c5 3. e3 e6 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.17"]
+
+1. d4 d5 2. Nf3 a6 3. g3 e6 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 Nf6 2. Nc3 d5 3. Bf4 a6 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. a3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. e3 c5 3. c3 cxd4 4. cxd4 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e6 2. Nf3 d5 3. exd5 exd5 4. d4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Bf4 d6 3. e3 Bf5 4. Bc4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 e6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.11"]
+
+1. d4 d5 2. e3 Nf6 3. g3 Bf5 4. Bg2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. Nf3 a6 3. Bf4 c6 4. e3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. c4 e6 3. Nf3 a6 4. Bf4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 Bg4 3. Bf4 Bxf3 4. exf3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 Bg4 3. g3 Bxf3 4. exf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 Nf6 3. c4 e6 4. Nc3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 Nf6 2. c4 c5 3. dxc5 e6 4. e3 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. Nf3 c6 3. c4 Bf5 4. Bf4 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. Nf3 d5 2. g3 g6 3. d4 Bg7 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. Nf3 d5 2. c4 c6 3. cxd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 c5 3. Nf3 cxd4 4. c3 dxc3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. a3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. Nf3 d5 2. g3 c6 3. Bg2 g6 4. d4 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. Nf3 d5 2. d4 a6 3. g3 Nf6 4. Bg2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. e3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 d5 3. e3 g6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. e3 d5 * 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e6 2. e4 d5 3. cxd5 exd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 Nf6 2. Nf3 c6 3. Bg5 g6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 Nf6 2. c4 a6 3. e3 e6 4. Nc3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 Nf6 2. Bg5 g6 3. Bxf6 exf6 4. Nf3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.07"]
+
+1. d4 Nf6 2. Bg5 c6 3. Bxf6 exf6 4. c3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 f5 2. Bg5 Nf6 3. Bxf6 exf6 4. a3 d5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 c5 3. Nf3 cxd4 4. Nxd4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. Bg5 Nf6 3. Bxf6 exf6 4. c3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bg5 Nf6 3. Bxf6 exf6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c3 Nf6 3. Bg5 Bf5 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. d4 Nf6 2. Bg5 d5 3. Bxf6 exf6 4. a3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. c4 e6 3. a3 d5 4. e3 c5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. Nc3 e6 3. a3 d5 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. g3 e6 3. Bg2 d5 4. e3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 d5 2. exd5 Nf6 3. Be2 Nxd5 4. Bf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c3 Nf6 3. Bf4 e6 4. h3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Be2 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Be3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. e3 c6 3. Bd3 Nf6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 a6 4. h3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 d5 2. exd5 Qxd5 3. Qf3 c6 4. Nc3 Qxf3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. e3 e6 3. c3 a6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. e3 e6 3. c3 Nf6 4. Be2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.20"]
+
+1. d4 d5 2. Nf3 c6 3. Bf4 e6 4. c3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. e3 Nf6 3. Bd3 e6 4. Ne2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. c3 Bxf4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.07"]
+
+1. d4 d5 2. Nf3 Nf6 3. a3 Bf5 4. Nbd2 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Nf6 4. Be2 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Nf3 e6 3. e3 Bd6 4. Be2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e6 2. Nf3 d5 3. cxd5 exd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Nf3 Nc6 3. c4 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. d4 d5 2. Nf3 c6 3. c3 Bf5 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bg4 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. g3 Bf5 3. Bg2 e6 4. c4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. e4 e6 2. d4 d5 3. Bd3 Be7 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Nc6 3. h3 Bf5 4. c4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Nf3 a6 3. c3 Nf6 4. Bf4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nc3 Bf5 3. e3 e6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Bf4 Nf6 3. g3 e6 4. Bg2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.15"]
+
+1. d4 d5 2. c4 e6 3. a3 g6 4. Nf3 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 d5 2. exd5 Qxd5 3. d4 Bf5 4. Nf3 Qe4+ *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 c6 3. e3 Nf6 4. h3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. c4 Nf6 3. Nc3 e6 4. Bd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 c6 3. h3 Bf5 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nf6 4. Be2 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nf6 4. Nc3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. g3 e6 3. Bg2 c6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 c6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 e6 3. a3 Nf6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e5 2. Bc4 Nf6 3. d4 exd4 4. Nf3 d6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bf4 c6 3. Nf3 Bf5 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 Nd7 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Bg4 3. h3 Bxf3 4. exf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. g3 Nf6 3. Bg2 c6 4. Nc3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 e6 3. e3 Nf6 4. Nf3 h6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. c3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 e6 3. a3 Nf6 4. Bf4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 Nd7 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nc3 c6 3. Bf4 Bf5 4. e3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 a6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. g3 Bf5 3. c4 e6 4. Bg2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. e3 c6 3. Be2 e6 4. Nf3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nd7 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Bf5 4. Be2 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Be7 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Bf5 3. Nf3 e6 4. Be2 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Nd7 3. Nc3 Ngf6 4. e3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. a3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.08"]
+
+1. d4 d5 2. Nc3 Bf5 3. e3 c6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 e6 2. c4 d5 3. cxd5 exd5 4. a3 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.03"]
+
+1. a3 d5 2. e4 c6 3. exd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. e3 a6 3. c4 c6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.17"]
+
+1. d4 d5 2. Bf4 c6 3. e3 Nf6 4. Bd3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. e3 Nf6 3. Bc4 e6 4. Nf3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. a3 Nf6 3. e3 Bf5 4. c4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. c4 Nf6 3. e3 Bf5 4. Nc3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Bf4 c6 3. c4 Nf6 4. Nc3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Bf4 c5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Bf4 e6 3. a3 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. a3 Bf5 3. Bf4 e6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 e6 3. c4 Nf6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. c3 Nf6 3. Nf3 Bf5 4. c4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. c4 e6 3. e3 c6 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. Bd3 c5 4. dxc5 Bxc5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. e3 e6 3. Nf3 Nf6 4. Be2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 e6 4. Nf3 h6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. a3 Nf6 3. e3 Bf5 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. a3 Nf6 3. Nf3 e6 4. Bf4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. a3 e6 3. e3 c6 4. c4 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.12"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 c6 4. Be2 h6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Nf6 3. a3 c6 4. Nf3 Bg4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. a3 c6 3. e3 Nf6 4. c4 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. a3 Nf6 3. e3 Bf5 4. Bd3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 Nf6 2. c4 e6 3. Nf3 d5 4. Nc3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "depth=25 eval=+005"]
+
+1. e4 c6 2. d4 d5 3. Nd2 dxe4 4. Nxe4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "depth=26 eval=+007"]
+
+1. e4 c6 2. d4 d5 3. Nd2 dxe4 4. Nxe4 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "depth=24 eval=+001"]
+
+1. e4 c6 2. d4 d5 3. Nd2 dxe4 4. Nxe4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. Nf3 d5 2. c4 dxc4 3. e3 Nf6 4. Bxc4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bg5 Nf6 3. e3 c6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 Bg6 4. Nf3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 h6 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. Bf4 e6 3. e3 a6 4. c3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Nf3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. Bf4 e6 3. Nd2 Bd6 4. Bg3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. c3 e6 3. e3 Nf6 4. Nd2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. c4 e5 2. Nc3 Nf6 3. e3 Be7 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. c4 e5 2. Nc3 Nf6 3. e3 c6 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 e6 4. a3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Bf4 e6 3. h3 Bd6 4. e3 Bxf4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. d4 d5 2. Nf3 a6 3. g3 g6 4. Bg2 Bg7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. c4 e5 2. Nc3 Nf6 3. e3 d5 4. d4 exd4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. c3 Nc6 3. Bf4 Nf6 4. Nd2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bg5 Bf5 3. c4 Nf6 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Be3 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c3 e6 3. Bf4 Nf6 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c3 e6 3. Nf3 Nd7 4. Bg5 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. g3 Nf6 3. Bg2 e6 4. e3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.14"]
+
+1. d4 d5 2. Nf3 a6 3. g3 Bf5 4. Bg2 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. Bf4 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e6 2. Nf3 d5 3. exd5 exd5 4. d4 Be6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 a6 4. Be2 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.08"]
+
+1. d4 d5 2. e3 Bf5 3. Ne2 Nf6 4. Ng3 Bg6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. e3 Bf5 4. Bd3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. g3 Nf6 3. Bg2 Bf5 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.09"]
+
+1. d4 d5 2. g3 c6 3. Bg2 Bf5 4. Nd2 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.08"]
+
+1. d4 d5 2. g3 Nf6 3. Bg2 Bf5 4. c3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. g3 Nf6 3. Bg2 Nbd7 4. e3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. e4 e6 2. Bc4 Bc5 3. Nf3 d5 4. exd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. Nbd2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e5 2. Nc3 Bb4 3. Bc4 Bxc3 4. dxc3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. d4 d5 2. Nf3 Nf6 3. e3 Bf5 4. c3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Nc3 e6 3. a3 Nf6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 Nf6 2. g3 d5 3. Bg2 Bf5 4. Nf3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 c6 3. e3 Nf6 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. d4 d5 2. g3 Nc6 3. Bg2 Bf5 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. d4 d5 2. Nf3 c6 3. h3 e6 4. Bf4 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. c4 Bf5 3. e3 e6 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. e3 Bf5 3. c4 c6 4. Nf3 Nd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Bd3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 g6 3. Nd2 Bg7 4. Ngf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. e3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nc3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.16"]
+
+1. d4 d5 2. Nf3 c6 3. c3 e6 4. Bf4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. c4 c6 2. Nc3 d5 3. cxd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 d5 2. exd5 Nf6 3. c4 c6 4. Nc3 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Be3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. Bf4 e6 3. e3 c6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nf3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Nf6 3. c3 c6 4. Bd3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.12"]
+
+1. d4 d5 2. Nd2 Bf5 3. Ndf3 e6 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. a3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nf3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. e4 c6 2. Nf3 d5 3. exd5 cxd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. e4 c6 2. Nf3 d5 3. exd5 cxd5 4. d4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. e3 Nf6 3. c4 c6 4. Nc3 Nbd7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nf3 a6 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. e4 c6 2. Nc3 d5 3. exd5 cxd5 4. d4 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.05"]
+
+1. e4 c6 2. d4 d5 3. exd5 cxd5 4. Nc3 Nc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.13"]
+
+1. e4 c6 2. Nf3 d5 3. exd5 cxd5 4. d4 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. c4 e6 2. Nf3 d5 3. cxd5 exd5 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.01"]
+
+1. e4 e6 2. e5 d5 3. exd6 cxd6 4. d4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Bf4 e6 3. e3 Bd6 4. Ne2 Bxf4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. e4 d5 2. exd5 Nf6 3. d4 c6 4. Nf3 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 e6 3. Nf3 Nd7 4. cxd5 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. cxd5 exd5 4. Nc3 Bf5 * 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. c3 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 e6 3. Nc3 c5 4. dxc5 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.04"]
+
+1. e4 c6 2. Bc4 d5 3. exd5 cxd5 4. Bb3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. e4 e6 2. d4 d5 3. exd5 exd5 4. a3 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 Bb4 4. Bd2 Bxc3 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. e3 Bf5 3. Bd3 e6 4. Ne2 Bd6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. Nf3 Bf5 3. e3 e6 4. Bd3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. e3 a6 3. c4 e6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. c4 e6 2. Nf3 d5 3. cxd5 exd5 4. d4 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. e4 d5 2. exd5 Nf6 3. d4 e6 4. Nf3 exd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.01"]
+
+1. d4 d5 2. c4 c6 3. e3 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.13"]
+
+1. d4 d5 2. e4 dxe4 3. f3 exf3 4. Nxf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. Nf3 Nc6 3. e3 a6 4. a3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.00"]
+
+1. d4 d5 2. Bf4 Nf6 3. e3 Bf5 4. a3 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. e4 e5 2. Nf3 d6 3. d4 exd4 4. Bc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. Nf3 Nd7 3. c4 e6 4. e3 Ne7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.10"]
+
+1. d4 d5 2. Nc3 e6 3. Bf4 a6 4. e3 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "00"]
+
+1. d4 Nf6 2. Bg5 d6 3. Bxf6 exf6 4. e3 f5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "00"]
+
+1. d4 Nf6 2. Nf3 b6 3. Bg5 Bb7 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.11"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. cxd5 exd5 * 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 c6 3. e3 Nf6 4. a3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.09"]
+
+1. e4 c6 2. Bc4 d5 3. exd5 cxd5 4. Bb3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. c4 e6 2. g3 d5 3. cxd5 exd5 4. d4 c6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.08"]
+
+1. d4 d5 2. c4 c6 3. Nf3 e6 4. cxd5 cxd5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.09"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. Bf4 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.02"]
+
+1. d4 d5 2. c4 c6 3. cxd5 cxd5 4. e3 Nc6 * 
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. e4 e6 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 a6 4. Bxc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nf3 c5 4. e3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 c5 4. Bxc4 e6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 Nf6 4. e3 a6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.07"]
+
+1. Nf3 d5 2. c4 dxc4 3. e3 e6 4. Bxc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.05"]
+
+1. d4 d5 2. c4 dxc4 3. Nc3 e6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.02"]
+
+1. e4 e5 2. f4 Bc5 3. Nf3 d6 4. Bc4 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.04"]
+
+1. d4 d5 2. c4 e6 3. Nc3 a6 4. Bf4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. c4 dxc4 3. e3 a6 4. Nf3 Nf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.18"]
+
+1. d4 d5 2. c4 dxc4 3. e3 Nf6 4. Nf3 Bf5 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Annotator "0.10"]
+
+1. Nf3 f5 2. d4 Nf6 3. Bg5 d5 4. Bxf6 exf6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.00"]
+
+1. d4 d5 2. Nf3 Bf5 3. Bf4 e6 4. c4 dxc4 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.03"]
+
+1. d4 d5 2. Nf3 Nf6 3. Bf4 Bf5 4. c3 h6 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "0.06"]
+
+1. d4 d5 2. Bf4 Bf5 3. e3 e6 4. Be2 Be7 *
+
+[Event "?"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[Q_net.65100.100-node "-0.06"]
+
+1. d4 d5 2. Nf3 Nf6 3. h3 Bf5 4. a3 e6 *

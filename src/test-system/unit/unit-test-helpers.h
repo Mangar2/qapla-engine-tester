@@ -21,10 +21,31 @@
 
 #include "../../engine-handling/engine-config.h"
 #include "../../base-elements/time-control.h"
+#include <filesystem>
 #include <vector>
 #include <string>
 
 namespace QaplaTester::Test {
+
+    /**
+     * @brief Builds the path of a test data file located next to the unit test sources.
+     * The path is derived from the source location, thus it is independent of the
+     * working directory the test executable is started in.
+     * @param fileName Name of the test data file.
+     * @return Absolute path to the test data file.
+     */
+    inline std::string testDataFilePath(const std::string& fileName) {
+        const auto testDirectory = std::filesystem::path(__FILE__).parent_path();
+        return (testDirectory / fileName).generic_string();
+    }
+
+    /**
+     * @brief Path of the openings file used by the optimizer unit tests.
+     * @return Absolute path to the test openings file.
+     */
+    inline std::string testOpeningsFilePath() {
+        return testDataFilePath("test-openings.pgn");
+    }
 
     /**
      * @brief Parameters for creating test engines with sensible defaults

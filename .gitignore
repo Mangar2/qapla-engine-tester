@@ -20,6 +20,16 @@
 /.github/
 /test/engines/
 
+# Test data must stay in the repository, whatever its extension.
+# These directories hold input only - everything a test run generates is written
+# to test/integration/log/, which the [Ll]og/ rule below keeps ignored.
+# Engine binaries and Python caches are re-excluded right afterwards.
+!/src/test-system/unit/**
+!/test/opening/**
+!/test/integration/**
+/test/integration/engines/*.exe
+/test/integration/log/
+
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
