@@ -90,8 +90,9 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
     std::string tournamentFile = tournamentGroup.has_value() ? tournamentGroup->get<std::string>("file") : "";
 
-    std::string engineSourceFile;
-    if (!sprtFile.empty() || !tournamentFile.empty()) {
+    const std::string stateFile = sprtFile.empty() ? tournamentFile : sprtFile;
+    bool enginesFromStateFile = false;
+    if (!stateFile.empty()) {
         if (Settings::Manager::instance().get<bool>("mcp")) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
@@ -101,12 +102,9 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
         // configured on the command line or in a settings file. Merging them would duplicate every
         // engine - and thus every pairing - on resume, and would make it impossible to drop an
         // engine from a resumed run or to point its entries to another machine's directories.
-        const bool hasConfiguredEngines = hasActiveEngineInstances();
+        enginesFromStateFile = !hasActiveEngineInstances();
         const std::vector<std::string> excludedSections =
-            hasConfiguredEngines ? std::vector<std::string>{ "engine" } : std::vector<std::string>{};
-        if (!hasConfiguredEngines) {
-            engineSourceFile = sprtFile.empty() ? tournamentFile : sprtFile;
-        }
+            enginesFromStateFile ? std::vector<std::string>{} : std::vector<std::string>{ "engine" };
 
         loadFromFile(sprtFile, false, false, std::nullopt, excludedSections);
         loadFromFile(tournamentFile, false, false, std::nullopt, excludedSections);
@@ -122,7 +120,7 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     // 6. Initialize engines only once
     m_rapid = Helper::applyEngineSettings(Manager::instance(), "engine");
 
-    setEngineSourceInfo(engineSourceFile, sprtFile, tournamentFile);
+    setEngineSourceInfo(stateFile, enginesFromStateFile);
 }
 
 bool QaplaSettings::hasActiveEngineInstances() {
@@ -133,20 +131,16 @@ bool QaplaSettings::hasActiveEngineInstances() {
     });
 }
 
-void QaplaSettings::setEngineSourceInfo(const std::string& engineSourceFile,
-    const std::string& sprtFile, const std::string& tournamentFile) {
-
-    const auto engineCount = EngineWorkerFactory::getActiveEngines().size();
-    if (!engineSourceFile.empty()) {
-        engineSourceInfo_ = std::format("{} engines taken from {}", engineCount, engineSourceFile);
+void QaplaSettings::setEngineSourceInfo(const std::string& stateFile, bool enginesFromStateFile) {
+    if (stateFile.empty()) {
         return;
     }
 
-    const std::string& stateFile = sprtFile.empty() ? tournamentFile : sprtFile;
-    if (!stateFile.empty()) {
-        engineSourceInfo_ = std::format(
-            "{} configured engines used, engine sections in {} ignored", engineCount, stateFile);
-    }
+    const auto engineCount = EngineWorkerFactory::getActiveEngines().size();
+    engineSourceInfo_ = enginesFromStateFile
+        ? std::format("{} engines taken from {}", engineCount, stateFile)
+        : std::format("{} configured engines used, engine sections in {} ignored",
+            engineCount, stateFile);
 }
 
 void QaplaSettings::logEngineSource() const {

@@ -202,12 +202,10 @@ private:
 
     /**
      * @brief Stores the message telling where the engines of the run came from.
-     * @param engineSourceFile State file the engines were taken from, empty if they were configured.
-     * @param sprtFile Configured SPRT state file, may be empty.
-     * @param tournamentFile Configured tournament state file, may be empty.
+     * @param stateFile Tournament/SPRT state file used, empty if the run does not continue a run.
+     * @param enginesFromStateFile True if the engines were taken from the state file.
      */
-    void setEngineSourceInfo(const std::string& engineSourceFile,
-        const std::string& sprtFile, const std::string& tournamentFile);
+    void setEngineSourceInfo(const std::string& stateFile, bool enginesFromStateFile);
 
     std::string engineSourceInfo_;
 
