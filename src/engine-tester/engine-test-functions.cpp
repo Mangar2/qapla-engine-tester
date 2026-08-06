@@ -496,6 +496,18 @@ TestResult runImmediateStopTest(const EngineConfig& engineConfig)
         // attempt misses engines that answered correctly only because they were quick enough.
         // Repeating the scenario - each time as a new game, so that no result of the previous
         // search can be reused - catches such engines far more often.
+        //
+        // Idea for a deterministic version (not implemented, it would have to be threaded through
+        // ComputeTask, GameContext, EngineWorker and the adapter down to the process layer):
+        // send "go infinite\nstop" in a *single* write to the engine's stdin. EngineProcess::
+        // writeLine already emits its whole string in one write, so both lines sit in the engine's
+        // input buffer before it has read the first one - whether it reads commands line by line or
+        // in a separate thread, the stop is pending before the search touches its first root node.
+        // That is the only condition under which the defect this test looks for shows up: an engine
+        // needs roughly 100 nodes at the root, well below a tenth of a millisecond, so any attempt
+        // to hit the window by delaying the stop, or to observe it via info lines, is hopeless -
+        // there is nothing to time and nothing to observe. Winning the race by ordering instead of
+        // by timing would turn the attempts below from a lottery into a reproducible check.
         static constexpr int IMMEDIATE_STOP_ATTEMPTS = 10;
 
         TimeControl t;
