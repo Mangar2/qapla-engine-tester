@@ -158,7 +158,7 @@ AppReturnCode McpServer::processMessage(const Json::JsonValue::Object& jsonObjec
 
         auto& serverInformation = result["serverInfo"] = Json::JsonValue::object();
         serverInformation["name"] = "Qapla Engine Tester";
-        serverInformation["version"] = "0.5.0";
+        serverInformation["version"] = "0.6.0";
 
         capabilities_.autoDetect();
 

@@ -22,6 +22,7 @@
 #include "../opening/opening-parser.h"
 
 #include "../game-manager/game-manager-pool.h"
+#include "../engine-handling/engine-parameter-bounds.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/app-error.h"
 
@@ -53,9 +54,16 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
         throw AppError::makeInvalidParameters("SPSA requires an openings file");
     }
 
+    std::vector<OptimizerParameterRange> parameterRanges;
+    parameterRanges.reserve(config.parameters.size());
+    for (const auto& param : config.parameters) {
+        parameterRanges.push_back({ param.name, param.minValue, param.maxValue });
+    }
+    validateParameterRangesAgainstEngine(engine, parameterRanges, "SPSA");
+
     baseEngine_ = engine;
     config_ = config;
-    
+
     // Initialize current parameters to default values
     currentParameters_.clear();
     currentParameters_.reserve(config.parameters.size());

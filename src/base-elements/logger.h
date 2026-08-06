@@ -130,7 +130,7 @@ public:
      * @return The welcome message string.
      */
     static std::string getWelcomeMessage() {
-        return "Qapla Engine Tester - Prerelease 0.5.0 (c) by Volker Boehm\n";
+        return "Qapla Engine Tester - Prerelease 0.6.0 (c) by Volker Boehm\n";
     }
 
     /**

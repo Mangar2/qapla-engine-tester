@@ -24,6 +24,7 @@
 
 #include "../opening/opening-parser.h"
 #include "../game-manager/game-manager-pool.h"
+#include "../engine-handling/engine-parameter-bounds.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
 
@@ -273,6 +274,14 @@ void CLOPOptimizer::createCLOP(const std::vector<EngineConfig>& engines, const C
     }
 
     const auto optimizingEngineIndex = Clop::resolveOptimizingEngineIndex(engines);
+
+    std::vector<OptimizerParameterRange> parameterRanges;
+    parameterRanges.reserve(config.parameters.size());
+    for (const auto& parameter : config.parameters) {
+        parameterRanges.push_back({ parameter.name, parameter.minValue, parameter.maxValue });
+    }
+    validateParameterRangesAgainstEngine(engines[optimizingEngineIndex], parameterRanges, "CLOP");
+
     baseEngine_ = engines[optimizingEngineIndex];
     opponentEngines_ = Clop::createOpponentEngines(engines, optimizingEngineIndex);
     config_ = config;

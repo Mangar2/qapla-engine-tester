@@ -541,6 +541,11 @@ AppReturnCode AppRunner::runSpsa(AppReturnCode code, bool background) {
         
         Logger::reportLogger().logStatus("SPSA optimization completed.", "spsa", TraceLevel::result);
     }
+    catch (const AppError& appError) {
+        Logger::reportLogger().logStatus(
+            std::format("Exception during SPSA run: {}", appError.what()), "spsa", TraceLevel::error);
+        return appError.getReturnCode();
+    }
     catch (const std::exception& e) {
         Logger::reportLogger().logStatus(
             std::format("Exception during SPSA run: {}", e.what()), "spsa", TraceLevel::error);
@@ -586,6 +591,11 @@ AppReturnCode AppRunner::runClop(AppReturnCode code, bool background) {
         pool.waitForTask();
 
         Logger::reportLogger().logStatus("CLOP optimization completed.", "clop", TraceLevel::result);
+    }
+    catch (const AppError& appError) {
+        Logger::reportLogger().logStatus(
+            std::format("Exception during CLOP run: {}", appError.what()), "clop", TraceLevel::error);
+        return appError.getReturnCode();
     }
     catch (const std::exception& exception) {
         Logger::reportLogger().logStatus(
