@@ -1,6 +1,6 @@
 # Qapla Engine Tester
 
-**Version**: 0.5.0  
+**Version**: 0.6.0  
 **Author**: Volker Böhm  
 **Repository**: [https://github.com/Mangar2/qapla-engine-tester](https://github.com/Mangar2/qapla-engine-tester)
 
@@ -29,7 +29,7 @@ All features are fully configurable and optimized for multi-core systems.
 
 ## Table of Contents
 
-- [What's New in Version 0.5.0](#-whats-new-in-version-050)
+- [What's New in Version 0.6.0](#-whats-new-in-version-060)
 - [Ultra-Fast Testing](#-ultra-fast-testing)
 - [General Options](#-general-options)
 - [Return Codes for Batch Processing](#-return-codes-for-batch-processing)
@@ -57,9 +57,27 @@ All features are fully configurable and optimized for multi-core systems.
 
 ---
 
-## 🆕 What's New in Version 0.5.0
+## 🆕 What's New in Version 0.6.0
 
-- **MCP Server Mode** — Qapla can now run as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
+- **Perft Mode** — The new `--perft` option counts the leaf nodes reached by exhaustively playing out all legal move sequences from a position to a fixed depth. It verifies move generator correctness and measures raw speed, works without any engine, and distributes root moves across up to `--concurrency` threads. See [Perft](#-perft--move-generator-node-count-test).
+
+- **More Accurate Elo Rating** — Tournament ratings are now fitted so that each engine's expected score matches the points it actually scored, instead of averaging per-duel Elo differences. Because Elo is non-linear in the score, the old method could rate an engine below a rival it had outscored against the same opponent field, and its result depended on the order in which duels were visited. Both effects are gone.
+
+- **Correct Clocks for Black-to-Move Openings** — Games starting from an opening or EPD position with Black to move previously assigned remaining time, increments and `movestogo` to the wrong side. Time accounting now honors the starting side.
+
+- **Gauntlet Without an Explicit Flag** — If no engine is marked `gauntlet=true`, the first engine is now used as the gauntlet engine instead of the tournament being rejected — the same fallback SPRT already used.
+
+- **Restart Diagnostics** — Every engine restart now records *why* it happened (engine not running at game start, restart requested, `restart=always` between games, thinking-time overrun without a bestmove) in the engine log, and an intentional shutdown is no longer reported as a disconnect error.
+
+- **Reliable Handling of Special Characters** — Engine names containing quotes, backslashes or tabs are now written correctly to result and report files; previously such entries could produce files that other tools refused to read.
+
+- **SPRT State File Fix** — SPRT result files are now saved reliably; a mismatched internal identifier previously caused saves to be skipped silently.
+
+> Full details in [CHANGELOG.md](CHANGELOG.md).
+
+### Previously in Version 0.5.0
+
+- **MCP Server Mode** — Qapla Engine Tester can now run as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
 
 - **SPSA Parameter Optimization** — New `--spsa` and `--spsavalue` groups for automated UCI parameter tuning using Simultaneous Perturbation Stochastic Approximation.
 
@@ -75,7 +93,7 @@ All features are fully configurable and optimized for multi-core systems.
 
 - **Settings Refactoring** — Internal settings management has been restructured for better extensibility and MCP integration.
 
-These additions make Qapla suitable not only for statistical testing, but also for full-scale tournament automation, AI-driven testing workflows, and hardware benchmarking.
+These additions make Qapla Engine Tester suitable not only for statistical testing, but also for full-scale tournament automation, AI-driven testing workflows, and hardware benchmarking.
 
 ---
 
@@ -94,7 +112,7 @@ In a test run comparing Qapla 0.3.1 and Qapla 0.3.2 (identical playing strength,
 - **Total duration**: 18 minutes 26 seconds
 - **Average match duration**: 2.7 seconds
 
-This demonstrates Qapla's capability for ultra-fast, large-scale testing with extremely low overhead.
+This demonstrates Qapla Engine Tester's capability for ultra-fast, large-scale testing with extremely low overhead.
 
 ---
 
@@ -145,7 +163,7 @@ Use these codes in automation scripts to check for test outcomes or failure caus
 
 ## 🔀 Configuration Precedence
 
-Qapla supports multiple configuration sources. When the same setting appears in more than one source, the following priority applies (highest first):
+Qapla Engine Tester supports multiple configuration sources. When the same setting appears in more than one source, the following priority applies (highest first):
 
 1. **Tournament/SPRT result files** — When a tournament or SPRT result file is specified and already exists, all settings stored in that file take absolute precedence. Using a result file tells the program "continue this tournament/SPRT exactly as configured". This ensures consistency when resuming interrupted runs.
 2. **Command-line arguments** — CLI parameters override settings from the settings file and engines file. This is ideal for batch runs where a base configuration is stored in a settings file and only the varying parameters are passed via CLI.
@@ -419,13 +437,13 @@ Define the optimizer with `--clop` and each tuned parameter with `--clopvalue` (
 
 ## 🧾 Tournament and SPRT Result Files
 
-Tournament and SPRT result files serve a dual purpose: they store game results **and** the complete configuration used for the run. This makes them self-contained — when you specify an existing result file, Qapla reads all settings from it and continues the tournament or SPRT test exactly as originally configured.
+Tournament and SPRT result files serve a dual purpose: they store game results **and** the complete configuration used for the run. This makes them self-contained — when you specify an existing result file, Qapla Engine Tester reads all settings from it and continues the tournament or SPRT test exactly as originally configured.
 
 Result files are available for both **tournaments** (`--tournament file=...`) and **SPRT** (`--sprt file=...`).
 
 ### How It Works
 
-- When a result file is specified and already exists, Qapla loads **all settings** from it automatically.
+- When a result file is specified and already exists, Qapla Engine Tester loads **all settings** from it automatically.
 - Settings from a result file take **absolute precedence** — higher priority than CLI arguments, settings files, or engines files. This ensures consistency when resuming a run.
 - Already completed games are skipped; only remaining games are played.
 - Result files are periodically saved during the run (configurable via `saveintervalS`).
@@ -433,7 +451,7 @@ Result files are available for both **tournaments** (`--tournament file=...`) an
 ### Use Cases
 
 - **Resume an interrupted run** — Simply pass the result file again. All configuration and progress is restored automatically.
-- **Continue with more games** — Increase rounds or games in the result file configuration, and Qapla will play only the new pairings.
+- **Continue with more games** — Increase rounds or games in the result file configuration, and Qapla Engine Tester will play only the new pairings.
 
 > **Tip**: You can set up your entire tournament or SPRT configuration via CLI or settings file for the initial run. On subsequent runs, pass only the result file — no other configuration is needed.
 
@@ -498,7 +516,7 @@ A single engine configuration replays identical games at increasing concurrency 
 
 ## 🌳 Perft — Move Generator Node Count Test
 
-The `--perft` mode runs a classic perft (**per**formance **t**est): it counts the number of leaf nodes reached by exhaustively playing out all legal move sequences from a position to a fixed depth. This is the standard way to verify that a move generator is correct (no missing or illegal moves) and to benchmark its raw speed. Perft does not require any engine — it only uses Qapla's own, fully legal move generator.
+The `--perft` mode runs a classic perft (**per**formance **t**est): it counts the number of leaf nodes reached by exhaustively playing out all legal move sequences from a position to a fixed depth. This is the standard way to verify that a move generator is correct (no missing or illegal moves) and to benchmark its raw speed. Perft does not require any engine — it only uses Qapla Engine Tester's own, fully legal move generator.
 
 ### How It Works
 
@@ -534,7 +552,7 @@ The final line reports the total node count, elapsed time, and nodes per second 
 
 ## 📡 MCP Server Mode
 
-When started with `--mcp`, Qapla runs as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
+When started with `--mcp`, Qapla Engine Tester runs as a Model Context Protocol (MCP) server, exposing its test and tournament features as AI-callable tools. This enables integration with LLM-based workflows for automated engine testing.
 
 ---
 

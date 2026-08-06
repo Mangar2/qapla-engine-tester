@@ -756,6 +756,13 @@ namespace QaplaTester::Settings
     void Manager::showMarkdown() {
         QaplaHelpers::MarkdownOutput markdown;
         markdown.addHeading("Qapla Engine Tester - Parameter Reference");
+        markdown.addParagraph(
+            "> **This file is generated - do not edit it by hand.**\n"
+            "> It is written directly from the parameter definitions built into the program,\n"
+            "> so it always matches the version it was generated with.\n"
+            ">\n"
+            "> Regenerate it with:\n"
+            "> `qapla-engine-tester --markdown > PARAMETERS.md`");
         appendGlobalMarkdownSection(markdown);
         appendGroupMarkdownSections(markdown);
 

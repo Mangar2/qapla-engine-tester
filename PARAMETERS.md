@@ -1,9 +1,16 @@
-﻿# Qapla Engine Tester - Parameter Reference
+# Qapla Engine Tester - Parameter Reference
+
+> **This file is generated - do not edit it by hand.**
+> It is written directly from the parameter definitions built into the program,
+> so it always matches the version it was generated with.
+>
+> Regenerate it with:
+> `qapla-engine-tester --markdown > PARAMETERS.md`
 
 ## Global Parameters
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | --concurrency | <number> | *required* | Maximum number of concurrently running engines. Use 0 for automatic detection based on physical CPU cores. In auto mode the runtime uses max(1, physical cores - 1). If core detection fails, it falls back to 1. |
 | --enginesfile | <path> |  | Path to an ini file with engine configurations |
 | --interactive | <bool> | false | Enables interactive mode |
@@ -12,10 +19,13 @@
 
 ## --clop
 
-Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression. The optimizer fits a local quadratic win model over sampled parameter vectors and updates a local design weight function. New samples are drawn according to this weight function and evaluated against configured opponent engines. IMPORTANT: You MUST define all optimized parameters using the 'clopvalue' group.
+Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression.
+The optimizer fits a local quadratic win model over sampled parameter vectors and updates a local design weight function.
+New samples are drawn according to this weight function and evaluated against configured opponent engines.
+IMPORTANT: You MUST define all optimized parameters using the 'clopvalue' group.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | activepairs | <number> | 8 | Maximum number of concurrent unfinished CLOP sample pairs |
 | samples | <number> | 100 | Maximum number of CLOP samples |
 | gamespersample | <number> | 8 | Number of games per sampled parameter vector |
@@ -29,10 +39,14 @@ Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regres
 
 ## --clopvalue
 
-Defines a parameter for CLOP optimization. All fields (name, min, max) are mandatory. Choose min/max so the search space contains only meaningful test values. If you have a known baseline value (previous default/start value), set min/max so this value is approximately centered in the range. Multiple 'clopvalue' groups can be defined to optimize several parameters simultaneously.
+Defines a parameter for CLOP optimization.
+All fields (name, min, max) are mandatory.
+Choose min/max so the search space contains only meaningful test values.
+If you have a known baseline value (previous default/start value), set min/max so this value is approximately centered in the range.
+Multiple 'clopvalue' groups can be defined to optimize several parameters simultaneously.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | name | string | *required* | The exact name of the UCI option as reported by the engine. |
 | min | <number> | *required* | Minimum allowed value for the parameter |
 | max | <number> | *required* | Maximum allowed value for the parameter |
@@ -42,7 +56,7 @@ Defines a parameter for CLOP optimization. All fields (name, min, max) are manda
 Configures global draw adjudication rules. These settings apply to all tournament modes (SPRT, Tournament, SPSA) unless explicitly overridden.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | movenumber | <number> | 60 | The specific move number where draw adjudication becomes active. Before this move number, no draw adjudication will occur. |
 | movecount | <number> | 20 | The number of consecutive moves where the evaluation must remain distinctively within the draw score range to trigger a draw adjudication. |
 | score | <number> | 20 | The score threshold in centipawns. If the evaluation of both engines stays within +/- this score for 'movecount' moves, the game is adjudicated as a draw. |
@@ -53,7 +67,7 @@ Configures global draw adjudication rules. These settings apply to all tournamen
 Defines configuration options for all engines
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | dir | <path> | . | Working directory |
 | proto | string | uci | Protocol (uci/xboard) |
 | tc | string | 3+0.02 | Time control in format moves/time+inc or 'inf' |
@@ -67,7 +81,7 @@ Defines configuration options for all engines
 Defines an engine configuration
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | conf | string |  | Selects a pre-configured engine from the registry. You can see available engines via the 'manage_engines' tool. |
 | name | string |  | Name of the engine |
 | cmd | <path> |  | Directly specify the path to the engine executable. Use this if the engine is not in the registry. |
@@ -82,10 +96,13 @@ Defines an engine configuration
 
 ## --epd
 
-Runs an EPD (Extended Position Description) testset. Each engine analyzes a set of positions and its performance is measured by how many 'best moves' it finds within the configured search limits. You can run time-limited analysis (maxtime/mintime/seenplies) or fixed search limits (depth or nodes). Results are reported as a success rate and compared against a minimum threshold.
+Runs an EPD (Extended Position Description) testset.
+Each engine analyzes a set of positions and its performance is measured by how many 'best moves' it finds within the configured search limits.
+You can run time-limited analysis (maxtime/mintime/seenplies) or fixed search limits (depth or nodes).
+Results are reported as a success rate and compared against a minimum threshold.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | file | <path> | *required* | Path and file name to the epd file |
 | maxtime | <number> | 20 | Maximum allowed time in seconds per move during EPD analysis. Ignored when 'depth' or 'nodes' is greater than 0. |
 | mintime | <number> | 2 | Minimum required time for an early stop, when a correct move is found. Ignored when 'depth' or 'nodes' is greater than 0. |
@@ -99,7 +116,7 @@ Runs an EPD (Extended Position Description) testset. Each engine analyzes a set 
 Logger configuration
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | engine | <bool> | true | If true, engine logging is enabled |
 | path | <path> | . | Path to the logging directory |
 | mode | string | one | Engine log file strategy: one (single file for all engines), each (separate file per engine) |
@@ -111,7 +128,7 @@ Logger configuration
 Enables MCP mode and optional tool-name prefixing for parallel local/remote MCP server usage.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | prefix | string |  | Optional MCP tool name prefix used to avoid naming conflicts when multiple MCP servers are active. |
 
 ## --openings
@@ -119,7 +136,7 @@ Enables MCP mode and optional tool-name prefixing for parallel local/remote MCP 
 Defines how start positions are selected
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | file | <path> | *required* | Path to file with opening positions |
 | order | string | sequential | Order of position selection: random, sequential |
 | srand | <number> | 5489 | Seed for random opening selection |
@@ -129,10 +146,13 @@ Defines how start positions are selected
 
 ## --perft
 
-Runs perft (performance test), counting the number of leaf nodes reached after playing out all legal move sequences to a fixed depth. Used to verify move generator correctness and speed. With 'divide' enabled (default), the node count is broken down per root move. Root moves are distributed across up to 'concurrency' threads.
+Runs perft (performance test), counting the number of leaf nodes reached
+after playing out all legal move sequences to a fixed depth. Used to verify move generator correctness
+and speed. With 'divide' enabled (default), the node count is broken down per root move.
+Root moves are distributed across up to 'concurrency' threads.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | position | string | startpos | Position to search from. Use 'startpos' for the standard initial position, or any other value is parsed as a FEN string. |
 | depth | <number> | 1 | Search depth in plies |
 | divide | <bool> | true | If true, prints the node count for each legal root move separately, in addition to the total. If false, only the total node count is printed. |
@@ -143,7 +163,7 @@ Runs perft (performance test), counting the number of leaf nodes reached after p
 PGN output settings
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | file | <path> | *required* | Path to the output PGN file |
 | append | <bool> | false | Append to existing file instead of overwriting it |
 | finished | <bool> | true | Only save finished games |
@@ -158,7 +178,7 @@ PGN output settings
 Configures global resignation adjudication rules. These settings apply to all tournament modes (SPRT, Tournament, SPSA) unless explicitly overridden.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | movecount | <number> | *required* | Number of consecutive moves that must maintain a score below the specified threshold to trigger a resignation. A typical value is 5. Setting this to 0 disables resignation adjudication. |
 | score | <number> | 500 | The evaluation threshold in centipawns that triggers a resignation. This value describes the margin by which a side must be falling behind. For example, a value of 500 means the evaluation must be <= -500 cp. |
 | twosided | <bool> | false | If enabled, both engines must agree on the resignation condition (i.e. one sees itself losing, the other sees itself winning). This reduces false positives but may delay adjudication. |
@@ -166,10 +186,20 @@ Configures global resignation adjudication rules. These settings apply to all to
 
 ## --sprt
 
-Runs SPRT (Sequential Probability Ratio Test). Determines if Challenger is stronger than Baseline. Roles: - Challenger: Engine with 'gauntlet=true', or first engine if no gauntlet flag. - Baseline: The other engine. Hypotheses: - H0 (Null): Challenger Elo <= Baseline + eloH0 - H1 (Alt):  Challenger Elo >= Baseline + eloH1 Configs: - Improvement: eloH0=0, eloH1=5 - Regression: eloH0=-5, eloH1=0
+Runs SPRT (Sequential Probability Ratio Test).
+Determines if Challenger is stronger than Baseline.
+Roles:
+- Challenger: Engine with 'gauntlet=true', or first engine if no gauntlet flag.
+- Baseline: The other engine.
+Hypotheses:
+- H0 (Null): Challenger Elo <= Baseline + eloH0
+- H1 (Alt):  Challenger Elo >= Baseline + eloH1
+Configs:
+- Improvement: eloH0=0, eloH1=5
+- Regression: eloH0=-5, eloH1=0
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | file | <path> |  | File to load/save tournament outcome |
 | saveintervals | <number> | 10 | Interval in seconds to save tournament state |
 | eloh0 | <number> | 0.0000 | The Elo parameter for the null hypothesis (H0). If the result supports this hypothesis, we conclude that Engine 1's advantage is at most 'eloH0' Elo. |
@@ -183,10 +213,15 @@ Runs SPRT (Sequential Probability Ratio Test). Determines if Challenger is stron
 
 ## --spsa
 
-Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm. Parameters are perturbed in multiple iterations to find the optimal values that maximize playing strength. The process requires two engines; the second engine will be automatically configured with the perturbed parameters. Each iteration involves running a set of games with slightly different parameter values to estimate the gradient of the performance. IMPORTANT: You MUST define ALL parameters you want to optimize using the 'spsavalue' group.  Each 'spsavalue' must be fully defined with name, default, min, max, and step.
+Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm.
+Parameters are perturbed in multiple iterations to find the optimal values that maximize playing strength.
+The process requires two engines; the second engine will be automatically configured with the perturbed parameters.
+Each iteration involves running a set of games with slightly different parameter values to estimate the gradient of the performance.
+IMPORTANT: You MUST define ALL parameters you want to optimize using the 'spsavalue' group. 
+Each 'spsavalue' must be fully defined with name, default, min, max, and step.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | activepairs | <number> | 32 | Maximum number of concurrent unfinished tournament pairs |
 | learningrate | <number> | 0.0020 | Global learning rate for parameter updates (r in SPSA algorithm) |
 | gamesperpair | <number> | 8 | Number of games per parameter perturbation pair |
@@ -196,10 +231,12 @@ Optimizes engine parameters using the Simultaneous Perturbation Stochastic Appro
 
 ## --spsavalue
 
-Defines a parameter for SPSA optimization. All fields (name, default, min, max, step) are mandatory for the optimization process. Multiple 'spsavalue' groups can be defined to optimize several parameters simultaneously.
+Defines a parameter for SPSA optimization.
+All fields (name, default, min, max, step) are mandatory for the optimization process.
+Multiple 'spsavalue' groups can be defined to optimize several parameters simultaneously.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | name | string | *required* | The exact name of the UCI option as reported by the engine (e.g., 'Contempt', 'King Safety'). |
 | default | <number> | *required* | The initial value from which the optimization starts. |
 | min | <number> | *required* | The lower bound for the parameter. The optimizer will not suggest values below this. |
@@ -208,10 +245,10 @@ Defines a parameter for SPSA optimization. All fields (name, default, min, max, 
 
 ## --systemtest
 
-Runs repeated games from one fixed start position with one engine configuration and increases game concurrency step by step. Logs average and total NPS in kNps plus NPS standard deviation per move, including a baseline standard deviation at low parallelism and additional standard deviation introduced by higher parallelism.
+Evaluates how stable a platform allocates computation time to engines when running multiple games in parallel. Replays identical games at increasing concurrency levels and measures per-move NPS standard deviation. Helps determine the optimal number of concurrent games for tournament play on a given system.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | maxcores | <number> | 0 | Maximum number of parallel games to test. If set to 0, the resolved global concurrency value is used as upper bound. |
 | step | <number> | 1 | How many concurrency slots are added after each step interval. |
 | steptime | <number> | 30 | Number of seconds to run one concurrency step before increasing to the next step. |
@@ -222,7 +259,7 @@ Runs repeated games from one fixed start position with one engine configuration 
 Runs an extended test to evaluate engine stability and performance.         The test involves granular steps designed to trigger potential issues,      including crashes with invalid parameters. Each test type can be disabled;  all tests are on by default. Disable specific tests if a fast result is     more important than comprehensive coverage.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | underrun | <bool> | false | Verifies that the engine does not stop searching too early before the allocated time is used up. |
 | timeusage | <bool> | false | Measures and validates the engine's time management accuracy during actual games. |
 | numgames | <number> | 20 | Specifies the number of games played by the engine against itself to test long-term stability. Values greater than 0 enable the multi-game self-play test (including parallel execution by configured concurrency). A value of 0 skips this test. |
@@ -239,10 +276,12 @@ Runs an extended test to evaluate engine stability and performance.         The 
 
 ## --tournament
 
-Runs a tournament between multiple engines. Pairings are generated based on the tournament type (e.g., round-robin or gauntlet). Engines play against each other with color swapping and opening variations.
+Runs a tournament between multiple engines.
+Pairings are generated based on the tournament type (e.g., round-robin or gauntlet).
+Engines play against each other with color swapping and opening variations.
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
+| --- | --- | --- | --- |
 | type | string | *required* | Tournament type: gauntlet/round-robin |
 | file | <path> |  | Tournament stat file to load and update tournament state |
 | saveintervals | <number> | 10 | Interval in seconds to save tournament state |
@@ -255,3 +294,4 @@ Runs a tournament between multiple engines. Pairings are generated based on the 
 | ratinginterval | <number> | 100 | Interval (in games) for printing rating table |
 | averageelo | <number> | 2600 | Set average Elo level for scaling rating output |
 | outcomeinterval | <number> | 0 | Interval (in games) for printing outcome table |
+

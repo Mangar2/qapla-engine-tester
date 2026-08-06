@@ -72,6 +72,13 @@ void MarkdownOutput::addTable(const std::vector<std::string>& headers,
 }
 
 void MarkdownOutput::addBlankLine() {
+    // A blank line is a *separate* empty line, not just the end of the current one:
+    // markdown blocks (headings, paragraphs, tables) must be separated by one, or a
+    // table directly following a paragraph is parsed as part of that paragraph and
+    // never renders as a table.
+    if (!content_.empty() && content_.back() != '\n') {
+        content_ += "\n";
+    }
     content_ += "\n";
 }
 

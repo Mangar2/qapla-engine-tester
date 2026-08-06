@@ -7,89 +7,157 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-06
+
+### Added
+
+- **Perft — move generator node count test**: New `--perft` mode
+  - Counts all positions reachable from a start position within a given number
+    of moves. This is the standard way to check that a move generator produces
+    exactly the legal moves — no more, no less — and to measure how fast it is.
+  - Needs no engine at all; it uses Qapla Engine Tester's own move generator
+  - Runs on as many CPU cores as `--concurrency` allows
+  - Options: `position` (start position or any FEN), `depth` (number of plies),
+    `divide` (show the count for each single first move), `showfen` (also show
+    the position after each first move)
+  - Prints total node count, elapsed time and nodes per second
+
+- **Marking engines as selected**: Engines in the engines file can now carry a
+  `selected` flag, so a graphical front-end can remember which engines were
+  picked for the next run.
+
 ### Changed
 
-- **JSON handling migrated to `src/json` (`mqtt::json::JsonValue`)**: replaces the
-  old `Mcp::JsonHelper`/`Mcp::JsonValue` (hand-written parser/serializer) across
-  table-format, base-logger, tournament-result, engine-capability, app-runner, and
-  the full MCP layer (converter, schema-builder, job-scheduler, background-tools,
-  engine-tool, message-channel, server).
-  - **String escaping fixed**: previously only `\"`, `\\`, `\n` were escaped;
-    control characters, `\t`, `\r`, and other required escapes are now handled
-    correctly. Rating-table/outcome JSON and MCP payloads containing such
-    characters (e.g. an engine name with `"` or `\`) are now valid JSON where
-    they previously were not.
-  - **Persisted engine-capability cache is now compact**: `option.*` lines
-    written to the capability INI cache no longer contain spaces after `:`/`,`.
-    Lines written by older builds (with spaces) still parse correctly.
-  - **Internal interfaces are tree-typed**: `AppRunner`, `TournamentResult`,
-    `TableFormat`, `JobScheduler`, and the MCP tool handlers now pass
-    `JsonValue` trees instead of pre-serialized JSON strings; `stringify()`/
-    `parse()` happen once each, at the real boundary (MCP stdio, persisted
-    capability line).
-  - **Stricter parsing at input boundaries**: malformed or empty JSON at the
-    MCP stdin boundary is rejected (mapped to a JSON-RPC parse error) instead
-    of silently returning null.
+- **More accurate Elo ratings in tournaments**: Ratings are now calculated so
+  that the score each engine is *expected* to achieve against its actual
+  opponents matches the points it really scored.
+  - The previous method could rate an engine lower than a rival even though it
+    had scored more points against exactly the same opponents. This can no
+    longer happen: against an identical field of opponents, more points always
+    means more Elo.
+  - Ratings no longer depend on the order in which the individual matches were
+    processed, so the same tournament always yields the same rating list.
+  - Rounding is now applied only for display. Intermediate values keep their
+    full precision, which previously could add up to a noticeable error in
+    tournaments with many pairings.
+
+- **Gauntlet tournaments without an explicitly marked engine**: If no engine is
+  marked with `gauntlet=true`, the first engine listed is now used as the
+  gauntlet engine instead of the tournament being rejected with an error. This
+  is what the documentation described, and what SPRT already did.
+
+- **Engine restarts state their reason**: Whenever an engine is restarted, the
+  engine log now records why — for example that the engine was not running at
+  the start of a game, that a restart was requested, that `restart=always` is
+  configured, or that the engine exceeded its thinking time without returning a
+  move. This makes it much easier to tell an engine problem from a
+  configuration effect when reading a log.
+
+- **Reliable handling of special characters**: Engine names and other text
+  containing quotes, backslashes or tab characters are now written correctly to
+  result and report files. Previously such entries could produce files that
+  other tools refused to read.
+
+- **Clearer errors on malformed input**: When Qapla Engine Tester runs as an MCP
+  server, malformed or empty input is now reported as a proper error message
+  instead of being ignored silently.
+
+### Fixed
+
+- **Wrong clock times for openings with Black to move**: When a game started
+  from an opening or EPD position in which Black is to move, remaining time,
+  increment and "moves to go" were assigned to the wrong side. Both the times
+  sent to the engines and the times recorded per player were affected. Games
+  starting with Black to move are now timed correctly.
+
+- **SPRT result files were not saved**: Due to a mismatched internal name, SPRT
+  runs could silently skip writing their result file — so progress was lost and
+  an interrupted run could not be resumed. SPRT result files are now saved as
+  documented.
+
+- **Engine capability cache could become unreadable**: The stored information
+  about an engine's options could be written in a form that Qapla Engine Tester
+  itself failed to read back, in particular for options offering a list of
+  choices. Affected entries are now written and read correctly; caches written by
+  older versions still work.
+
+- **Duplicate entries in configuration files**: Saving a configuration could add
+  a second identifier line to a section. Such lines are now replaced instead of
+  duplicated, and sections written by earlier versions are repaired
+  automatically on the next save.
+
+- **Empty optional file paths were rejected**: Leaving an optional path empty
+  (for example: no tournament result file configured yet) no longer causes a
+  parameter error.
+
+- **Normal engine shutdown reported as an error**: When Qapla Engine Tester
+  itself stopped an engine — for instance to restart it with different options —
+  the log showed a disconnect error even though everything worked as intended.
+  This is now logged as an expected shutdown.
 
 ## [0.5.0] - 2026-04-03
 
 ### Added
 
-- **MCP server**: Model Context Protocol support for AI-assisted engine testing
-  - Tool-based interface for SPRT, SPSA, CLOP, EPD, tournament and engine test
-  - Job scheduler with queue/background execution
-  - Preconfigured settings files support
-  - JSON result notifications and log file access
+- **MCP server**: Qapla Engine Tester can run as a Model Context Protocol server,
+  making its test and tournament features usable from AI assistants
+  - SPRT, SPSA, CLOP, EPD, tournament and engine test available as callable tools
+  - Jobs can be queued and run in the background
+  - Prepared settings files can be used
+  - Results are reported back and log files can be retrieved
 
-- **Per-instance engine logging**: New `[logging]` configuration group
-  - `logging.path`: Path to the logging directory
-  - `logging.mode=one|each`: Engine log file strategy
-    - `one` (default): All engines log to a single file
-    - `each`: Each engine instance creates separate log files
-  - `logging.engine`: Enable/disable engine logging
+- **Per-engine logging**: New `[logging]` configuration group
+  - `logging.path`: directory for log files
+  - `logging.mode=one|each`: all engines in one log file (`one`, default), or a
+    separate log file per engine instance (`each`)
+  - `logging.engine`: switch engine logging on or off
 
-- **Integration test framework**: New modular PowerShell-based testing framework
-  - Test runner with filtering and listing capabilities
-  - Validator plugin system (exit codes, file counts, content validation)
-  - Organized test definitions in subdirectories
-  - Automatic cleanup and logging verification
+- **Automated integration tests**: A test suite that runs Qapla Engine Tester end
+  to end and checks exit codes, generated files and their content
 
-- **SPRT decision modes**: Support for 5 SPRT decision calculation modes
-  - Trinomial statistics: normalized, logistic, bayesian models
-  - Pentanomial statistics: normalized, logistic models
-  - New `--sprt model` and `--sprt pentanomial` options for model selection
+- **SPRT decision modes**: Five ways of computing the SPRT decision
+  - Per-game statistics: normalized, logistic and bayesian model
+  - Per-game-pair statistics: normalized and logistic model
+  - Selectable via `--sprt model` and `--sprt pentanomial`
 
-- **SPRT tournament persistence**: SPRT tournament files now compatible with GUI and CLI
-  - Read and write SPRT tournament files across GUI/CLI applications
-  - Automatic periodic saving with `--sprt saveinterval` option
-  - Resume interrupted SPRT tournaments
+- **Resumable SPRT runs**: SPRT result files are now shared between the
+  graphical interface and the command line
+  - Written and read by both applications
+  - Saved periodically during the run (`--sprt saveinterval`)
+  - Interrupted SPRT runs can be continued
 
-- **SPSA parameter optimization**: New parameter optimization capability via SPSA algorithm
+- **SPSA parameter optimization**: Automatic tuning of engine parameters
   - New `--spsa` and `--spsa value` parameter groups
-  - Iterative parameter tuning for engine optimization
+  - Parameters are improved step by step over many self-play games
 
-- **CLOP parameter optimization**: New Confident Local Optimization algorithm for noisy black-box tuning
+- **CLOP parameter optimization**: A second tuning method, designed for noisy
+  results
   - New `--clop` and `--clop value` parameter groups
-  - Weighted local quadratic logistic regression with confidence-based sampling
-  - Integrated into CLI task dispatch and MCP tooling with queue/background support
+  - Concentrates games on the most promising parameter values
+  - Also available from the command line and via the MCP server, with queued and
+    background execution
 
-- **System test**: New `--systemtest` mode for NPS stability analysis
-  - Evaluates how stable a platform allocates computation time to engines when running multiple games in parallel
-  - Replays identical games at increasing concurrency levels
-  - Per-step NPS statistics with standard deviation to determine optimal concurrency
+- **System test**: New `--systemtest` mode measuring speed stability
+  - Shows how evenly a computer distributes computing power to engines when
+    several games run in parallel
+  - Replays identical games at increasing numbers of parallel games
+  - Reports speed fluctuation per step, so you can pick the highest number of
+    parallel games that still yields trustworthy results
 
-- **EPD enhancements**: Support for `depth` and `nodes` search limits in EPD tests
+- **EPD enhancements**: EPD tests can now run with a fixed `depth` or node count
+  (`nodes`) instead of a time limit
 
-- **WinBoard/XBoard engine support**: Full support for WinBoard/XBoard protocol engines alongside UCI
+- **WinBoard/XBoard engine support**: Engines using the WinBoard (XBoard)
+  protocol are fully supported alongside UCI engines
 
-- **Engine command-line arguments**: New support for passing arguments to engine executables
+- **Engine command-line arguments**: Engines can be started with additional
+  command-line arguments
 
-- **SPRT final result logging**: Log file now includes final SPRT decision and statistics
+- **SPRT final result in the log**: The log file now contains the final SPRT
+  decision including its statistics
 
 ### Changed
 
-- **Centralized settings management**: Refactored configuration into `Settings::Manager` with `fromManager` pattern across all config classes
-- **Source tree reorganization**: Moved modules into dedicated subdirectories (game-manager, engine-handling, etc.)
-- **Adjudication enabled in rapid mode**
-
-
+- **Reworked configuration handling**: All settings are managed uniformly, which
+  makes settings files, command line and MCP behave consistently
+- **Adjudication is now also active in rapid mode**
