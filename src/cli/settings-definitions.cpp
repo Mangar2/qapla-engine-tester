@@ -486,7 +486,8 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
                     .defaultValue = "sprt-tournament",
                     .type = ValueType::String,
                     .isHidden = true } },
-        { "file", { .description = "File to load/save tournament outcome", 
+        { "file", { .description = "File to load/save tournament outcome. Its engine sections are "
+                    "used only if no engine is configured by command line or settings file",
                     .isRequired = false, 
                     .defaultValue = "", 
                     .type = ValueType::ValidateOutputPath,
@@ -754,7 +755,9 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
                     .isRequired = true, 
                     .defaultValue = "gauntlet", 
                     .type = ValueType::String } },
-        { "file", { .description = "Tournament stat file to load and update tournament state", 
+        { "file", { .description = "Tournament stat file to load and update tournament state. Its "
+                    "engine sections are used only if no engine is configured by command line or "
+                    "settings file",
                     .isRequired = false, 
                     .defaultValue = "", 
                     .type = ValueType::ValidateOutputPath } },

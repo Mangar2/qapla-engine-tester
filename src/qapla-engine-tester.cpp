@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
         if (!Settings::Manager::instance().get<bool>("mcp")) {
             Logger::reportLogger().logCli(Logger::getWelcomeMessage());
         }
+        Settings::QaplaSettings::instance().logEngineSource();
 
         returnCode = run();
 			

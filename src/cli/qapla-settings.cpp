@@ -22,6 +22,7 @@
 
 #include "settings-manager.h"
 #include "settings-definitions.h"
+#include "../engine-handling/engine-worker-factory.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/ini-file.h"
@@ -38,6 +39,8 @@
 #include "../spsa/spsa-optimizer.h"
 #include "../clop/clop-types.h"
 
+#include <algorithm>
+#include <format>
 #include <memory>
 #include <vector>
 #include "../mcp/mcp-server.h"
@@ -87,16 +90,26 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
     auto tournamentGroup = Manager::instance().getGroupInstance("tournament");
     std::string tournamentFile = tournamentGroup.has_value() ? tournamentGroup->get<std::string>("file") : "";
 
+    std::string engineSourceFile;
     if (!sprtFile.empty() || !tournamentFile.empty()) {
         if (Settings::Manager::instance().get<bool>("mcp")) {
             throw AppError::makeInvalidParameters("Continuing a tournament/SPRT run from file is not supported in MCP mode.");
         }
-        
-        // Engines must come solely from --settingsfile/--enginesfile/CLI. The state file already
-        // has its own [engine] copies (written on save) that would otherwise be re-added here,
-        // duplicating every engine and thus every pairing when a run is resumed.
-        loadFromFile(sprtFile, false, false, std::nullopt, {"engine"});
-        loadFromFile(tournamentFile, false, false, std::nullopt, {"engine"});
+
+        // A multi-instance group is replaced as a whole by the higher precedence layer, it is never
+        // merged. Thus the [engine] sections of the state file are used only if no engine is
+        // configured on the command line or in a settings file. Merging them would duplicate every
+        // engine - and thus every pairing - on resume, and would make it impossible to drop an
+        // engine from a resumed run or to point its entries to another machine's directories.
+        const bool hasConfiguredEngines = hasActiveEngineInstances();
+        const std::vector<std::string> excludedSections =
+            hasConfiguredEngines ? std::vector<std::string>{ "engine" } : std::vector<std::string>{};
+        if (!hasConfiguredEngines) {
+            engineSourceFile = sprtFile.empty() ? tournamentFile : sprtFile;
+        }
+
+        loadFromFile(sprtFile, false, false, std::nullopt, excludedSections);
+        loadFromFile(tournamentFile, false, false, std::nullopt, excludedSections);
     }
 
     if (Settings::Manager::instance().get<bool>("mcp")) {
@@ -108,6 +121,38 @@ void QaplaSettings::initializeConfigs(const std::vector<std::string>& args) {
 
     // 6. Initialize engines only once
     m_rapid = Helper::applyEngineSettings(Manager::instance(), "engine");
+
+    setEngineSourceInfo(engineSourceFile, sprtFile, tournamentFile);
+}
+
+bool QaplaSettings::hasActiveEngineInstances() {
+    const auto engineInstances = Manager::instance().getGroupInstances("engine");
+    return std::ranges::any_of(engineInstances, [](const GroupInstance& instance) {
+        // id="config" only registers a named engine configuration, it does not select an engine.
+        return QaplaHelpers::to_lowercase(instance.get<std::string>("id")) != "config";
+    });
+}
+
+void QaplaSettings::setEngineSourceInfo(const std::string& engineSourceFile,
+    const std::string& sprtFile, const std::string& tournamentFile) {
+
+    const auto engineCount = EngineWorkerFactory::getActiveEngines().size();
+    if (!engineSourceFile.empty()) {
+        engineSourceInfo_ = std::format("{} engines taken from {}", engineCount, engineSourceFile);
+        return;
+    }
+
+    const std::string& stateFile = sprtFile.empty() ? tournamentFile : sprtFile;
+    if (!stateFile.empty()) {
+        engineSourceInfo_ = std::format(
+            "{} configured engines used, engine sections in {} ignored", engineCount, stateFile);
+    }
+}
+
+void QaplaSettings::logEngineSource() const {
+    if (!engineSourceInfo_.empty()) {
+        Logger::reportLogger().log(engineSourceInfo_, TraceLevel::result);
+    }
 }
 
 void QaplaSettings::loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite,

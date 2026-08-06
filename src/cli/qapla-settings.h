@@ -71,6 +71,12 @@ public:
     void initializeConfigs(const std::vector<std::string>& args);
 
     /**
+     * @brief Logs whether the engines were taken from a tournament/SPRT state file or configured.
+     * Logs nothing if no state file is used.
+     */
+    void logEngineSource() const;
+
+    /**
      * @brief Applies configuration data and synchronizes internal state.
      * This follows the full initialization pipeline: parsing, validation, and internal setter updates.
      * @param configData Optional configuration data to apply on top of the initial configuration.
@@ -186,6 +192,24 @@ private:
     void loadFromFile(const std::string& fileName, bool throwOnError, bool overwrite,
         std::optional<std::string> id = std::nullopt,
         const std::vector<std::string>& excludeSections = {});
+
+    /**
+     * @brief Checks whether engines are already configured by CLI or settings file.
+     * Instances with id="config" only register a named configuration and are not counted.
+     * @return True if at least one engine is selected for the run.
+     */
+    [[nodiscard]] static bool hasActiveEngineInstances();
+
+    /**
+     * @brief Stores the message telling where the engines of the run came from.
+     * @param engineSourceFile State file the engines were taken from, empty if they were configured.
+     * @param sprtFile Configured SPRT state file, may be empty.
+     * @param tournamentFile Configured tournament state file, may be empty.
+     */
+    void setEngineSourceInfo(const std::string& engineSourceFile,
+        const std::string& sprtFile, const std::string& tournamentFile);
+
+    std::string engineSourceInfo_;
 
     /**
      * @brief Reads logger configuration from CLI settings

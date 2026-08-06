@@ -70,6 +70,32 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
         },
         {
+            "name": "sprt-continuation-configured-engines",
+            "description": "SPRT continuation with engines given on the command line - the engine sections of the SPRT file must be ignored, not merged",
+            "args": "--concurrency=2 --logging path=test/integration/log/sprt engine=false --sprt file=test/integration/log/sprt/test-sprt-file.qsprt --engine cmd=test/integration/engines/diagnostic-engine-lossontime.exe name=llt1 --engine cmd=test/integration/engines/diagnostic-engine-lossontime.exe name=llt2",
+            "log_path": "test/integration/log/sprt",
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "stdout",
+                    "content": "engine sections in test/integration/log/sprt/test-sprt-file.qsprt ignored",
+                },
+                {
+                    # Exactly one pairing: merging both sources would double every engine.
+                    "type": "stdout",
+                    "content": r"(?s)^(?:(?!Encounter).)*Encounter llt1 vs llt2(?:(?!Encounter).)*$",
+                    "isRegex": True,
+                },
+            ],
+            "cleanup": "test/integration/log/sprt",
+            "source_files": [
+                {
+                    "source": "test/integration/sprt/test-sprt-file.qsprt",
+                    "target": "test/integration/log/sprt/test-sprt-file.qsprt"
+                }
+            ],
+        },
+        {
             "name": "sprt-nonexisting-file",
             "description": "SPRT continuation from existing SPRT file",
             "args": "--concurrency=2 --settingsfile=test/integration/sprt/test-sprt-write-nonexisting.ini",

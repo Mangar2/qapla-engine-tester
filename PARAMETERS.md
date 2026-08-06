@@ -200,7 +200,7 @@ Configs:
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| file | <path> |  | File to load/save tournament outcome |
+| file | <path> |  | File to load/save tournament outcome. Its engine sections are used only if no engine is configured by command line or settings file |
 | saveintervals | <number> | 10 | Interval in seconds to save tournament state |
 | eloh0 | <number> | 0.0000 | The Elo parameter for the null hypothesis (H0). If the result supports this hypothesis, we conclude that Engine 1's advantage is at most 'eloH0' Elo. |
 | eloh1 | <number> | 5.0000 | The Elo parameter for the alternative hypothesis (H1). If the result supports this hypothesis, we conclude that Engine 1's advantage is at least 'eloH1' Elo. |
@@ -283,7 +283,7 @@ Engines play against each other with color swapping and opening variations.
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | type | string | *required* | Tournament type: gauntlet/round-robin |
-| file | <path> |  | Tournament stat file to load and update tournament state |
+| file | <path> |  | Tournament stat file to load and update tournament state. Its engine sections are used only if no engine is configured by command line or settings file |
 | saveintervals | <number> | 10 | Interval in seconds to save tournament state |
 | append | <bool> | false | Append to result file instead of overwriting it |
 | event | string |  | Optional event name for PGN or logging |

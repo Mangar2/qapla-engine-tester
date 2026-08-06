@@ -39,8 +39,12 @@ def get_tests() -> List[Dict[str, Any]]:
             "validators": [
                 {"type": "exitCode", "expected": 16},
                 {
-                    "type": "fileAppendOnly",
+                    # The state file is rewritten on save, so its previous content cannot be
+                    # compared byte by byte. What must survive is the stored game result.
+                    "type": "fileContent",
                     "path": "test/integration/log/parameter/test-parameter-sprt-file.qsprt",
+                    "content": "games=01",
+                    "message": "Game results of the sprt file were lost."
                 },
             ],
             "cleanup": "test/integration/log/parameter",
