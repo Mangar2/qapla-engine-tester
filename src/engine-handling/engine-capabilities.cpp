@@ -94,6 +94,14 @@ void EngineCapabilities::storeCapabilities(const std::vector<std::unique_ptr<Eng
         if (config != nullptr && !engine->getEngineName().empty()) {
             config->setReportedName(engine->getEngineName());
             config->setAuthor(engine->getEngineAuthor());
+            // Also adopt it as the display name while that is still the executable's
+            // filename: the reported name is deliberately not persisted (see
+            // EngineConfig::toSection), so leaving the display name untouched here loses
+            // the detected name again on the next save -- the engine reappears under its
+            // filename even though detection had already resolved it.
+            if (config->hasDefaultName()) {
+                config->setName(engine->getEngineName());
+            }
         }
         
         // Create and store capability

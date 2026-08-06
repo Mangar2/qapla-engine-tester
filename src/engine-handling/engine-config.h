@@ -140,6 +140,18 @@ public:
     [[nodiscard]] const std::string& getReportedName() const { return originalName_; }
 
     /**
+     * @brief Tells whether the name is still the placeholder derived from the executable.
+     *
+     * finalizeSetOptions() names a nameless engine after its executable file. Such a name
+     * carries no user intent and may be replaced once the engine reports its real name,
+     * whereas any other name was chosen deliberately and must be preserved.
+     * @return True if the name equals the command's filename.
+     */
+    [[nodiscard]] bool hasDefaultName() const {
+        return !cmd_.empty() && name_ == std::filesystem::path(cmd_).filename().string();
+    }
+
+    /**
      * @brief Gets the engines author.
      * @return the engines author.
      */
