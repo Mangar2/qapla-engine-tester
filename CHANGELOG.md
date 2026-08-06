@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directories, without every engine — and thus every pairing — being duplicated.
   A status line at startup states which of the two applies.
 
+- **Immediate stop test repeats its scenario**: Whether an engine already has a
+  move when the `stop` arrives is a matter of timing, so a single attempt let
+  faulty engines pass whenever they happened to be quick enough. The test now
+  runs the scenario ten times, each as a new game so that no result of the
+  previous search can be reused. Engines that answer `stop` with an invalid
+  bestmove are detected far more reliably; the test still costs about a tenth of
+  a second.
+
 ## [0.6.0] - 2026-08-06
 
 ### Added

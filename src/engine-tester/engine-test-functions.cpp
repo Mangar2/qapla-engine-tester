@@ -37,6 +37,7 @@
 #include "../base-elements/timer.h"
 #include "../base-elements/time-control.h"
 
+#include <format>
 #include <memory>
 #include <sstream>
 #include <iomanip>
@@ -491,42 +492,59 @@ TestResult runImmediateStopTest(const EngineConfig& engineConfig)
         static constexpr auto LONGER_TIMEOUT = std::chrono::milliseconds(2000);
         static constexpr auto STOP_POLL_INTERVAL = std::chrono::milliseconds(1);
         static constexpr int STOP_POLL_LIMIT = 2;
-        
+        // Whether the engine already has a move when the stop arrives is a race, so a single
+        // attempt misses engines that answered correctly only because they were quick enough.
+        // Repeating the scenario - each time as a new game, so that no result of the previous
+        // search can be reused - catches such engines far more often.
+        static constexpr int IMMEDIATE_STOP_ATTEMPTS = 10;
+
         TimeControl t;
         t.setInfinite();
         computeTask->setTimeControl(t);
-        computeTask->setPosition(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
-        computeTask->computeMove();
 
-        bool stopSent = false;
-        for (int attempts = 0; attempts < STOP_POLL_LIMIT; ++attempts) {
-            stopSent = computeTask->moveNow();
-            if (stopSent) {
-                break;
+        for (int attempt = 1; attempt <= IMMEDIATE_STOP_ATTEMPTS; ++attempt) {
+            computeTask->newGame();
+            computeTask->setPosition(false, "3r1r2/pp1q2bk/2n1nppp/2p5/3pP1P1/P2P1NNQ/1PPB3P/1R3R1K w - - 0 1");
+            computeTask->computeMove();
+
+            bool stopSent = false;
+            for (int attempts = 0; attempts < STOP_POLL_LIMIT; ++attempts) {
+                stopSent = computeTask->moveNow();
+                if (stopSent) {
+                    break;
+                }
+                std::this_thread::sleep_for(STOP_POLL_INTERVAL);
             }
-            std::this_thread::sleep_for(STOP_POLL_INTERVAL);
-        }
 
-        if (!stopSent) {
-            Logger::reportLogger().logAligned("Testing immediate stop:", "Stop command could not be issued before poll limit");
-            checklist->logReport("correct-after-immediate-stop", false, "Stop command could not be issued before poll limit");
-            return {TestResultEntry("Immediate stop test", "Stop command could not be issued before poll limit", false)};
-        }
+            if (!stopSent) {
+                const auto message = std::format(
+                    "Stop command could not be issued before poll limit (attempt {} of {})",
+                    attempt, IMMEDIATE_STOP_ATTEMPTS);
+                Logger::reportLogger().logAligned("Testing immediate stop:", message);
+                checklist->logReport("correct-after-immediate-stop", false, message);
+                return {TestResultEntry("Immediate stop test", message, false)};
+            }
 
-        bool finished = computeTask->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
-        if (!finished) {
-            bool extended = computeTask->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
-            if (!extended) {
-                Logger::reportLogger().logAligned("Testing immediate stop:", "Timeout after immediate stop");
-                checklist->logReport("correct-after-immediate-stop", false, "Timeout after immediate stop");
-                return {TestResultEntry("Immediate stop test", "Timeout after immediate stop", false)};
+            bool finished = computeTask->getFinishedFuture().wait_for(ANALYZE_TEST_TIMEOUT) == std::future_status::ready;
+            if (!finished) {
+                bool extended = computeTask->getFinishedFuture().wait_for(LONGER_TIMEOUT) == std::future_status::ready;
+                if (!extended) {
+                    const auto message = std::format("Timeout after immediate stop (attempt {} of {})",
+                        attempt, IMMEDIATE_STOP_ATTEMPTS);
+                    Logger::reportLogger().logAligned("Testing immediate stop:", message);
+                    checklist->logReport("correct-after-immediate-stop", false, message);
+                    return {TestResultEntry("Immediate stop test", message, false)};
+                }
             }
         }
-        
-        Logger::reportLogger().logAligned("Testing immediate stop:", "Engine correctly handled immediate stop and sent bestmove");
+
+        const auto message = std::format(
+            "Engine correctly handled immediate stop and sent bestmove ({} attempts)",
+            IMMEDIATE_STOP_ATTEMPTS);
+        Logger::reportLogger().logAligned("Testing immediate stop:", message);
         checklist->logReport("correct-after-immediate-stop", true, "");
-        
-        return {TestResultEntry("Immediate stop test", "Engine correctly handled immediate stop and sent bestmove", true)};
+
+        return {TestResultEntry("Immediate stop test", message, true)};
     });
 }
 
