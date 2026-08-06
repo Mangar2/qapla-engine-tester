@@ -210,11 +210,15 @@ public:
 
 	/**
 	 * @brief Sets whether this engine is selected (e.g. for a tournament).
+	 *
+	 * GUI-only, see selected_.
 	 * @param selected True if the engine is selected, false otherwise.
 	 */
 	void setSelected(bool selected) { selected_ = selected; }
 	/**
 	 * @brief Checks whether this engine is selected.
+	 *
+	 * GUI-only, see selected_.
 	 * @return True if selected, false otherwise.
 	 */
 	[[nodiscard]] bool isSelected() const { return selected_; }
@@ -432,6 +436,14 @@ private:
     RestartOption restart_ = RestartOption::EngineDecides;
     bool ponder_ = false;
 	bool gauntlet_ = false;
+    /// GUI-only. The GUI keeps every engine of a scope (tournament, SPRT, ...) in its own settings
+    /// file, deselected ones included, so that a deselected engine keeps its scope-specific
+    /// configuration; this flag says which of them take part. The CLI has no such holding area and
+    /// never reads the flag: an engine is active because it is configured at all, and is a mere
+    /// library entry when its id is "config" - see Settings::Helper::applyEngineSettings().
+    /// Consequently it is neither a CLI parameter nor written by toSection() unless false, which
+    /// keeps it out of the tournament/SPRT files exchanged between GUI and CLI. It is still parsed
+    /// by setValue() so that files written before that rule was introduced still load.
     bool selected_ = true;
 	bool scoreFromWhitePov_ = false;
     std::unordered_map<std::string, std::string> internalKeys_;

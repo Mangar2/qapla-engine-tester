@@ -110,10 +110,12 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         if (update && std::holds_alternative<std::string>(value) && std::get<std::string>(value).empty()) {
             continue;
         }
-        if (key == "conf" || key == "id" || key == "author") { continue; }
+        // "selected" is a GUI-only flag (see selected_). Deliberately not adopted here: an engine
+        // configured on the command line or in a settings file is active by definition, and taking
+        // over a stale "selected=false" from an older state file would propagate it on the next save.
+        if (key == "conf" || key == "id" || key == "author" || key == "selected") { continue; }
         if (key == "ponder") { setPonder(std::get<bool>(value)); }
         else if (key == "originalname") { originalName_ = std::get<std::string>(value); }
-        else if (key == "selected") { selected_ = std::get<bool>(value); }
         else if (key == "tc") { setTimeControl(std::get<std::string>(value)); }
         else if (key == "gauntlet") { setGauntlet(std::get<bool>(value)); }
         else if (key == "whitepov") { setScoreFromWhitePov(std::get<bool>(value)); }
@@ -247,6 +249,13 @@ QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectio
         if (value.empty()) { return; }
         // Skip default boolean values to keep config clean
         if ((key == "ponder" || key == "whitepov" || key == "gauntlet") && value == "false") {
+            return;
+        }
+        // "selected" defaults to true, so only a deselected engine needs to record it. Keeping the
+        // key out of the common case means tournament/SPRT state files - which contain the active
+        // engines only - carry no selection state at all, and both the GUI and the CLI can read
+        // "engine section present" as "engine takes part".
+        if (key == "selected" && value == "true") {
             return;
         }
         // Don't save originalName as it is discovered from the engine executable

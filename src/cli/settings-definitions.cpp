@@ -292,9 +292,14 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {
                         .defaultValue = "",
                         .type = ValueType::String,
                         .isHidden = true } },
-        { "selected",  { .description = "Whether this engine is selected for the tournament",
+        // GUI-only key, accepted for compatibility but never evaluated here. An engine is active
+        // for this run because its [engine] section exists and its id is not "config" - see
+        // Helper::applyEngineSettings(). Must stay defaultless: injecting a default would stamp
+        // the key onto every engine written to a tournament/SPRT state file and thereby tell the
+        // GUI that the engines of a CLI run are deselected.
+        { "selected",  { .description = "Deprecated, ignored. Engines are selected by being configured",
                         .isRequired = false,
-                        .defaultValue = false,
+                        .defaultValue = std::nullopt,
                         .type = ValueType::Bool,
                         .isHidden = true } },
         { "author",    { .description = "Author of the engine",
