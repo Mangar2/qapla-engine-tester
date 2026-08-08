@@ -92,19 +92,11 @@ public:
         const std::shared_ptr<SprtManager>& manager,
         const std::string& id = SprtTournamentFile::id);
 
-private:
-    /**
-     * @brief Creates ConfigData for SPRT configuration sections.
-     * Excludes runtime-specific sections that are merged separately.
-     * @param settingsManager The settings manager used as source.
-     * @return ConfigData containing configured sections except engine and round.
-     */
-    [[nodiscard]] static QaplaHelpers::ConfigData getConfigData(
-            const Settings::Manager& settingsManager);
-
     /**
      * @brief List of all section names used in SPRT tournament files.
-     * 
+     *
+     * Public (as in TournamentFile) so that a reader can restrict itself to exactly the
+     * sections save() writes, instead of taking a whole file's content as the truth.
      */
     static constexpr std::array<const char*, 8> sectionNames = {
         "each",
@@ -116,6 +108,16 @@ private:
         "resign",
         "round"
     };
+
+private:
+    /**
+     * @brief Creates ConfigData for SPRT configuration sections.
+     * Excludes runtime-specific sections that are merged separately.
+     * @param settingsManager The settings manager used as source.
+     * @return ConfigData containing configured sections except engine and round.
+     */
+    [[nodiscard]] static QaplaHelpers::ConfigData getConfigData(
+            const Settings::Manager& settingsManager);
 };
 
 } // namespace QaplaTester
