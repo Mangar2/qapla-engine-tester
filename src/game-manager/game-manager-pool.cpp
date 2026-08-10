@@ -238,16 +238,14 @@ void GameManagerPool::stopAll() {
 
 void GameManagerPool::clearAll() {
     stopAll();
-    std::scoped_lock lockManager(managerMutex_);
-    for (auto& manager : managers_) {
-        const auto& future = manager->getFinishedFuture();
-        if (future.valid()) {
-            future.wait();
-        }
-    }
-
-    std::scoped_lock lock(taskMutex_);
-    taskAssignments_.clear();
+    // Waiting for the futures must NOT happen while managerMutex_ is held: a manager that is
+    // shutting down runs finalizeTaskAndContinue() -> nextAssignment() -> maybeDeactivateManager(),
+    // which locks that very mutex. Holding it here let waiter and managers block each other
+    // forever whenever the app was closed while games were still in flight.
+    // waitForTask() already implements the correct pattern (collect pending managers under the
+    // lock, wait after releasing it, repeat until none are left) and clears taskAssignments_ at
+    // the end, so it does exactly what this function needs.
+    waitForTask();
 }
 
 void GameManagerPool::togglePause() {
