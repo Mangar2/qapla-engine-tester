@@ -347,5 +347,85 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "stdout", "content": "Time Control: 10/10.0+1.00", "isRegex": False}
             ],
             "cleanup": "test/integration/log/mcp/update-all-after-sprt",
-        }
+        },
+        {
+            "name": "mcp-tools-list",
+            "description": "tools/list publishes every registered tool with its input schema",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/tools-list",
+            "log_path": "test/integration/log/mcp/tools-list",
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}',
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": '"name":"sprt"'},
+                {"type": "stdout", "content": '"name":"control"'},
+                {"type": "stdout", "content": '"name":"adjudicate"'},
+                {"type": "stdout", "content": '"name":"read_report"'},
+                {"type": "stdout", "content": '"name":"manage_engines"'},
+                # Queueable tools must advertise the job_intent argument.
+                {"type": "stdout", "content": '"job_intent"'},
+            ],
+            "cleanup": "test/integration/log/mcp/tools-list",
+        },
+        {
+            "name": "mcp-tool-prefix",
+            "description": "--mcp prefix renames every published tool, and the prefixed name is callable",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --mcp prefix=qet "
+                    "--logging path=test/integration/log/mcp/prefix",
+            "log_path": "test/integration/log/mcp/prefix",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "qet_control", "arguments": {"command": "status"}}}',
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": '"name":"qet_sprt"'},
+                {"type": "stdout", "content": '"name":"qet_manage_engines"'},
+                {
+                    # The prefixed name is accepted and answered without error.
+                    "type": "stdout",
+                    "content": r'"id":2,"jsonrpc":"2.0","result":\{.*"isError":false',
+                    "isRegex": True,
+                },
+            ],
+            "cleanup": "test/integration/log/mcp/prefix",
+        },
+        {
+            "name": "mcp-control-status",
+            "description": "control/status reports the current task, running games and the job queue",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/control",
+            "log_path": "test/integration/log/mcp/control",
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "control", "arguments": {"command": "status"}}}',
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "current_task"},
+                {"type": "stdout", "content": "job_queue"},
+                {"type": "stdout", "content": "running_games"},
+                {"type": "stdout", "content": '"isError":false'},
+            ],
+            "cleanup": "test/integration/log/mcp/control",
+        },
+        {
+            "name": "mcp-epd-tool-report-resource",
+            "description": "The epd tool runs via MCP and publishes its report as a readable resource",
+            "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/epd-tool",
+            "log_path": "test/integration/log/mcp/epd-tool",
+            "input": [
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "epd", "arguments":'
+                ' {"engines": "Qapla 0.4.0", "epd_file": "test/integration/epd/short.epd", "epd_depth": 1,'
+                ' "epd_minsuccess": 0, "concurrency": 4, "logging_path": "test/integration/log/mcp/epd-tool"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "resources/list"}',
+            ],
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Tool 'epd' finished. Result: Success"},
+                {"type": "stdout", "content": '"isError":false'},
+                {
+                    "type": "stdout",
+                    "content": r'"uri":"qapla://reports/epd/epd-report-[^"]*\.log"',
+                    "isRegex": True,
+                },
+                {"type": "logFiles", "path": "", "pattern": "epd-report-*.log", "count": 1},
+            ],
+            "cleanup": "test/integration/log/mcp/epd-tool",
+        },
     ]

@@ -133,4 +133,51 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/sprt/montecarlo",
         },
+        {
+            "name": "sprt-montecarlo-logistic",
+            "description": "Monte Carlo simulation with the logistic model - covers a non-default SPRT model",
+            "args": "--sprt montecarlo=true model=logistic eloH0=0 eloH1=10 alpha=0.05 beta=0.05 maxgames=1000 "
+                    "--logging path=test/integration/log/sprt/mc-logistic",
+            "log_path": "test/integration/log/sprt/mc-logistic",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "=== SPRT (Monte Carlo) ==="},
+                {"type": "stdout", "content": "Simulated elo difference:"},
+            ],
+            "cleanup": "test/integration/log/sprt/mc-logistic",
+        },
+        {
+            "name": "sprt-montecarlo-bayesian",
+            "description": "Monte Carlo simulation with the bayesian model - covers a non-default SPRT model",
+            "args": "--sprt montecarlo=true model=bayesian eloH0=0 eloH1=10 alpha=0.05 beta=0.05 maxgames=1000 "
+                    "--logging path=test/integration/log/sprt/mc-bayesian",
+            "log_path": "test/integration/log/sprt/mc-bayesian",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "=== SPRT (Monte Carlo) ==="},
+                {"type": "stdout", "content": "H1 Accepted"},
+            ],
+            "cleanup": "test/integration/log/sprt/mc-bayesian",
+        },
+        {
+            "name": "sprt-pentanomial-false",
+            "description": "SPRT with the trinomial model - pentanomial=true is the default everywhere else",
+            "args": "--concurrency=2 --enginesfile=test/integration/engines/engines.ini "
+                    "--sprt maxgames=4 pentanomial=false eloH0=0 eloH1=10 "
+                    "--openings file=test/opening/book8ply.raw order=sequential --each tc=0.2+0.01 "
+                    "--engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
+                    "--logging engine=false path=test/integration/log/sprt/trinomial",
+            "log_path": "test/integration/log/sprt/trinomial",
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "sprt-report-*.log",
+                    "count": 1,
+                    "content": "Pentanomial: false",
+                },
+            ],
+            "cleanup": "test/integration/log/sprt/trinomial",
+        },
     ]

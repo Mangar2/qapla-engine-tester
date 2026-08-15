@@ -1,8 +1,14 @@
 # Integration Test Plan — 30 Additional Test Cases
 
-Companion document to [test/integration/tests.md](integration/tests.md), which lists the 58 tests
-that exist today. This plan proposes **30 new tests** that deliberately cover *white spots* — features
-and code paths that no existing test touches at all.
+> **Status: implemented.** 29 of the 30 tests below are in the suite and green
+> (see [test/integration/tests.md](integration/tests.md), now 98 tests in total). The one exception is
+> `returncode-engine-error-beats-sprt-result` (§11), which is blocked on a decision — see Q1 in
+> [integration-test-questions.md](integration-test-questions.md). Details that turned out differently
+> during implementation are noted inline below.
+
+Companion document to [test/integration/tests.md](integration/tests.md), which listed 58 tests when
+this plan was written. This plan proposes **30 new tests** that deliberately cover *white spots* —
+features and code paths that no existing test touches at all.
 
 All command lines, output strings, node counts and exit codes quoted below were **verified against
 `build/default/qapla-engine-tester`** on Linux while writing this plan; measured runtimes are given
@@ -113,8 +119,11 @@ these are the cheapest tests in the whole suite.
 
 The README advertises "Full WinBoard/XBoard engine support", yet **all 58 existing tests run UCI**.
 The Qapla engines in `test/integration/engines/` speak both protocols (verified: they contain
-`protover`), so `proto=xboard` can be forced per engine. Note that `proto` must be set on the
-`--engine` level — `engines.ini` already sets `proto=uci` per engine, which beats `--each`.
+`protover`), so `proto=xboard` can be set per engine.
+
+> Implementation note: `--each proto=xboard` works with `--engine conf=…` as well — `--each` beats
+> the engines file's `proto=uci`, as documented (verified). The tests still set `proto` per engine
+> because the mixed-protocol test needs that granularity anyway.
 
 **xboard-sprt-two-engines**
 - **Why missing**: the entire WinBoard adapter (`winboard-adapter.cpp`) is untested.
@@ -466,4 +475,5 @@ implementation — the summary's "Slowest tests" block names the candidates to r
 5. **Return-code priority** — only after the intended behaviour has been decided (§11).
 
 After implementation, extend [test/integration/tests.md](integration/tests.md) with the new tests and
-update the total count (58 → 88).
+update the total count. Done: the file now lists all 98 implemented tests (58 originally documented,
+11 that had been listed as "planned" but were already implemented, and the 29 added here).

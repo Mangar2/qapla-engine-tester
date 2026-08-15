@@ -1,8 +1,30 @@
 # Integration Tests Coverage
 
-## Existing Tests
+All tests currently implemented, grouped by test module
+(`test/integration/<module>/<module>_tests.py`). Runtimes are recorded per test in
+`test_results.log` after each run.
 
-### engine-test (15 tests)
+## clop (1 test)
+
+| Name | Description |
+|---|---|
+| clop-basic | CLOP with 3 samples, Hash tuned on the gauntlet engine; expects exit 0 |
+
+## draw (1 test)
+
+| Name | Description |
+|---|---|
+| draw-adjudication | `--draw` in test mode; parameters accepted, SPRT still reaches maxgames (16) |
+
+## engineoptions (3 tests)
+
+| Name | Description |
+|---|---|
+| engineoptions-each-option | `--each option.Hash=64` arrives at the engine as a `setoption` command |
+| engineoptions-engine-overrides-each | Inline `--engine option.Hash=128` beats the shared `--each` value; both values in the log |
+| engineoptions-restart-always | `restart=on` restarts between games and logs the reason |
+
+## engine-test (15 tests)
 
 | Name | Description |
 |---|---|
@@ -20,9 +42,9 @@
 | engine-test-nocompute-fail | Negative test: single compute game with diagnostic lossontime; expects exit 10 |
 | engine-test-noponder-fail | Negative test: pondering with Qapla 0.2.0; expects exit 10 |
 | engine-test-underrun-fail | Negative test: movetime underrun with Qapla 0.3.1; expects exit 12 |
-| engine-test-timeusage-fail | Negative test: time usage in games with Stockfish; expects exit 12 |
+| engine-test-timeusage-fail | Negative test: time usage in games; expects exit 12 |
 
-### epd (4 tests)
+## epd (6 tests)
 
 | Name | Description |
 |---|---|
@@ -30,8 +52,16 @@
 | epd-short-time | Single engine, maxtime=1s, minsuccess=30; passes at low threshold |
 | epd-long-time | Single engine, maxtime=10s, seenplies=2; expects higher success rate |
 | epd-two-engines | Two engines, maxtime=2s, no success requirement; both engine names in report |
+| epd-depth-fixed | `depth=8`; verifies depth-limited search mode |
+| epd-nodes-fixed | `nodes=100000`; verifies node-limited search mode |
 
-### logging (5 tests)
+## interactive (1 test)
+
+| Name | Description |
+|---|---|
+| interactive-commands | `--interactive` accepts help, info, running, outcome, an unknown command and quit |
+
+## logging (5 tests)
 
 | Name | Description |
 |---|---|
@@ -41,16 +71,20 @@
 | logging-engine-trace-none | engine=true, per-engine trace=none: zero log files |
 | logging-each-trace-none | engine=true, [each] trace=none: zero log files |
 
-### mcp (17 tests)
+## mcp (21 tests)
 
 | Name | Description |
 |---|---|
 | mcp-initialize | JSON-RPC initialize; response contains protocolVersion and server name |
-| mcp-list-engines | tools/call manage_engines list; output includes Stockfish and Qapla 0.4.0 |
-| mcp-engine-details | manage_engines details on Stockfish; exe path and protocol listed |
+| mcp-tools-list | tools/list publishes every registered tool including its input schema |
+| mcp-tool-prefix | `--mcp prefix=qet` renames all tools; the prefixed name is callable |
+| mcp-control-status | control/status reports current task, running games and job queue |
+| mcp-epd-tool-report-resource | epd tool runs via MCP and publishes its report as a `qapla://reports/...` resource |
+| mcp-list-engines | tools/call manage_engines list; output includes the configured engines |
+| mcp-engine-details | manage_engines details; exe path and protocol listed |
 | mcp-engine-add | manage_engines add TestEngine; success confirmation |
-| mcp-engine-copy-basic | manage_engines copy Stockfish → StockfishCopy; success confirmation |
-| mcp-engine-update | Update Stockfish TC, then details; TC visible in output |
+| mcp-engine-copy-basic | manage_engines copy; success confirmation |
+| mcp-engine-update | Update TC, then details; TC visible in output |
 | mcp-engine-update-all | update_all with engine_option_Threads=2; Updated N engines message |
 | mcp-engine-error-missing-name | details without engine_name; isError=true and hint in message |
 | mcp-sprt-start | sprt tool with maxgames=1; isError=false, Tool finished message |
@@ -63,7 +97,17 @@
 | mcp-engine-update-all-after-sprt | update_all after SPRT use; TC change reflected in details |
 | mcp-list-settings | list_settings returns Global Settings, openings, and epd sections |
 
-### parameter (8 tests)
+## openings (5 tests)
+
+| Name | Description |
+|---|---|
+| openings-pgn-book | PGN book with plies=8; games start from the replayed book moves |
+| openings-epd-book-black-to-move | EPD book with Black to move; FEN tag correct and no loss on time (clock assignment) |
+| openings-random-seeded | order=random with fixed seed and policy=encounter; not the sequential first opening |
+| openings-start-index | start=100; the PGN starts from opening number 100 |
+| openings-invalid-policy | Unknown policy rejected with InvalidParameters (2) before any engine starts |
+
+## parameter (8 tests)
 
 | Name | Description |
 |---|---|
@@ -76,140 +120,82 @@
 | parameter-group-fail | Illegal group param in ini; expects InvalidParameters (2) |
 | parameter-group-override | Illegal group param overridden by CLI; SPRT runs (16) |
 
-### sprt (7 tests)
+## perft (4 tests)
 
 | Name | Description |
 |---|---|
-| sprt-maxgames-reached | SPRT ends without decision (19 games); expects UndefinedResult (16) |
+| perft-startpos-depth5 | Start position, depth 5; pins the reference node count 4865609 |
+| perft-divide-showfen | divide + showfen; per-root-move counts and resulting FENs |
+| perft-fen-position | Kiwipete FEN, depth 3; node count 97862 |
+| perft-invalid-fen | Malformed position; expects InvalidParameters (2) |
+
+## pgnoutput (3 tests)
+
+| Name | Description |
+|---|---|
+| pgnoutput-append | append=true; original content preserved at the start of the file |
+| pgnoutput-minimal-tags | min=true with all annotations off; no extended tags, no move comments |
+| pgnoutput-full-annotations | eval/depth/clock/pv enabled; comments carry score, depth, time and PV |
+
+## resign (1 test)
+
+| Name | Description |
+|---|---|
+| resign-adjudication | `--resign` in test mode; parameters accepted, SPRT still reaches maxgames (16) |
+
+## sprt (12 tests)
+
+| Name | Description |
+|---|---|
+| sprt-maxgames-reached | SPRT ends without decision; expects UndefinedResult (16) |
 | sprt-basic-h0-accepted | SPRT between equal engines with low H1 threshold; expects H0Accepted (15) |
 | sprt-basic-h1-accepted | SPRT with stronger vs weaker engine given low thresholds; expects H1Accepted (14) |
 | sprt-with-ponder | SPRT with ponder=true in engine config; expects H1Accepted (14) |
 | sprt-rapid-mode | rapid=true suppresses info lines; SPRT runs to maxgames (16) |
 | sprt-continuation | Loads existing .qsprt file; resumes from saved game count |
+| sprt-continuation-configured-engines | CLI engines given; the file's engine sections are ignored, not merged |
 | sprt-nonexisting-file | Writes new .qsprt file; file contains [each] and [round] sections |
+| sprt-montecarlo | Monte Carlo simulation, default model; no engines required |
+| sprt-montecarlo-logistic | Monte Carlo simulation with model=logistic |
+| sprt-montecarlo-bayesian | Monte Carlo simulation with model=bayesian |
+| sprt-pentanomial-false | Trinomial model; report header records `Pentanomial: false` |
 
-### tournament (2 tests)
+## spsa (1 test)
+
+| Name | Description |
+|---|---|
+| spsa-basic | SPSA with 2 iterations tuning Hash; expects exit 0 |
+
+## systemtest (1 test)
+
+| Name | Description |
+|---|---|
+| systemtest-basic | NPS stability test with 2 concurrency steps; report produced |
+
+## tournament (7 tests)
 
 | Name | Description |
 |---|---|
 | tournament-basic | Gauntlet, 3 engines, 8 games/pairing; report and PGN file produced |
+| tournament-round-robin | Round-robin, 3 engines; all pairings complete |
 | tournament-nonexisting-file | Writes new .qtour file; file contains [each] and [round] sections |
+| tournament-continuation | Resumes an existing .qtour; round 1 skipped, round 2 played and saved |
+| tournament-roundrobin-too-few-engines | Round-robin with one engine; expects InvalidParameters (2) |
+| tournament-gauntlet-fallback | No gauntlet=true; the first engine plays all others, no round-robin pairings |
+| tournament-noswap-event-rating | noswap/event/ratinginterval; colors fixed, event name in the PGN |
 
-**Total: 58 existing tests**
+## xboard (3 tests)
+
+| Name | Description |
+|---|---|
+| xboard-sprt-two-engines | SPRT between two XBoard engines; exercises the WinBoard adapter |
+| xboard-mixed-protocols | XBoard engine against UCI engine; translation across adapters |
+| xboard-engine-test | Engine test suite (go limits, FEN positions) against an XBoard engine |
+
+**Total: 98 tests**
 
 ---
 
-## Planned Tests
-
-### epd
-
-**epd-depth-fixed**
-- **Why missing**: `depth=` is a new 0.5.0 feature replacing time-based search; no test verifies it is accepted and produces output
-- **args**: `--settingsfile=test/integration/epd/test-epd.ini --epd depth=8 minsuccess=0`
-- **log_path**: `test/integration/log/epd`
-- **cleanup**: `test/integration/log/epd`
-- **validators**:
-  - `exitCode: 0`
-  - `logFiles path="" pattern="epd-report*.log" count=1`
-
-**epd-nodes-fixed**
-- **Why missing**: `nodes=` is a new 0.5.0 feature; no test verifies node-limited analysis
-- **args**: `--settingsfile=test/integration/epd/test-epd.ini --epd nodes=100000 minsuccess=0`
-- **log_path**: `test/integration/log/epd`
-- **cleanup**: `test/integration/log/epd`
-- **validators**:
-  - `exitCode: 0`
-  - `logFiles path="" pattern="epd-report*.log" count=1`
-
-### sprt
-
-**sprt-montecarlo**
-- **Why missing**: Monte Carlo simulation mode is documented with example output in README; no integration coverage
-- **Note**: Pure simulation — no engines or openings file required; completes in under 5 seconds
-- **args**: `--sprt montecarlo=true eloH0=0 eloH1=10 alpha=0.05 beta=0.05 maxgames=3000 --logging path=test/integration/log/sprt/montecarlo`
-- **log_path**: `test/integration/log/sprt/montecarlo`
-- **cleanup**: `test/integration/log/sprt/montecarlo`
-- **validators**:
-  - `exitCode: 0`
-  - `stdout content="Running SPRT Monte carlo simulation" isRegex=false`
-  - `stdout content="H0 Accepted" isRegex=false`
-
-### tournament
-
-**tournament-round-robin**
-- **Why missing**: Only gauntlet format is tested; round-robin is fully documented
-- **args**: `--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=2 repeat=2 rounds=1 --openings file=test/opening/book8ply.raw order=sequential --each tc=0.1+0.01 trace=none --engine conf='Qapla 0.3.1' --engine conf='Qapla 0.3.2' --engine conf='Spike 1.4' --logging engine=false path=test/integration/log/tournament/roundrobin`
-- **log_path**: `test/integration/log/tournament/roundrobin`
-- **cleanup**: `test/integration/log/tournament/roundrobin`
-- **validators**:
-  - `exitCode: 0`
-  - `logFiles path="" pattern="tournament-report-*.log" count=1`
-
-### draw
-
-**draw-adjudication**
-- **Why missing**: `--draw` group is fully documented; no integration test exercises these parameters
-- **Note**: `test=true` reports potential draws without stopping games; SPRT still reaches maxgames → exit 16
-- **args**: `--settingsfile=test/integration/sprt/test-sprt-maxgames.ini --draw movenumber=1 movecount=1 score=5000 test=true --logging path=test/integration/log/sprt/draw`
-- **log_path**: `test/integration/log/sprt/draw`
-- **cleanup**: `test/integration/log/sprt/draw`
-- **validators**:
-  - `exitCode: 16`
-
-### resign
-
-**resign-adjudication**
-- **Why missing**: `--resign` group is fully documented; no integration test exercises these parameters
-- **Note**: `test=true` reports potential resignations without stopping games; SPRT still reaches maxgames → exit 16
-- **args**: `--settingsfile=test/integration/sprt/test-sprt-maxgames.ini --resign movecount=3 score=500 twosided=false test=true --logging path=test/integration/log/sprt/resign`
-- **log_path**: `test/integration/log/sprt/resign`
-- **cleanup**: `test/integration/log/sprt/resign`
-- **validators**:
-  - `exitCode: 16`
-
-### pgnoutput
-
-**pgnoutput-append**
-- **Why missing**: `append=true` is documented but all existing tests use `append=false`; the append path is never exercised
-- **Note**: Requires a minimal source PGN at `test/integration/pgnoutput/pgnoutput-append.pgn` (one complete PGN game). `fileAppendOnly` verifies the original game is not overwritten
-- **args**: `--settingsfile=test/integration/sprt/test-sprt-maxgames.ini --pgnoutput file=test/integration/log/pgnoutput/games.pgn append=true --logging engine=false path=test/integration/log/pgnoutput`
-- **log_path**: `test/integration/log/pgnoutput`
-- **cleanup**: `test/integration/log/pgnoutput`
-- **source_files**: `[{"source": "test/integration/pgnoutput/pgnoutput-append.pgn", "target": "test/integration/log/pgnoutput/games.pgn"}]`
-- **validators**:
-  - `exitCode: 16`
-  - `fileAppendOnly path="test/integration/log/pgnoutput/games.pgn"`
-
-### spsa
-
-**spsa-basic**
-- **Why missing**: SPSA is a new 0.5.0 core feature; completely uncovered by any integration test
-- **Note**: iterations=2, gamesperpair=2 → 4 short games; the second engine is auto-created by the SPSA framework with perturbed Hash values; Hash is a standard UCI option on Qapla 0.4.0
-- **args**: `--concurrency=2 --enginesfile=test/integration/engines/engines.ini --spsa iterations=2 gamesperpair=2 activepairs=1 outcomeinterval=1 --spsavalue name=Hash default=16 min=8 max=32 step=4 --engine conf='Qapla 0.4.0' --openings file=test/opening/book8ply.raw order=sequential --each tc=0.1+0.01 --logging engine=false path=test/integration/log/spsa`
-- **log_path**: `test/integration/log/spsa`
-- **cleanup**: `test/integration/log/spsa`
-- **validators**:
-  - `exitCode: 0`
-
-### systemtest
-
-**systemtest-basic**
-- **Why missing**: NPS stability system test is a new 0.5.0 core feature; completely uncovered
-- **Note**: steptime=5, maxcores=2 → ~10 seconds total; verifies the feature runs without error and writes a report
-- **args**: `--concurrency=2 --enginesfile=test/integration/engines/engines.ini --systemtest maxcores=2 step=1 steptime=5 --engine conf='Qapla 0.4.0' --logging engine=false path=test/integration/log/systemtest`
-- **log_path**: `test/integration/log/systemtest`
-- **cleanup**: `test/integration/log/systemtest`
-- **validators**:
-  - `exitCode: 0`
-  - `logFiles path="" pattern="systemtest-report-*.log" count=1`
-
-### clop
-
-**clop-basic**
-- **Why missing**: CLOP optimization is a core feature with no integration coverage whatsoever
-- **Note**: samples=3, gamespersample=2 → 6 games; warmupsamples=2 is within samples so warmup phases are minimal; Hash is tuned on the gauntlet engine
-- **args**: `--concurrency=2 --enginesfile=test/integration/engines/engines.ini --clop samples=3 gamespersample=2 warmupsamples=2 outcomeinterval=1 --clopvalue name=Hash min=8 max=32 --engine conf='Qapla 0.4.0' gauntlet=true --engine conf='Qapla 0.3.2' --openings file=test/opening/book8ply.raw order=sequential --each tc=0.1+0.01 --logging engine=false path=test/integration/log/clop`
-- **log_path**: `test/integration/log/clop`
-- **cleanup**: `test/integration/log/clop`
-- **validators**:
-  - `exitCode: 0`
+Still open: `returncode-engine-error-beats-sprt-result` from
+[../integration-test-plan.md](../integration-test-plan.md) §11 — blocked on Q1 in
+[../integration-test-questions.md](../integration-test-questions.md).
