@@ -26,6 +26,7 @@
 #include "../cli/settings-manager.h"
 
 #include <string>
+#include <string_view>
 #include <filesystem>
 #include <iostream>
 #include <unordered_set>
@@ -192,7 +193,16 @@ void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     // Unrecognized keys fall through to setOptionValue() with their original casing intact,
     // since real UCI option names are case-sensitive.
     const std::string lowerKey = QaplaHelpers::to_lowercase(key);
-    if (lowerKey == "name") { setName(value); }
+    // Counterpart of toSection(), which spells UCI options with the "option." prefix the
+    // parameter definition requires. Without stripping it here, reading back what was written
+    // yields an option literally named "option.Hash": the engine never receives the setting,
+    // and the next save writes "option.option.Hash". Names without the prefix stay supported --
+    // engine configuration files have always used them.
+    const std::string_view optionPrefix = "option.";
+    if (lowerKey.starts_with(optionPrefix)) {
+        setOptionValue(key.substr(optionPrefix.size()), value);
+    }
+    else if (lowerKey == "name") { setName(value); }
     else if (lowerKey == "originalname") { originalName_ = value; }
     else if (lowerKey == "author") { setAuthor(value); }
     else if (lowerKey == "cmd") { setCmd(value); }

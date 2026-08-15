@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   requires. Everything else in these files already came from that central definition.
   Engine sections now do too, so what is written is by construction what can be read.
 
+- **UCI options were read back under the wrong name**: With engine sections now spelling their
+  UCI options as `option.<Name>`, reading such a section took the prefix to be part of the
+  option name. An engine was told to set an option called `option.Hash` — which it does not
+  have, so the setting was silently lost — and saving again wrote `option.option.Hash`. The
+  prefix is now recognised when reading, the counterpart of writing it. Option names without
+  the prefix stay valid: engine configuration files have always used them.
+
 ### Added
 
 - **`args` for engines**: The engine argument list documented in the README is now part of
