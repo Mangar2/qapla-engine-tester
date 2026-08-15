@@ -3,6 +3,12 @@
 
 from typing import List, Dict, Any
 
+from test_framework import platform_suffix
+
+# The saved-state fixture below embeds an engine cmd= path, so it needs an
+# OS-specific variant just like the engines files (see test_framework.py).
+_SPRT_FILE_SOURCE = f"test/integration/sprt/test-sprt-file.{platform_suffix()}.qsprt"
+
 
 def get_tests() -> List[Dict[str, Any]]:
     """Return list of SPRT tests."""
@@ -64,7 +70,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/sprt",
             "source_files": [
                 {
-                    "source": "test/integration/sprt/test-sprt-file.qsprt",
+                    "source": _SPRT_FILE_SOURCE,
                     "target": "test/integration/log/sprt/test-sprt-file.qsprt"
                 }
             ],
@@ -72,7 +78,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "sprt-continuation-configured-engines",
             "description": "SPRT continuation with engines given on the command line - the engine sections of the SPRT file must be ignored, not merged",
-            "args": "--concurrency=2 --logging path=test/integration/log/sprt engine=false --sprt file=test/integration/log/sprt/test-sprt-file.qsprt --engine cmd=test/integration/engines/diagnostic-engine-lossontime.exe name=llt1 --engine cmd=test/integration/engines/diagnostic-engine-lossontime.exe name=llt2",
+            "args": "--concurrency=2 --logging path=test/integration/log/sprt engine=false --sprt file=test/integration/log/sprt/test-sprt-file.qsprt --engine cmd=test/integration/engines/diagnostic-engine-lossontime name=llt1 --engine cmd=test/integration/engines/diagnostic-engine-lossontime name=llt2",
             "log_path": "test/integration/log/sprt",
             "validators": [
                 {"type": "exitCode", "expected": 16},
@@ -90,7 +96,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/sprt",
             "source_files": [
                 {
-                    "source": "test/integration/sprt/test-sprt-file.qsprt",
+                    "source": _SPRT_FILE_SOURCE,
                     "target": "test/integration/log/sprt/test-sprt-file.qsprt"
                 }
             ],
@@ -122,7 +128,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "log_path": "test/integration/log/sprt/montecarlo",
             "validators": [
                 {"type": "exitCode", "expected": 0},
-                {"type": "stdout", "content": "Running SPRT Monte carlo simulation", "isRegex": False},
+                {"type": "stdout", "content": "=== SPRT (Monte Carlo) ===", "isRegex": False},
                 {"type": "stdout", "content": "H0 Accepted", "isRegex": False},
             ],
             "cleanup": "test/integration/log/sprt/montecarlo",

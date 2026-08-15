@@ -8,9 +8,12 @@ import difflib
 import os
 import re
 import shlex
+import shutil
 import subprocess
+import sys
+import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Colors:
@@ -241,6 +244,39 @@ def resolve_tester_binary(config_name: str) -> str:
     return str(Path(f"build/{config_name}/qapla-engine-tester{binary_suffix}").resolve())
 
 
+def platform_suffix() -> str:
+    """Returns the platform tag used to pick engine binaries for this OS."""
+    if os.name == "nt":
+        return "windows"
+    if sys.platform == "darwin":
+        return "macos"
+    return "linux"
+
+
+def materialize_platform_engines_files() -> None:
+    """Selects the OS-appropriate engine binaries for every fixture, in one place.
+
+    Engine binaries differ per OS (a Windows .exe, a Linux ELF, a macOS Mach-O),
+    but the fixtures all reference the same stable filenames, engines.ini and
+    engines-short.ini, via --enginesfile= or an embedded enginesfile= entry. This
+    copies the current platform's template (engines.<os>.ini / engines-short.<os>.ini)
+    onto those stable filenames before any test runs, so the platform difference
+    lives only in the template files, not in every individual fixture.
+    """
+    suffix = platform_suffix()
+    engines_dir = Path("test/integration/engines")
+    for base_name in ("engines", "engines-short"):
+        source = engines_dir / f"{base_name}.{suffix}.ini"
+        target = engines_dir / f"{base_name}.ini"
+        if not source.exists():
+            print(
+                f"{Colors.YELLOW}Warning: no {source} template for platform "
+                f"'{suffix}'; leaving {target} untouched.{Colors.RESET}"
+            )
+            continue
+        shutil.copyfile(source, target)
+
+
 def apply_engines_override(args: List[str]) -> List[str]:
     """Apply optional engines file override from environment."""
     override_engines_file = os.getenv("QAPLA_IT_ENGINESFILE", "").strip()
@@ -256,8 +292,117 @@ def apply_engines_override(args: List[str]) -> List[str]:
     return updated_args
 
 
-def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
-    """Execute a single test and validate results."""
+def _parse_ini_engine_sections(path: Path) -> Dict[str, Dict[str, str]]:
+    """Parses every [engine] section of an ini file into {name: {key: value}}."""
+    sections: Dict[str, Dict[str, str]] = {}
+    current: Optional[Dict[str, str]] = None
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith(";"):
+            continue
+        if line == "[engine]":
+            current = {}
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = None
+            continue
+        if current is not None and "=" in line:
+            key, _, value = line.partition("=")
+            current[key.strip()] = value.strip()
+            if key.strip().lower() == "name":
+                sections[value.strip()] = current
+    return sections
+
+
+_engine_config_cache: Dict[str, Dict[str, Dict[str, str]]] = {}
+
+
+def get_engine_config(name: str) -> Dict[str, str]:
+    """Returns the OS-resolved configuration (cmd=, proto=, ...) for a named engine.
+
+    This is the single place that knows engine configuration - it reads
+    test/integration/engines/engines.<os>.ini, the tracked, per-platform source of
+    truth for what a named engine looks like on this OS. Callers ask for an engine
+    by its logical name and get back its resolved fields; they never hardcode a
+    cmd= path themselves, so there is nothing to keep in sync across platforms.
+    """
+    suffix = platform_suffix()
+    if suffix not in _engine_config_cache:
+        path = Path("test/integration/engines") / f"engines.{suffix}.ini"
+        _engine_config_cache[suffix] = _parse_ini_engine_sections(path)
+    engines = _engine_config_cache[suffix]
+    if name not in engines:
+        raise KeyError(
+            f"Engine '{name}' not found in engines.{suffix}.ini "
+            f"(known engines: {sorted(engines.keys())})"
+        )
+    return dict(engines[name])
+
+
+def engine_ini_block(name: str, as_: Optional[str] = None, **overrides: str) -> str:
+    """Renders a single [engine] ini block for `name`, resolved for the current OS.
+
+    `as_` overrides the name= shown to the tool (e.g. so one binary can play under
+    two identities in a self-play fixture). Extra keyword args (e.g. tc="inf")
+    are applied on top of the resolved configuration.
+    """
+    config = get_engine_config(name)
+    if as_:
+        config["name"] = as_
+    config.update(overrides)
+    lines = ["[engine]"] + [f"{key}={value}" for key, value in config.items()]
+    return "\n".join(lines)
+
+
+def apply_engine_refs(args: List[str], engine_refs: Optional[List[Dict[str, str]]], log_path: str) -> List[str]:
+    """Appends OS-resolved [engine] blocks to a fixture's --settingsfile=, in place.
+
+    Fixtures that need one or more engines keep a single, platform-independent ini
+    file with no [engine] section at all, and declare their engines via the test's
+    "engine_refs" list instead (see engine_ini_block for the field meaning). This
+    reads that ini, appends the resolved blocks, writes the result next to the
+    test's own log output, and points --settingsfile= at the resolved copy - the
+    settings-file-defines-the-engine mechanism under test is unchanged, only the
+    engine data's source is centralized instead of duplicated per platform.
+    """
+    if not engine_refs:
+        return args
+
+    settingsfile_index = next(
+        (i for i, a in enumerate(args) if a.startswith("--settingsfile=")), None
+    )
+    if settingsfile_index is None:
+        raise ValueError("engine_refs given but args has no --settingsfile= to extend")
+
+    original_path = Path(args[settingsfile_index][len("--settingsfile="):])
+    blocks = "\n\n".join(engine_ini_block(**ref) for ref in engine_refs)
+    resolved_content = original_path.read_text(encoding="utf-8").rstrip() + "\n\n" + blocks + "\n"
+
+    os.makedirs(log_path, exist_ok=True)
+    resolved_path = Path(log_path) / f"_resolved-{original_path.name}"
+    resolved_path.write_text(resolved_content, encoding="utf-8")
+
+    updated_args = list(args)
+    updated_args[settingsfile_index] = f"--settingsfile={resolved_path}"
+    return updated_args
+
+
+def format_duration(seconds: float) -> str:
+    """Formats a runtime for humans: seconds below a minute, m:ss above."""
+    if seconds < 60.0:
+        return f"{seconds:.2f}s"
+    minutes = int(seconds // 60)
+    return f"{minutes}m {seconds - minutes * 60:04.1f}s"
+
+
+def invoke_test(test: Dict[str, Any], config_name: str = "default") -> Tuple[bool, float]:
+    """Execute a single test and validate results.
+
+    Returns the pass/fail verdict together with the runtime of the tested
+    process in seconds. Runtime is a test property worth tracking: the suite is
+    built around short, parametrized runs, so a test that suddenly takes much
+    longer is a finding even while it still passes.
+    """
     print()
     print(f"  {Colors.CYAN}Test: {test['name']}{Colors.RESET}")
 
@@ -302,6 +447,7 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     # Build command
     args = shlex.split(test["args"], posix=True)
     args = apply_engines_override(args)
+    args = apply_engine_refs(args, test.get("engine_refs"), log_path)
     tester_binary = resolve_tester_binary(config_name)
     cmd = [tester_binary] + args
 
@@ -311,6 +457,8 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
     # Run command
     exit_code = -1
     stdout_output = ""
+    start_time = time.monotonic()
+    duration_seconds = 0.0
     try:
         process = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="ignore", bufsize=1
@@ -333,11 +481,14 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
         
         process.wait()
         exit_code = process.returncode
+        duration_seconds = time.monotonic() - start_time
     except Exception as e:
+        duration_seconds = time.monotonic() - start_time
         print(f"  {Colors.RED}[FAIL]{Colors.RESET} Failed to run command: {e}")
-        return False
+        return False, duration_seconds
 
     print()
+    print(f"  {Colors.GRAY}Runtime: {format_duration(duration_seconds)}{Colors.RESET}")
 
     # Run validators
     all_passed = True
@@ -430,12 +581,13 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> bool:
                     )
 
     print()
+    runtime_text = f" ({format_duration(duration_seconds)})"
     if all_passed:
-        print(f"  {Colors.GREEN}[PASS]{Colors.RESET} {test['name']}")
-        return True
+        print(f"  {Colors.GREEN}[PASS]{Colors.RESET} {test['name']}{runtime_text}")
+        return True, duration_seconds
     else:
-        print(f"  {Colors.RED}[FAIL]{Colors.RESET} {test['name']}")
-        return False
+        print(f"  {Colors.RED}[FAIL]{Colors.RESET} {test['name']}{runtime_text}")
+        return False, duration_seconds
 
 
 def remove_test_directory(path: str, force: bool = False) -> None:

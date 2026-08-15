@@ -84,9 +84,11 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig);
  * 
  * @param engineConfig Configuration for the engines to test
  * @param numEngines Number of engines to start in parallel
+ * @param checkTiming If false, startup and shutdown times are measured and reported but not verified
  * @return TestResult Vector containing timing information
  */
-TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint32_t numEngines);
+TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint32_t numEngines,
+    bool checkTiming = true);
 
 /**
  * @brief Tests if hash table memory shrinks when reducing Hash option

@@ -233,6 +233,7 @@ AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnC
         { "Check movetime underruns", test.get<bool>("underrun") ? "on" : "off" },
     };
     static const std::vector<std::pair<std::string, std::string>> optionalTests = {
+        { "nostartstop", "Start/Stop runtime verification" },
         { "nomemory", "Hash table memory usage test" },
         { "nooption", "Option crash tests" },
         { "noanalyze", "Standard analysis test" },

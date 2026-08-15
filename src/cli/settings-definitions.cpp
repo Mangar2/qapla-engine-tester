@@ -644,6 +644,11 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTestKeys() {
                         .longDescription = "Disables the single self-play game test used to verify end-to-end move flow. (long running, full engine vs. engine game)",
                         .isRequired = false,
                         .defaultValue = false,
+                        .type = ValueType::Bool } },
+        { "nostartstop", { .description = "Skip start/stop runtime verification",
+                        .longDescription = "Disables the runtime thresholds of the start/stop test. The test itself still runs and still reports engines that cannot be started or stopped at all, and the measured times are still printed - they are just no longer verified. Useful on slow or loaded machines, or for engines with a long initialization.",
+                        .isRequired = false,
+                        .defaultValue = false,
                         .type = ValueType::Bool } }
     };
 }

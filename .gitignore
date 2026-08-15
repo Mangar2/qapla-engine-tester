@@ -27,7 +27,15 @@
 !/src/test-system/unit/**
 !/test/opening/**
 !/test/integration/**
-/test/integration/engines/*.exe
+# Engine binaries differ per OS/machine and some are third-party (licensing),
+# so nothing in this directory is tracked except the OS-specific engine
+# definition templates (engines.<os>.ini, engines-short.<os>.ini). The plain
+# engines.ini / engines-short.ini fixtures reference are (re)generated from
+# those templates by test_framework.materialize_platform_engines_files().
+/test/integration/engines/*
+!/test/integration/engines/*.linux.ini
+!/test/integration/engines/*.windows.ini
+!/test/integration/engines/*.macos.ini
 /test/integration/log/
 
 

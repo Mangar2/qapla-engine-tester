@@ -406,7 +406,8 @@ private:
 
     /**
      * @brief Players and GameRecord coordination
-     * IMPORTANT, must be last to ensure proper destruction order (engines must be destroyed before game record)
+     * IMPORTANT, must be last to ensure proper destruction order (engines must be destroyed before
+     * the game record and before the event queue they push their events into)
      */
     GameContext gameContext_;
 

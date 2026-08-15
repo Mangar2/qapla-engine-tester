@@ -102,7 +102,7 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
         numGames_ = numGames;
         createGameManager();
         runStartStopTest();
-        runMultipleStartStopTest(20);
+        runMultipleStartStopTest(20, !testSettings.get<bool>("nostartstop"));
         if (!testSettings.get<bool>("nomemory")) {
             runHashTableMemoryTest();
         }
@@ -206,9 +206,9 @@ void EngineTestController::runStartStopTest() {
     }
 }
 
-void EngineTestController::runMultipleStartStopTest(uint32_t numEngines) {
+void EngineTestController::runMultipleStartStopTest(uint32_t numEngines, bool checkTiming) {
     // Use QaplaTester function
-    TestResult result = QaplaTester::runEngineMultipleStartStopTest(engineConfig_, numEngines);
+    TestResult result = QaplaTester::runEngineMultipleStartStopTest(engineConfig_, numEngines, checkTiming);
     
     // Check result using success flag
     for (const auto& entry : result) {

@@ -273,6 +273,7 @@ Runs an extended test to evaluate engine stability and performance.         The 
 | nogolimits | <bool> | false | Disables tests for specific search limits like 'depth', 'nodes', and 'movetime'. |
 | nofens | <bool> | false | Disables testing of move generation from varied FEN positions including En Passant and castling rights. |
 | nocompute | <bool> | false | Disables the single self-play game test used to verify end-to-end move flow. (long running, full engine vs. engine game) |
+| nostartstop | <bool> | false | Disables the runtime thresholds of the start/stop test. The test itself still runs and still reports engines that cannot be started or stopped at all, and the measured times are still printed - they are just no longer verified. Useful on slow or loaded machines, or for engines with a long initialization. |
 
 ## --tournament
 

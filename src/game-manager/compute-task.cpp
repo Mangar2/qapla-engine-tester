@@ -39,6 +39,11 @@ ComputeTask::~ComputeTask() {
     if (eventThread_.joinable()) {
         eventThread_.join();
     }
+    // The engine threads deliver their events through the sink installed above, which pushes
+    // into eventQueue_. gameContext_ is declared first, so it would be destroyed *last* - the
+    // engines would still be running while eventQueue_ and queueMutex_ are already gone.
+    // Shutting the engines down here ends all sink callbacks while the queue is still alive.
+    gameContext_.tearDown();
 }
 
 void ComputeTask::setPosition(bool useStartPosition, const std::string &fen,

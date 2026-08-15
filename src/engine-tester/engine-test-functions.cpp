@@ -164,7 +164,7 @@ TestResult runEngineStartStopTest(const EngineConfig& engineConfig)
     }
 }
 
-TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint32_t numEngines)
+TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint32_t numEngines, bool checkTiming)
 {
     auto checklist = EngineReport::getChecklist(engineConfig.getName());
     
@@ -187,10 +187,12 @@ TestResult runEngineMultipleStartStopTest(const EngineConfig& engineConfig, uint
         
         Logger::reportLogger().logAligned("Parallel start/stop (" + std::to_string(numEngines) + "):", timingInfo);
         
-        bool success = startTime < 2000 && stopTime < 5000;
+        // Without checkTiming the measured times are still reported, they are just not verified.
+        // Engines that cannot be started or stopped at all still fail through the catch below.
+        bool success = !checkTiming || (startTime < 2000 && stopTime < 5000);
         if (!success) {
             checklist->logReport("starts-and-stops-cleanly", false,
-                "  Start/Stop takes too long, started in: " + std::to_string(startTime) + 
+                "  Start/Stop takes too long, started in: " + std::to_string(startTime) +
                 " ms, shutdown in " + std::to_string(stopTime) + " ms");
         }
         

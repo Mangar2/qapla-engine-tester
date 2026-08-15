@@ -6,14 +6,31 @@ Runs integration tests and reports results.
 
 import argparse
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from typing import Dict, Any, List
 
-from test_framework import Colors, invoke_test
+from test_framework import (
+    Colors,
+    format_duration,
+    invoke_test,
+    materialize_platform_engines_files,
+)
 
 
 RESULTS_FILE = Path("test/integration/test_results.log")
+
+# A protocol entry is "PASSED" / "FAILED", followed by the runtime of that run.
+# Older protocol files carry the verdict alone; those still load, just without a
+# runtime.
+_RESULT_ENTRY_RE = re.compile(r"^(?P<verdict>PASSED|FAILED)(?: \((?P<runtime>.+)\))?$")
+
+
+def result_verdict(entry: str) -> str:
+    """Returns the bare verdict of a protocol entry, ignoring its runtime."""
+    match = _RESULT_ENTRY_RE.match(entry)
+    return match.group("verdict") if match else entry
 
 
 def load_previous_results() -> Dict[str, str]:
@@ -95,6 +112,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Pick this OS's engine binaries once, for every fixture (see docstring).
+    materialize_platform_engines_files()
+
     # Load all tests from test directories
     all_tests: List[Dict[str, Any]] = []
     test_integration_dir = Path("test/integration")
@@ -143,8 +163,8 @@ def main():
     original_count = len(tests_to_run)
     if args.skip_passed:
         tests_to_run = [
-            t for t in tests_to_run 
-            if cumulative_results.get(t["name"]) != "PASSED"
+            t for t in tests_to_run
+            if result_verdict(cumulative_results.get(t["name"], "")) != "PASSED"
         ]
         skipped_count = original_count - len(tests_to_run)
         if skipped_count > 0:
@@ -167,19 +187,27 @@ def main():
     passed = 0
     failed = 0
 
+    total_runtime = 0.0
+
     for test in tests_to_run:
-        result = invoke_test(test, args.config)
+        result, runtime = invoke_test(test, args.config)
+        total_runtime += runtime
+        runtime_text = format_duration(runtime)
 
         if result:
             passed += 1
-            result_text = f"✔ {test['name']} - PASSED"
-            results.append({"name": test["name"], "passed": True, "text": result_text})
-            cumulative_results[test["name"]] = "PASSED"
+            result_text = f"✔ {test['name']} - PASSED ({runtime_text})"
+            results.append(
+                {"name": test["name"], "passed": True, "text": result_text, "runtime": runtime}
+            )
+            cumulative_results[test["name"]] = f"PASSED ({runtime_text})"
         else:
             failed += 1
-            result_text = f"✘ {test['name']} - FAILED"
-            results.append({"name": test["name"], "passed": False, "text": result_text})
-            cumulative_results[test["name"]] = "FAILED"
+            result_text = f"✘ {test['name']} - FAILED ({runtime_text})"
+            results.append(
+                {"name": test["name"], "passed": False, "text": result_text, "runtime": runtime}
+            )
+            cumulative_results[test["name"]] = f"FAILED ({runtime_text})"
 
         # Save updated cumulative results immediately
         save_results(cumulative_results)
@@ -197,11 +225,22 @@ def main():
         else:
             print(f"{Colors.RED}{result['text']}{Colors.RESET}")
 
+    # The suite is built around short, parametrized runs, so the slowest tests are
+    # what a runtime budget is checked against.
+    if len(results) > 3:
+        print()
+        print(f"{Colors.CYAN}Slowest tests:{Colors.RESET}")
+        for result in sorted(results, key=lambda r: r["runtime"], reverse=True)[:3]:
+            print(
+                f"{Colors.GRAY}  {format_duration(result['runtime']):>10}  "
+                f"{result['name']}{Colors.RESET}"
+            )
+
     print()
     print(f"{Colors.CYAN}{'-' * 40}{Colors.RESET}")
     print(
         f"{Colors.YELLOW}Total: {len(results)} | Passed: {passed} | "
-        f"Failed: {failed}{Colors.RESET}"
+        f"Failed: {failed} | Runtime: {format_duration(total_runtime)}{Colors.RESET}"
     )
     print()
 

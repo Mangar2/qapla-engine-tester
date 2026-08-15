@@ -54,7 +54,7 @@ private:
 
     void runStartStopTest();
 
-	void runMultipleStartStopTest(uint32_t numEngines);
+	void runMultipleStartStopTest(uint32_t numEngines, bool checkTiming);
 
     static void runPlaceholderTest();
 

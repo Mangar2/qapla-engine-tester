@@ -3,6 +3,13 @@
 
 from typing import List, Dict, Any
 
+from test_framework import platform_suffix
+
+# A couple of tests exercise manage_engines' "add" command with a literal
+# engine_cmd path (rather than a name from an engines file), so they need the
+# right extension for whichever OS is running the suite.
+_EXE_SUFFIX = ".exe" if platform_suffix() == "windows" else ""
+
 
 def get_tests() -> List[Dict[str, Any]]:
     """Return list of MCP tests."""
@@ -48,7 +55,7 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     "type": "stdout",
-                    "content": "- Stockfish",
+                    "content": "- qai_pla_uci",
                     "isRegex": False
                 },
                 {
@@ -64,17 +71,17 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "Get details for a specific engine",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/details",
             "log_path": "test/integration/log/mcp/details",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "qai_pla_uci"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
-                    "content": "Details for 'Stockfish':",
+                    "content": "Details for 'qai_pla_uci':",
                     "isRegex": False
                 },
                 {
                     "type": "stdout",
-                    "content": "stockfish-windows-x86-64-avx2.exe",
+                    "content": "qai_pla_uci",
                     "isRegex": False
                 },
                 {
@@ -90,7 +97,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "Add a new engine",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/add",
             "log_path": "test/integration/log/mcp/add",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "TestEngine", "engine_cmd": "test/engines/Qapla0.4.0.exe"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "TestEngine", "engine_cmd": "test/integration/engines/qai_pla_uci' + _EXE_SUFFIX + '"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
@@ -106,12 +113,12 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "Copy an existing engine configuration",
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy",
             "log_path": "test/integration/log/mcp/copy",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "StockfishCopy"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "qai_pla_uci", "engine_copyName": "qai_pla_uciCopy"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
-                    "content": "Engine 'Stockfish' copied to 'StockfishCopy'.",
+                    "content": "Engine 'qai_pla_uci' copied to 'qai_pla_uciCopy'.",
                     "isRegex": False
                 }
             ],
@@ -123,14 +130,14 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/update",
             "log_path": "test/integration/log/mcp/update",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "Stockfish", "engine_tc": "3+0.02"}}}',
-                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish"}}}'
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "qai_pla_uci", "engine_tc": "3+0.02"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "qai_pla_uci"}}}'
             ],
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "stdout",
-                    "content": "Engine 'Stockfish' updated successfully.",
+                    "content": "Engine 'qai_pla_uci' updated successfully.",
                     "isRegex": False
                 },
                 {
@@ -188,7 +195,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "description": "Verify that an SPRT test can be started and engine activation works",
             "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/sprt",
             "log_path": "test/integration/log/mcp/sprt",
-            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.4.0", "sprt_maxgames": 1, "engine_tc": "40/1+0.1"}}}',
+            "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "qai_pla_uci,Qapla 0.4.0", "sprt_maxgames": 1, "engine_tc": "40/1+0.1"}}}',
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
@@ -210,7 +217,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/sprt-missing-tc",
             "log_path": "test/integration/log/mcp/sprt-missing-tc",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Qapla 0.4.0", "sprt_maxgames": 1}}}',
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "qai_pla_uci,Qapla 0.4.0", "sprt_maxgames": 1}}}',
                 '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "list"}}}'
             ],
             "validators": [
@@ -249,7 +256,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/delete",
             "log_path": "test/integration/log/mcp/delete",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "ToDeepDelete", "engine_cmd": "test/integration/engines/stockfish-windows-x86-64-avx2.exe"}}}',
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "add", "engine_name": "ToDeepDelete", "engine_cmd": "test/integration/engines/qai_pla_uci' + _EXE_SUFFIX + '"}}}',
                 '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "delete", "engine_name": "ToDeepDelete"}}}',
                 '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "list"}}}'
             ],
@@ -266,14 +273,14 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy-verify",
             "log_path": "test/integration/log/mcp/copy-verify",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "Stockfish", "engine_tc": "5+0.05"}}}',
-                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-Copy"}}}',
-                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-Copy"}}}'
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update", "engine_name": "qai_pla_uci", "engine_tc": "5+0.05"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "qai_pla_uci", "engine_copyName": "qai_pla_uci-Copy"}}}',
+                '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "qai_pla_uci-Copy"}}}'
             ],
             "validators": [
                 {"type": "exitCode", "expected": 0},
-                {"type": "stdout", "content": "Engine 'Stockfish' updated successfully", "isRegex": False},
-                {"type": "stdout", "content": "Engine 'Stockfish' copied to 'Stockfish-Copy'", "isRegex": False},
+                {"type": "stdout", "content": "Engine 'qai_pla_uci' updated successfully", "isRegex": False},
+                {"type": "stdout", "content": "Engine 'qai_pla_uci' copied to 'qai_pla_uci-Copy'", "isRegex": False},
                 {"type": "stdout", "content": "Time Control: 5.0+0.05", "isRegex": False}
             ],
             "cleanup": "test/integration/log/mcp/copy-verify",
@@ -284,12 +291,12 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/copy-inline",
             "log_path": "test/integration/log/mcp/copy-inline",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-64", "engine_option_Hash": "64"}}}',
-                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-64"}}}'
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "qai_pla_uci", "engine_copyName": "qai_pla_uci-64", "engine_option_Hash": "64"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "qai_pla_uci-64"}}}'
             ],
             "validators": [
                 {"type": "exitCode", "expected": 0},
-                {"type": "stdout", "content": "Engine 'Stockfish' copied to 'Stockfish-64'", "isRegex": False},
+                {"type": "stdout", "content": "Engine 'qai_pla_uci' copied to 'qai_pla_uci-64'", "isRegex": False},
                 {"type": "stdout", "content": "hash = 64", "isRegex": False}
             ],
             "cleanup": "test/integration/log/mcp/copy-inline",
@@ -313,7 +320,7 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-engines.ini --logging path=test/integration/log/mcp/update-all-custom",
             "log_path": "test/integration/log/mcp/update-all-custom",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "CustomCopy"}}}',
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "qai_pla_uci", "engine_copyName": "CustomCopy"}}}',
                 '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update_all", "engine_option_Hash": "256"}}}',
                 '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "CustomCopy"}}}'
             ],
@@ -330,10 +337,10 @@ def get_tests() -> List[Dict[str, Any]]:
             "args": "--settingsfile=test/integration/mcp/mcp-sprt-test.ini --logging path=test/integration/log/mcp/update-all-after-sprt",
             "log_path": "test/integration/log/mcp/update-all-after-sprt",
             "input": [
-                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "Stockfish", "engine_copyName": "Stockfish-Copy"}}}',
-                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "Stockfish,Stockfish-Copy", "sprt_maxgames": 1, "engine_tc": "3+0.01"}}}',
+                '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "copy", "engine_name": "qai_pla_uci", "engine_copyName": "qai_pla_uci-Copy"}}}',
+                '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "sprt", "arguments": {"engines": "qai_pla_uci,qai_pla_uci-Copy", "sprt_maxgames": 1, "engine_tc": "3+0.01"}}}',
                 '{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "update_all", "engine_tc": "10/10+1"}}}',
-                '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "Stockfish-Copy"}}}'
+                '{"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "manage_engines", "arguments": {"command": "details", "engine_name": "qai_pla_uci-Copy"}}}'
             ],
             "validators": [
                 {"type": "exitCode", "expected": 0},

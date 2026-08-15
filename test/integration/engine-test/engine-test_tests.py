@@ -124,7 +124,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-noepd-fail",
             "description": "Negative test for EPD bestmove correctness",
-            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noepd=false --engine conf='Spike 1.4' --logging path=test/integration/log/engine-test/epd-fail",
+            "args": "--settingsfile=test/integration/engine-test/test-engine-none.ini --test noepd=false nostartstop=true --engine conf='Spike 1.4' --logging path=test/integration/log/engine-test/epd-fail",
             "log_path": "test/integration/log/engine-test/epd-fail",
             "validators": [
                 {"type": "exitCode", "expected": 12},
@@ -171,7 +171,7 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-timeusage-fail",
             "description": "Negative test for time usage in games",
-            "args": "--concurrency=5 --settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=5 --engine conf='Stockfish' --logging path=test/integration/log/engine-test/timeusage-fail",
+            "args": "--concurrency=5 --settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=5 --engine conf='qai_pla_uci' --logging path=test/integration/log/engine-test/timeusage-fail",
             "log_path": "test/integration/log/engine-test/timeusage-fail",
             "validators": [
                 {"type": "exitCode", "expected": 12}
