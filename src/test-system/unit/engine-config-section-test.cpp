@@ -85,3 +85,22 @@ TEST_CASE("Engine sections round-trip their UCI options", "[engine][config][sect
         CHECK(config.toSection("engine").getValue("option.MultiPV").value() == "2");
     }
 }
+
+TEST_CASE("Engine sections omit the name reported by the engine", "[engine][config][section]") {
+    registerSettingsOnce();
+
+    // The reported name is discovered from the running engine and therefore not persisted.
+    // toSection() applies that rule while walking the central parameter definition, which
+    // registers every key in lower case - so a rule comparing against "originalName" stops
+    // matching without anyone noticing, and the key lands in tournament and SPRT files.
+    auto config = EngineConfig::createFromSection(engineSection("option.Hash", "64"));
+    config.setReportedName("Qapla 0.4.0");
+    REQUIRE(config.getReportedName() == "Qapla 0.4.0");
+
+    const auto section = config.toSection("engine");
+
+    CHECK_FALSE(section.getValue("originalname").has_value());
+    CHECK_FALSE(section.getValue("originalName").has_value());
+    // The name the engine is configured under is still written.
+    CHECK(section.getValue("name").value() == "TestEngine");
+}
