@@ -7,34 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **Engines when continuing a tournament or SPRT run**: The `[engine]` sections of
-  a tournament/SPRT file are used exactly when no engine is given on the command
-  line or in a settings file. As soon as a single engine is configured there, the
-  file's engine sections are ignored completely instead of being added on top.
-  This makes it possible to drop an engine from a resumed run, or to move a
-  tournament file to another machine and point the engines at their local
-  directories, without every engine — and thus every pairing — being duplicated.
-  A status line at startup states which of the two applies.
-
-- **Immediate stop test repeats its scenario**: Whether an engine already has a
-  move when the `stop` arrives is a matter of timing, so a single attempt let
-  faulty engines pass whenever they happened to be quick enough. The test now
-  runs the scenario ten times, each as a new game so that no result of the
-  previous search can be reused. Engines that answer `stop` with an invalid
-  bestmove are detected far more reliably; the test still costs about a tenth of
-  a second.
-
-### Changed
-
-- **Unified report log headers**: SPRT, Tournament, EPD, CLOP, SPSA and
-  Engine-Test now start their report log with the same kind of header: which
-  engines are involved (with their configuration) and the settings used for
-  that run, listed as aligned key/value pairs. Only the header changed — the
-  rest of each log's content is unaffected.
-
-## [0.6.0] - 2026-08-06
+## [0.6.0] - 2026-08-15
 
 ### Added
 
@@ -54,6 +27,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   picked for the next run.
 
 ### Changed
+
+- **Engines when continuing a tournament or SPRT run**: The `[engine]` sections of
+  a tournament/SPRT file are used exactly when no engine is actively selected on
+  the command line or in a settings file — an `--enginesfile` full of named engine
+  templates does not by itself count as "an engine given"; only an actually
+  selected engine does. As soon as one engine is selected there, the file's engine
+  sections are ignored completely instead of being added on top. This makes it
+  possible to drop an engine from a resumed run, or to move a tournament file to
+  another machine and point the engines at their local directories, without every
+  engine — and thus every pairing — being duplicated. A status line at startup
+  states which of the two applies (e.g. `3 engines taken from tournament.qtour` or
+  `3 configured engines used, engine sections in tournament.qtour ignored`).
+
+- **Immediate stop test repeats its scenario**: Whether an engine already has a
+  move when the `stop` arrives is a matter of timing, so a single attempt let
+  faulty engines pass whenever they happened to be quick enough. The test now
+  runs the scenario ten times, each as a new game so that no result of the
+  previous search can be reused. Engines that answer `stop` with an invalid
+  bestmove are detected far more reliably; the test still costs about a tenth of
+  a second.
+
+- **Unified report log headers**: SPRT, Tournament, EPD, CLOP, SPSA and
+  Engine-Test now start their report log with the same kind of header: which
+  engines are involved (with their configuration) and the settings used for
+  that run, listed as aligned key/value pairs. Only the header changed — the
+  rest of each log's content is unaffected.
 
 - **More accurate Elo ratings in tournaments**: Ratings are now calculated so
   that the score each engine is *expected* to achieve against its actual
