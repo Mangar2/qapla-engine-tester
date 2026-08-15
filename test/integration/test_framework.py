@@ -451,14 +451,34 @@ def invoke_test(test: Dict[str, Any], config_name: str = "default") -> Tuple[boo
     tester_binary = resolve_tester_binary(config_name)
     cmd = [tester_binary] + args
 
-    print(f"  {Colors.GRAY}Running: {' '.join(cmd)}{Colors.RESET}")
-    print()
-
-    # Run command
     exit_code = -1
     stdout_output = ""
     start_time = time.monotonic()
     duration_seconds = 0.0
+
+    # Preparation runs, for tests whose subject needs state that a previous run
+    # produced - writing a state file and reading it back, for example. Their
+    # output is not validated: only the run under test is. Their exit code is
+    # printed because a preparation that did not do its job would otherwise show
+    # up as a confusing failure of the real command.
+    setup_args = test.get("setup_args")
+    if setup_args:
+        for setup_arg_string in ([setup_args] if isinstance(setup_args, str) else setup_args):
+            setup_cmd = [tester_binary] + apply_engines_override(
+                shlex.split(setup_arg_string, posix=True)
+            )
+            print(f"  {Colors.GRAY}Preparing: {' '.join(setup_cmd)}{Colors.RESET}")
+            setup_result = subprocess.run(
+                setup_cmd, capture_output=True, text=True, encoding="utf-8", errors="ignore"
+            )
+            print(
+                f"  {Colors.GRAY}Preparation finished with exit code "
+                f"{setup_result.returncode}{Colors.RESET}"
+            )
+
+    print(f"  {Colors.GRAY}Running: {' '.join(cmd)}{Colors.RESET}")
+    print()
+
     try:
         process = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="ignore", bufsize=1

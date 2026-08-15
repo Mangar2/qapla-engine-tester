@@ -101,6 +101,48 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
         },
         {
+            "name": "tournament-file-uci-option-roundtrip",
+            "description": "A tournament file written with a UCI option can be resumed, and the option reaches the engine unchanged",
+            # Black box round trip: the preparation run writes the state file, the
+            # run under test resumes from it. Nothing here looks inside the file -
+            # what is promised to the user is that a resumed run configures its
+            # engines exactly as the original run did, not any particular file
+            # syntax. rounds=2 on the command line leaves the resumed run one round
+            # of real games to play, which is what makes the option observable.
+            # Engine logging stays on in the preparation run: switching it off would store
+            # trace=none in the file and the resumed run could not report anything. The
+            # resumed run writes one log per engine (mode=each), so its files are the
+            # "engine-#<n>-" ones and each engine's options can be checked separately.
+            "setup_args": f"--concurrency=1 {_ENGINES} "
+                          "--tournament type=gauntlet file=test/integration/log/tournament/roundtrip/tournament.qtour "
+                          f"games=1 rounds=1 {_OPENINGS} --each tc=0.2+0.01 trace=all "
+                          "--engine conf='Qapla 0.4.0' option.Hash=128 "
+                          "--engine conf='Qapla 0.3.2' option.Hash=64 "
+                          "--logging engine=true mode=one path=test/integration/log/tournament/roundtrip",
+            "args": "--concurrency=1 "
+                    "--tournament file=test/integration/log/tournament/roundtrip/tournament.qtour rounds=2 "
+                    "--logging engine=true mode=each path=test/integration/log/tournament/roundtrip",
+            "log_path": "test/integration/log/tournament/roundtrip",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#0-*.log",
+                    "count": 1,
+                    "content": "setoption name Hash value 128",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#1-*.log",
+                    "count": 1,
+                    "content": "setoption name Hash value 64",
+                },
+            ],
+            "cleanup": "test/integration/log/tournament/roundtrip",
+        },
+        {
             "name": "tournament-roundrobin-too-few-engines",
             "description": "Round-robin with a single engine is rejected before any engine starts",
             "args": f"--concurrency=1 {_ENGINES} --tournament type=round-robin games=2 "

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tournament and SPRT files with UCI options could not be resumed**: A run whose engines
+  carried any UCI option wrote a state file that the program itself refused to read again —
+  it stopped with `Unknown parameter in section "engine": 'hash'` and return code 2. The
+  same applied to an engine with `args`. Cause: the engine sections of state files were
+  written by a serializer of their own, which spelled UCI options without the `option.`
+  prefix that the central parameter definition — the one validating those files on load —
+  requires. Everything else in these files already came from that central definition.
+  Engine sections now do too, so what is written is by construction what can be read.
+
+### Added
+
+- **`args` for engines**: The engine argument list documented in the README is now part of
+  the parameter definition, so `--engine args=...` is accepted and survives a resume.
+
 ### Changed
 
 - **Documentation — return codes when an engine fails during a tournament or SPRT**: The README

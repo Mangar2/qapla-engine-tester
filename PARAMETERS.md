@@ -86,6 +86,7 @@ Defines an engine configuration
 | name | string |  | Name of the engine |
 | cmd | <path> |  | Directly specify the path to the engine executable. Use this if the engine is not in the registry. |
 | dir | <path> |  | Working directory |
+| args | string |  | Command line arguments passed to the engine executable |
 | proto | string |  | Protocol (uci/xboard) |
 | tc | string |  | Time control in format moves/time+inc or 'inf' |
 | ponder | <bool> |  | Enable pondering, if the engine supports it |

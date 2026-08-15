@@ -134,6 +134,42 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/sprt/montecarlo",
         },
         {
+            "name": "sprt-file-uci-option-roundtrip",
+            "description": "An SPRT file written with a UCI option can be resumed, and the option reaches the engine unchanged",
+            # Same round trip as tournament-file-uci-option-roundtrip, for the
+            # other state file type. Black box: the test asserts what the resumed
+            # run sends to its engines, never how the file stores it.
+            "setup_args": "--concurrency=1 --enginesfile=test/integration/engines/engines.ini "
+                          "--sprt file=test/integration/log/sprt/roundtrip/sprt.qsprt maxgames=2 "
+                          "--openings file=test/opening/book8ply.raw order=sequential "
+                          "--each tc=0.2+0.01 trace=all "
+                          "--engine conf='Qapla 0.4.0' option.Hash=128 "
+                          "--engine conf='Qapla 0.3.2' option.Hash=64 "
+                          "--logging engine=true mode=one path=test/integration/log/sprt/roundtrip",
+            "args": "--concurrency=1 "
+                    "--sprt file=test/integration/log/sprt/roundtrip/sprt.qsprt maxgames=4 "
+                    "--logging engine=true mode=each path=test/integration/log/sprt/roundtrip",
+            "log_path": "test/integration/log/sprt/roundtrip",
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#0-*.log",
+                    "count": 1,
+                    "content": "setoption name Hash value 128",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#1-*.log",
+                    "count": 1,
+                    "content": "setoption name Hash value 64",
+                },
+            ],
+            "cleanup": "test/integration/log/sprt/roundtrip",
+        },
+        {
             "name": "sprt-montecarlo-logistic",
             "description": "Monte Carlo simulation with the logistic model - covers a non-default SPRT model",
             "args": "--sprt montecarlo=true model=logistic eloH0=0 eloH1=10 alpha=0.05 beta=0.05 maxgames=1000 "

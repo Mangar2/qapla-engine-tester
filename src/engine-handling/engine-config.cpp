@@ -23,6 +23,7 @@
 #include "engine-option.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
+#include "../cli/settings-manager.h"
 
 #include <string>
 #include <filesystem>
@@ -241,31 +242,73 @@ EngineConfig EngineConfig::createFromSection(const QaplaHelpers::IniFile::Sectio
     return config;
 }
 
+std::optional<std::string> EngineConfig::getValue(const std::string& key) const {
+    // Counterpart of setValue(): same key vocabulary, same case-insensitive matching, so that
+    // whatever this class writes it can also read back. Keys the configuration does not own
+    // ("conf" selects a template, "id" is stamped on by the file writer) yield no value.
+    const std::string lowerKey = QaplaHelpers::to_lowercase(key);
+    if (lowerKey == "name") { return name_; }
+    if (lowerKey == "originalname") { return originalName_; }
+    if (lowerKey == "author") { return author_; }
+    if (lowerKey == "cmd") { return cmd_; }
+    if (lowerKey == "dir") { return dir_; }
+    if (lowerKey == "args") { return args_; }
+    if (lowerKey == "proto") { return to_string(protocol_); }
+    if (lowerKey == "trace") { return to_string(traceLevel_); }
+    if (lowerKey == "restart") { return to_string(restart_); }
+    if (lowerKey == "tc") { return tc_.toPgnTimeControlString(); }
+    if (lowerKey == "ponder") { return ponder_ ? "true" : "false"; }
+    if (lowerKey == "gauntlet") { return gauntlet_ ? "true" : "false"; }
+    if (lowerKey == "whitepov") { return scoreFromWhitePov_ ? "true" : "false"; }
+    if (lowerKey == "selected") { return selected_ ? "true" : "false"; }
+    return std::nullopt;
+}
+
 QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectionName) const {
     QaplaHelpers::IniFile::Section section;
     section.name = sectionName;
 
-    visitProperties([&section](const std::string& key, const std::string& value) {
-        if (value.empty()) { return; }
+    // Which keys exist and how they are spelled is owned by the central parameter definition -
+    // the same one that validates these sections when they are read back. Deriving the key names
+    // here instead of listing them locally is what keeps writing and reading in step: a writer
+    // with its own idea of the format is exactly how state files carrying UCI options became
+    // unreadable ("Unknown parameter in section engine: 'hash'").
+    const auto& groupDefinitions = Settings::Manager::instance().getGroupDefinitions();
+    const auto definition = groupDefinitions.find("engine");
+    if (definition == groupDefinitions.end()) {
+        throw AppError::make("No parameter definition for engine sections available.");
+    }
+
+    constexpr std::string_view namePlaceholder = "[name]";
+    for (const auto& keyName : definition->second.getKeyNames()) {
+        // A "<prefix>.[name]" key stands for a family of freely named entries - UCI options are
+        // the only one. Their names are case sensitive, so the name the engine reported is used.
+        if (keyName.ends_with(namePlaceholder)) {
+            const std::string prefix = keyName.substr(0, keyName.size() - namePlaceholder.size());
+            for (const auto& [_, option] : optionValues_) {
+                section.addEntry(prefix + option.originalName, option.value);
+            }
+            continue;
+        }
+
+        const auto value = getValue(keyName);
+        if (!value || value->empty()) { continue; }
+
         // Skip default boolean values to keep config clean
-        if ((key == "ponder" || key == "whitepov" || key == "gauntlet") && value == "false") {
-            return;
+        if ((keyName == "ponder" || keyName == "whitepov" || keyName == "gauntlet") && *value == "false") {
+            continue;
         }
         // "selected" defaults to true, so only a deselected engine needs to record it. Keeping the
         // key out of the common case means tournament/SPRT state files - which contain the active
         // engines only - carry no selection state at all, and both the GUI and the CLI can read
         // "engine section present" as "engine takes part".
-        if (key == "selected" && value == "true") {
-            return;
+        if (keyName == "selected" && *value == "true") {
+            continue;
         }
         // Don't save originalName as it is discovered from the engine executable
-        if (key == "originalName") { return; }
+        if (keyName == "originalName") { continue; }
 
-        section.addEntry(key, value);
-    });
-
-    for (const auto& [_, value] : optionValues_) {
-        section.addEntry(value.originalName, value.value);
+        section.addEntry(keyName, *value);
     }
     return section;
 }

@@ -386,7 +386,19 @@ public:
     static EngineConfig createFromSection(const QaplaHelpers::IniFile::Section& section);
 
     /**
+     * @brief Returns the value stored under a configuration key.
+     * @param key Key as defined by the central engine parameter definition, matched
+     *        case-insensitively. Counterpart of setValue().
+     * @return The value, or std::nullopt for keys this configuration does not own.
+     */
+    [[nodiscard]] std::optional<std::string> getValue(const std::string& key) const;
+
+    /**
      * @brief Creates a section from the current configuration.
+     *
+     * Key names come from the central engine parameter definition, so a written section is
+     * readable by the settings manager that validates it on load.
+     *
      * @param sectionName The section name to use (default "engine").
      * @return A QaplaHelpers::IniFile::Section object.
      */

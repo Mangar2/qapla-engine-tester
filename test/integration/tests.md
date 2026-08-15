@@ -150,7 +150,7 @@ All tests currently implemented, grouped by test module
 | returncode-sprt-survives-engine-failure | Engine fails its UCI handshake; the game is forfeited and SPRT still returns 16 |
 | returncode-tournament-survives-engine-failure | Same failure in a tournament; the run still returns 0, the forfeit is in the report |
 
-## sprt (12 tests)
+## sprt (13 tests)
 
 | Name | Description |
 |---|---|
@@ -162,6 +162,7 @@ All tests currently implemented, grouped by test module
 | sprt-continuation | Loads existing .qsprt file; resumes from saved game count |
 | sprt-continuation-configured-engines | CLI engines given; the file's engine sections are ignored, not merged |
 | sprt-nonexisting-file | Writes new .qsprt file; file contains [each] and [round] sections |
+| sprt-file-uci-option-roundtrip | Writes a .qsprt with UCI options and resumes from it; the options must reach the engines unchanged |
 | sprt-montecarlo | Monte Carlo simulation, default model; no engines required |
 | sprt-montecarlo-logistic | Monte Carlo simulation with model=logistic |
 | sprt-montecarlo-bayesian | Monte Carlo simulation with model=bayesian |
@@ -179,7 +180,7 @@ All tests currently implemented, grouped by test module
 |---|---|
 | systemtest-basic | NPS stability test with 2 concurrency steps; report produced |
 
-## tournament (7 tests)
+## tournament (8 tests)
 
 | Name | Description |
 |---|---|
@@ -187,6 +188,7 @@ All tests currently implemented, grouped by test module
 | tournament-round-robin | Round-robin, 3 engines; all pairings complete |
 | tournament-nonexisting-file | Writes new .qtour file; file contains [each] and [round] sections |
 | tournament-continuation | Resumes an existing .qtour; round 1 skipped, round 2 played and saved |
+| tournament-file-uci-option-roundtrip | Writes a .qtour with UCI options and resumes from it; the options must reach the engines unchanged |
 | tournament-roundrobin-too-few-engines | Round-robin with one engine; expects InvalidParameters (2) |
 | tournament-gauntlet-fallback | No gauntlet=true; the first engine plays all others, no round-robin pairings |
 | tournament-noswap-event-rating | noswap/event/ratinginterval; colors fixed, event name in the PGN |
@@ -199,4 +201,4 @@ All tests currently implemented, grouped by test module
 | xboard-mixed-protocols | XBoard engine against UCI engine; translation across adapters |
 | xboard-engine-test | Engine test suite (go limits, FEN positions) against an XBoard engine |
 
-**Total: 100 tests**
+**Total: 102 tests**
