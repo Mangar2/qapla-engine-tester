@@ -25,6 +25,7 @@
 #include "../engine-handling/engine-parameter-bounds.h"
 #include "../base-elements/logger.h"
 #include "../base-elements/app-error.h"
+#include "../engine-handling/run-header-logger.h"
 
 #include <format>
 #include <algorithm>
@@ -104,11 +105,21 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
         }
     }
 
-    Logger::reportLogger().logStatus(
-        std::format("SPSA initialized with {} parameters and {} initial pairs",
-            config.parameters.size(), perturbations_.size()),
-        "spsa",
-        TraceLevel::info);
+    std::vector<RunHeaderSetting> settings = {
+        { "Max active pairs", std::format("{}", config.maxActivePairs) },
+        { "Learning rate", std::format("{:g}", config.learningRate) },
+        { "Games per pair", std::format("{}", config.gamesPerPair) },
+        { "Iterations", std::format("{}", config.iterations) },
+        { "Outcome interval", std::format("{} iterations", config.outcomeInterval) },
+        { "Openings file", config.openingsFile },
+        { "Openings seed", std::format("{}", config.openingsSeed) },
+    };
+    for (const auto& parameter : config.parameters) {
+        settings.push_back({ std::format("Parameter {}", parameter.name),
+            std::format("default {:g}, range [{:g}, {:g}], c {:g}",
+                parameter.defaultValue, parameter.minValue, parameter.maxValue, parameter.c) });
+    }
+    RunHeaderLogger::log("SPSA", { baseEngine_ }, settings);
     logStatusTables("initial", TraceLevel::result);
 }
 

@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   bestmove are detected far more reliably; the test still costs about a tenth of
   a second.
 
+### Changed
+
+- **Unified report log headers**: SPRT, Tournament, EPD, CLOP, SPSA and
+  Engine-Test now start their report log with the same kind of header: which
+  engines are involved (with their configuration) and the settings used for
+  that run, listed as aligned key/value pairs. Only the header changed — the
+  rest of each log's content is unaffected.
+
 ## [0.6.0] - 2026-08-06
 
 ### Added

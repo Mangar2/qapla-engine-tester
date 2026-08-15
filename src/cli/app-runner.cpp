@@ -36,6 +36,7 @@
 #include "../game-manager/game-state.h"
 #include "../perft/perft.h"
 #include "../base-elements/logger.h"
+#include "../engine-handling/run-header-logger.h"
 #include "../base-elements/oss-tools.h"
 #include "../base-elements/string-helper.h"
 #include "../base-elements/table-format.h"
@@ -226,7 +227,27 @@ void logStartConcurrency(std::string_view toolName, const ConcurrencyResolution&
 
 AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnCode code) {
     Settings::QaplaSettings::instance().applyLoggerConfig("engine-report");
-    Logger::reportLogger().logAligned("Summary test report log: ", Logger::reportLogger().getFilename());
+
+    std::vector<RunHeaderSetting> settings = {
+        { "Games per test", std::format("{}", test.get<uint32_t>("numgames")) },
+        { "Check movetime underruns", test.get<bool>("underrun") ? "on" : "off" },
+    };
+    static const std::vector<std::pair<std::string, std::string>> optionalTests = {
+        { "nomemory", "Hash table memory usage test" },
+        { "nooption", "Option crash tests" },
+        { "noanalyze", "Standard analysis test" },
+        { "nostop", "Immediate stop response test" },
+        { "nowait", "Infinite search never returns test" },
+        { "nogolimits", "Go limits test" },
+        { "nofens", "Games from FEN test" },
+        { "noepd", "EPD bestmove test" },
+        { "nocompute", "Single compute game test" },
+        { "noponder", "Pondering test" },
+    };
+    for (const auto& [flag, description] : optionalTests) {
+        settings.push_back({ description, test.get<bool>(flag) ? "skipped" : "on" });
+    }
+    RunHeaderLogger::log("Engine Test", EngineWorkerFactory::getActiveEngines(), settings);
 
     EngineTestController controller;
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
@@ -326,20 +347,22 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
 
     for (const auto& engine : EngineWorkerFactory::getActiveEngines()) {
         const auto& name = engine.getName();
-        std::string searchMode = std::format("Max Time: {}s Early stop - Seen plies: {} Min time: {}s",
-            epdConfig->maxTime,
-            epdConfig->seenPlies,
-            epdConfig->minTime);
-        if (epdConfig->depth != 0) {
-            searchMode = std::format("Fixed depth: {} (maxtime/mintime/seenplies are ignored)", epdConfig->depth);
-        } else if (epdConfig->nodes != 0) {
-            searchMode = std::format("Fixed nodes: {} (maxtime/mintime/seenplies are ignored)", epdConfig->nodes);
-        }
 
-        Logger::reportLogger().log(std::format("Using engine: {} Concurrency: {} {}",
-            name,
-            concurrency,
-            searchMode));
+        std::vector<RunHeaderSetting> settings = {
+            { "EPD file", epdConfig->file },
+        };
+        if (epdConfig->depth != 0) {
+            settings.push_back({ "Depth limit", std::format("{} plies", epdConfig->depth) });
+        } else if (epdConfig->nodes != 0) {
+            settings.push_back({ "Node limit", std::format("{}", epdConfig->nodes) });
+        } else {
+            settings.push_back({ "Max time", std::format("{}s", epdConfig->maxTime) });
+            settings.push_back({ "Min time", std::format("{}s", epdConfig->minTime) });
+            settings.push_back({ "Early stop after", std::format("{} plies", epdConfig->seenPlies) });
+        }
+        settings.push_back({ "Min success rate", epdConfig->minSuccess > 0 ? std::format("{}%", epdConfig->minSuccess) : "off" });
+        RunHeaderLogger::log("EPD", { engine }, settings);
+
         epdManager_->initialize(epdConfig->file, epdConfig->maxTime, epdConfig->minTime, epdConfig->seenPlies,
             epdConfig->depth, epdConfig->nodes);
         GameManagerPool& pool = GameManagerPool::getInstance();

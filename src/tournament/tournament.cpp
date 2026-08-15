@@ -28,6 +28,7 @@
 
 #include "../base-elements/logger.h"
 #include "../base-elements/string-helper.h"
+#include "../engine-handling/run-header-logger.h"
 
 #include <ctime>
 #include <random>
@@ -122,6 +123,18 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     }
     restoreResults(savedPairings);
     changeTracker_.trackModification();
+
+    RunHeaderLogger::log("Tournament", engines, {
+        { "Event", config.event.empty() ? "-" : config.event },
+        { "Type", config.type },
+        { "Games per pairing", std::format("{}", config.games) },
+        { "Rounds", std::format("{}", config.rounds) },
+        { "Repeat", std::format("{}", config.repeat) },
+        { "Rating interval", config.ratingInterval > 0 ? std::format("{} games", config.ratingInterval) : "off" },
+        { "Outcome interval", config.outcomeInterval > 0 ? std::format("{} games", config.outcomeInterval) : "off" },
+        { "Average Elo", std::format("{}", config.averageElo) },
+        { "Color swap", config.noSwap ? "off" : "on" },
+    });
 }
 
 void Tournament::partitionGauntletEngines(const std::vector<EngineConfig>& engines,

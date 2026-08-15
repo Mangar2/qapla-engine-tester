@@ -27,6 +27,7 @@
 #include "../engine-handling/engine-parameter-bounds.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
+#include "../engine-handling/run-header-logger.h"
 
 #include <algorithm>
 #include <chrono>
@@ -320,14 +321,26 @@ void CLOPOptimizer::createCLOP(const std::vector<EngineConfig>& engines, const C
         lastRecomputeAt_ = std::chrono::steady_clock::time_point{};
     }
 
-    Logger::reportLogger().logStatus(
-        std::format(
-            "CLOP initialized with {} parameters, {} target samples and H={}",
-            config.parameters.size(),
-            config.samples,
-            config.h),
-        "clop",
-        TraceLevel::result);
+    std::vector<RunHeaderSetting> settings = {
+        { "Samples", std::format("{}", config.samples) },
+        { "Games per sample", std::format("{}", config.gamesPerSample) },
+        { "Warmup samples", std::format("{}", config.warmupSamples) },
+        { "Max active pairs", std::format("{}", config.maxActivePairs) },
+        { "Outcome interval", std::format("{} samples", config.outcomeInterval) },
+        { "Max weight iterations", std::format("{}", config.maxWeightIterations) },
+        { "Openings file", config.openingsFile },
+        { "Openings seed", std::format("{}", config.openingsSeed) },
+        { "H", std::format("{:g}", config.h) },
+        { "Prior variance", std::format("{:g}", config.priorVariance) },
+    };
+    for (const auto& parameter : config.parameters) {
+        settings.push_back({ std::format("Parameter {}", parameter.name),
+            std::format("[{:g}, {:g}]", parameter.minValue, parameter.maxValue) });
+    }
+
+    std::vector<EngineConfig> allEngines = { baseEngine_ };
+    allEngines.insert(allEngines.end(), opponentEngines_.begin(), opponentEngines_.end());
+    RunHeaderLogger::log("CLOP", allEngines, settings);
 }
 
 EngineConfig CLOPOptimizer::getNextOpponentEngine() {

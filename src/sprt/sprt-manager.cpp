@@ -27,6 +27,7 @@
 #include "../game-manager/game-manager-pool.h"
 
 #include "../base-elements/logger.h"
+#include "../engine-handling/run-header-logger.h"
 
 #include <sstream>
 #include <iomanip>
@@ -119,6 +120,15 @@ void SprtManager::createTournament(
     pairing_->setVerbose(false);
     pairing_->setPositionName("SPRT");
 
+    RunHeaderLogger::log("SPRT", { engine0_, engine1_ }, {
+        { "H0", std::format("{:g} elo", config_.eloH0) },
+        { "H1", std::format("{:g} elo", config_.eloH1) },
+        { "Alpha", std::format("{:g}", config_.alpha) },
+        { "Beta", std::format("{:g}", config_.beta) },
+        { "Max games", std::format("{}", config_.maxGames) },
+        { "Model", config_.model },
+        { "Pentanomial", config_.pentanomial ? "true" : "false" },
+    });
 }
 
 void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t concurrency, GameManagerPool& pool) {
@@ -133,16 +143,6 @@ void SprtManager::schedule(const std::shared_ptr<SprtManager>& self, uint32_t co
             auto result = getResult();
             result.printOutcome(std::cout);
         });
-	auto duel = pairing_->getResult();
-    
-    std::string startMsg = std::format("sprt engines {} ({}) vs {} ({}) elo [{}, {}] alpha {} beta {} maxgames {} concurrency {}\n",
-        duel.getEngineA(), engine0_.getTimeControl().toPgnTimeControlString(),
-        duel.getEngineB(), engine1_.getTimeControl().toPgnTimeControlString(),
-        config_.eloH0, config_.eloH1,
-        config_.alpha, config_.beta,
-        config_.maxGames,
-        concurrency);
-    Logger::reportLogger().logStatus(startMsg, "sprt");
 
     saveTimer_.update();
 
@@ -498,9 +498,13 @@ void SprtManager::runMonteCarloTestInternal(const SprtConfig& config) {
     }
 
     std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::string mcStartMsg = std::format("Running SPRT Monte carlo simulation: | Elo range: [{}, {}] | alpha: {}, beta: {} | maxGames: {} | step: {}",
-        config.eloH0, config.eloH1, config.alpha, config.beta, config.maxGames, step);
-    Logger::reportLogger().logStatus(mcStartMsg, "sprt");
+    RunHeaderLogger::log("SPRT (Monte Carlo)", {}, {
+        { "Elo range", std::format("[{:g}, {:g}]", config.eloH0, config.eloH1) },
+        { "Alpha", std::format("{:g}", config.alpha) },
+        { "Beta", std::format("{:g}", config.beta) },
+        { "Max games", std::format("{}", config.maxGames) },
+        { "Elo step", std::format("{:g}", step) },
+    });
 
     std::vector<std::thread> threads;
     threads.reserve(eloDiffs.size());
