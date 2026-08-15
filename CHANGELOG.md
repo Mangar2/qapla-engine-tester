@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Documentation — return codes when an engine fails during a tournament or SPRT**: The README
+  claimed that an engine crashing during an SPRT run returns `10` instead of the SPRT result. That
+  was never the behaviour, and it is not the intended one: a tournament or SPRT run compares engines
+  with each other, so a failing engine forfeits the affected game and the run returns its regular
+  outcome (`14`–`16` for SPRT, `0` for a tournament). Any rule that invalidated a run after "too
+  many" failures would need an arbitrary threshold. The engine codes `10`–`12` come from the
+  compliance suite (`--test`) only; this is now stated in the return code table and explained in a
+  new section. A missing engine executable remains a parameter error (`2`). No code change — SPRT and
+  tournament already behaved this way, and consistently with each other.
+
 ## [0.6.0] - 2026-08-15
 
 ### Added

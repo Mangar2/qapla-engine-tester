@@ -171,10 +171,36 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "engine-test-timeusage-fail",
             "description": "Negative test for time usage in games",
-            "args": "--concurrency=5 --settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=5 --engine conf='qai_pla_uci' --logging path=test/integration/log/engine-test/timeusage-fail",
+            # An engine that always overruns its clock makes the outcome
+            # deterministic. The previous engine (qai_pla_uci) only dropped below
+            # the one second mark when the machine was busy enough, which made the
+            # test pass or fail depending on load.
+            #
+            # Trade-off: the note-level checks of 'timeusage' (clock never below one
+            # second, reserve time preserved) evaluate games that are actually
+            # played, so they cannot fire for an engine that forfeits its first
+            # move. What this test pins is the [Important] time-loss detection.
+            "args": "--concurrency=5 --settingsfile=test/integration/engine-test/test-engine-none.ini --test timeusage=true numgames=5 --engine conf='diagnostic-engine-lossontime' --logging path=test/integration/log/engine-test/timeusage-fail",
             "log_path": "test/integration/log/engine-test/timeusage-fail",
             "validators": [
-                {"type": "exitCode", "expected": 12}
+                # A time loss is an [Important] finding, so this is an engine error,
+                # not the note-level result the flaky variant produced.
+                {"type": "exitCode", "expected": 10},
+                {
+                    # Pins the time usage measurement itself, not just the exit code.
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-report-*.log",
+                    "count": 1,
+                    "content": r"looses on time with time control",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-report-*.log",
+                    "count": 1,
+                    "content": r"FAIL Engine avoids time losses",
+                },
             ],
             "cleanup": "test/integration/log/engine-test/timeusage-fail",
         }

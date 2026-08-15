@@ -42,7 +42,7 @@ All tests currently implemented, grouped by test module
 | engine-test-nocompute-fail | Negative test: single compute game with diagnostic lossontime; expects exit 10 |
 | engine-test-noponder-fail | Negative test: pondering with Qapla 0.2.0; expects exit 10 |
 | engine-test-underrun-fail | Negative test: movetime underrun with Qapla 0.3.1; expects exit 12 |
-| engine-test-timeusage-fail | Negative test: time usage in games; expects exit 12 |
+| engine-test-timeusage-fail | Negative test: engine forfeits on time in self-play; expects exit 10 |
 
 ## epd (6 tests)
 
@@ -143,13 +143,20 @@ All tests currently implemented, grouped by test module
 |---|---|
 | resign-adjudication | `--resign` in test mode; parameters accepted, SPRT still reaches maxgames (16) |
 
+## returncode (2 tests)
+
+| Name | Description |
+|---|---|
+| returncode-sprt-survives-engine-failure | Engine fails its UCI handshake; the game is forfeited and SPRT still returns 16 |
+| returncode-tournament-survives-engine-failure | Same failure in a tournament; the run still returns 0, the forfeit is in the report |
+
 ## sprt (12 tests)
 
 | Name | Description |
 |---|---|
 | sprt-maxgames-reached | SPRT ends without decision; expects UndefinedResult (16) |
 | sprt-basic-h0-accepted | SPRT between equal engines with low H1 threshold; expects H0Accepted (15) |
-| sprt-basic-h1-accepted | SPRT with stronger vs weaker engine given low thresholds; expects H1Accepted (14) |
+| sprt-basic-h1-accepted | Challenger wins every game against a forfeiting baseline; expects H1Accepted (14) |
 | sprt-with-ponder | SPRT with ponder=true in engine config; expects H1Accepted (14) |
 | sprt-rapid-mode | rapid=true suppresses info lines; SPRT runs to maxgames (16) |
 | sprt-continuation | Loads existing .qsprt file; resumes from saved game count |
@@ -192,10 +199,4 @@ All tests currently implemented, grouped by test module
 | xboard-mixed-protocols | XBoard engine against UCI engine; translation across adapters |
 | xboard-engine-test | Engine test suite (go limits, FEN positions) against an XBoard engine |
 
-**Total: 98 tests**
-
----
-
-Still open: `returncode-engine-error-beats-sprt-result` from
-[../integration-test-plan.md](../integration-test-plan.md) §11 — blocked on Q1 in
-[../integration-test-questions.md](../integration-test-questions.md).
+**Total: 100 tests**

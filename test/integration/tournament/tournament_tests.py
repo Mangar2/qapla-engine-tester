@@ -126,7 +126,8 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "stdout", "content": "Encounter Qapla 0.4.0 vs Qapla 0.3.2"},
                 {"type": "stdout", "content": "Encounter Qapla 0.4.0 vs Qapla 0.3.1"},
                 {
-                    # A gauntlet must not pair the two non-gauntlet engines.
+                    # Without gauntlet=true the first engine is the gauntlet engine,
+                    # so a gauntlet must not pair the two remaining engines.
                     "type": "stdout",
                     "content": r"(?s)^(?:(?!Encounter Qapla 0\.3\.2 vs).)*$",
                     "isRegex": True,

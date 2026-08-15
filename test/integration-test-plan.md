@@ -1,10 +1,10 @@
 # Integration Test Plan — 30 Additional Test Cases
 
-> **Status: implemented.** 29 of the 30 tests below are in the suite and green
-> (see [test/integration/tests.md](integration/tests.md), now 98 tests in total). The one exception is
-> `returncode-engine-error-beats-sprt-result` (§11), which is blocked on a decision — see Q1 in
-> [integration-test-questions.md](integration-test-questions.md). Details that turned out differently
-> during implementation are noted inline below.
+> **Status: implemented.** All 30 tests below are in the suite and green — §11 became two tests
+> (SPRT and tournament) after the return-code question was decided, so the suite now holds 100 tests
+> in total (see [test/integration/tests.md](integration/tests.md)). Details that turned out
+> differently during implementation are noted inline below; open follow-ups are in
+> [integration-test-questions.md](integration-test-questions.md).
 
 Companion document to [test/integration/tests.md](integration/tests.md), which listed 58 tests when
 this plan was written. This plan proposes **30 new tests** that deliberately cover *white spots* —
@@ -372,18 +372,31 @@ observable.
 
 ## 11. Return-code priority — `test/integration/returncode/returncode_tests.py` (new module)
 
-**returncode-engine-error-beats-sprt-result**
-- **Why missing**: the README documents a strict priority ("An engine crashes during an SPRT test →
-  return 10, not 14–16") and *no test enforces it* — neither for SPRT nor for tournaments.
-- **args**: `--concurrency=2 --enginesfile=test/integration/engines/engines.ini --sprt maxgames=1 --openings file=test/opening/book8ply.raw order=sequential --each tc=0.2+0.01 --engine conf='Qapla 0.4.0' --engine conf='diagnostic-engine-noinit' --logging engine=false path=test/integration/log/returncode`
-- **log_path / cleanup**: `test/integration/log/returncode`
-- **validators**: `exitCode: 10` (per README §Return Codes)
-- **runtime**: ~20 s with `maxgames=2` (verified) — within the hard limit, but at the edge of the
-  desired range because the run waits out the dead engine's timeout; `maxgames=1` roughly halves it.
-- **⚠ Decide before implementing**: the current build **returns 16**, not 10, for this scenario
-  (verified: `maxgames=2`, exit 16 after 19.6 s, the failing engine is scored as a normal loss).
-  So this test either documents a real defect or the README needs to be narrowed. Clarify the
-  intended behaviour first, then write the test against the decision.
+> **Resolved and implemented as two tests.** The planned test assumed the README's priority rule
+> ("An engine crashes during an SPRT test → return 10, not 14–16"). That rule was dropped instead: a
+> failing engine forfeits its game and the run keeps its own outcome code. The README now documents
+> that, and the module pins it for *both* modes — see Q1 in
+> [integration-test-questions.md](integration-test-questions.md).
+
+**returncode-sprt-survives-engine-failure**
+- **Why missing**: no test covered what a run returns when an engine fails — neither for SPRT nor for
+  tournaments.
+- **args**: `--concurrency=1 --enginesfile=test/integration/engines/engines.ini --openings file=test/opening/book8ply.raw order=sequential --each tc=0.2+0.01 trace=none --engine conf='diagnostic-engine-noinit' --engine conf='Qapla 0.4.0' --sprt maxgames=1 eloH0=0 eloH1=10 --logging engine=false path=test/integration/log/returncode/sprt`
+- **log_path / cleanup**: `test/integration/log/returncode/sprt`
+- **validators**: `exitCode: 16`; `stdout content="failed UCI handshake"`;
+  `stdout content="engine diagnostic-engine-noinit failed to start"`; `stdout content="cause forfeit"`
+- **runtime**: 19.1 s (verified) — all of it the UCI handshake timeout
+
+**returncode-tournament-survives-engine-failure**
+- **Why missing**: same question for tournaments, where the regular outcome is `0`.
+- **args**: as above, but `--tournament type=gauntlet games=1 rounds=1` and log path
+  `…/returncode/tournament` (one game = one handshake timeout)
+- **log_path / cleanup**: `test/integration/log/returncode/tournament`
+- **validators**: `exitCode: 0`; the same two failure-evidence assertions;
+  `logFiles path="" pattern="tournament-report-*.log" count=1 content="failed to start"`
+- **runtime**: 19.1 s (verified)
+- **Note**: `diagnostic-engine-loop` would run in under a second but is useless here — it produces no
+  reported failure at all, it just plays badly and gets checkmated.
 
 ---
 

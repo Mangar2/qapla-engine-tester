@@ -1,14 +1,36 @@
 # Question Log — Integration Test Implementation
 
 Open points from implementing the 30 planned tests
-([integration-test-plan.md](integration-test-plan.md)). 29 tests are implemented and green; the one
-below is blocked on a decision.
+([integration-test-plan.md](integration-test-plan.md)). All 30 are implemented and green; Q1 is
+answered and closed, Q2–Q5 are still open.
 
 ---
 
-## Q1 — Return code when an engine fails during SPRT: 10 or 16?
+## Q1 — Return code when an engine fails during SPRT: 10 or 16? ✅ ANSWERED
 
-**Blocks:** `returncode-engine-error-beats-sprt-result` (plan §11) — the only unimplemented test.
+> **Decision:** SPRT returns `14`–`16` and a tournament returns `0`, regardless of whether an engine
+> crashes — a failing engine must not destroy the comparison, and any "how often is too often"
+> threshold would be arbitrary.
+
+**Resolved as follows:**
+
+- **Code: no change needed.** SPRT and tournament already behave exactly as decided, and consistently
+  with each other: engine failures never reach the exit code (`app-runner.cpp` only derives `14`–`16`
+  from the SPRT decision and leaves the tournament code untouched; `10`–`12` are produced solely by
+  the engine report in `--test`). Verified with `diagnostic-engine-noinit` in both modes: SPRT → 16,
+  tournament → 0, in both cases the game is adjudicated as a forfeit and the failure is logged
+  (`Engine failed UCI handshake`, `… failed to start …, adjudicating as black win`).
+- **README updated**: the claim "An engine crashes during an SPRT test → return `10`, not `14`–`16`"
+  is gone. `10`–`12` are now marked as `--test`-only in the code table, and a new section
+  "Engine failures during tournaments and SPRT" states the rule, its rationale, and that a missing
+  engine executable is still a parameter error (`2`) before any game starts.
+- **Tests added** (module `returncode/`, ~19 s each — the runtime is the UCI handshake timeout):
+  `returncode-sprt-survives-engine-failure` (exit 16) and
+  `returncode-tournament-survives-engine-failure` (exit 0). Both assert the failure actually happened
+  (`failed UCI handshake`, `failed to start`, forfeit in the report), so they cannot pass with two
+  healthy engines.
+
+Original analysis, kept for reference:
 
 **Documented (README, "Return Codes for Batch Processing"):**
 > An engine crashes during an SPRT test → return `10`, not `14`–`16`
@@ -25,29 +47,26 @@ below is blocked on a decision.
 So a broken engine currently produces a *statistically valid looking* SPRT result instead of an
 error code — in CI that difference decides whether a broken engine is noticed at all.
 
-**Please pick one:**
-1. **README is right, code is wrong** → I write the test with `exitCode: 10`; it fails until the
-   engine error is propagated. (Should the engine's loss still count toward the score?)
-2. **Code is right, README overstates** → I write the test with `exitCode: 16` plus an assertion
-   that the report log records the engine failure, and the README section gets narrowed to `--test`.
-3. Something in between (e.g. `EngineError` only if the engine never produced a single move).
+Options offered were: (1) README right, code wrong; (2) code right, README overstates;
+(3) something in between. **Chosen: (2).**
 
-**Side note:** the `noinit` variant costs 19.6 s of the 20 s budget, all of it spent waiting for the
-engine that never initializes. `diagnostic-engine-loop` reaches the same outcome in 0.9 s, so I would
-use that one for the test regardless of the decision.
+**Correction to the table above:** `diagnostic-engine-loop` is *not* a failure case. With engine
+logging on, the tool reports nothing for it — it simply plays badly and gets checkmated, so its exit
+code says nothing about failure handling. Only `noinit` produces a reported failure
+(`Engine failed UCI handshake`), which is why both new tests use it and cost ~19 s each.
 
 ---
 
-## Q2 — Confirm two behaviours I asserted as "correct" (no action needed if intended)
+## Q2 — Confirm two behaviours I asserted as "correct" ✅ ANSWERED
 
-Both are now pinned by a passing test; if either is unintended, the test is wrong, not the code.
+> **Both confirmed as intended.** The two tests stay exactly as written; no code or test change.
 
 1. **`min=true` keeps five tags** — `pgnoutput-minimal-tags` asserts that a minimal PGN carries
-   exactly `White`, `Black`, `FEN`, `SetUp`, `Event` and no `PlyCount`/`TimeControl`. Is that the
-   intended minimal set?
+   exactly `White`, `Black`, `FEN`, `SetUp`, `Event` and no `PlyCount`/`TimeControl`.
+   → Intended minimal set.
 2. **Gauntlet fallback pairs only the first engine** — `tournament-gauntlet-fallback` asserts that
-   with three engines and no `gauntlet=true`, exactly the pairings `E1 vs E2` and `E1 vs E3` are
-   played (0.6.0 change). Confirmed as intended?
+   with three engines and no `gauntlet=true`, exactly `E1 vs E2` and `E1 vs E3` are played
+   (0.6.0 change). → Correct: the first engine *is* the gauntlet engine.
 
 ---
 
@@ -62,7 +81,19 @@ Both are checked in. The `.qtour` needs regenerating if the state file format ch
 
 ---
 
-## Q4 — Existing tests exceed the new runtime budget
+## Q4 — Existing tests exceed the new runtime budget ✅ ANSWERED
+
+> **Decision:** retune with a loss-on-time diagnostic engine.
+>
+> **Done:** `test-sprt-14.ini` now pairs `Qapla 0.4.0` against `diagnostic-engine-lossontime` at
+> `tc=1+0.01`. The challenger wins every game, so H1 is reached after 79 games instead of thousands:
+> **9m 09s → 5.9 s**, exit code 14 unchanged and now deterministic (100 % win rate). The test still
+> covers what it was for — the H1Accepted decision path — it just no longer spends minutes
+> establishing a strength difference that the Monte Carlo tests already cover statistically.
+>
+> Untouched: the `engine-test` entries below are long by design (option smoke test, full compliance
+> suite, full ponder game) and stay well under the hard limit; `epd-long-time` and `epd-two-engines`
+> measure exactly the thing that takes the time.
 
 Measured over a full suite run (98 tests, 26m 17s in total). The budget agreed for new tests is
 ≤ 20 s desired, 5 minutes hard. Existing tests above that mark:
@@ -83,7 +114,25 @@ faster time control and a lower `maxgames`, but that changes what the test stati
 
 ---
 
-## Q5 — `engine-test-timeusage-fail` is flaky (existing test)
+## Q5 — `engine-test-timeusage-fail` is flaky (existing test) ✅ ANSWERED
+
+> **Decision:** use a loss-on-time diagnostic engine.
+>
+> **Done:** the test now runs `diagnostic-engine-lossontime` instead of `qai_pla_uci` and expects
+> exit **10** instead of 12 — a time loss is an `[Important]` finding, not a note. Deterministic
+> (every game forfeits), **1m 27s → 37 s**. Two added validators pin the finding itself
+> (`looses on time with time control`, `FAIL Engine avoids time losses`) so the test cannot pass on
+> the exit code alone.
+>
+> **One consequence worth knowing:** the note-level checks that used to decide this test
+> ("clock never below one second", "reserve time preserved") evaluate games that are *actually
+> played*. An engine that forfeits its first move gives them nothing to evaluate, so they no longer
+> fire anywhere in the suite. Measured while implementing: `--test timeusage=true numgames=0` returns
+> 0 in 0.35 s and writes no report at all, while `--test numgames=5` without `timeusage` already
+> produces the exit 10 — i.e. with this engine the failure comes from the self-play games, not from
+> the time usage evaluation. Covering that evaluation deterministically would need a diagnostic mode
+> that plays real games but wastes its clock; none of the current diagnostic engines does that. Say
+> the word if that gap should be closed.
 
 Observed in the full `--config release` run: **FAILED after 1m 09.6s**. Re-run standalone
 immediately afterwards: **PASSED after 1m 23.6s**, exit code 12 as expected. It also passed in the

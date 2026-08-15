@@ -10,7 +10,9 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "mcp-list-settings",
             "description": "Call list_settings tool and verify output format",
-            "args": "--mcp",
+            # Without an explicit logging path the tool logs to its default path
+            # ("."), which drops a report-<timestamp>.log into the repository root.
+            "args": "--mcp --logging path=test/integration/log/mcp_settings/list",
             "log_path": "test/integration/log/mcp_settings/list",
             "input": '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "list_settings", "arguments": {}}}',
             "validators": [

@@ -128,6 +128,8 @@ All test modes now return structured numeric exit codes to support automated eva
 
 Return codes are prioritized — if multiple situations occur, the lowest relevant non-zero code (excluding `0`) is returned. For example: a parameter error (`2`) takes precedence over an engine failure (`10`) or a missed target (`13`).
 
+The engine codes `10`–`12` are reported by the engine test suite (`--test`) only. A tournament or SPRT run judges *engines against each other*, so a single engine failing is part of the result, not a reason to discard it: the failing engine forfeits the affected game and the run returns its regular outcome — see [Engine failures during tournaments and SPRT](#engine-failures-during-tournaments-and-sprt).
+
 ### Return Code Overview
 
 | Code | Name                 | Meaning                                                                 |
@@ -135,8 +137,8 @@ Return codes are prioritized — if multiple situations occur, the lowest releva
 | 0    | `NoError`            | Everything ran correctly; test completed as expected                    |
 | 1    | `GeneralError`       | Unexpected program error (e.g. crash, unhandled exception)              |
 | 2    | `InvalidParameters`  | Invalid or missing CLI parameter                                        |
-| 10   | `EngineError`        | Engine crashed, could not start, or returned illegal moves              |
-| 11   | `EngineMissbehaviour`| Engine hung, ignored protocol, or failed to follow commands             |
+| 10   | `EngineError`        | Engine crashed, could not start, or returned illegal moves (only in `--test`) |
+| 11   | `EngineMissbehaviour`| Engine hung, ignored protocol, or failed to follow commands (only in `--test`) |
 | 12   | `EngineNote`         | Test completed, but non-critical engine issues occurred (only in `--test`) |
 | 13   | `MissedTarget`       | EPD target success threshold was not reached (`--epd`)                  |
 | 14   | `H1Accepted`         | SPRT result: H₁ (stronger engine) accepted (`--sprt`)                   |
@@ -147,14 +149,36 @@ Return codes are prioritized — if multiple situations occur, the lowest releva
 
 - Codes `1`, `2`, `10`, `11`, `12` always take priority over `13`–`16`
 - Code `0` is only returned if **no issues** occurred
-- Codes `13`, `14`, `15`, and `16` are only used if **no engine errors or CLI issues** occurred
+- Codes `10`, `11` and `12` come from the engine test suite (`--test`); `13`–`16` from `--epd` and `--sprt`. The two groups therefore never compete for the same run
 - Among `13`–`16`, only one is returned depending on outcome
+
+### Engine failures during tournaments and SPRT
+
+A tournament or SPRT run compares engines with each other, and an engine that crashes, hangs or never
+completes its handshake is a property of that engine — not a defect of the comparison. Such a failure
+therefore **never changes the exit code** of the run:
+
+- The affected game is adjudicated against the failing engine (a forfeit) and reported with its cause
+- The run continues with the remaining games and returns its regular outcome — `14`, `15` or `16` for
+  SPRT, `0` for a tournament
+- The failure itself is visible in the report log (`… failed to start …, adjudicating as …`) and in
+  the outcome table, not in the exit code
+
+This is deliberate: a single flaky game should not invalidate a comparison of several thousand, and
+any threshold above which failures *would* invalidate it ("often", "too often") would be arbitrary.
+Use `--test` to judge whether an engine itself is sound; use `--sprt` / `--tournament` to judge how
+engines compare.
+
+Configuration problems are unaffected by this rule — an engine whose executable cannot be found is a
+parameter error and still returns `2` before any game starts.
 
 ### Examples
 
 - An SPRT test ends with undecided result → return `16`
 - An EPD run fails to reach expected correctness rate → return `13`
-- An engine crashes during an SPRT test → return `10`, not `14`–`16`
+- An engine crashes during an SPRT test → still `14`–`16`; the lost game is adjudicated as a forfeit
+- An engine crashes during a tournament → still `0`; see the report log for the forfeited game
+- An engine fails the compliance suite (`--test`) → return `10`, `11` or `12`
 - A CLI parameter is missing → return `2`, regardless of test type
 
 Use these codes in automation scripts to check for test outcomes or failure causes.

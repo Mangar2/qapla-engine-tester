@@ -31,7 +31,7 @@ def get_tests() -> List[Dict[str, Any]]:
         },
         {
             "name": "sprt-basic-h1-accepted",
-            "description": "Basic SPRT test with H1 accepted (exit code 14)",
+            "description": "SPRT reaching H1 accepted (exit code 14) - challenger wins every game",
             "args": "--settingsfile=test/integration/sprt/test-sprt-14.ini",
             "log_path": "test/integration/log/sprt",
             "validators": [{"type": "exitCode", "expected": 14}],

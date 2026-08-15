@@ -50,7 +50,10 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "parameter-sprt-file",
             "description": "SPRT using sprt file with concurrency parameter",
-            "args": "--concurrency=2 --sprt file=test/integration/log/parameter/test-parameter-sprt-file.qsprt",
+            # The .qsprt fixture carries no [logging] section, so without an explicit
+            # path the run drops its report logs into the repository's own log/ directory.
+            "args": "--concurrency=2 --sprt file=test/integration/log/parameter/test-parameter-sprt-file.qsprt "
+                    "--logging path=test/integration/log/parameter",
             "log_path": "test/integration/log/parameter",
             "validators": [
                 {"type": "exitCode", "expected": 16},

@@ -47,6 +47,8 @@ def get_tests() -> List[Dict[str, Any]]:
                     "content": "[Event \"Sprt\"]",
                 },
                 {
+                    # Confirmed intended: a minimal PGN keeps exactly White, Black,
+                    # FEN, SetUp and Event.
                     "type": "fileContent",
                     "path": "test/integration/log/pgnoutput/min/min.pgn",
                     "content": r"(?s)^(?:(?!\[PlyCount).)*$",
