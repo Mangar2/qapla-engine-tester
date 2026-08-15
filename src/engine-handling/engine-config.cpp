@@ -36,6 +36,149 @@
 
 namespace QaplaTester {
 
+namespace {
+
+/**
+ * @brief Parses the boolean spellings an ini file or the settings manager can deliver.
+ * @return The parsed value, or std::nullopt if the text is not a boolean.
+ */
+[[nodiscard]] std::optional<bool> parseConfigBool(const std::string& value) {
+    if (value == "true" || value == "1" || value.empty()) { return true; }
+    if (value == "false" || value == "0") { return false; }
+    return std::nullopt;
+}
+
+/**
+ * @brief Reads and writes a single configuration key as text.
+ */
+struct KeyAccessor {
+    void (*set)(EngineConfig&, const std::string&);
+    std::string (*get)(const EngineConfig&);
+};
+
+/// Keys of the engine section that are not properties of a configuration: "conf" selects a
+/// template and is resolved before a configuration exists, "id" states which run a section
+/// belongs to and is stamped on by the file writer.
+[[nodiscard]] bool isConfigOwnedKey(const std::string& keyName) {
+    return keyName != "conf" && keyName != "id";
+}
+
+/**
+ * @brief Returns the central parameter definition of the engine section.
+ */
+[[nodiscard]] const Settings::GroupDefinition& engineDefinition() {
+    const auto& groupDefinitions = Settings::Manager::instance().getGroupDefinitions();
+    const auto definition = groupDefinitions.find("engine");
+    if (definition == groupDefinitions.end()) {
+        throw AppError::make("No parameter definition for engine sections available.");
+    }
+    return definition->second;
+}
+
+/**
+ * @brief Returns the prefix the definition uses for freely named entries.
+ *
+ * The definition spells such a family as "<prefix>.[name]"; UCI options are the only one.
+ * Taking the prefix from there rather than writing "option." into the code is what keeps
+ * reading, writing and validating in step.
+ */
+[[nodiscard]] const std::string& optionKeyPrefix() {
+    static const std::string prefix = [] {
+        constexpr std::string_view placeholder = "[name]";
+        for (const auto& keyName : engineDefinition().getKeyNames()) {
+            if (keyName.ends_with(placeholder)) {
+                return keyName.substr(0, keyName.size() - placeholder.size());
+            }
+        }
+        throw AppError::make("Engine parameter definition has no key for named options.");
+    }();
+    return prefix;
+}
+
+using AccessorMap = QaplaHelpers::StableMap<std::string, KeyAccessor>;
+
+/**
+ * @brief Fails if the accessors and the central parameter definition have drifted apart.
+ *
+ * A key defined centrally but not accessible here would be silently dropped when a
+ * configuration is saved; a key accessible here but undefined centrally would produce files
+ * that no longer load. Both are programming errors and are reported as soon as an engine
+ * configuration is used, not once a state file turns out to be unreadable.
+ */
+void verifyAccessorsMatchDefinition(const AccessorMap& accessors) {
+    const auto& definition = engineDefinition();
+    for (const auto& keyName : definition.getKeyNames()) {
+        if (keyName.starts_with(optionKeyPrefix()) || !isConfigOwnedKey(keyName)) { continue; }
+        if (!accessors.contains(keyName)) {
+            throw AppError::make(std::format(
+                "Engine parameter '{}' is defined centrally but cannot be read or written by "
+                "EngineConfig. Add it to the accessor table in engine-config.cpp.", keyName));
+        }
+    }
+    for (const auto& [keyName, _] : accessors) {
+        if (!definition.keys.contains(keyName)) {
+            throw AppError::make(std::format(
+                "EngineConfig reads and writes '{}', but the central parameter definition does "
+                "not know that key, so files containing it cannot be loaded.", keyName));
+        }
+    }
+}
+
+/**
+ * @brief Maps every configuration key of the engine section to its accessor.
+ *
+ * Key names are those of the central parameter definition, which registers them in lower
+ * case. This table is the single vocabulary shared by setValue(), setCommandLineOptions()
+ * and toSection() - none of them may recognize a key of its own.
+ */
+[[nodiscard]] const AccessorMap& keyAccessors() {
+    static const AccessorMap accessors = {
+        { "name", { [](EngineConfig& config, const std::string& value) { config.setName(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getName(); } } },
+        { "originalname", { [](EngineConfig& config, const std::string& value) { config.setReportedName(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getReportedName(); } } },
+        { "author", { [](EngineConfig& config, const std::string& value) { config.setAuthor(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getAuthor(); } } },
+        { "cmd", { [](EngineConfig& config, const std::string& value) { config.setCmd(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getCmd(); } } },
+        { "dir", { [](EngineConfig& config, const std::string& value) { config.setDir(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getDir(); } } },
+        { "args", { [](EngineConfig& config, const std::string& value) { config.setArgs(value); },
+                    [](const EngineConfig& config) -> std::string { return config.getArgs(); } } },
+        { "proto", { [](EngineConfig& config, const std::string& value) { config.setProtocol(value); },
+                    [](const EngineConfig& config) -> std::string { return to_string(config.getProtocol()); } } },
+        { "tc", { [](EngineConfig& config, const std::string& value) { config.setTimeControl(value); },
+                    [](const EngineConfig& config) -> std::string {
+                        return config.getTimeControl().toPgnTimeControlString(); } } },
+        { "trace", { [](EngineConfig& config, const std::string& value) { config.setTraceLevel(value); },
+                    [](const EngineConfig& config) -> std::string { return to_string(config.getTraceLevel()); } } },
+        { "restart", { [](EngineConfig& config, const std::string& value) {
+                        config.setRestartOption(parseRestartOption(value)); },
+                    [](const EngineConfig& config) -> std::string { return to_string(config.getRestartOption()); } } },
+        { "ponder", { [](EngineConfig& config, const std::string& value) {
+                        if (const auto parsed = parseConfigBool(value)) { config.setPonder(*parsed); } },
+                    [](const EngineConfig& config) -> std::string {
+                        return config.isPonderEnabled() ? "true" : "false"; } } },
+        { "gauntlet", { [](EngineConfig& config, const std::string& value) {
+                        if (const auto parsed = parseConfigBool(value)) { config.setGauntlet(*parsed); } },
+                    [](const EngineConfig& config) -> std::string {
+                        return config.isGauntlet() ? "true" : "false"; } } },
+        { "whitepov", { [](EngineConfig& config, const std::string& value) {
+                        if (const auto parsed = parseConfigBool(value)) { config.setScoreFromWhitePov(*parsed); } },
+                    [](const EngineConfig& config) -> std::string {
+                        return config.isScoreFromWhitePov() ? "true" : "false"; } } },
+        { "selected", { [](EngineConfig& config, const std::string& value) {
+                        if (const auto parsed = parseConfigBool(value)) { config.setSelected(*parsed); } },
+                    [](const EngineConfig& config) -> std::string {
+                        return config.isSelected() ? "true" : "false"; } } }
+    };
+    static const bool verified = [] { verifyAccessorsMatchDefinition(accessors); return true; }();
+    (void)verified;
+    return accessors;
+}
+
+} // namespace
+
 std::unordered_map<std::string, std::string> EngineConfig::getOptions(const EngineOptions& availableOptions) const {
     std::unordered_map<std::string, std::string> filteredOptions;
     for (const auto& option : availableOptions) {
@@ -101,9 +244,9 @@ void EngineConfig::setProtocol(const std::string& proto) {
 	protocol_ = parseEngineProtocol(proto);
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
     std::unordered_set<std::string> seenKeys;
+    const auto& accessors = keyAccessors();
 
     for (const auto& [key, value] : values) {
         if (!seenKeys.insert(key).second) {
@@ -116,28 +259,21 @@ void EngineConfig::setCommandLineOptions(const ValueMap& values, bool update) {
         // configured on the command line or in a settings file is active by definition, and taking
         // over a stale "selected=false" from an older state file would propagate it on the next save.
         if (key == "conf" || key == "id" || key == "author" || key == "selected") { continue; }
-        if (key == "ponder") { setPonder(std::get<bool>(value)); }
-        else if (key == "originalname") { originalName_ = std::get<std::string>(value); }
-        else if (key == "tc") { setTimeControl(std::get<std::string>(value)); }
-        else if (key == "gauntlet") { setGauntlet(std::get<bool>(value)); }
-        else if (key == "whitepov") { setScoreFromWhitePov(std::get<bool>(value)); }
-        else if (key == "trace") { setTraceLevel(std::get<std::string>(value)); }
-        else if (key == "name") {
-            if (!update) { setName(std::get<std::string>(value)); }
+        // An update refines an existing configuration; its name is the one it is known under.
+        if (update && key == "name") { continue; }
+
+        const std::string text = toString(value);
+        if (key.starts_with(optionKeyPrefix())) {
+            setOptionValue(key.substr(optionKeyPrefix().size()), text);
+            continue;
         }
-        else if (key == "cmd") { setCmd(std::get<std::string>(value)); }
-        else if (key == "dir") { setDir(std::get<std::string>(value)); }
-        else if (key == "args") { setArgs(std::get<std::string>(value)); }
-        else if (key == "restart") { restart_ = parseRestartOption(std::get<std::string>(value)); }
-        else if (key == "proto") { setProtocol(std::get<std::string>(value)); }
-        else if (key.starts_with("option.")) { setOptionValue(key.substr(7), toString(value)); }
-        else {
-            AppError::throwOnInvalidOption(
-                { "name", "cmd", "dir", "args", "tc", "ponder", "gauntlet", "whitepov", "trace", "restart", "proto", "option."},
-                key, 
-				"Invalid engine option key" 
-            );
+
+        const auto accessor = accessors.find(key);
+        if (accessor == accessors.end()) {
+            AppError::throwOnInvalidOption(engineDefinition().getKeyNames(), key, "Invalid engine option key");
+            throw AppError::makeInvalidParameters("Invalid engine option key: " + key);
         }
+        accessor->second.set(*this, text);
     }
     if (!update) { finalizeSetOptions(); }
 }
@@ -185,53 +321,34 @@ bool operator==(const EngineConfig& lhs, const EngineConfig& rhs) {
         && lhs.optionValues_ == rhs.optionValues_;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void  EngineConfig::setValue(const std::string& key, const std::string& value) {
     static const std::set<std::string> internalKeys = { "id" };
-    // Recognized keys are matched case-insensitively (consistent with Settings::Manager
-    // and with EngineConfig::toSection(), which writes e.g. "originalName" in mixed case).
-    // Unrecognized keys fall through to setOptionValue() with their original casing intact,
-    // since real UCI option names are case-sensitive.
+    // Recognized keys and their spelling come from the central parameter definition, which
+    // registers them in lower case, so the key is matched case-insensitively here as well.
     const std::string lowerKey = QaplaHelpers::to_lowercase(key);
-    // Counterpart of toSection(), which spells UCI options with the "option." prefix the
-    // parameter definition requires. Without stripping it here, reading back what was written
-    // yields an option literally named "option.Hash": the engine never receives the setting,
-    // and the next save writes "option.option.Hash". Names without the prefix stay supported --
-    // engine configuration files have always used them.
-    const std::string_view optionPrefix = "option.";
-    if (lowerKey.starts_with(optionPrefix)) {
-        setOptionValue(key.substr(optionPrefix.size()), value);
+
+    // Counterpart of toSection(), which spells UCI options with the prefix the parameter
+    // definition requires. Without stripping it here, reading back what was written yields an
+    // option literally named "option.Hash": the engine never receives the setting, and the next
+    // save writes "option.option.Hash".
+    if (lowerKey.starts_with(optionKeyPrefix())) {
+        setOptionValue(key.substr(optionKeyPrefix().size()), value);
+        return;
     }
-    else if (lowerKey == "name") { setName(value); }
-    else if (lowerKey == "originalname") { originalName_ = value; }
-    else if (lowerKey == "author") { setAuthor(value); }
-    else if (lowerKey == "cmd") { setCmd(value); }
-    else if (lowerKey == "dir") { setDir(value); }
-    else if (lowerKey == "args") { setArgs(value); }
-    else if (lowerKey == "tc") { setTimeControl(value); }
-    else if (lowerKey == "gauntlet") {
-        if (value == "true" || value == "1" || value.empty()) { setGauntlet(true); }
-        else if (value == "false" || value == "0") { setGauntlet(false); }
+
+    const auto& accessors = keyAccessors();
+    if (const auto accessor = accessors.find(lowerKey); accessor != accessors.end()) {
+        accessor->second.set(*this, value);
+        return;
     }
-    else if (lowerKey == "ponder") {
-        if (value == "true" || value == "1" || value.empty()) { setPonder(true); }
-        else if (value == "false" || value == "0") { setPonder(false); }
-    }
-    else if (lowerKey == "whitepov") {
-        if (value == "true" || value == "1" || value.empty()) { setScoreFromWhitePov(true); }
-        else if (value == "false" || value == "0") { setScoreFromWhitePov(false); }
-    }
-    else if (lowerKey == "selected") {
-        if (value == "true" || value == "1" || value.empty()) { setSelected(true); }
-        else if (value == "false" || value == "0") { setSelected(false); }
-    }
-    else if (lowerKey == "trace") { setTraceLevel(value); }
-    else if (lowerKey == "restart") { restart_ = parseRestartOption(value); }
-    else if (lowerKey == "proto") { setProtocol(value); }
-    else if (internalKeys.contains(lowerKey)) {
+
+    if (internalKeys.contains(lowerKey)) {
         internalKeys_[lowerKey] = value;
     }
     else {
+        // A key the definition does not know is a UCI option written without the prefix - engine
+        // configuration files have always spelled options that way. The original casing is kept,
+        // since real UCI option names are case-sensitive.
         setOptionValue(key, value);
     }
 }
@@ -253,25 +370,15 @@ EngineConfig EngineConfig::createFromSection(const QaplaHelpers::IniFile::Sectio
 }
 
 std::optional<std::string> EngineConfig::getValue(const std::string& key) const {
-    // Counterpart of setValue(): same key vocabulary, same case-insensitive matching, so that
-    // whatever this class writes it can also read back. Keys the configuration does not own
-    // ("conf" selects a template, "id" is stamped on by the file writer) yield no value.
-    const std::string lowerKey = QaplaHelpers::to_lowercase(key);
-    if (lowerKey == "name") { return name_; }
-    if (lowerKey == "originalname") { return originalName_; }
-    if (lowerKey == "author") { return author_; }
-    if (lowerKey == "cmd") { return cmd_; }
-    if (lowerKey == "dir") { return dir_; }
-    if (lowerKey == "args") { return args_; }
-    if (lowerKey == "proto") { return to_string(protocol_); }
-    if (lowerKey == "trace") { return to_string(traceLevel_); }
-    if (lowerKey == "restart") { return to_string(restart_); }
-    if (lowerKey == "tc") { return tc_.toPgnTimeControlString(); }
-    if (lowerKey == "ponder") { return ponder_ ? "true" : "false"; }
-    if (lowerKey == "gauntlet") { return gauntlet_ ? "true" : "false"; }
-    if (lowerKey == "whitepov") { return scoreFromWhitePov_ ? "true" : "false"; }
-    if (lowerKey == "selected") { return selected_ ? "true" : "false"; }
-    return std::nullopt;
+    // Counterpart of setValue(), served by the same accessor table, so that whatever this class
+    // writes it can also read back. Keys the configuration does not own ("conf" selects a
+    // template, "id" is stamped on by the file writer) yield no value.
+    const auto& accessors = keyAccessors();
+    const auto accessor = accessors.find(QaplaHelpers::to_lowercase(key));
+    if (accessor == accessors.end()) {
+        return std::nullopt;
+    }
+    return accessor->second.get(*this);
 }
 
 QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectionName) const {
@@ -283,20 +390,12 @@ QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectio
     // here instead of listing them locally is what keeps writing and reading in step: a writer
     // with its own idea of the format is exactly how state files carrying UCI options became
     // unreadable ("Unknown parameter in section engine: 'hash'").
-    const auto& groupDefinitions = Settings::Manager::instance().getGroupDefinitions();
-    const auto definition = groupDefinitions.find("engine");
-    if (definition == groupDefinitions.end()) {
-        throw AppError::make("No parameter definition for engine sections available.");
-    }
-
-    constexpr std::string_view namePlaceholder = "[name]";
-    for (const auto& keyName : definition->second.getKeyNames()) {
-        // A "<prefix>.[name]" key stands for a family of freely named entries - UCI options are
+    for (const auto& keyName : engineDefinition().getKeyNames()) {
+        // The "<prefix>.[name]" key stands for a family of freely named entries - UCI options are
         // the only one. Their names are case sensitive, so the name the engine reported is used.
-        if (keyName.ends_with(namePlaceholder)) {
-            const std::string prefix = keyName.substr(0, keyName.size() - namePlaceholder.size());
+        if (keyName.starts_with(optionKeyPrefix())) {
             for (const auto& [_, option] : optionValues_) {
-                section.addEntry(prefix + option.originalName, option.value);
+                section.addEntry(optionKeyPrefix() + option.originalName, option.value);
             }
             continue;
         }
@@ -315,8 +414,9 @@ QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectio
         if (keyName == "selected" && *value == "true") {
             continue;
         }
-        // Don't save originalName as it is discovered from the engine executable
-        if (keyName == "originalName") { continue; }
+        // Don't save the reported name as it is discovered from the engine executable. The key
+        // is compared in lower case: the definition registers every key that way.
+        if (keyName == "originalname") { continue; }
 
         section.addEntry(keyName, *value);
     }
