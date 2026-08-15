@@ -88,8 +88,8 @@ struct EngineOption {
     std::string name;
     Type type = Type::Unknown;
     std::string defaultValue;
-    std::optional<int> min;
-    std::optional<int> max;
+    std::optional<int> min{};
+    std::optional<int> max{};
     std::vector<std::string> vars;
 
 	/**
