@@ -22,6 +22,7 @@
 #include "../chess-game/game-result.h"
 #include "../chess-game/game-record.h"
 #include "../base-elements/qapla-json.h"
+#include "../base-elements/table-format.h"
 
 #include <vector>
 #include <optional>
@@ -296,6 +297,17 @@ public:
      *
      */
     void printOutcome(std::ostream &os) const;
+
+    /**
+     * @brief Returns the standings as a table.
+     *
+     * The one place the standings take shape. A caller that built its own rows instead is how
+     * the closing report came to show other columns than the table printed during the run.
+     *
+     * @param averageElo The base Elo level for scaling rating output.
+     * @return The table, ready for TableFormat.
+     */
+    [[nodiscard]] TableData getRatingTableData(int averageElo);
 
     /**
      * @brief Returns the rating table as a JSON value.

@@ -503,6 +503,43 @@ void TournamentResult::printOutcome(std::ostream &os) const
     os << "\n" << std::flush;
 }
 
+TableData TournamentResult::getRatingTableData(int averageElo) {
+    TableData table;
+    table.columnWidths = { 4, 28, 8, 6, 5, 8, 8 };
+    // The error column states a tolerance, not a value of its own: "12" under "+/-" reads as
+    // "12 +/- 5" the way the result line has always spelled it. Kept in the header so the cell
+    // stays a number for any consumer of the table's JSON form.
+    table.headers = { "Rank", "Name", "Elo", "+/-", "Games", "Score", "Draw" };
+
+    int rankValue = 1;
+    for (const auto& scored : computeAllElos(averageElo)) {
+        const auto aggregate = scored.result.aggregate(scored.engineName);
+        const auto totalGames = aggregate.total();
+        const auto scorePercent = scored.score * 100.0;
+        const auto drawPercent = totalGames > 0
+            ? 100.0 * static_cast<double>(aggregate.draws) / static_cast<double>(totalGames)
+            : 0.0;
+        const auto hasReliableError = totalGames >= 10 && scored.error != 0;
+
+        // A rating carries one meaningful decimal; rounding here rather than in a renderer keeps
+        // the cell a number and every rendering of it identical.
+        const auto roundedElo = std::round(scored.elo * 10.0) / 10.0;
+
+        table.body.push_back({
+            rankValue,
+            scored.engineName,
+            hasReliableError ? TableCell(roundedElo) : TableCell("n/a"),
+            hasReliableError ? TableCell(scored.error) : TableCell("n/a"),
+            totalGames,
+            std::format("{:.2f}%", scorePercent),
+            std::format("{:.1f}%", drawPercent)
+        });
+        ++rankValue;
+    }
+
+    return table;
+}
+
 Json::JsonValue TournamentResult::getRatingTable(int averageElo) {
     std::vector<Scored> list = computeAllElos(averageElo);
 
