@@ -19,8 +19,10 @@
 
 #include "sprt-calculation.h"
 #include "fastchess-sprt.h"
+#include "../base-elements/elo-helper.h"
 
 #include <cmath>
+#include <format>
 #include <sstream>
 #include <iomanip>
 
@@ -42,14 +44,44 @@ double logisticScore(double elo) {
     return 1.0 / (1.0 + std::pow(10.0, -elo / 400.0));
 }
 
+/**
+ * @brief Widest gap between the hypotheses that SPRT is meant for.
+ *
+ * Every difference between H0 and H1 leads to the same decision. Within a few Elo that is a
+ * detail; over a wide range the decision carries almost no information about the size of the
+ * difference, and the result says so.
+ */
+constexpr float narrowHypothesisGapElo = 10.0F;
+
+/**
+ * @brief Formats an Elo value without the trailing zeros of the underlying float.
+ */
+std::string formatElo(float elo) {
+    return std::format("{:g}", elo);
+}
+
 std::string formatInfo(const SprtResult& result) {
     if (result.decision.has_value()) {
-        if (*result.decision) {
-            return "H1 accepted, " + result.engineA + " is at least " + std::to_string(result.eloH1)
-                + " elo stronger than " + result.engineB;
+        // The decision states which hypothesis was accepted, nothing more: it neither proves the
+        // accepted value nor measures the difference. The size is reported separately, and
+        // deliberately without an error margin - the test stops when the numbers look extreme, so
+        // an interval taken from exactly those games would read more precise than it is.
+        const double computedElo = computeElo(result.winsA, result.winsB, result.draws);
+        auto info = std::format(
+            "{} accepted (H0: {} elo, H1: {} elo). Computed elo difference ({} - {}): {:+.0f} elo "
+            "from {} games",
+            *result.decision ? "H1" : "H0",
+            formatElo(result.eloH0), formatElo(result.eloH1),
+            result.engineA, result.engineB, computedElo,
+            result.winsA + result.draws + result.winsB);
+
+        if ((result.eloH1 - result.eloH0) > narrowHypothesisGapElo) {
+            info += std::format(
+                ". Note: H0 and H1 are {} elo apart. SPRT is meant for small differences; over such "
+                "a range the decision says little about the size of the difference",
+                formatElo(result.eloH1 - result.eloH0));
         }
-        return "H0 accepted, " + result.engineA + " is not stronger than " + result.engineB
-            + " by at least " + std::to_string(result.eloH0) + " elo.";
+        return info;
     }
     
     // Check if max games limit reached without decision

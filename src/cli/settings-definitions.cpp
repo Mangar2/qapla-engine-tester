@@ -532,7 +532,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys() {
                     .type = ValueType::Float } },
         { "maxgames", { .description = "Maximum number of games before forced stop", 
                         .longDescription = "Always set a limit of the maximum amount of games. Low limits are around 10000, a detailed analysis for small elo improvements (e.g. lower:0, uppder:3) would be best with limits around 50000 to 200000 games.",
-                        .isRequired = true, 
+                        .isRequired = false, 
                         .defaultValue = 10000, 
                         .type = ValueType::UInt } },
         { "model", { .description = "Model used for SPRT calculations normalized, logistic, bayesian", 
