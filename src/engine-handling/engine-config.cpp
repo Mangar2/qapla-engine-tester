@@ -23,6 +23,7 @@
 #include "engine-option.h"
 #include "../base-elements/app-error.h"
 #include "../base-elements/string-helper.h"
+#include "../cli/settings-definitions.h"
 #include "../cli/settings-manager.h"
 
 #include <string>
@@ -67,6 +68,18 @@ struct KeyAccessor {
  * @brief Returns the central parameter definition of the engine section.
  */
 [[nodiscard]] const Settings::GroupDefinition& engineDefinition() {
+    // Registered on demand: an engine configuration is a value type that may well be built
+    // before anything parses a command line - a host application reading its stored engine
+    // list at startup, for instance. Making that depend on who ran initSettings() first turns
+    // a reordering into a thrown exception in the middle of loading a configuration file.
+    static const bool registered = []() {
+        if (!Settings::Manager::instance().getGroupDefinitions().contains("engine")) {
+            Settings::initSettings();
+        }
+        return true;
+    }();
+    (void)registered;
+
     const auto& groupDefinitions = Settings::Manager::instance().getGroupDefinitions();
     const auto definition = groupDefinitions.find("engine");
     if (definition == groupDefinitions.end()) {
