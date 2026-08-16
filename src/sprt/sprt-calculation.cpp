@@ -60,6 +60,11 @@ std::string formatElo(float elo) {
     return std::format("{:g}", elo);
 }
 
+std::string formatProgress(const SprtResult& result) {
+    return std::format("[ {:.2f} < {:5.2f} < {:.2f} ]",
+        result.lowerBound, result.llr, result.upperBound);
+}
+
 std::string formatInfo(const SprtResult& result) {
     if (result.decision.has_value()) {
         // The decision states which hypothesis was accepted, nothing more: it neither proves the
@@ -96,10 +101,7 @@ std::string formatInfo(const SprtResult& result) {
         return oss.str();
     }
     
-    std::ostringstream oss;
-    oss << "[ " << std::fixed << std::setprecision(2) << result.lowerBound << " < " 
-        << std::setw(5) << result.llr << " < " << result.upperBound << " ]";
-    return oss.str();
+    return formatProgress(result);
 }
 
 

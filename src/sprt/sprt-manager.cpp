@@ -177,7 +177,9 @@ void SprtManager::setGameRecord(const std::string& taskId, const GameRecord& rec
         << "match game " << std::setw(4) << record.getGameInRound()
         << " result " << std::setw(7) << to_string(engine1IsWhite ? result : switchGameResult(result))
         << " cause " << std::setw(21) << to_string(cause)
-        << " sprt " << configuredResult.info
+        // Progress only: the outcome belongs to the caller that ends the run, otherwise every
+        // finished SPRT states its result twice.
+        << " sprt " << SprtBase::formatProgress(configuredResult)
         << " engines " << duel.toString();
 
     Logger::reportLogger().logStatus(oss.str(), "sprt", TraceLevel::result);

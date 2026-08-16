@@ -120,9 +120,16 @@ namespace SprtBase {
 
     
     /**
-     * @brief Computes a human-readable SPRT info string.
+     * @brief Formats how far the test has come, for reporting while it runs.
      * @param result The SPRT result to format.
-     * @return A formatted string containing the SPRT decision or bounds.
+     * @return The current LLR between its decision boundaries.
+     */
+    std::string formatProgress(const SprtResult& result);
+
+    /**
+     * @brief Formats the outcome of the test, for the caller that concludes the run.
+     * @param result The SPRT result to format.
+     * @return The decision with the computed Elo difference, or the progress while undecided.
      */
     std::string formatInfo(const SprtResult& result);
 
