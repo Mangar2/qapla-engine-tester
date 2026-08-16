@@ -120,10 +120,13 @@ def get_tests() -> List[Dict[str, Any]]:
             # trace=none in the file and the resumed run could not report anything. The
             # resumed run writes one log per engine (mode=each), so its files are the
             # "engine-#<n>-" ones and each engine's options can be checked separately.
+            # The shared option is set once in --each and overridden for the second engine, so the
+            # run also covers what a written engine section may leave out: the first engine has to
+            # inherit the option from the file's [each] section on resume.
             "setup_args": f"--concurrency=1 {_ENGINES} "
                           "--tournament type=gauntlet file=test/integration/log/tournament/roundtrip/tournament.qtour "
-                          f"games=1 rounds=1 {_OPENINGS} --each tc=0.2+0.01 trace=all "
-                          "--engine conf='Qapla 0.4.0' option.Hash=128 "
+                          f"games=1 rounds=1 {_OPENINGS} --each tc=0.2+0.01 trace=all option.Hash=128 "
+                          "--engine conf='Qapla 0.4.0' "
                           "--engine conf='Qapla 0.3.2' option.Hash=64 "
                           "--logging engine=true mode=one path=test/integration/log/tournament/roundtrip",
             "args": "--concurrency=1 "
@@ -145,6 +148,15 @@ def get_tests() -> List[Dict[str, Any]]:
                     "pattern": "engine-#1-*.log",
                     "count": 1,
                     "content": "setoption name Hash value 64",
+                },
+                {
+                    # The engine that agrees with the shared default must not repeat it: the
+                    # value belongs in [each] once, not in every engine section.
+                    "type": "fileContent",
+                    "path": "test/integration/log/tournament/roundtrip/tournament.qtour",
+                    "content": r"(?s)^(?!.*option\.hash=128[\s\S]*option\.hash=128)",
+                    "isRegex": True,
+                    "message": "A shared default was written into an engine section as well",
                 },
             ],
             "cleanup": "test/integration/log/tournament/roundtrip",

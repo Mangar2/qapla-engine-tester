@@ -895,25 +895,46 @@ namespace QaplaTester::Settings
         const auto& definition = instance.getDefinition();
         const auto& values = instance.getValues();
         
+        constexpr std::string_view namePlaceholder = "[name]";
         for (const auto& keyName : definition.getKeyNames()) {
             if (!definition.keys.contains(keyName)) {
                 continue;
             }
+
+            // A "<prefix>.[name]" key stands for freely named entries, UCI options being the
+            // only ones. Their names exist in the values, never in the definition, so walking
+            // the definition alone would drop every one of them - a group written that way came
+            // back without its options.
+            if (keyName.ends_with(namePlaceholder)) {
+                const auto prefix = keyName.substr(0, keyName.size() - namePlaceholder.size());
+                std::vector<std::string> namedKeys;
+                for (const auto& [valueKey, _] : values) {
+                    if (valueKey.starts_with(prefix)) {
+                        namedKeys.push_back(valueKey);
+                    }
+                }
+                // The values are stored unordered; sorting keeps saved files comparable.
+                std::ranges::sort(namedKeys);
+                for (const auto& valueKey : namedKeys) {
+                    const auto valueStr = valueToString(values.at(valueKey));
+                    if (!valueStr.empty()) {
+                        section.addEntry(valueKey, valueStr);
+                    }
+                }
+                continue;
+            }
+
             const auto& keyDef = definition.keys.at(keyName);
             const auto hasValue = values.contains(keyName);
-            
+
             const auto isRequired = keyDef.isRequired;
             const auto hasDefault = keyDef.defaultValue.has_value();
-            const bool isDifferentFromDefault = hasValue && hasDefault && 
+            const bool isDifferentFromDefault = hasValue && hasDefault &&
                     (values.at(keyName) != *keyDef.defaultValue);
-            
+
             if (!suppressDefault || isRequired || !hasDefault || isDifferentFromDefault) {
-                std::string keyToUse = keyName;
-                constexpr std::string_view suffix = ".[name]";
-                if (keyName.ends_with(suffix)) {
-                    keyToUse = keyName.substr(0, keyName.size() - suffix.size());
-                }
-                
+                const std::string& keyToUse = keyName;
+
                 std::string valueStr;
                 if (hasValue) {
                     valueStr = valueToString(values.at(keyName));

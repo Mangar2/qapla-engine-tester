@@ -1,7 +1,8 @@
 [each]
 id=tournament
+dir=.
+proto=uci
 tc=20.0+0.10
-option.Hash=32
 ponder=false
 trace=None
 restart=auto
@@ -9,42 +10,57 @@ restart=auto
 [engine]
 id=tournament
 name=Qapla 0.3.2
-author=Volker Boehm
 cmd=/home/mangar/chess/release03/Qapla0.3.018c
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Viridithas 3.0.0
-author=Cosmo
 cmd=/home/mangar/chess/release03/viridithas3.0.0
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Spike 1.4.1
-author=Ralf Schaefer und Volker Boehm
 cmd=/home/mangar/chess/release03/Spike1.4.1
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Amoeba 2.7.l64p-l
-author=Richard Delorme
 cmd=/home/mangar/chess/release03/amoeba2.7
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Counter 3.5
-author=Vadim Chizhov
 cmd=/home/mangar/chess/release03/counter-3.5-linux-amd64
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
@@ -52,38 +68,54 @@ name=Drofa 3.1.0
 cmd=/home/mangar/chess/release03/Drofa_3.1.0_linux
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Leorik 2.5
-author=Thomas Jahn
 cmd=/home/mangar/chess/release03/Leorik-2.5
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Lynx 1.6.0
-author=Eduardo Caceres
 cmd=/home/mangar/chess/release03/Lynx.Cli.1.6.0
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Marvin 3.4.0
-author=Martin Danielsson
 cmd=/home/mangar/chess/release03/marvin3.4.0
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Polaris
-author=Ciekce
 cmd=/home/mangar/chess/release03/polaris-1.7.0
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
@@ -91,127 +123,170 @@ name=Reckless 0.4.0
 cmd=/home/mangar/chess/release03/reckless0.4.0
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Simbelmyne 1.7.0
-author=Sam Roelants
 cmd=/home/mangar/chess/release03/simbelmyne-v1.7.0-x86_64-v3
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Vajolet2 2.3
-author=Belli Marco
 cmd=/home/mangar/chess/release03/vajolet2.2.3.linux
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Willow 2.9
-author=Adam Kulju
 cmd=/home/mangar/chess/release03/willow2.9
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Winter 0.5
-author=Jonathan Rosenthal
 cmd=/home/mangar/chess/release03/Winter0.5
 dir=.
 proto=uci
+tc=20.0+0.10
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0 - 025a
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_025
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-034
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_034
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-035
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_035
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-044
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_044
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-049
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_049
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-088
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_088
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-089
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_089
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [engine]
 id=tournament
 name=Qapla 0.4.0-090
-author=Volker Boehm
 cmd=/home/mangar/chess/release04-versions/Qapla_090
 dir=.
 proto=uci
+tc=20.0+0.10
 gauntlet=true
+trace=none
+restart=auto
+option.hash=32
 
 [tournament]
 id=tournament
-event=
 type=gauntlet
-rounds=10
+saveintervals=0
+append=false
 games=100
+rounds=10
 repeat=2
-noSwap=false
-averageElo=2600
-saveintervalS=0
+noswap=false
+ratinginterval=100
+averageelo=2600
+outcomeinterval=0
 
 [openings]
 id=tournament
 file=/home/mangar/dev/qapla-engine-tester/test/book8ply.raw
 order=sequential
 srand=815
+plies=all
 start=1
 policy=default
 
@@ -18077,5 +18152,20 @@ drawcauses=threefold repetition:15
 drawcauses=50-move rule:4
 drawcauses=insufficient material:3
 drawcauses=adjudication:7
+losscauses=adjudication:19
+
+[round]
+id=tournament
+round=10
+engineA=Qapla 0.4.0-090
+engineB=Winter 0.5
+games=1=1=10111=10==1111=1=111111001=====0100011111=11011110==1=11110110=011=1=0011=01=1010=10101=1011111=
+wincauses=checkmate:2
+wincauses=adjudication:53
+drawcauses=threefold repetition:13
+drawcauses=50-move rule:5
+drawcauses=insufficient material:3
+drawcauses=adjudication:3
+losscauses=checkmate:2
 losscauses=adjudication:19
 

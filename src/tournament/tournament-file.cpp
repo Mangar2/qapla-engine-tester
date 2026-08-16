@@ -104,14 +104,15 @@ void TournamentFile::setSaveCallback(const std::string& filename, uint32_t saveI
         tournament->setSaveCallback(
             [filename,
              configData = getConfigData(Settings::Manager::instance()),
+             defaults = EngineConfig::sharedDefaults(),
              engines,
-             tournament = tournament.get()]() mutable 
+             tournament = tournament.get()]() mutable
             {
                 auto sections = tournament->getSections();
                 auto saveData = configData;
 
                 for (const auto& engine : engines) {
-                    auto engineSection = engine.toSection();
+                    auto engineSection = engine.toSection("engine", &defaults);
                     engineSection.addEntry("id", TournamentFile::id);
                     saveData.addSection(engineSection);
                 }

@@ -180,6 +180,11 @@ void EngineResult::printOutcome(std::ostream &os) const
 {
     EngineDuelResult total = aggregate(engineName);
 
+    // The column widths below only line up left-justified. Setting it here rather than relying on
+    // whatever was printed to this stream before keeps the output independent of its caller.
+    const auto previousFlags = os.flags();
+    os << std::left;
+
     for (size_t i = 0; i < total.causeStats.size(); ++i)
     {
         if (total.causeStats[i].win > 0)
@@ -205,8 +210,9 @@ void EngineResult::printOutcome(std::ostream &os) const
             os << "engine " << std::setw(25) << engineName
                << "loss " << std::setw(22) << to_string(static_cast<GameEndCause>(i))
                << " " << total.causeStats[i].loss << "\n";
-        }   
-    } 
+        }
+    }
+    os.flags(previousFlags);
 }
 
 void EngineResult::printResults(std::ostream &os) const

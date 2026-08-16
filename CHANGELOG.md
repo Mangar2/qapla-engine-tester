@@ -25,6 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prefix is now recognised when reading, the counterpart of writing it. Option names without
   the prefix stay valid: engine configuration files have always used them.
 
+- **Shared engine settings were lost when saving**: The `[each]` section of a tournament or SPRT
+  file was written without its UCI options — the group was serialized by walking the parameter
+  definition, which names options only as a pattern, so every concrete `option.<name>` fell
+  through. A resumed run therefore silently dropped options that had been set for all engines.
+
+### Changed
+
+- **Engine sections in state files no longer repeat the shared defaults**: What `[each]` states
+  is what every engine inherits, so an engine section now records only what differs from it.
+  Engines that simply follow the defaults shrink to their name and executable, which cuts a
+  tournament file with many engines down considerably.
+
 - **Tournament standings looked different during and after the run**: While a tournament was
   running the standings appeared as a table, the closing report printed the same information
   line by line — two formatters over the same numbers, which had drifted apart. The closing

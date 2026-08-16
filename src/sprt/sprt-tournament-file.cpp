@@ -52,9 +52,10 @@ QaplaHelpers::ConfigData SprtTournamentFile::getConfigData(const Settings::Manag
         manager->setSaveCallback(
             [filename,
              configData = getConfigData(Settings::Manager::instance()),
+             defaults = EngineConfig::sharedDefaults(),
              manager = manager.get(),
              engines
-            ]() mutable 
+            ]() mutable
             {
                 auto saveData = configData;
                 auto section = manager->getSection();
@@ -63,7 +64,7 @@ QaplaHelpers::ConfigData SprtTournamentFile::getConfigData(const Settings::Manag
                 }
 
                 for (const auto& engine : engines) {
-                    auto engineSection = engine.toSection();
+                    auto engineSection = engine.toSection("engine", &defaults);
                     engineSection.addEntry("id", id);
                     saveData.addSection(engineSection);
                 }

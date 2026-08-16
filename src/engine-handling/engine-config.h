@@ -394,15 +394,41 @@ public:
     [[nodiscard]] std::optional<std::string> getValue(const std::string& key) const;
 
     /**
+     * @brief Builds the configuration that shared engine defaults describe.
+     *
+     * The values of the "each" group are the defaults every engine inherits. Applying them to a
+     * default constructed configuration yields what an engine section without those keys means
+     * when it is read back.
+     *
+     * @param values Shared default values, keyed as the parameter definition names them.
+     * @return Configuration carrying those defaults.
+     */
+    [[nodiscard]] static EngineConfig createDefaults(const ValueMap& values) {
+        EngineConfig config;
+        config.setCommandLineOptions(values, true);
+        return config;
+    }
+
+    /**
+     * @brief Returns the defaults every engine of this run inherits.
+     * @return Configuration built from the currently configured shared engine settings.
+     */
+    [[nodiscard]] static EngineConfig sharedDefaults();
+
+    /**
      * @brief Creates a section from the current configuration.
      *
      * Key names come from the central engine parameter definition, so a written section is
      * readable by the settings manager that validates it on load.
      *
      * @param sectionName The section name to use (default "engine").
+     * @param defaults Optional shared defaults (the "each" group). Entries equal to them are
+     *        left out: they are inherited when the section is read back, so repeating them only
+     *        makes the file longer.
      * @return A QaplaHelpers::IniFile::Section object.
      */
-    [[nodiscard]] QaplaHelpers::IniFile::Section toSection(const std::string& sectionName = "engine") const;
+    [[nodiscard]] QaplaHelpers::IniFile::Section toSection(const std::string& sectionName = "engine",
+        const EngineConfig* defaults = nullptr) const;
 
     /**
      * @brief Compares two EngineConfig instances for equality.

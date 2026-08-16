@@ -25,6 +25,7 @@
 #include "../base-elements/string-helper.h"
 #include "../cli/settings-definitions.h"
 #include "../cli/settings-manager.h"
+#include "../config/engine-global-config.h"
 
 #include <string>
 #include <string_view>
@@ -382,6 +383,17 @@ EngineConfig EngineConfig::createFromSection(const QaplaHelpers::IniFile::Sectio
     return config;
 }
 
+EngineConfig EngineConfig::sharedDefaults() {
+    // The group carrying the shared engine settings; its section name is the one the global
+    // engine configuration file writes, so both refer to the same thing.
+    const auto sharedGroup = Settings::Manager::instance().getGroupInstance(
+        EngineGlobalConfigFile::getSectionName());
+    if (!sharedGroup) {
+        return {};
+    }
+    return createDefaults(sharedGroup->getValues());
+}
+
 std::optional<std::string> EngineConfig::getValue(const std::string& key) const {
     // Counterpart of setValue(), served by the same accessor table, so that whatever this class
     // writes it can also read back. Keys the configuration does not own ("conf" selects a
@@ -394,7 +406,8 @@ std::optional<std::string> EngineConfig::getValue(const std::string& key) const 
     return accessor->second.get(*this);
 }
 
-QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectionName) const {
+QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectionName,
+    const EngineConfig* defaults) const {
     QaplaHelpers::IniFile::Section section;
     section.name = sectionName;
 
@@ -407,7 +420,14 @@ QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectio
         // The "<prefix>.[name]" key stands for a family of freely named entries - UCI options are
         // the only one. Their names are case sensitive, so the name the engine reported is used.
         if (keyName.starts_with(optionKeyPrefix())) {
-            for (const auto& [_, option] : optionValues_) {
+            for (const auto& [optionKey, option] : optionValues_) {
+                if (defaults != nullptr) {
+                    const auto& defaultOptions = defaults->optionValues_;
+                    const auto defaultOption = defaultOptions.find(optionKey);
+                    if (defaultOption != defaultOptions.end() && defaultOption->second.value == option.value) {
+                        continue;
+                    }
+                }
                 section.addEntry(optionKeyPrefix() + option.originalName, option.value);
             }
             continue;
@@ -415,6 +435,12 @@ QaplaHelpers::IniFile::Section EngineConfig::toSection(const std::string& sectio
 
         const auto value = getValue(keyName);
         if (!value || value->empty()) { continue; }
+
+        // An engine that agrees with the shared defaults inherits them when the section is read
+        // back, so writing them again would only lengthen the file.
+        if (defaults != nullptr && defaults->getValue(keyName) == value) {
+            continue;
+        }
 
         // Skip default boolean values to keep config clean
         if ((keyName == "ponder" || keyName == "whitepov" || keyName == "gauntlet") && *value == "false") {
