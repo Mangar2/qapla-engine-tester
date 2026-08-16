@@ -487,40 +487,6 @@ std::vector<TournamentResult::Scored> TournamentResult::computeAllElos(
 }
 
 
-void TournamentResult::printRatingTableUciStyle(std::ostream &os, int averageElo) 
-{
-    os << "\nTournament result:\n";
-
-    std::vector<Scored> list = computeAllElos(averageElo);
-
-    int rank = 1;
-    for (const auto &entry : list)
-    {
-        const auto &r = entry.result.aggregate(entry.engineName);
-        const int total = r.total();
-        double drawPct = 100.0 * r.draws / total;
-        double scorePct = 100.0 * entry.score;
-        os << std::left << std::fixed << std::setprecision(1)
-           << "rank " << std::setw(3) << rank++
-           << " name " << std::setw(25) << entry.engineName;
-
-        if (total < 10 || entry.error == 0)
-        {
-            os << " not enough games\n";
-            continue;
-        }
-        std::stringstream oss;
-        oss << std::fixed << std::setprecision(2) << scorePct << "%";
-
-        os << " elo " << std::setw(5) << entry.elo
-           << " +/- " << std::setw(4) << entry.error
-           << " games " << std::setw(3) << total
-           << " score " << std::setw(7) << oss.str()
-           << " draw "  << drawPct << "%\n";
-    }
-    os << "\n" << std::flush;
-}
-
 void TournamentResult::printOutcome(std::ostream &os) const
 {
     os << "\nTournament outcome:\n";
@@ -533,63 +499,6 @@ void TournamentResult::printOutcome(std::ostream &os) const
         }
 
         optResult->printOutcome(os);
-    }
-    os << "\n" << std::flush;
-}
-
-std::vector<std::vector<std::string>> TournamentResult::getSummary() const
-{
-    std::vector<std::vector<std::string>> lines;
-    lines.reserve(engineNames().size());
-
-    for (const auto& name : engineNames())
-    {
-        auto optResult = forEngine(name);
-        if (!optResult) {
-            continue;
-        }
-
-        EngineDuelResult agg = optResult->aggregate(name);
-        int wins = agg.winsEngineA;
-        int losses = agg.winsEngineB;
-        int draws = agg.draws;
-        int total = wins + losses + draws;
-
-        double score = total > 0 ? (wins + 0.5 * draws) / total : 0.0;
-        std::vector<std::string> row;
-        
-        row.push_back(name); 
-        row.push_back(std::format("{:.1f}%", score * 100));
-        row.push_back(std::to_string(wins)); 
-        row.push_back(std::to_string(draws));
-        row.push_back(std::to_string(losses));
-
-        lines.emplace_back(row);
-    }
-
-    std::ranges::sort(lines, [](const auto& a, const auto& b)
-        {
-            return b[1] < a[1]; // descending
-        });
-
-    return lines;
-
-}
-
-void TournamentResult::printSummary(std::ostream &os) const
-{
-    os << "\nTournament result:\n";
-
-    auto lines = getSummary();
-    for (const auto& entry : lines)
-    {
-        os << std::left << std::fixed << std::setprecision(2)
-            << std::setw(30) << entry[0] // Name
-            << " " << entry[1]           // Score
-            << "  W:" << entry[2]        // Wins
-            << " D:" << entry[3]         // Draws
-            << " L:" << entry[4]         // Losses
-            << "\n";
     }
     os << "\n" << std::flush;
 }

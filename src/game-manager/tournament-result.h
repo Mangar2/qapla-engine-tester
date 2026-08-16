@@ -292,28 +292,10 @@ public:
     [[nodiscard]] std::optional<EngineResult> forEngine(const std::string &name) const;
 
     /**
-     * @brief Returns a summary of all engines with their scores and statistics.
-     * @return A vector of string vectors representing the summary table.
-     */
-    [[nodiscard]] std::vector<std::vector<std::string>> getSummary() const;
-    void printSummary(std::ostream &os) const;
-    
-
-    /**
      * @brief Prints the outcome (result causes) of the tournament, including all engines and their results.
      *
      */
     void printOutcome(std::ostream &os) const;
-
-    /**
-     * @brief Prints the current rating table in UCI-style key-value format.
-     *
-     * Format: rank <n> name <engine> elo <elo> error <error> games <n> score <pct> draw <pct>
-     *
-     * @param os Output stream to write to
-     * @param averageElo Average Elo level for scaling ratings (e.g. 2600)
-     */
-    void printRatingTableUciStyle(std::ostream &os, int averageElo);
 
     /**
      * @brief Returns the rating table as a JSON value.

@@ -32,6 +32,7 @@
 
 #include <ctime>
 #include <random>
+#include <cmath>
 #include <format>
 
 namespace QaplaTester {
@@ -40,7 +41,10 @@ TableData Tournament::getRatingStatusTable() const {
     auto result = getResult();
     TableData table;
     table.columnWidths = { 4, 28, 8, 6, 5, 8, 8 };
-    table.headers = { "Rank", "Name", "Elo", "Error", "Games", "Score", "Draw" };
+    // The error column states a tolerance, not a value of its own: "12" under "+/-" reads as
+    // "12 +/- 5" the way the result line has always spelled it. Kept in the header so the cell
+    // stays a number for any consumer of the table's JSON form.
+    table.headers = { "Rank", "Name", "Elo", "+/-", "Games", "Score", "Draw" };
 
     auto scoredEngines = result.computeAllElos(config_.averageElo);
     int rankValue = 1;
@@ -51,10 +55,14 @@ TableData Tournament::getRatingStatusTable() const {
         const auto drawPercent = totalGames > 0 ? 100.0 * static_cast<double>(aggregate.draws) / static_cast<double>(totalGames) : 0.0;
         const auto hasReliableError = totalGames >= 10 && scored.error != 0;
 
+        // A rating carries one meaningful decimal; rounding here rather than in a renderer keeps
+        // the cell a number and every rendering of it identical.
+        const auto roundedElo = std::round(scored.elo * 10.0) / 10.0;
+
         table.body.push_back({
             rankValue,
             scored.engineName,
-            hasReliableError ? TableCell(scored.elo) : TableCell("n/a"),
+            hasReliableError ? TableCell(roundedElo) : TableCell("n/a"),
             hasReliableError ? TableCell(scored.error) : TableCell("n/a"),
             totalGames,
             std::format("{:.2f}%", scorePercent),
@@ -283,7 +291,8 @@ void Tournament::scheduleAll(uint32_t concurrency, bool registerToInputhandler, 
             [this, &pool](InputHandler::ImmediateCommand cmd, [[maybe_unused]] const InputHandler::CommandValue& value) {
                 auto result = getResult();
                 if (cmd == InputHandler::ImmediateCommand::Info) {
-                    result.printRatingTableUciStyle(std::cout, config_.averageElo);
+                    std::cout << "\nTournament result:\n"
+                              << TableFormat::toText(getRatingStatusTable()) << "\n";
                     pool.getAdjudicationManager().printTestResult(std::cout);
                 }
                 else if (cmd == InputHandler::ImmediateCommand::Outcome) {

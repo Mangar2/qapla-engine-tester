@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prefix is now recognised when reading, the counterpart of writing it. Option names without
   the prefix stay valid: engine configuration files have always used them.
 
+- **Tournament standings looked different during and after the run**: While a tournament was
+  running the standings appeared as a table, the closing report printed the same information
+  line by line — two formatters over the same numbers, which had drifted apart. The closing
+  report, and the `info` command in interactive mode, now render the very table the run
+  reports, so all three cannot diverge again. The error column is labelled `+/-` instead of
+  `Error`, which is what makes `12 | 176` read as the tolerance it is, and Elo is rounded to
+  one decimal in the table itself rather than showing four.
+
 ### Added
 
 - **`args` for engines**: The engine argument list documented in the README is now part of

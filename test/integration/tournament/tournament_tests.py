@@ -26,6 +26,13 @@ def get_tests() -> List[Dict[str, Any]]:
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
+                    # The closing standings are the same table the run reports while playing -
+                    # they used to be formatted separately and drifted apart.
+                    "type": "stdout",
+                    "content": r"(?s)Tournament result:\s*\nRank \| Name\s+\| Elo\s+\| \+/-",
+                    "isRegex": True,
+                },
+                {
                     "type": "logFiles",
                     "path": "",
                     "pattern": "tournament-report-*.log",

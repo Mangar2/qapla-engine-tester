@@ -116,11 +116,17 @@ public:
 		return result;
 	}
     
+    /**
+     * @brief Renders the final standings, in the same form the running tournament reports them.
+     *
+     * The rating table is rendered from getRatingStatusTable(), the one representation of that
+     * information: a second formatter of its own is how the closing report came to show other
+     * columns than the table printed during the run.
+     */
     std::string getResultString() const {
         std::ostringstream oss;
-        auto result = getResult();
-        result.printRatingTableUciStyle(oss, config_.averageElo);
-        result.printOutcome(oss);
+        oss << "\nTournament result:\n" << TableFormat::toText(getRatingStatusTable()) << "\n";
+        getResult().printOutcome(oss);
         return oss.str();
     }
 
