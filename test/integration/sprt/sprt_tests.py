@@ -134,6 +134,44 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/sprt/montecarlo",
         },
         {
+            "name": "sprt-continuation-tightened-bounds",
+            "description": "An SPRT decided with loose error bounds is resumed with tighter ones and keeps its games",
+            # A run that has already decided is the interesting case: with alpha and beta lowered
+            # the same games no longer suffice, so the resumed run has to carry them over and play
+            # on. Restarting instead would be invisible in the final counts, which is why the test
+            # asserts on where the game numbering picks up.
+            "setup_args": "--concurrency=1 --enginesfile=test/integration/engines/engines.ini "
+                          "--sprt file=test/integration/log/sprt/tightened/sprt.qsprt maxgames=60 "
+                          "eloH0=0 eloH1=10 alpha=0.45 beta=0.45 model=logistic "
+                          "--openings file=test/opening/book8ply.raw order=sequential --each tc=0.1+0.01 "
+                          "--engine conf='Qapla 0.4.0' --engine conf='diagnostic-engine-lossontime' "
+                          "--logging engine=false path=test/integration/log/sprt/tightened",
+            "args": "--concurrency=1 "
+                    "--sprt file=test/integration/log/sprt/tightened/sprt.qsprt maxgames=60 "
+                    "alpha=0.3 beta=0.3 "
+                    "--logging engine=false path=test/integration/log/sprt/tightened",
+            "log_path": "test/integration/log/sprt/tightened",
+            "validators": [
+                {"type": "exitCode", "expected": 14},
+                {
+                    # The tightened bounds from the command line replace those stored in the file.
+                    "type": "stdout",
+                    "content": r"\[ -0\.85 <",
+                    "isRegex": True,
+                },
+                {
+                    # The decisive check: play picks up after the games already in the file
+                    # instead of numbering from one again. Where exactly it picks up depends on
+                    # when the loose bounds were crossed, so only the restart is asserted.
+                    "type": "stdout",
+                    "content": r"(?s)^(?!.*match game 1\s)",
+                    "isRegex": True,
+                    "message": "Numbering restarted at game 1: the stored games were not reused",
+                },
+            ],
+            "cleanup": "test/integration/log/sprt/tightened",
+        },
+        {
             "name": "sprt-file-uci-option-roundtrip",
             "description": "An SPRT file written with a UCI option can be resumed, and the option reaches the engine unchanged",
             # Same round trip as tournament-file-uci-option-roundtrip, for the

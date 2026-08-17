@@ -150,7 +150,7 @@ All tests currently implemented, grouped by test module
 | returncode-sprt-survives-engine-failure | Engine fails its UCI handshake; the game is forfeited and SPRT still returns 16 |
 | returncode-tournament-survives-engine-failure | Same failure in a tournament; the run still returns 0, the forfeit is in the report |
 
-## sprt (13 tests)
+## sprt (14 tests)
 
 | Name | Description |
 |---|---|
@@ -162,6 +162,7 @@ All tests currently implemented, grouped by test module
 | sprt-continuation | Loads existing .qsprt file; resumes from saved game count |
 | sprt-continuation-configured-engines | CLI engines given; the file's engine sections are ignored, not merged |
 | sprt-nonexisting-file | Writes new .qsprt file; file contains [each] and [round] sections |
+| sprt-continuation-tightened-bounds | Resumes a decided SPRT with tighter alpha/beta; stored games are kept, play continues |
 | sprt-file-uci-option-roundtrip | Writes a .qsprt with UCI options and resumes from it; the options must reach the engines unchanged |
 | sprt-montecarlo | Monte Carlo simulation, default model; no engines required |
 | sprt-montecarlo-logistic | Monte Carlo simulation with model=logistic |
@@ -201,4 +202,4 @@ All tests currently implemented, grouped by test module
 | xboard-mixed-protocols | XBoard engine against UCI engine; translation across adapters |
 | xboard-engine-test | Engine test suite (go limits, FEN positions) against an XBoard engine |
 
-**Total: 102 tests**
+**Total: 103 tests**
