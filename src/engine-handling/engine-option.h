@@ -85,12 +85,16 @@ inline EngineProtocol parseEngineProtocol(const std::string& value) {
 struct EngineOption {
     enum class Type : std::uint8_t { File, Path, Check, Spin, Slider, Combo, Button, Save, Reset, String, Unknown };
 
-    std::string name;
+    // Each member carries a default, the empty ones included: most options use only a few of
+    // these -- a check has no range, a spin has no choices -- so they are written with designated
+    // initializers that name a subset, and an omitted member without its own initializer is what
+    // -Wmissing-field-initializers reports.
+    std::string name{};
     Type type = Type::Unknown;
-    std::string defaultValue;
+    std::string defaultValue{};
     std::optional<int> min{};
     std::optional<int> max{};
-    std::vector<std::string> vars;
+    std::vector<std::string> vars{};
 
 	/**
 	 * @brief Parses a string to determine the option type.
