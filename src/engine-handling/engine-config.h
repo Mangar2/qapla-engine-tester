@@ -336,6 +336,20 @@ public:
     }
 
     /**
+     * @brief Removes a configured option value, leaving the engine at its own default for it.
+     *
+     * Distinct from setting the default explicitly: an option that is not configured is never
+     * sent to the engine at all, which is the state a configuration starts in and the only way
+     * back to it after a round of tuning.
+     *
+     * @param name The option name, matched case-insensitively like setOptionValue().
+     * @return True if an option value was removed.
+     */
+    bool removeOptionValue(const std::string& name) {
+        return optionValues_.erase(QaplaHelpers::to_lowercase(name)) > 0;
+    }
+
+    /**
      * @brief Sets a specific value, overwriting any existing value.
      * @param name The option name.
      * @param value The value to assign.
