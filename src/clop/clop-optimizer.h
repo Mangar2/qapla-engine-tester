@@ -100,6 +100,15 @@ public:
      */
     [[nodiscard]] TableData getStatusTable() const;
 
+    /**
+     * @brief Returns the indicator table: progress, phase and recompute cycles.
+     *
+     * The companion of getStatusTable(). Both are what the CLI writes to the report every
+     * outcomeInterval samples; exposing this one too means a caller watching a run live sees the
+     * same pair, rather than the estimates without the phase they were measured in.
+     */
+    [[nodiscard]] TableData getIndicatorTable() const;
+
 private:
     struct RecomputeSnapshot {
         std::vector<CLOPSample> modelSnapshot;

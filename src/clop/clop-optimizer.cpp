@@ -705,6 +705,11 @@ EngineConfig CLOPOptimizer::createConfiguredEngine(const std::vector<double>& va
     return configuredEngine;
 }
 
+TableData CLOPOptimizer::getIndicatorTable() const {
+    std::scoped_lock lock(stateMutex_);
+    return buildIndicatorTable(config_, completedSamples_, modelGeneration_);
+}
+
 TableData CLOPOptimizer::getStatusTable() const {
     std::scoped_lock lock(stateMutex_);
 
