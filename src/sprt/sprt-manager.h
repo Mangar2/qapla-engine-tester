@@ -61,13 +61,21 @@ struct SprtEnginesResult {
 
 /**
  * @brief Configuration parameters for a SPRT test run.
+ *
+ * Every member carries a default, and the elo bounds carry ones that satisfy SPRT::isValid().
+ * A SprtManager is default-constructed in places where no test has been set up yet -- the GUI
+ * makes a fresh one whenever the results are cleared -- and anything that computes from it in
+ * that window read these members. Leaving them uninitialized made that undefined behaviour, and
+ * it showed: the numeric members held whatever was on the heap, so an elo0 that happened to
+ * exceed elo1 threw "elo0 must be less than elo1" out of a status query whose own configuration
+ * was perfectly valid, and the next call, on different garbage, went through.
  */
 struct SprtConfig {
-    float eloH1;
-    float eloH0;
-    double alpha;
-    double beta;
-    uint32_t maxGames;
+    float eloH1 = 3.0F;
+    float eloH0 = -2.0F;
+    double alpha = 0.05;
+    double beta = 0.05;
+    uint32_t maxGames = 10000;
     std::string model = "normalized";  ///> Model for SPRT: "bayesian", "logistic", "normalized"
     bool pentanomial = false;           ///> Use pentanomial statistics (not available with bayesian)
     Openings openings;
