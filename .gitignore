@@ -53,6 +53,9 @@ a.out
 # External dependencies
 /extern/
 
+# Delivery/release workspace (not versioned)
+/delivery/
+
 # Mono auto generated files
 mono_crash.*
 
