@@ -9,6 +9,8 @@ from test_framework import platform_suffix
 # OS-specific variant just like the engines files (see test_framework.py).
 _SPRT_FILE_SOURCE = f"test/integration/sprt/test-sprt-file.{platform_suffix()}.qsprt"
 
+_EXE_SUFFIX = ".exe" if platform_suffix() == "windows" else ""
+
 
 def get_tests() -> List[Dict[str, Any]]:
     """Return list of SPRT tests."""
@@ -78,7 +80,11 @@ def get_tests() -> List[Dict[str, Any]]:
         {
             "name": "sprt-continuation-configured-engines",
             "description": "SPRT continuation with engines given on the command line - the engine sections of the SPRT file must be ignored, not merged",
-            "args": "--concurrency=2 --logging path=test/integration/log/sprt engine=false --sprt file=test/integration/log/sprt/test-sprt-file.qsprt --engine cmd=test/integration/engines/diagnostic-engine-lossontime name=llt1 --engine cmd=test/integration/engines/diagnostic-engine-lossontime name=llt2",
+            "args": "--concurrency=2 --logging path=test/integration/log/sprt engine=false --sprt file=test/integration/log/sprt/test-sprt-file.qsprt --engine cmd=test/integration/engines/diagnostic-engine-lossontime"
+            + _EXE_SUFFIX
+            + " name=llt1 --engine cmd=test/integration/engines/diagnostic-engine-lossontime"
+            + _EXE_SUFFIX
+            + " name=llt2",
             "log_path": "test/integration/log/sprt",
             "validators": [
                 {"type": "exitCode", "expected": 16},
