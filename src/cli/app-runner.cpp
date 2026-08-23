@@ -235,6 +235,7 @@ AppReturnCode AppRunner::runTest(const Settings::GroupInstance& test, AppReturnC
     static const std::vector<std::pair<std::string, std::string>> optionalTests = {
         { "nostartstop", "Start/Stop runtime verification" },
         { "nomemory", "Hash table memory usage test" },
+        { "nolowercase", "Lower-case option name test" },
         { "nooption", "Option crash tests" },
         { "noanalyze", "Standard analysis test" },
         { "nostop", "Immediate stop response test" },

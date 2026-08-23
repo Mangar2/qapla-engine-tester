@@ -106,8 +106,10 @@ void EngineTestController::runAllTests(const EngineConfig& engine, int numGames)
         if (!testSettings.get<bool>("nomemory")) {
             runHashTableMemoryTest();
         }
-        if (!testSettings.get<bool>("nooption")) {
+        if (!testSettings.get<bool>("nolowercase")) {
             runLowerCaseOptionTest();
+        }
+        if (!testSettings.get<bool>("nooption")) {
             runEngineOptionTests();
         }
         if (!testSettings.get<bool>("noanalyze")) {

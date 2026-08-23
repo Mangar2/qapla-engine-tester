@@ -266,8 +266,9 @@ Runs an extended test to evaluate engine stability and performance.         The 
 | numgames | <number> | 20 | Specifies the number of games played by the engine against itself to test long-term stability. Values greater than 0 enable the multi-game self-play test (including parallel execution by configured concurrency). A value of 0 skips this test. |
 | noponder | <bool> | false | Disables tests for the 'ponder' UCI command, which checks if the engine correctly thinks during the opponent's time. (long running, full engine vs. engine game ponder on) |
 | noepd | <bool> | false | Disables the EPD test, where the engine must find best moves in specific chess positions within a time limit. |
-| nomemory | <bool> | false | Disables the hash table test, which verifies if the engine correctly allocates and frees memory when the 'Hash' option is changed. |
+| nomemory | <bool> | true | Disables the hash table test, which verifies if the engine correctly allocates and frees memory when the 'Hash' option is changed. Off by default: relies on the OS returning freed memory to the process's RSS promptly, which macOS does not do, making the check unreliable there. |
 | nooption | <bool> | false | Disables the parameter smoke test. WARNING: This test is very long-running and intentionally uses invalid or edge-case values to trigger crashes. Highly recommended to disable for quick checks. |
+| nolowercase | <bool> | true | Disables the test that checks whether the engine accepts lower-case UCI option names. Off by default: the check compares process RSS before/after, which macOS does not update reliably for this purpose. |
 | nostop | <bool> | false | Disables testing of the 'stop' command to ensure the engine interrupts its search immediately. |
 | nowait | <bool> | false | Disables the infinite mode test, ensuring the engine does not prematurely exit its search when no limits are set. |
 | noanalyze | <bool> | false | Disables the standard analysis test, verifying basic move generation and evaluation. |

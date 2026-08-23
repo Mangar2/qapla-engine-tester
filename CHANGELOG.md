@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Engines that simply follow the defaults shrink to their name and executable, which cuts a
   tournament file with many engines down considerably.
 
+- **`--test` hash-table memory and lower-case-option checks are off by default**: Both compare
+  a spawned engine's process RSS before and after changing `Hash`, which macOS does not update
+  reliably when memory is freed — the process's resident size can stay flat for many seconds
+  after a large allocation is released, so the checks failed regardless of the engine under
+  test. `nomemory` now defaults to `true`. The lower-case-option check gained its own flag,
+  `nolowercase` (default `true`), separate from `nooption`, which still governs the unrelated
+  option-crash test suite and keeps its previous default.
+
 - **Tournament standings looked different during and after the run**: While a tournament was
   running the standings appeared as a table, the closing report printed the same information
   line by line — two formatters over the same numbers, which had drifted apart. The closing
