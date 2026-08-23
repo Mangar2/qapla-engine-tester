@@ -48,19 +48,30 @@ std::vector<EngineConfig> EngineCapabilities::detectWithProtocol(
     std::optional<EngineProtocol> protocol) 
 {
     for (auto& config : configs) {
-        auto* mutableConfig = EngineWorkerFactory::getConfigManagerMutable()
-            .getConfigMutableByCmdAndProtocol(config.getCmd(), config.getProtocol());
+        std::optional<EngineProtocol> chosen;
         if (protocol) {
-            config.setProtocol(*protocol);
-            if (mutableConfig != nullptr) {
-                mutableConfig->setProtocol(*protocol);
-            }
-        } else if (config.getProtocol() == EngineProtocol::Unknown || config.getProtocol() == EngineProtocol::NotSupported) {
-            config.setProtocol(EngineProtocol::Uci);
-            if (mutableConfig != nullptr) {
-                mutableConfig->setProtocol(EngineProtocol::Uci);
-            }
+            chosen = *protocol;
+        } else if (config.getProtocol() == EngineProtocol::Unknown
+            || config.getProtocol() == EngineProtocol::NotSupported) {
+            chosen = EngineProtocol::Uci;
         }
+        if (!chosen) {
+            continue;
+        }
+
+        // The local copy is what this round probes with, so it changes here and now. The stored
+        // one is shared, so it changes wherever the owner of that data says -- and it is looked
+        // up there rather than here, because a pointer fetched now could be stale by then.
+        const auto command = config.getCmd();
+        const auto previousProtocol = config.getProtocol();
+        config.setProtocol(*chosen);
+        applyChange([command, previousProtocol, chosen]() {
+            auto* stored = EngineWorkerFactory::getConfigManagerMutable()
+                .getConfigMutableByCmdAndProtocol(command, previousProtocol);
+            if (stored != nullptr) {
+                stored->setProtocol(*chosen);
+            }
+        });
     }
     
     auto engines = EngineWorkerFactory::createEngines(configs);
@@ -88,46 +99,54 @@ void EngineCapabilities::storeCapabilities(const std::vector<std::unique_ptr<Eng
         const auto& command = engine->getConfig().getCmd();
         auto protocol = engine->getConfig().getProtocol();
         
-        // Update the config manager with engine name and author
-        auto* const config = EngineWorkerFactory::getConfigManagerMutable()
-            .getConfigMutableByCmdAndProtocol(command, protocol);
-        if (config != nullptr && !engine->getEngineName().empty()) {
-            config->setReportedName(engine->getEngineName());
-            config->setAuthor(engine->getEngineAuthor());
-            // Also adopt it as the display name while that is still the executable's
-            // filename: the reported name is deliberately not persisted (see
-            // EngineConfig::toSection), so leaving the display name untouched here loses
-            // the detected name again on the next save -- the engine reappears under its
-            // filename even though detection had already resolved it.
-            if (config->hasDefaultName()) {
-                config->setName(engine->getEngineName());
-            }
-        }
-        
-        // Create and store capability
+        // Everything this engine answered, gathered here and written wherever the owner of that
+        // data writes -- the engine object itself is gone by then, so nothing is read from it
+        // inside the change.
         EngineCapability capability;
         capability.setPath(command);
         capability.setProtocol(protocol);
         capability.setName(engine->getEngineName());
         capability.setAuthor(engine->getEngineAuthor());
         capability.setSupportedOptions(engine->getSupportedOptions());
-        addOrReplace(capability);
+
+        applyChange([this, command, protocol, capability,
+                        reportedName = engine->getEngineName(),
+                        author = engine->getEngineAuthor()]() {
+            auto* const config = EngineWorkerFactory::getConfigManagerMutable()
+                .getConfigMutableByCmdAndProtocol(command, protocol);
+            if (config != nullptr && !reportedName.empty()) {
+                config->setReportedName(reportedName);
+                config->setAuthor(author);
+                // Also adopt it as the display name while that is still the executable's
+                // filename: the reported name is deliberately not persisted (see
+                // EngineConfig::toSection), so leaving the display name untouched here loses
+                // the detected name again on the next save -- the engine reappears under its
+                // filename even though detection had already resolved it.
+                if (config->hasDefaultName()) {
+                    config->setName(reportedName);
+                }
+            }
+            addOrReplace(capability);
+        });
     }
 }
 
 void EngineCapabilities::markAsNotSupported(const std::vector<EngineConfig>& failedConfigs) {
     std::string message = "Auto autodetection completed. Not supported Engine(s):\n";
     for (const auto& config : failedConfigs) {
-        auto* mutableConfig = EngineWorkerFactory::getConfigManagerMutable()
-            .getConfigMutableByCmdAndProtocol(config.getCmd(), config.getProtocol());
-        if (mutableConfig != nullptr) {
-            mutableConfig->setProtocol(EngineProtocol::NotSupported);
-        }
-
         EngineCapability capability;
         capability.setPath(config.getCmd());
         capability.setProtocol(EngineProtocol::NotSupported);
-        addOrReplace(capability);
+
+        applyChange([this, command = config.getCmd(), protocol = config.getProtocol(),
+                        capability]() {
+            auto* mutableConfig = EngineWorkerFactory::getConfigManagerMutable()
+                .getConfigMutableByCmdAndProtocol(command, protocol);
+            if (mutableConfig != nullptr) {
+                mutableConfig->setProtocol(EngineProtocol::NotSupported);
+            }
+            addOrReplace(capability);
+        });
 
         message += std::format(" - {}\n", config.getCmd());
     }
@@ -173,11 +192,16 @@ void EngineCapabilities::autoDetect() {
 
     std::thread([this]() {
         autoDetectSync();
-        {
-            std::lock_guard<std::mutex> lock(detectionMutex_);
-            detecting_ = false;
-        }
-        detectionCv_.notify_all();
+        // Through the same route as the changes themselves, and therefore behind them: whoever
+        // waits for detection to be finished is waiting to find the results in place, not to
+        // hear that they are on their way.
+        applyChange([this]() {
+            {
+                std::lock_guard<std::mutex> lock(detectionMutex_);
+                detecting_ = false;
+            }
+            detectionCv_.notify_all();
+        });
     }).detach();
 }
 
