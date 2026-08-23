@@ -59,6 +59,29 @@ namespace QaplaConfiguration {
         }
 
         /**
+         * @brief How a change that detection found gets applied to the shared engine data.
+         *
+         * Detection runs on a thread of its own (autoDetect()) and used to write its results
+         * straight into the config manager and the capability store -- while whoever else uses
+         * them was reading them. In a command line tool nobody is; in a GUI the window is
+         * drawing the engine list out of exactly those.
+         *
+         * So the writing is handed over instead of done here. A caller that has one thread the
+         * data belongs to passes a callback that carries the change over to it; without one, the
+         * change is applied on the spot, which is what a command line tool wants and what this
+         * did before.
+         */
+        using ApplyChange = std::function<void(std::function<void()>)>;
+
+        /**
+         * @brief Registers where the changes found by detection are to be applied.
+         * @param callback Receives each change; call it to apply. Empty restores applying here.
+         */
+        static void setApplyChangeCallback(ApplyChange callback) {
+            applyChangeCallback_ = std::move(callback);
+        }
+
+        /**
          * @brief Saves all engine capabilities to a stream in INI format.
          * @param out The output stream to write the data to.
          */
@@ -215,6 +238,24 @@ namespace QaplaConfiguration {
             return std::format("{}|{}", path, to_string(protocol));
         }
 
+        /**
+         * @brief Hands one change to setApplyChangeCallback(), or applies it here if none is set.
+         *
+         * Note for a caller that installs one: after detection reports itself finished, its
+         * changes have been *handed over*, not necessarily applied -- autoDetect() ends by
+         * passing the "finished" flag through the same route, so waitForDetection() still means
+         * "everything is in place". Which also means waiting for it from the very thread that
+         * applies the changes would wait forever.
+         */
+        static void applyChange(std::function<void()> change) {
+            if (applyChangeCallback_) {
+                applyChangeCallback_(std::move(change));
+                return;
+            }
+            change();
+        }
+
+        inline static ApplyChange applyChangeCallback_;
         inline static NotificationCallback notificationCallback_;
         std::unordered_map<std::string, EngineCapability> capabilities_; ///< Stores EngineCapability objects indexed by a unique key.
         std::atomic<bool> detecting_{false}; ///< True, if detection is currently in progress.
