@@ -7,182 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Tournament and SPRT files with UCI options could not be resumed**: A run whose engines
-  carried any UCI option wrote a state file that the program itself refused to read again —
-  it stopped with `Unknown parameter in section "engine": 'hash'` and return code 2. The
-  same applied to an engine with `args`. Cause: the engine sections of state files were
-  written by a serializer of their own, which spelled UCI options without the `option.`
-  prefix that the central parameter definition — the one validating those files on load —
-  requires. Everything else in these files already came from that central definition.
-  Engine sections now do too, so what is written is by construction what can be read.
-
-- **UCI options were read back under the wrong name**: With engine sections now spelling their
-  UCI options as `option.<Name>`, reading such a section took the prefix to be part of the
-  option name. An engine was told to set an option called `option.Hash` — which it does not
-  have, so the setting was silently lost — and saving again wrote `option.option.Hash`. The
-  prefix is now recognised when reading, the counterpart of writing it. Option names without
-  the prefix stay valid: engine configuration files have always used them.
-
-- **Shared engine settings were lost when saving**: The `[each]` section of a tournament or SPRT
-  file was written without its UCI options — the group was serialized by walking the parameter
-  definition, which names options only as a pattern, so every concrete `option.<name>` fell
-  through. A resumed run therefore silently dropped options that had been set for all engines.
-
-### Changed
-
-- **Engine sections in state files no longer repeat the shared defaults**: What `[each]` states
-  is what every engine inherits, so an engine section now records only what differs from it.
-  Engines that simply follow the defaults shrink to their name and executable, which cuts a
-  tournament file with many engines down considerably.
-
-- **`--test` hash-table memory and lower-case-option checks are off by default**: Both compare
-  a spawned engine's process RSS before and after changing `Hash`, which macOS does not update
-  reliably when memory is freed — the process's resident size can stay flat for many seconds
-  after a large allocation is released, so the checks failed regardless of the engine under
-  test. `nomemory` now defaults to `true`. The lower-case-option check gained its own flag,
-  `nolowercase` (default `true`), separate from `nooption`, which still governs the unrelated
-  option-crash test suite and keeps its previous default.
-
-- **Tournament standings looked different during and after the run**: While a tournament was
-  running the standings appeared as a table, the closing report printed the same information
-  line by line — two formatters over the same numbers, which had drifted apart. The closing
-  report, and the `info` command in interactive mode, now render the very table the run
-  reports, so all three cannot diverge again. The error column is labelled `+/-` instead of
-  `Error`, which is what makes `12 | 176` read as the tolerance it is, and Elo is rounded to
-  one decimal in the table itself rather than showing four.
-
 ### Added
 
-- **`args` for engines**: The engine argument list documented in the README is now part of
-  the parameter definition, so `--engine args=...` is accepted and survives a resume.
+- **`args` for engines**: now part of the parameter definition, so `--engine args=...`
+  is accepted and survives a resume.
+- **Perft — move generator node count test**: New `--perft` mode counts all positions
+  reachable from a start position to a given depth. Needs no engine, runs across
+  `--concurrency` threads. Options: `position`, `depth`, `divide`, `showfen`.
+- **Marking engines as selected**: engines file entries can carry a `selected` flag, so
+  a graphical front-end can remember which engines were picked.
 
 ### Changed
 
-- **Documentation — return codes when an engine fails during a tournament or SPRT**: The README
-  claimed that an engine crashing during an SPRT run returns `10` instead of the SPRT result. That
-  was never the behaviour, and it is not the intended one: a tournament or SPRT run compares engines
-  with each other, so a failing engine forfeits the affected game and the run returns its regular
-  outcome (`14`–`16` for SPRT, `0` for a tournament). Any rule that invalidated a run after "too
-  many" failures would need an arbitrary threshold. The engine codes `10`–`12` come from the
-  compliance suite (`--test`) only; this is now stated in the return code table and explained in a
-  new section. A missing engine executable remains a parameter error (`2`). No code change — SPRT and
-  tournament already behaved this way, and consistently with each other.
-
-## [0.6.0] - 2026-08-15
-
-### Added
-
-- **Perft — move generator node count test**: New `--perft` mode
-  - Counts all positions reachable from a start position within a given number
-    of moves. This is the standard way to check that a move generator produces
-    exactly the legal moves — no more, no less — and to measure how fast it is.
-  - Needs no engine at all; it uses Qapla Engine Tester's own move generator
-  - Runs on as many CPU cores as `--concurrency` allows
-  - Options: `position` (start position or any FEN), `depth` (number of plies),
-    `divide` (show the count for each single first move), `showfen` (also show
-    the position after each first move)
-  - Prints total node count, elapsed time and nodes per second
-
-- **Marking engines as selected**: Engines in the engines file can now carry a
-  `selected` flag, so a graphical front-end can remember which engines were
-  picked for the next run.
-
-### Changed
-
-- **Engines when continuing a tournament or SPRT run**: The `[engine]` sections of
-  a tournament/SPRT file are used exactly when no engine is actively selected on
-  the command line or in a settings file — an `--enginesfile` full of named engine
-  templates does not by itself count as "an engine given"; only an actually
-  selected engine does. As soon as one engine is selected there, the file's engine
-  sections are ignored completely instead of being added on top. This makes it
-  possible to drop an engine from a resumed run, or to move a tournament file to
-  another machine and point the engines at their local directories, without every
-  engine — and thus every pairing — being duplicated. A status line at startup
-  states which of the two applies (e.g. `3 engines taken from tournament.qtour` or
-  `3 configured engines used, engine sections in tournament.qtour ignored`).
-
-- **Immediate stop test repeats its scenario**: Whether an engine already has a
-  move when the `stop` arrives is a matter of timing, so a single attempt let
-  faulty engines pass whenever they happened to be quick enough. The test now
-  runs the scenario ten times, each as a new game so that no result of the
-  previous search can be reused. Engines that answer `stop` with an invalid
-  bestmove are detected far more reliably; the test still costs about a tenth of
-  a second.
-
-- **Unified report log headers**: SPRT, Tournament, EPD, CLOP, SPSA and
-  Engine-Test now start their report log with the same kind of header: which
-  engines are involved (with their configuration) and the settings used for
-  that run, listed as aligned key/value pairs. Only the header changed — the
-  rest of each log's content is unaffected.
-
-- **More accurate Elo ratings in tournaments**: Ratings are now calculated so
-  that the score each engine is *expected* to achieve against its actual
-  opponents matches the points it really scored.
-  - The previous method could rate an engine lower than a rival even though it
-    had scored more points against exactly the same opponents. This can no
-    longer happen: against an identical field of opponents, more points always
-    means more Elo.
-  - Ratings no longer depend on the order in which the individual matches were
-    processed, so the same tournament always yields the same rating list.
-  - Rounding is now applied only for display. Intermediate values keep their
-    full precision, which previously could add up to a noticeable error in
-    tournaments with many pairings.
-
-- **Gauntlet tournaments without an explicitly marked engine**: If no engine is
-  marked with `gauntlet=true`, the first engine listed is now used as the
-  gauntlet engine instead of the tournament being rejected with an error. This
-  is what the documentation described, and what SPRT already did.
-
-- **Engine restarts state their reason**: Whenever an engine is restarted, the
-  engine log now records why — for example that the engine was not running at
-  the start of a game, that a restart was requested, that `restart=always` is
-  configured, or that the engine exceeded its thinking time without returning a
-  move. This makes it much easier to tell an engine problem from a
-  configuration effect when reading a log.
-
-- **Reliable handling of special characters**: Engine names and other text
-  containing quotes, backslashes or tab characters are now written correctly to
-  result and report files. Previously such entries could produce files that
-  other tools refused to read.
-
-- **Clearer errors on malformed input**: When Qapla Engine Tester runs as an MCP
-  server, malformed or empty input is now reported as a proper error message
-  instead of being ignored silently.
+- **Engine sections in tournament/SPRT files no longer merge with a selected engine**:
+  selecting an engine on the command line or in a settings file now replaces the file's
+  own `[engine]` sections instead of adding to them — engines can be dropped from a
+  resumed run, or a file moved to another machine, without every engine being duplicated.
+- **Engine sections in state files are shorter**: only what differs from `[each]` is
+  recorded, instead of every shared default.
+- **Immediate stop test repeats its scenario** ten times instead of once, so a flaky pass
+  no longer depends on timing.
+- **Unified report log headers** across SPRT, Tournament, EPD, CLOP, SPSA and Engine-Test.
+- **More accurate Elo ratings**: fitted to each engine's actual score instead of averaged
+  per duel, so ratings no longer depend on match order or occasionally invert against a
+  clearly weaker opponent.
+- **Gauntlet tournaments without an explicit `gauntlet=true`** now use the first engine
+  listed instead of rejecting the run.
+- **Engine restarts state their reason** in the engine log.
+- **Reliable handling of special characters** (quotes, backslashes, tabs) in engine names
+  when writing result/report files.
+- **Clearer MCP errors on malformed input**, reported instead of ignored.
+- **`--test` hash-table memory and lower-case-option checks are off by default**
+  (`nomemory`, new `nolowercase`): both compare process memory before/after a `Hash`
+  change, which macOS does not reliably reflect, so they failed regardless of the engine
+  tested.
+- **Tournament standings render identically during and after the run**, and in `info`;
+  error column now labelled `+/-`, Elo shown to one decimal.
+- **Documentation — return codes**: clarified that an engine failing during SPRT/tournament
+  returns the run's normal outcome, not `10`; codes `10`–`12` are `--test`-only.
 
 ### Fixed
 
-- **Wrong clock times for openings with Black to move**: When a game started
-  from an opening or EPD position in which Black is to move, remaining time,
-  increment and "moves to go" were assigned to the wrong side. Both the times
-  sent to the engines and the times recorded per player were affected. Games
-  starting with Black to move are now timed correctly.
-
-- **SPRT result files were not saved**: Due to a mismatched internal name, SPRT
-  runs could silently skip writing their result file — so progress was lost and
-  an interrupted run could not be resumed. SPRT result files are now saved as
-  documented.
-
-- **Engine capability cache could become unreadable**: The stored information
-  about an engine's options could be written in a form that Qapla Engine Tester
-  itself failed to read back, in particular for options offering a list of
-  choices. Affected entries are now written and read correctly; caches written by
-  older versions still work.
-
-- **Duplicate entries in configuration files**: Saving a configuration could add
-  a second identifier line to a section. Such lines are now replaced instead of
-  duplicated, and sections written by earlier versions are repaired
-  automatically on the next save.
-
-- **Empty optional file paths were rejected**: Leaving an optional path empty
-  (for example: no tournament result file configured yet) no longer causes a
-  parameter error.
-
-- **Normal engine shutdown reported as an error**: When Qapla Engine Tester
-  itself stopped an engine — for instance to restart it with different options —
-  the log showed a disconnect error even though everything worked as intended.
-  This is now logged as an expected shutdown.
+- **Tournament/SPRT files with UCI options could not be resumed, or lost `[each]`'s shared
+  options on save**: engine sections wrote UCI options without the `option.` prefix the
+  file format requires; reading and writing are now consistent.
+- **Wrong clock times for openings with Black to move**: time, increment and moves-to-go
+  were assigned to the wrong side.
+- **SPRT result files were not saved**, due to a mismatched internal name.
+- **Engine capability cache could become unreadable** for options with a choice list; old
+  caches still read correctly.
+- **Duplicate identifier lines in configuration files** are now replaced instead of piling
+  up.
+- **Empty optional file paths were rejected** as a parameter error.
+- **Normal engine shutdown was logged as a disconnect error.**
 
 ## [0.5.0] - 2026-04-03
 

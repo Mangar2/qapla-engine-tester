@@ -73,6 +73,12 @@ All features are fully configurable and optimized for multi-core systems.
 
 - **SPRT State File Fix** — SPRT result files are now saved reliably; a mismatched internal identifier previously caused saves to be skipped silently.
 
+- **Resumable Files with UCI Options** — A tournament or SPRT file whose engines carried a UCI option, or an `[each]` section with shared options, could no longer be read back; both now round-trip correctly.
+
+- **Selecting an Engine Overrides the File** — Selecting an engine on the command line or in a settings file now fully replaces a tournament/SPRT file's own `[engine]` sections, instead of adding to them — engines can be dropped from a resumed run, or a file moved to another machine, without every engine being duplicated.
+
+- **Compliance Test Defaults Adjusted for macOS** — The `--test` hash-table memory check and a new lower-case-option check (`nolowercase`) are now off by default: both compare process memory before/after a `Hash` change, which macOS does not reliably reflect.
+
 > Full details in [CHANGELOG.md](CHANGELOG.md).
 
 ### Previously in Version 0.5.0
