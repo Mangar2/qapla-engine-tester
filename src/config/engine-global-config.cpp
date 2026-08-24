@@ -49,6 +49,15 @@ QaplaHelpers::IniFile::Section EngineGlobalConfigFile::toSection(
     if (config.useGlobalRestart) {
         entries.emplace_back("restart", config.restart);
     }
+
+    // One switch, four values: see EngineGlobalConfig::useGlobalSyzygy.
+    entries.emplace_back("usesyzygy", config.useGlobalSyzygy ? "true" : "false");
+    if (config.useGlobalSyzygy) {
+        entries.emplace_back("syzygypath", config.syzygyPath);
+        entries.emplace_back("syzygyprobedepth", std::to_string(config.syzygyProbeDepth));
+        entries.emplace_back("syzygyprobelimit", std::to_string(config.syzygyProbeLimit));
+        entries.emplace_back("syzygy50moverule", config.syzygy50MoveRule ? "true" : "false");
+    }
     
     return {
         .name = getSectionName(),
@@ -86,6 +95,21 @@ EngineGlobalConfig EngineGlobalConfigFile::fromSection(
         else if (key == "restart") {
             config.useGlobalRestart = true;
             config.restart = value;
+        }
+        else if (key == "usesyzygy") {
+            config.useGlobalSyzygy = (value == "true" || value == "1");
+        }
+        else if (key == "syzygypath") {
+            config.syzygyPath = value;
+        }
+        else if (key == "syzygyprobedepth") {
+            config.syzygyProbeDepth = QaplaHelpers::to_uint32(value).value_or(config.syzygyProbeDepth);
+        }
+        else if (key == "syzygyprobelimit") {
+            config.syzygyProbeLimit = QaplaHelpers::to_uint32(value).value_or(config.syzygyProbeLimit);
+        }
+        else if (key == "syzygy50moverule") {
+            config.syzygy50MoveRule = (value == "true" || value == "1");
         }
     }
     
@@ -155,6 +179,17 @@ void EngineGlobalConfigFile::applyGlobalConfig(
     
     if (globalConfig.useGlobalHash) {
         engine.setOptionValue("Hash", std::to_string(globalConfig.hashSizeMB));
+    }
+
+    // All four, or none: they are one setting split over four engine options. An engine that does
+    // not offer one of them ignores it -- UciAdapter::setOptionValues() sends only what the engine
+    // reported. An empty path is passed on as an empty path, which is how an engine is told to use
+    // no tablebases; switching the setting off instead is what leaves each engine's own alone.
+    if (globalConfig.useGlobalSyzygy) {
+        engine.setOptionValue("SyzygyPath", globalConfig.syzygyPath);
+        engine.setOptionValue("SyzygyProbeDepth", std::to_string(globalConfig.syzygyProbeDepth));
+        engine.setOptionValue("SyzygyProbeLimit", std::to_string(globalConfig.syzygyProbeLimit));
+        engine.setOptionValue("Syzygy50MoveRule", globalConfig.syzygy50MoveRule ? "true" : "false");
     }
     
     engine.setTimeControl(globalConfig.timeControl);

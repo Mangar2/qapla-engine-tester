@@ -45,6 +45,21 @@ struct EngineGlobalConfig {
     
     bool useGlobalRestart = true;       ///< Whether to use global restart option
     std::string restart = "auto";       ///< Global restart option ("auto", "on", "off")
+
+    /**
+     * One switch for all four Syzygy settings, not one per setting: they only mean anything
+     * together -- a probe depth without a path names nothing to probe.
+     *
+     * Off by default, unlike the settings above: those have a value that is sensible everywhere,
+     * while a path is empty until somebody names one, and applying an empty path to every engine
+     * would switch tablebases off for engines that have one of their own.
+     */
+    bool useGlobalSyzygy = false;
+    std::string syzygyPath{};           ///< SyzygyPath: the tablebase directories, separated the engine's way
+    uint32_t syzygyProbeDepth = 1;      ///< SyzygyProbeDepth: least depth at which to probe (1-100)
+    uint32_t syzygyProbeLimit = 7;      ///< SyzygyProbeLimit: largest tablebase to probe, in pieces (0-7)
+    bool syzygy50MoveRule = true;       ///< Syzygy50MoveRule: whether the 50-move rule counts in a probe
+
     
     std::string timeControl = "60.0+0.0"; ///< Time control string (always applied)
 };
