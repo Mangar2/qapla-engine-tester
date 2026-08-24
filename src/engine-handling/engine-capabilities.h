@@ -196,6 +196,16 @@ namespace QaplaConfiguration {
          */
         bool areAllEnginesDetected() const;
 
+        /**
+         * @brief Whether every configured engine actually answered.
+         *
+         * The difference from areAllEnginesDetected() is the one between "we have tried them all"
+         * and "they all work". An engine that failed both protocols is recorded as not supported,
+         * which counts as tried -- deliberately, so nothing keeps retrying it. It does not count
+         * as usable, and anything telling the user they are set up has to ask this one.
+         */
+        bool areAllEnginesUsable() const;
+
     private:
         /**
          * @brief Collects all engine configurations that don't have capabilities yet.

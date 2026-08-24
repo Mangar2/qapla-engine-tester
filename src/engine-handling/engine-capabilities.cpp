@@ -214,6 +214,14 @@ void EngineCapabilities::shutdown() const {
     waitForDetection();
 }
 
+bool EngineCapabilities::areAllEnginesUsable() const {
+    const auto configs = EngineWorkerFactory::getConfigManager().getAllConfigs();
+    return !configs.empty() && std::ranges::all_of(configs, [this](const auto& config) {
+        const auto capability = getCapability(config.getCmd(), config.getProtocol());
+        return capability.has_value() && capability->getProtocol() != EngineProtocol::NotSupported;
+    });
+}
+
 bool EngineCapabilities::areAllEnginesDetected() const {
     auto allDetected = std::ranges::all_of(EngineWorkerFactory::getConfigManager().getAllConfigs(), 
         [this](const auto& config) 
