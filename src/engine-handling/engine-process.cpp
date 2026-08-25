@@ -28,6 +28,7 @@
 #include <thread>
 #include <string>
 #include <cassert>
+#include <mutex>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -267,11 +268,35 @@ void EngineProcess::startWin32Overlapped() {
 #endif
 
 
+#ifndef _WIN32
+namespace {
+    /**
+     * @brief Makes a write to a closed engine take the error path instead of killing the process.
+     *
+     * An engine that has exited leaves a pipe nobody reads, and writing to one raises SIGPIPE,
+     * whose default is to end the process on the spot. That is a normal race at shutdown: the
+     * last thing a worker does is send "quit", and the engine may be gone already. Ignored, the
+     * write returns EPIPE, writeLine() throws, and the caller handles it -- which it is already
+     * written to do.
+     *
+     * Set here, where the pipes are made, and set late on purpose: the ImGui test engine claims
+     * SIGPIPE for its crash handler when it starts up, and that handler ran on a torn-down test
+     * engine and turned a broken pipe into a segmentation fault. The first engine start takes the
+     * signal back.
+     */
+    void ignoreBrokenPipes() {
+        static std::once_flag once;
+        std::call_once(once, [] { std::signal(SIGPIPE, SIG_IGN); });
+    }
+} // namespace
+#endif
+
 void EngineProcess::start()
 {
 #ifdef _WIN32
     startWin32Overlapped();
 #else
+    ignoreBrokenPipes();
     constexpr bool useStdErr = false;
     // NOLINTBEGIN(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
     int inPipe[2];
