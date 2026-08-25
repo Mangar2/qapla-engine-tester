@@ -39,8 +39,9 @@ void Logger::logAligned(std::string_view topic, std::string_view message, TraceL
 }
 
 Logger& Logger::reportLogger() {
-    static Logger instance;
-    return instance;
+    // Never destroyed -- see BaseLogger::logPath_.
+    static Logger* instance = new Logger();
+    return *instance;
 }
 
 
@@ -77,8 +78,9 @@ void EngineLogger::log(const std::string& engineId, std::string_view message, bo
 }
 
 EngineLogger& EngineLogger::engineLogger() {
-    static EngineLogger instance;
-    return instance;
+    // Never destroyed -- see BaseLogger::logPath_.
+    static EngineLogger* instance = new EngineLogger();
+    return *instance;
 }
 
 
@@ -100,15 +102,15 @@ EngineLogger& EngineLogger::engineLogger(const EngineLoggerId& loggerId) {
 }
 
 EngineLogger& EngineLogger::engineLoggerGlobal() {
-    static EngineLogger instance;
-    static bool initialized = false;
-    
-    if (!initialized) {
-        instance.setTraceLevel(TraceLevel::error, TraceLevel::info);
-        initialized = true;
-    }
-    
-    return instance;
+    // Never destroyed -- see BaseLogger::logPath_. This is the one the crash came through: an
+    // engine worker logging its own "quit" after this object's derived part was gone.
+    static EngineLogger* instance = [] {
+        auto* logger = new EngineLogger();
+        logger->setTraceLevel(TraceLevel::error, TraceLevel::info);
+        return logger;
+    }();
+
+    return *instance;
 }
 
 EngineLogger& EngineLogger::engineLoggerPerEngine(const EngineLoggerId& id) {

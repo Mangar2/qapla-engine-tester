@@ -123,7 +123,8 @@ struct EngineLoggerId {
  */
 class Logger : public BaseLogger {
 public:
-    static inline std::string logBaseName_;                    ///< Base name for reporting log files
+    /** @brief Never destroyed -- see BaseLogger::logPath_. */
+    static inline std::string& logBaseName_ = *new std::string();  ///< Base name for report logs
 
     /**
      * @brief Returns the static welcome message for the application.
@@ -185,7 +186,8 @@ public:
 class EngineLogger : public BaseLogger {
 public:
     static inline LogFileStrategy logStrategy_ = LogFileStrategy::global; ///< Strategy for engine log files
-    static inline std::string logBaseName_;                    ///< Base name for engine log files
+    /** @brief Never destroyed -- see BaseLogger::logPath_. */
+    static inline std::string& logBaseName_ = *new std::string();  ///< Base name for engine logs
 
     /**
      * @brief Constructs an engine logger with default error-level threshold.
@@ -306,12 +308,15 @@ private:
 
     EngineLoggerId id_;                         ///< Identity of this logger (for self-removal from map)
 
-    static inline std::mutex mapMutex_;         ///< Mutex for thread-safe map access
-    static inline std::mutex engineLogBufferMutex_;  ///< Mutex for engine log buffer map
-    
+    /** @brief None of these are ever destroyed -- see BaseLogger::logPath_. */
+    static inline std::mutex& mapMutex_ = *new std::mutex();         ///< Guards the logger map
+    static inline std::mutex& engineLogBufferMutex_ = *new std::mutex();  ///< Guards the buffer map
+
     ///< Map to loggers for each engine used, if the logging strategy is per engine
-    static inline std::unordered_map<std::string, std::unique_ptr<EngineLogger>> engineLoggers_;  
-    static inline std::unordered_map<std::string, RingBuffer> engineLogBuffers_;            ///< Map to ring buffer for each engine
+    static inline std::unordered_map<std::string, std::unique_ptr<EngineLogger>>& engineLoggers_ =
+        *new std::unordered_map<std::string, std::unique_ptr<EngineLogger>>();
+    static inline std::unordered_map<std::string, RingBuffer>& engineLogBuffers_ =
+        *new std::unordered_map<std::string, RingBuffer>();  ///< Ring buffer per engine
 };
 
 /**

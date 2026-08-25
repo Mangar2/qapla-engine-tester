@@ -182,7 +182,20 @@ public:
         return mcpThreshold_;
     }
 
-    static inline std::string logPath_ = "./log";               ///< Directory path for log files
+    /**
+     * @brief Never destroyed, on purpose. Every static of the logging machinery is like this.
+     *
+     * Engine worker threads log while they shut down -- the last thing one does is send "quit"
+     * to its engine and write that down. Those threads can still be running when static
+     * destruction begins, and a logger destroyed underneath them is not a lost line: the derived
+     * object is gone while the base is not, so the call lands on a pure virtual and the process
+     * aborts with "Pure virtual function called". A mutex destroyed underneath them is worse,
+     * because it fails silently.
+     *
+     * Leaked rather than destroyed, so the logger outlives everything that may write to it. The
+     * memory is a few hundred bytes and the operating system takes it back at exit.
+     */
+    static inline std::string& logPath_ = *new std::string("./log");  ///< Directory for log files
 
 protected:
     /**
