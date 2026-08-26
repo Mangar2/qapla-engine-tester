@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include "../base-elements/task-ticket.h"
+
 #include <string>
 #include <optional>
 #include <ostream>
@@ -198,8 +200,16 @@ struct EngineEvent {
     static EngineEvent createStartTask() {
         return { .type = Type::StartTask };
     }
-    static EngineEvent createStopTask() {
-        return { .type = Type::StopRunning }; 
+    /**
+     * @brief A request to stop, with the receipt its sender waits on.
+     *
+     * The holder rides along with the event: when the event is gone -- processed, or thrown away
+     * with the rest of a cleared queue -- the ticket is marked done and the sender is released.
+     * So "the stop is finished" cannot be answered before the event has actually left the queue,
+     * which is what a stop that was enqueued and then forgotten used to allow.
+     */
+    static EngineEvent createStopTask(QaplaHelpers::TicketHolderPtr ticket = nullptr) {
+        return { .type = Type::StopRunning, .ticket = std::move(ticket) };
     }
 
     struct ParseError {
@@ -221,6 +231,15 @@ struct EngineEvent {
     std::vector<ParseError> errors{};
 	std::optional<std::string> stringInfo{};
     std::optional<GameResult> gameResult{};
+
+    /**
+     * @brief The receipt of whoever asked for this, released when the event is gone.
+     *
+     * Only stop requests carry one today; it is null for everything else. Shared rather than
+     * owned outright because an event is copied on its way through the queue, and the ticket must
+     * outlive every copy -- it is done when the last of them is destroyed.
+     */
+    QaplaHelpers::TicketHolderPtr ticket{};
 private:
 
 };
