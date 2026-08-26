@@ -535,8 +535,10 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     }
 }
 
-void GameManager::stop() {
-    enqueueEvent(EngineEvent::createStopTask());
+QaplaHelpers::TaskTicketPtr GameManager::stop() {
+    auto [ticket, holder] = QaplaHelpers::makeTicket();
+    enqueueEvent(EngineEvent::createStopTask(std::move(holder)));
+    return ticket;
 }
 
 void GameManager::executeTask(std::optional<GameTask> task) {

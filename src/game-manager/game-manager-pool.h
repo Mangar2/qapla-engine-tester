@@ -18,6 +18,8 @@
  */
 #pragma once
 
+#include "../base-elements/task-ticket.h"
+
 #include "adjudication-manager.h"
 #include "game-manager.h"
 
@@ -111,7 +113,22 @@ public:
     /**
      * @brief Stops all managers and clears all resources.
      */
-    void stopAll();
+    /**
+     * @brief Asks every manager to stop.
+     * @return One receipt per manager. waitForStops() waits on them; a caller that does not care
+     *         may drop them, and nothing is held up by that.
+     */
+    std::vector<QaplaHelpers::TaskTicketPtr> stopAll();
+
+    /**
+     * @brief Waits until every one of these stop requests has left its manager's queue.
+     *
+     * Not the same question as waitForTask(), which asks whether the managers have work left. A
+     * manager that was already idle answers that one immediately while a stop of ours still sits
+     * in its queue -- and that stop then reached the *next* run and tore it down, leaving whoever
+     * waited for that run waiting for ever. This is the question that was missing.
+     */
+    static void waitForStops(const std::vector<QaplaHelpers::TaskTicketPtr>& tickets);
 
     /**
      * @brief Clears all task assignments and stops all managers.

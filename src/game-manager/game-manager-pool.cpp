@@ -228,16 +228,31 @@ void GameManagerPool::setConcurrency(uint32_t count, bool nice, bool start)
     }
 }
 
-void GameManagerPool::stopAll() {
-    std::scoped_lock lockManager(managerMutex_);
-    std::scoped_lock lockTask(taskMutex_);
-    for (auto& manager : managers_) {
-        manager->stop();
+std::vector<QaplaHelpers::TaskTicketPtr> GameManagerPool::stopAll() {
+    std::vector<QaplaHelpers::TaskTicketPtr> tickets;
+    {
+        std::scoped_lock lockManager(managerMutex_);
+        std::scoped_lock lockTask(taskMutex_);
+        tickets.reserve(managers_.size());
+        for (auto& manager : managers_) {
+            tickets.push_back(manager->stop());
+        }
+    }
+    return tickets;
+}
+
+void GameManagerPool::waitForStops(const std::vector<QaplaHelpers::TaskTicketPtr>& tickets) {
+    for (const auto& ticket : tickets) {
+        if (ticket) {
+            ticket->wait();
+        }
     }
 }
 
 void GameManagerPool::clearAll() {
-    stopAll();
+    // The stops first, and not merely sent: a stop still sitting in a manager's queue would be
+    // taken out during the next run and tear that one down instead.
+    waitForStops(stopAll());
     // Waiting for the futures must NOT happen while managerMutex_ is held: a manager that is
     // shutting down runs finalizeTaskAndContinue() -> nextAssignment() -> maybeDeactivateManager(),
     // which locks that very mutex. Holding it here let waiter and managers block each other
@@ -287,7 +302,6 @@ void GameManagerPool::waitForTaskPolling(std::chrono::milliseconds pollingInterv
 }
 
 void GameManagerPool::waitForTask() {
-
     while (true) {
         std::vector<GameManager*> managers;
         {

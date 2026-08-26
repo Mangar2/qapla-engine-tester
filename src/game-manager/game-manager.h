@@ -29,6 +29,8 @@
 #include "../chess-game/game-record.h"
 
 
+#include "../base-elements/task-ticket.h"
+
 #include <atomic>
 #include <memory>
 #include <future>
@@ -146,7 +148,14 @@ public:
     /**
      * @brief stops the engine if it is running.
      */
-    void stop();
+    /**
+     * @brief Asks this manager to stop.
+     * @return The receipt: done once the request has left the queue, whether it was carried out
+     *         or thrown away with a cleared queue. Waiting on it is how a caller knows that no
+     *         stop of its own is still pending -- a stop left in the queue used to reach the next
+     *         run and tear it down.
+     */
+    [[nodiscard]] QaplaHelpers::TaskTicketPtr stop();
 
     /**
      * @brief Pauses task processing after the current game finishes.
