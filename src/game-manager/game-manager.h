@@ -29,6 +29,7 @@
 #include "../chess-game/game-record.h"
 
 
+#include <atomic>
 #include <memory>
 #include <future>
 #include <mutex>
@@ -92,7 +93,12 @@ public:
      *
      * @param taskProvider Function that returns the next Task or std::nullopt if done.
      */
-    void start(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
+    /**
+     * @brief Starts a new run.
+     * @return true if the run was started; false if this manager was busy or still finishing the
+     *         previous one, in which case nothing was changed.
+     */
+    bool start(std::shared_ptr<GameTaskProvider> taskProvider = nullptr);
 
     /**
      * @brief Set the Trace level for the engine's CLI output.    
@@ -325,6 +331,14 @@ private:
     void initializeFinishedFuture();
 
     /**
+     * @brief Waits briefly for the previous run to have reported itself finished.
+     *
+     * @return true if it has, so a new run may replace its promise; false if it has not, in which
+     *         case the start is given up rather than waited out -- the caller can be the UI thread.
+     */
+    [[nodiscard]] bool awaitPreviousRunFinished();
+
+    /**
      * @brief Tears down the GameManager after all tasks are complete.
      *
      * This method releases resources and marks the GameManager as finished.
@@ -378,8 +392,12 @@ private:
 
     /**
      * @brief True if finishedPromise_ is valid and has not yet been set.
+     *
+     * Atomic because two threads write it: the manager's own thread in signalFinished(), and
+     * whoever calls start() in initializeFinishedFuture(). As a plain bool one of those writes
+     * could simply be lost, and then the flag says the opposite of what the manager's state says.
      */
-    bool finishedPromiseValid_ = false;
+    std::atomic<bool> finishedPromiseValid_ = false;
     std::promise<void> finishedPromise_;
     std::future<void> finishedFuture_;
 

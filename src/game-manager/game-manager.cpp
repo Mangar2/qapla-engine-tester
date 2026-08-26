@@ -740,13 +740,37 @@ void GameManager::finalizeTaskAndContinue() {
     }
 }
 
-void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
+bool GameManager::awaitPreviousRunFinished() {
+    // The finished promise of the previous run belongs to whoever is waiting on it, and
+    // initializeFinishedFuture() below replaces both objects. Replacing them while a teardown is
+    // still on its way leaves that waiter holding a promise nobody will ever fulfil -- a game
+    // manager pool waiting for a manager that is already done, and with it every thread waiting
+    // for the pool.
+    //
+    // So a start waits for the previous run to have reported itself finished, and gives up rather
+    // than block: 50 milliseconds is long enough for a teardown that is nearly done and short
+    // enough not to be felt by the caller, which can be the UI thread. A start that gives up
+    // changes nothing at all; the next occasion starts this manager instead.
+    if (!finishedPromiseValid_) {
+        return true;
+    }
+    if (!finishedFuture_.valid()) {
+        return true;
+    }
+    constexpr auto giveUpAfter = std::chrono::milliseconds(50);
+    return finishedFuture_.wait_for(giveUpAfter) == std::future_status::ready;
+}
+
+bool GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     // We start by playing an event to the queue to decouple any access to engines from 
     // the calling thread.
     // This also ensures, that any engine thread is child of the game-manager thread (important for linux).
+    if (!awaitPreviousRunFinished()) {
+        return false; // Still shutting down; starting now would strand whoever waits for it
+    }
     ManagerState expected = ManagerState::NotRunning;
     if (!managerState_.compare_exchange_strong(expected, ManagerState::FetchNextTask)) {
-        return; // Already running
+        return false; // Already running
     }
     {
         // The manager was NotRunning, so every event still queued belongs to a previous
@@ -761,6 +785,7 @@ void GameManager::start(std::shared_ptr<GameTaskProvider> taskProvider) {
     // prevents any concurrent access.
     taskProvider_ = std::move(taskProvider);
     enqueueEvent(EngineEvent::createStartTask());
+    return true;
 }
 
 void GameManager::resume() {

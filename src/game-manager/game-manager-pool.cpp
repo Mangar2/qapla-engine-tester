@@ -346,8 +346,10 @@ void GameManagerPool::startManagers() {
             std::scoped_lock lock(taskMutex_);
             manager = managers_[i].get();
         }
-		if (manager != nullptr && !manager->isRunning()) {
-			manager->start();
+		// Only a start that happened uses up a slot: one that gave up because the manager was
+		// still finishing its previous run changed nothing, and counting it would leave the pool
+		// below the concurrency that was asked for.
+		if (manager != nullptr && !manager->isRunning() && manager->start()) {
             toStart--;
 		}
 	}
