@@ -361,6 +361,17 @@ void GameContext::withGameRecord(const std::function<void(const GameRecord &)> &
     accessFn(gameRecord_);
 }
 
+bool GameContext::tryWithGameRecord(const std::function<void(const GameRecord &)> &accessFn) const
+{
+    std::unique_lock lock(gameRecordMutex_, std::try_to_lock);
+    if (!lock.owns_lock())
+    {
+        return false;
+    }
+    accessFn(gameRecord_);
+    return true;
+}
+
 std::tuple<GameEndCause, GameResult> GameContext::checkGameResult()
 {
 

@@ -107,6 +107,31 @@ void GameManagerPool::withGameRecords(
     }
 }
 
+size_t GameManagerPool::tryWithGameRecords(
+    const std::function<void(const GameRecord&, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::unique_lock lock(managerMutex_, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        // The pool itself is being changed -- adding managers, stopping them. Next frame.
+        return managers_.size();
+    }
+    size_t skipped = 0;
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager->isRunning()) {
+            const bool read = gameManager->tryWithGameRecord([&](const GameRecord& record) {
+                accessFn(record, gameIndex);
+            });
+            if (!read) {
+                ++skipped;
+            }
+        }
+        gameIndex++;
+    }
+    return skipped;
+}
+
 void GameManagerPool::withEngineRecords(
     const std::function<void(const EngineRecords&, uint32_t)>& accessFn,
     const std::function<bool(uint32_t)>& filterFn

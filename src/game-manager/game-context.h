@@ -243,6 +243,18 @@ public:
     void withGameRecord(const std::function<void(const GameRecord &)> &accessFn) const;
 
     /**
+     * @brief Same, but gives up rather than waiting when the record is being written to.
+     *
+     * For a reader that must not be held up: the user interface redraws forty times a second, so
+     * a read it skips costs it a fortieth of a second of freshness -- while waiting for the lock
+     * costs it the frame, and everything else the interface would have done in it.
+     *
+     * @param accessFn Called with the record if it was free; not called at all otherwise.
+     * @return True if the record was read, false if it was busy.
+     */
+    bool tryWithGameRecord(const std::function<void(const GameRecord &)> &accessFn) const;
+
+    /**
      * @brief Returns the result of the game.
      */
     std::tuple<GameEndCause, GameResult> checkGameResult();

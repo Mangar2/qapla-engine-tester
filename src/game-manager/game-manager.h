@@ -190,6 +190,14 @@ public:
         gameContext_.withGameRecord(accessFn);
     }
 
+    /**
+     * @brief Reads the game record if it is free, and gives up if it is not.
+     * @return True if the record was read.
+     */
+    bool tryWithGameRecord(const std::function<void(const GameRecord&)>& accessFn) const {
+        return gameContext_.tryWithGameRecord(accessFn);
+    }
+
 
 private:
     /**

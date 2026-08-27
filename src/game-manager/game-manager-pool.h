@@ -236,6 +236,25 @@ public:
      * @param accessFn A function to be executed on the GameRecord of each active GameManager.
      * @param filterFn A function to filter the GameRecords based on their index.
      */
+    /**
+     * @brief Same as withGameRecords, for a caller that must not be held up.
+     *
+     * A user interface reads these records to draw them, forty times a second, on the one thread
+     * that also serves the window. Waiting there for a record that a game is writing to costs a
+     * whole frame -- measured at up to 1.2 seconds with sixteen games running, during which the
+     * application draws nothing and answers nobody. A record skipped, by contrast, is drawn a
+     * frame later and nobody can tell.
+     *
+     * Games whose record or whose pool was busy are passed over; everything else is as in
+     * withGameRecords.
+     *
+     * @return Number of records that were skipped, so a caller can tell "nothing was running"
+     *         from "everything was busy".
+     */
+    size_t tryWithGameRecords(
+        const std::function<void(const GameRecord&, uint32_t)>& accessFn,
+        const std::function<bool(uint32_t)>& filterFn);
+
     void withGameRecords(
         const std::function<void(const GameRecord&, uint32_t)>& accessFn,
         const std::function<bool(uint32_t)>& filterFn
