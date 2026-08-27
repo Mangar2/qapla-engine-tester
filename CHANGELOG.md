@@ -16,9 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--concurrency` threads. Options: `position`, `depth`, `divide`, `showfen`.
 - **Marking engines as selected**: engines file entries can carry a `selected` flag, so
   a graphical front-end can remember which engines were picked.
-- **Syzygy tablebases**: `usesyzygy` switches path, probe depth, probe limit and the
-  50-move rule on together for every engine of a run. Off by default, and each engine
-  receives only those of the four it actually offers.
 - **Reading a game record or engine state without waiting**: a caller that must not block
   now skips a record that is being written instead of waiting for it, and is told how many
   it passed over. The waiting variants remain for callers that need the record now.
