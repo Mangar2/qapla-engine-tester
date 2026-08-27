@@ -132,6 +132,54 @@ size_t GameManagerPool::tryWithGameRecords(
     return skipped;
 }
 
+size_t GameManagerPool::tryWithEngineRecords(
+    const std::function<void(const EngineRecords&, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::unique_lock lock(managerMutex_, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        return managers_.size();
+    }
+    size_t skipped = 0;
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager->isRunning()) {
+            const bool read = gameManager->getGameContext().tryWithEngineRecords(
+                [&](const EngineRecords& records) { accessFn(records, gameIndex); });
+            if (!read) {
+                ++skipped;
+            }
+        }
+        gameIndex++;
+    }
+    return skipped;
+}
+
+size_t GameManagerPool::tryWithMoveRecord(
+    const std::function<void(const MoveRecord&, uint32_t, uint32_t)>& accessFn,
+    const std::function<bool(uint32_t)>& filterFn
+) {
+    std::unique_lock lock(managerMutex_, std::try_to_lock);
+    if (!lock.owns_lock()) {
+        return managers_.size();
+    }
+    size_t skipped = 0;
+    uint32_t gameIndex = 0;
+    for (auto& gameManager : managers_) {
+        if (filterFn(gameIndex) && gameManager->isRunning()) {
+            const bool read = gameManager->getGameContext().tryWithMoveRecord(
+                [&](const MoveRecord& record, uint32_t playerIndex) {
+                    accessFn(record, gameIndex, playerIndex);
+                });
+            if (!read) {
+                ++skipped;
+            }
+        }
+        gameIndex++;
+    }
+    return skipped;
+}
+
 void GameManagerPool::withEngineRecords(
     const std::function<void(const EngineRecords&, uint32_t)>& accessFn,
     const std::function<bool(uint32_t)>& filterFn

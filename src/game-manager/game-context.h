@@ -312,6 +312,27 @@ public:
         accessFn(mkEngineRecords());
     }
 
+    /**
+     * @brief Same, but gives up rather than waiting while the engines are busy.
+     *
+     * The engine lock is held across things that take their time -- telling an engine to stop,
+     * restarting one, which on Windows means creating a process. A reader that draws a window
+     * forty times a second cannot wait for that; it shows the previous state and asks again next
+     * frame. See tryWithGameRecord for the same reasoning on the game record.
+     *
+     * @return True if the records were read.
+     */
+    bool tryWithEngineRecords(const std::function<void(const EngineRecords&)>& accessFn) const
+    {
+        std::unique_lock lock(engineMutex_, std::try_to_lock);
+        if (!lock.owns_lock())
+        {
+            return false;
+        }
+        accessFn(mkEngineRecords());
+        return true;
+    }
+
     std::pair<std::string, std::string> getEngineNames() const
     {
         std::scoped_lock lock(engineMutex_);
@@ -335,6 +356,12 @@ public:
      * @param accessFn A callable that takes a const MoveRecord&.
      */
     void withMoveRecord(std::function<void(const MoveRecord&, uint32_t)> accessFn) const;
+
+    /**
+     * @brief Same, but gives up rather than waiting while the engines are busy.
+     * @return True if the moves were read.
+     */
+    bool tryWithMoveRecord(std::function<void(const MoveRecord&, uint32_t)> accessFn) const;
 
     /**
      * @brief Ensures all engines are started and ready for the next command.

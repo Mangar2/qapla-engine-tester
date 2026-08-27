@@ -255,6 +255,22 @@ public:
         const std::function<void(const GameRecord&, uint32_t)>& accessFn,
         const std::function<bool(uint32_t)>& filterFn);
 
+    /**
+     * @brief Non-blocking twin of withEngineRecords, for the same reason as tryWithGameRecords.
+     * @return Number of games passed over because they were busy.
+     */
+    size_t tryWithEngineRecords(
+        const std::function<void(const EngineRecords&, uint32_t)>& accessFn,
+        const std::function<bool(uint32_t)>& filterFn);
+
+    /**
+     * @brief Non-blocking twin of withMoveRecord, for the same reason as tryWithGameRecords.
+     * @return Number of games passed over because they were busy.
+     */
+    size_t tryWithMoveRecord(
+        const std::function<void(const MoveRecord&, uint32_t, uint32_t)>& accessFn,
+        const std::function<bool(uint32_t)>& filterFn);
+
     void withGameRecords(
         const std::function<void(const GameRecord&, uint32_t)>& accessFn,
         const std::function<bool(uint32_t)>& filterFn

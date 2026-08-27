@@ -459,6 +459,28 @@ MoreRecords GameContext::getMoveInfos() const
     return infos;
 }
 
+bool GameContext::tryWithMoveRecord(std::function<void(const MoveRecord&, uint32_t)> accessFn) const {
+    std::unique_lock lock(engineMutex_, std::try_to_lock);
+    if (!lock.owns_lock())
+    {
+        return false;
+    }
+    uint32_t index = 0;
+    for (const auto &player : players_)
+    {
+        uint32_t adjustedIndex = index;
+        if (isSideSwitched() && index < 2)
+        {
+            adjustedIndex = 1 - index;
+        }
+        index++;
+        player->withCurrentMove([&](const MoveRecord& record) {
+            accessFn(record, adjustedIndex);
+        });
+    }
+    return true;
+}
+
 void GameContext::withMoveRecord(std::function<void(const MoveRecord&, uint32_t)> accessFn) const {
     uint32_t index = 0;
     std::scoped_lock lock(engineMutex_);
