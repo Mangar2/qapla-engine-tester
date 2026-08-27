@@ -16,9 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--concurrency` threads. Options: `position`, `depth`, `divide`, `showfen`.
 - **Marking engines as selected**: engines file entries can carry a `selected` flag, so
   a graphical front-end can remember which engines were picked.
-- **Reading a game record or engine state without waiting**: a caller that must not block
-  now skips a record that is being written instead of waiting for it, and is told how many
-  it passed over. The waiting variants remain for callers that need the record now.
 
 ### Changed
 
@@ -69,10 +66,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under the threads still writing to them.
 - **Sending `quit` to an engine that had already gone could kill the process** through
   SIGPIPE instead of reporting a broken pipe.
-- **Engine detection no longer publishes its results from its own thread**, so a front-end
-  reading the engine list while detection runs no longer sees it change underneath.
-- **Engine setup no longer reports success for engines that could not be started**:
-  "all engines tried" and "all engines usable" are now distinct.
 
 ## [0.5.0] - 2026-04-03
 
