@@ -435,14 +435,16 @@ Simulated elo difference:     25  No Decisions:   19.6%  H0 Accepted:    0.0%  H
 
 ## 🔬 SPSA Parameter Optimization
 
-Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm. Parameters are perturbed in multiple iterations to find optimal values that maximize playing strength. The process requires two engines; the second engine is automatically configured with perturbed parameters.
+Optimizes engine parameters using the Simultaneous Perturbation Stochastic Approximation (SPSA) algorithm. Parameters are perturbed in multiple iterations to find optimal values that maximize playing strength. Only one engine is configured: each iteration plays two perturbed copies of it against each other, and the parameters are moved towards the winner. Only integer-valued UCI options can be tuned.
 
 Define the optimizer with `--spsa` and each tuned parameter with `--spsavalue` (specifying `name`, `default`, `min`, `max`, and `step`).
+
+> **Guide:** [SPSA.md](SPSA.md) explains which parameters can be tuned at all, how to choose them and their step sizes, and how to set a run up in a settings file.
 
 ### Example
 
 ```bash
---spsa iterations=100 gamespersample=30 learningrate=0.002 \
+--spsa iterations=20000 gamesperpair=8 learningrate=0.002 \
   --spsavalue name="Contempt" default=0 min=-50 max=50 step=10 \
   --spsavalue name="KingSafety" default=100 min=50 max=300 step=25
 ```
