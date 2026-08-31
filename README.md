@@ -400,6 +400,8 @@ Qapla Engine Tester supports automated tournaments between multiple engines usin
 
 In **Gauntlet** mode, one or more engines marked with `gauntlet=true` play against all other engines. In **Round-Robin** mode, every engine plays against every other engine. You can control the number of games per pairing, rounds, color swapping, and rating output intervals.
 
+**Engines live for one pairing.** An engine process is started for a pairing, plays its `games` games, and is closed when the pairing ends — the pairing of the next round starts engine processes of its own, even where both rounds pair the very same engines. `restart` only governs what happens *between the games of a pairing*, so splitting a match into `rounds` is what decides how often the engines are started anew: `games=100 rounds=1` starts them once, `games=10 rounds=10` starts them ten times.
+
 ---
 
 ## 📊 SPRT — Sequential Probability Ratio Test

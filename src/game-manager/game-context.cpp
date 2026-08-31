@@ -53,7 +53,16 @@ void GameContext::playerRestartEngine(PlayerContext* player, const std::string& 
 void GameContext::tearDown()
 {
     std::scoped_lock lock(engineMutex_);
+    logEnginesClosed("the game manager has no further task");
     players_.clear();
+}
+
+void GameContext::logEnginesClosed(const std::string& reason) const
+{
+    for (const auto &player : players_)
+    {
+        player->logEngineClosed(reason);
+    }
 }
 
 void GameContext::setCurrentPosition()
@@ -71,6 +80,9 @@ void GameContext::initPlayers(std::vector<std::unique_ptr<EngineWorker>> engines
 {
     {
         std::scoped_lock lock(engineMutex_);
+        // The engines of the finished pairing are closed here, not restarted: whether engines run
+        // on is decided by the next pairing, which brings its own engine processes.
+        logEnginesClosed("the pairing is finished and its engines are closed with it");
         players_.clear();
         for (auto &engine : engines)
         {
@@ -430,9 +442,16 @@ void GameContext::restartIfConfigured()
             continue;
         }
 
-        if (player->getEngine()->getConfig().getRestartOption() == RestartOption::Always)
+        const auto restartOption = player->getEngine()->getConfig().getRestartOption();
+        if (restartOption == RestartOption::Always)
         {
             playerRestartEngine(player.get(), "engine restart between games is configured (restart = always)", false);
+        }
+        else if (restartOption == RestartOption::EngineDecides
+            && player->getEngine()->requiresRestartBetweenGames())
+        {
+            playerRestartEngine(player.get(),
+                "the engine cannot be reused for a second game (feature reuse=0, restart = auto)", false);
         }
     }
 }

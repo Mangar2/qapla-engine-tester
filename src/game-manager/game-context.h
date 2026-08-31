@@ -288,6 +288,12 @@ public:
     void restartIfConfigured();
 
     /**
+     * @brief Notes in the engine log of every player why its engine is about to be closed.
+     * @param reason Why the engines are closed; logged directly before the quit commands.
+     */
+    void logEnginesClosed(const std::string& reason) const;
+
+    /**
      * @brief Cancels any running computation on all players.
      * @param keepPondering If true, keeps pondering engines in pondering state.
      */

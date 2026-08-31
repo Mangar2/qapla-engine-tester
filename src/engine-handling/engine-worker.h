@@ -207,6 +207,18 @@ public:
 	}
 
 	/**
+	 * @brief Checks whether the engine asked to be restarted between games.
+	 *
+	 * Only XBoard engines can ask for this, by reporting "feature reuse=0"; the answer is
+	 * fixed once the startup handshake is done. Used for the "restart = auto" setting.
+	 *
+	 * @return true if the engine must be restarted before the next game.
+	 */
+	bool requiresRestartBetweenGames() const {
+		return adapter_ && adapter_->requiresRestartBetweenGames();
+	}
+
+	/**
 	 * @brief Checks if the worker is in a failure state.
 	 * @return true if the worker encountered a failure, e.g., during startup or runtime.
 	 */

@@ -73,7 +73,7 @@ Defines configuration options for all engines
 | tc | string | 3+0.02 | Time control in format moves/time+inc or 'inf' |
 | ponder | <bool> | false | Enable pondering, if the engine supports it |
 | trace | string | command | Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work |
-| restart | string | auto | Engine restart mode: auto (engine decides), on (always), or off (never) |
+| restart | string | auto | Controls whether the engine process is restarted between the games of one pairing. 'auto' restarts the engine only if it asks for that itself: an XBoard engine reporting 'feature reuse=0' states that it cannot play a second game in the same process. UCI has no equivalent, so 'auto' never restarts a UCI engine. 'on' restarts before every game, 'off' before none. The setting does not reach beyond a single pairing: when a pairing ends - and every round creates its own pairings - its engines are ended, and the next pairing starts engine processes of its own. Restarts forced by an error, such as a crashed engine or one that stops answering, happen regardless of this setting as well. |
 | option.[name] | string |  | UCI engine option |
 
 ## --engine
@@ -92,7 +92,7 @@ Defines an engine configuration
 | ponder | <bool> |  | Enable pondering, if the engine supports it |
 | gauntlet | <bool> | false | Set if engine is part of the gauntlet group. |
 | trace | string |  | Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work |
-| restart | string |  | Engine restart mode: auto (engine decides), on (always), or off (never) |
+| restart | string |  | Controls whether the engine process is restarted between the games of one pairing. 'auto' restarts the engine only if it asks for that itself: an XBoard engine reporting 'feature reuse=0' states that it cannot play a second game in the same process. UCI has no equivalent, so 'auto' never restarts a UCI engine. 'on' restarts before every game, 'off' before none. The setting does not reach beyond a single pairing: when a pairing ends - and every round creates its own pairings - its engines are ended, and the next pairing starts engine processes of its own. Restarts forced by an error, such as a crashed engine or one that stops answering, happen regardless of this setting as well. |
 | option.[name] | string |  | UCI engine option |
 
 ## --epd
@@ -207,7 +207,7 @@ Configs:
 | eloh1 | <number> | 5.0000 | The Elo parameter for the alternative hypothesis (H1). If the result supports this hypothesis, we conclude that Engine 1's advantage is at least 'eloH1' Elo. |
 | alpha | <number> | 0.0500 | Type I error threshold |
 | beta | <number> | 0.0500 | Type II error threshold |
-| maxgames | <number> | *required* | Always set a limit of the maximum amount of games. Low limits are around 10000, a detailed analysis for small elo improvements (e.g. lower:0, uppder:3) would be best with limits around 50000 to 200000 games. |
+| maxgames | <number> | 10000 | Always set a limit of the maximum amount of games. Low limits are around 10000, a detailed analysis for small elo improvements (e.g. lower:0, uppder:3) would be best with limits around 50000 to 200000 games. |
 | model | string | normalized | Model used for SPRT calculations normalized, logistic, bayesian |
 | pentanomial | <bool> | true | Use pentanomial model for SPRT calculations |
 | montecarlo | <bool> | false | Run Monte Carlo test instead of SPRT |
@@ -290,8 +290,8 @@ Engines play against each other with color swapping and opening variations.
 | saveintervals | <number> | 10 | Interval in seconds to save tournament state |
 | append | <bool> | false | Append to result file instead of overwriting it |
 | event | string |  | Optional event name for PGN or logging |
-| games | <number> | 2 | Number of games per pairing (total games = games * rounds) |
-| rounds | <number> | 1 | Repeat all pairings this many times |
+| games | <number> | 2 | Number of games played in one pairing; the total is games * rounds. A pairing keeps its engine processes for all of its games, so this also decides how many games an engine plays before it is ended - unless the restart option asks for a restart in between. |
+| rounds | <number> | 1 | Repeats all pairings this many times. Each round builds pairings of its own: when a pairing has played its games, its engines are ended, and the pairing of the next round starts new engine processes - even where the two rounds pair the very same engines. Splitting a match into rounds is therefore also the way to decide how often the engines are started anew. |
 | repeat | <number> | 2 | Number of consecutive games using same opening (e.g. 2 with swapping colors) |
 | noswap | <bool> | false | Disable automatic color swap after each game |
 | ratinginterval | <number> | 100 | Interval (in games) for printing rating table |

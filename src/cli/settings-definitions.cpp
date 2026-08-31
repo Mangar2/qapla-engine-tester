@@ -21,6 +21,25 @@
 
 namespace QaplaTester::Settings {
 
+namespace {
+
+    /**
+     * The restart option means the same thing for --each and for --engine, so both take their
+     * long description from here.
+     */
+    std::string restartLongDescription() {
+        return "Controls whether the engine process is restarted between the games of one pairing. "
+            "'auto' restarts the engine only if it asks for that itself: an XBoard engine reporting "
+            "'feature reuse=0' states that it cannot play a second game in the same process. UCI has "
+            "no equivalent, so 'auto' never restarts a UCI engine. 'on' restarts before every game, "
+            "'off' before none. The setting does not reach beyond a single pairing: when a pairing "
+            "ends - and every round creates its own pairings - its engines are ended, and the next "
+            "pairing starts engine processes of its own. Restarts forced by an error, such as a "
+            "crashed engine or one that stops answering, happen regardless of this setting as well.";
+    }
+
+}
+
 void initSettings() {
     // Global settings
     Manager::instance().registerSetting({
@@ -348,7 +367,10 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEngineKeys() {
                         .defaultValue = std::nullopt, 
                         .type = ValueType::String}},
         { "restart",   { 
-            .description = "Engine restart mode: auto (engine decides), on (always), or off (never)",
+            .description = "Engine restart mode between the games of a pairing: auto (only if the engine "
+                "asks for it via the XBoard feature reuse=0), on (always), or off (never). The end of a "
+                "pairing always ends the engines, whatever this is set to",
+            .longDescription = restartLongDescription(),
             .isRequired = false, 
             .defaultValue = std::nullopt, 
             .type = ValueType::String }},
@@ -435,7 +457,10 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys() {
                         .isRequired = false, 
                         .defaultValue = "command", 
                         .type = ValueType::String}},
-        { "restart",   { .description = "Engine restart mode: auto (engine decides), on (always), or off (never)", 
+        { "restart",   { .description = "Engine restart mode between the games of a pairing: auto (only "
+                            "if the engine asks for it via the XBoard feature reuse=0), on (always), or off "
+                            "(never). The end of a pairing always ends the engines, whatever this is set to",
+                        .longDescription = restartLongDescription(),
                         .isRequired = false, 
                         .defaultValue = "auto", 
                         .type = ValueType::String }},
@@ -801,11 +826,22 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getTournamentKeys() {
                     .defaultValue = "", 
                     .type = ValueType::String } },
         { "games", { 
-                    .description = "Number of games per pairing (total games = games * rounds)", 
+                    .description = "Number of games per pairing (total games = games * rounds). The engines "
+                        "stay alive for all games of a pairing unless restart says otherwise", 
+                    .longDescription = "Number of games played in one pairing; the total is games * rounds. "
+                        "A pairing keeps its engine processes for all of its games, so this also decides how "
+                        "many games an engine plays before it is ended - unless the restart option asks for "
+                        "a restart in between.",
                     .isRequired = false, 
                     .defaultValue = 2, 
                     .type = ValueType::UInt } },
-        { "rounds", { .description = "Repeat all pairings this many times", 
+        { "rounds", { .description = "Repeat all pairings this many times. Every round builds its own "
+                        "pairings, so every round starts fresh engine processes", 
+                    .longDescription = "Repeats all pairings this many times. Each round builds pairings of "
+                        "its own: when a pairing has played its games, its engines are ended, and the pairing "
+                        "of the next round starts new engine processes - even where the two rounds pair the "
+                        "very same engines. Splitting a match into rounds is therefore also the way to decide "
+                        "how often the engines are started anew.",
                     .isRequired = false, 
                     .defaultValue = 1, 
                     .type = ValueType::UInt } },

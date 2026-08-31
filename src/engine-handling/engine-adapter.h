@@ -191,6 +191,19 @@ public:
      */
     [[nodiscard]] virtual bool isProtocolOkRequired() const = 0;
 
+    /**
+     * Indicates whether the engine itself asks to be restarted between games.
+     *
+     * Only the XBoard protocol has a way to express this: an engine that reports
+     * "feature reuse=0" cannot play a second game in the same process. UCI has no
+     * equivalent, so UCI engines never request a restart.
+     *
+     * The GameManager uses this for the "restart = auto" setting.
+     *
+     * @return true if the engine must be restarted before the next game.
+     */
+    [[nodiscard]] virtual bool requiresRestartBetweenGames() const { return false; }
+
 
     /**
      * Returns the current memory usage (in bytes) of the engine process.

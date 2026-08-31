@@ -70,6 +70,17 @@ public:
     }
 
     /**
+     * An XBoard engine that reports "feature reuse=0" cannot play a second game in the
+     * same process and must be restarted between games. The feature defaults to 1, so
+     * engines that stay silent about it are kept running.
+     *
+     * @return true if the engine reported reuse=0.
+     */
+    bool requiresRestartBetweenGames() const override {
+        return !isEnabled("reuse");
+    }
+
+    /**
      * Attempts to gracefully terminate the Winboard engine. If the engine is already
      * terminated or unreachable, this is treated as a normal condition.
      * If forced termination fails, the adapter reports a critical error.

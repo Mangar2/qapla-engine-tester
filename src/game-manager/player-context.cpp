@@ -381,6 +381,15 @@ void PlayerContext::restartEngine(const std::string& reason, bool outside, Trace
     engine_ = EngineWorkerFactory::restart(*engine_);
 }
 
+void PlayerContext::logEngineClosed(const std::string& reason, TraceLevel traceLevel) const {
+    if (!engine_) {
+        return;
+    }
+    const auto& eid = engine_->getIdentifier();
+    EngineLogger::engineLogger({ .engineId = eid }).log(
+        std::format("{} Sending quit, reason: {}", eid, reason), traceLevel);
+}
+
 bool PlayerContext::restartIfNotReady(const std::string& reason) {
     std::chrono::seconds WAIT_READY{ 1 };
 	if (engine_ && !engine_->requestReady(WAIT_READY)) {

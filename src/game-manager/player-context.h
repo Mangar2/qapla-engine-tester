@@ -101,6 +101,18 @@ public:
         TraceLevel traceLevel = TraceLevel::error);
 
     /**
+     * @brief Notes in the engine log why the engine is about to be closed.
+     *
+     * The quit command itself is sent by the engine's destructor, which knows nothing about the
+     * situation that led there. Calling this directly before the engine is released keeps the
+     * reason next to the quit in the log, the same way restartEngine() does it for a restart.
+     *
+     * @param reason Why the engine is closed.
+     * @param traceLevel Log level for the message.
+     */
+    void logEngineClosed(const std::string& reason, TraceLevel traceLevel = TraceLevel::info) const;
+
+    /**
      * @brief Reports the result of a check (success or failure).
      * @param topicId The unique identifier of the topic.
      * @param passed True if the check passed, false if it failed.

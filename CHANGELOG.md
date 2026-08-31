@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`restart=auto` honours the engine's own wish**: an XBoard engine that reports
+  `feature reuse=0` states that it cannot play a second game in the same process. Such an
+  engine is now restarted between games, and the engine log names the reason. Until now the
+  feature was parsed but never acted upon, so `auto` behaved like `off` for every engine.
+  UCI has no equivalent of `reuse`, so UCI engines keep running as before; `on` and `off`
+  are unchanged and still override what the engine asks for.
+
+### Changed
+
+- **Every quit sent to an engine states its reason** in the engine log. Engines are closed at
+  the end of a pairing and when a game manager runs out of tasks; both used to appear as a
+  bare `quit` with no explanation, while restarts have named their reason since 0.6.0.
+- **Engine lifetime is documented where it is decided**: the descriptions of `restart`, and of
+  the tournament's `games` and `rounds`, now say that an engine process belongs to one pairing
+  and that each round builds pairings of its own — so `rounds` is what determines how often
+  engines are started anew, whatever `restart` is set to.
+
 ## [0.6.0] - 2026-08-27
 
 ### Added
