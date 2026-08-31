@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and that each round builds pairings of its own — so `rounds` is what determines how often
   engines are started anew, whatever `restart` is set to.
 
+### Fixed
+
+- **Linux binary starts without an LLVM runtime installed**: The C++ runtime is now
+  linked into the binary instead of being loaded from `libc++.so.1`, which most
+  distributions do not ship.
+
 ## [0.6.0] - 2026-08-27
 
 ### Added
