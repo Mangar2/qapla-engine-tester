@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Linux binary starts without an LLVM runtime installed**: The C++ runtime is now
-  linked into the binary instead of being loaded from `libc++.so.1`, which most
-  distributions do not ship.
+- **Linux binary starts without an LLVM runtime installed**: The Linux build now uses
+  `libstdc++`, the runtime every distribution ships, and links it into the binary. It
+  no longer needs `libc++` -- neither to start, where the released binary asked for a
+  `libc++.so.1` that was not there, nor to build, where it had to be installed first.
+- **Builds with g++ as well**: A `constexpr` member without an initialiser and four
+  lambdas in a header without `inline` were accepted by clang but rejected by GCC, the
+  compiler a Linux machine already has.
 
 ## [0.6.0] - 2026-08-27
 
