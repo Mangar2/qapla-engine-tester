@@ -79,9 +79,8 @@ void PlayerContext::checkPV(const EngineEvent& event) {
         logReport("pv", false,
             std::format("Encountered illegal move '{}' in pv while {}: {}", invalidMove, stateStr, fullPv));
         
-        EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-            log(std::format("{} Illegal move '{}' in PV while {} in raw info line \"{}\"", 
-                engine_->getIdentifier(), invalidMove, stateStr, event.rawLine), TraceLevel::info);
+        engine_->logNote(std::format("{} Illegal move '{}' in PV while {} in raw info line \"{}\"", 
+            engine_->getIdentifier(), invalidMove, stateStr, event.rawLine), TraceLevel::info);
     }
 }
 
@@ -128,8 +127,7 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
         logReport("currmove", !move.isEmpty(),
             std::format("Encountered illegal move {} in currMove, raw info line \"{}\"", *searchInfo.currMove, event.rawLine));
         if (move.isEmpty()) {
-            EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-            log(std::format("{} Illegal move in currMove: {} in raw info line \"{}\"", 
+            engine_->logNote(std::format("{} Illegal move in currMove: {} in raw info line \"{}\"", 
                 engine_->getIdentifier(), *searchInfo.currMove, event.rawLine), TraceLevel::info);
         }
 	}
@@ -152,8 +150,8 @@ void PlayerContext::handleInfo(const EngineEvent& event) {
 
 QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
     if (computeState_ != ComputeState::ComputingMove) {
-        EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-        log(std::format("{} Received best move while not computing a move, ignoring.", engine_->getIdentifier()), 
+        engine_->logNote(
+            std::format("{} Received best move while not computing a move, ignoring.", engine_->getIdentifier()),
             TraceLevel::error);
         return {};
     }
@@ -174,8 +172,7 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
             gameState_.isWhiteToMove() ? GameResult::BlackWins : GameResult::WhiteWins);
         std::scoped_lock lock(currentMoveMutex_);
         currentMove_ = MoveRecord(gameState_.getHalfmovesPlayed(), engine_->getIdentifier());
-        EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-        log(std::format("{} Illegal move in bestmove: {} in raw info line \"{}\"", 
+        engine_->logNote(std::format("{} Illegal move in bestmove: {} in raw info line \"{}\"", 
             engine_->getIdentifier(), *event.bestMove, event.rawLine), TraceLevel::info);
         return {};
     }
@@ -334,8 +331,7 @@ bool PlayerContext::checkEngineTimeout() {
             if (!restarted) {
                 logReport("no-loss-on-time", restarted, "Engine timeout and not reacting for a while, but answered isready");
             }
-            EngineLogger::engineLogger({.engineId = engine_->getIdentifier()}).
-            log(std::format("{} Engine timeout or disconnect", engine_->getIdentifier()), 
+            engine_->logNote(std::format("{} Engine timeout or disconnect", engine_->getIdentifier()),
                 TraceLevel::warning);
 		}
 	} else if ((goLimits_.moveTimeMs.has_value() && *goLimits_.moveTimeMs < moveElapsedMs)) {
@@ -377,7 +373,7 @@ void PlayerContext::restartEngine(const std::string& reason, bool outside, Trace
     // Log the reason before replacing the engine so the message appears in the engine log
     // directly before the quit command sent to the old engine instance.
     const auto& eid = engine_->getIdentifier();
-    EngineLogger::engineLogger({.engineId = eid}).log(
+    engine_->logNote(
         std::format("{} Sending quit and restarting engine, reason: {}", eid, reason), traceLevel);
     computeState_ = ComputeState::Idle;
     // Create a fully initialized new engine instance (incl. UCI handshake)
@@ -389,8 +385,7 @@ void PlayerContext::logEngineClosed(const std::string& reason, TraceLevel traceL
         return;
     }
     const auto& eid = engine_->getIdentifier();
-    EngineLogger::engineLogger({ .engineId = eid }).log(
-        std::format("{} Sending quit, reason: {}", eid, reason), traceLevel);
+    engine_->logNote(std::format("{} Sending quit, reason: {}", eid, reason), traceLevel);
 }
 
 bool PlayerContext::restartIfNotReady(const std::string& reason) {
@@ -444,8 +439,8 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
         const auto& eid = engine_->getIdentifier();
         if (!logReport("correct-pondering", success,
             std::format("handling of ponder miss to engine (uci = stop) {} did not complete successfully", eid))) {
-			EngineLogger::engineLogger({.engineId = eid}).
-            log(std::format("{} handlePonderMiss did not complete in time", eid), TraceLevel::error);
+			engine_->logNote(
+                std::format("{} handlePonderMiss did not complete in time", eid), TraceLevel::error);
 			// Try to heal the situation by requesting a ready state from the engine
             engine_->requestReady();
         }

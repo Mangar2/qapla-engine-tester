@@ -47,6 +47,11 @@ EngineWorker::EngineWorker(std::unique_ptr<EngineAdapter> adapter, std::string i
 	asyncStartup(engineConfig.getOptionValues());
 }
 
+void EngineWorker::logNote(std::string_view message, TraceLevel level) const {
+    EngineLogger::engineLogger({.engineId = identifier_}).logNote(
+        message, cliTraceLevel_, engineConfig_.getTraceLevel(), level);
+}
+
 void EngineWorker::asyncStartup(const OptionValues& optionValues) {
 	workerState_ = WorkerState::starting;
     writeThread_ = std::thread(&EngineWorker::writeLoop, this);
@@ -341,15 +346,14 @@ void EngineWorker::readLoop() {
                     // The engine was stopped intentionally (quit has been sent, e.g. for a restart
                     // with new options). The closed pipe is expected here - neither an error nor
                     // a disconnect event for the GameManager.
-                    EngineLogger::engineLogger({.engineId = identifier_}).log(
-                        std::format("Engine {}, id {} terminated after quit (expected)",
-                            getEngineName(), getIdentifier()), TraceLevel::info);
+                    logNote(std::format("Engine {}, id {} terminated after quit (expected)",
+                        getEngineName(), getIdentifier()), TraceLevel::info);
                     continue;
                 }
                 workerState_ = WorkerState::failure;
                 std::string msg = std::format("Engine {}, id {} disconnected", getEngineName(), getIdentifier());
                 Logger::reportLogger().log(msg, TraceLevel::error);
-                EngineLogger::engineLogger({.engineId = identifier_}).log(msg, TraceLevel::error);
+                logNote(msg, TraceLevel::error);
 			}
             sendEvent(std::move(event));
         }

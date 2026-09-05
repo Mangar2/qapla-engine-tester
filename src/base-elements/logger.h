@@ -213,6 +213,22 @@ public:
         TraceLevel cliThreshold, TraceLevel fileThreshold, TraceLevel level = TraceLevel::info);
 
     /**
+     * @brief Logs a note about an engine using thresholds the caller supplies.
+     *
+     * The inherited log() overload asks this logger instance for its thresholds, and a per-engine
+     * logger knows nothing about how its engine was configured: a note written that way appears
+     * even for an engine that is set to log nothing. Pass the engine's own thresholds here, the
+     * same ones its protocol messages are written with.
+     *
+     * @param message The message content to log, written as it is given.
+     * @param cliThreshold Trace level threshold for console output.
+     * @param fileThreshold Trace level threshold for file logging.
+     * @param level The trace level of this message.
+     */
+    void logNote(std::string_view message, TraceLevel cliThreshold, TraceLevel fileThreshold,
+        TraceLevel level = TraceLevel::info);
+
+    /**
      * @brief Returns the global engine logger instance.
      * 
      * Provides a singleton logger instance specifically for engine communication.

@@ -69,6 +69,17 @@ public:
 	}
 
 	/**
+	 * @brief Writes a note about this engine into its log, gated like its protocol messages.
+	 *
+	 * An engine set to trace nothing - which is what "logging engine=false" sets for every
+	 * engine - logs nothing at all this way, not even the reason it was closed.
+	 *
+	 * @param message The message to write.
+	 * @param level The trace level of this message.
+	 */
+	void logNote(std::string_view message, TraceLevel level = TraceLevel::info) const;
+
+	/**
 	 * @brief Terminates the engine process and stops the worker thread.
 	 * @param wait If true, waits for the write and read threads to finish before returning.
 	 */

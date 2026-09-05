@@ -77,6 +77,23 @@ void EngineLogger::log(const std::string& engineId, std::string_view message, bo
 
 }
 
+void EngineLogger::logNote(std::string_view message, TraceLevel cliThreshold,
+    TraceLevel fileThreshold, TraceLevel level) {
+
+    std::scoped_lock lock(loggingMutex_);
+
+    if (level <= fileThreshold) {
+        ensureFileOpen(logPath_);
+        if (fileStream_.is_open()) {
+            fileStream_ << message << "\n" << std::flush;
+        }
+    }
+
+    if (level <= cliThreshold) {
+        std::cout << message << "\n" << std::flush;
+    }
+}
+
 EngineLogger& EngineLogger::engineLogger() {
     // Never destroyed -- see BaseLogger::logPath_.
     static EngineLogger* instance = new EngineLogger();
