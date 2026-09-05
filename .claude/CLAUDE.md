@@ -40,3 +40,18 @@ von qapla-chess-gui darauf verweisen.
 Jede Aussage und jede Frage zu einem Branch nennt das Repository dazu: „qapla-chess-gui, Branch
 0.7.0" oder „qapla-engine-tester, Branch 0.7.0" — nie nur „0.7.0". Beide Repositories haben
 gleichnamige Branches, ohne den Namen des Repositories ist die Aussage mehrdeutig.
+
+## Synchronisierung zur GUI ausschließlich über GitHub
+
+Ein Stand von qapla-engine-tester erreicht qapla-chess-gui nur über origin. Nie über das lokale
+Dateisystem — kein `git fetch <lokaler Pfad>`, kein `git checkout FETCH_HEAD`, kein Kopieren von
+Objekten in `extern/qapla-engine-tester`. Der Ablauf ist immer dieser:
+
+1. Änderung in qapla-engine-tester committen.
+2. qapla-engine-tester nach origin pushen.
+3. In qapla-chess-gui im Submodul `extern/qapla-engine-tester` von origin holen und den
+   gleichnamigen Branch auf diesen Stand setzen.
+4. Den entstandenen Submodul-Eintrag in qapla-chess-gui committen und pushen.
+
+Ein Commit in qapla-chess-gui darf nie auf einen Commit von qapla-engine-tester verweisen, der
+noch nicht auf origin liegt. Das Submodul bleibt dabei auf seinem Branch, nicht auf detached HEAD.
