@@ -107,7 +107,7 @@ namespace QaplaHelpers {
      * @param s The string view to convert.
      * @return Optional integer if conversion succeeds, nullopt otherwise.
      */
-    auto to_int = [](std::string_view s) -> std::optional<int> {
+    inline auto to_int = [](std::string_view s) -> std::optional<int> {
         return to_signed_int<int>(s);
     };
 
@@ -157,7 +157,7 @@ namespace QaplaHelpers {
      * @param s The string view to convert.
      * @return Optional uint32_t if conversion succeeds, nullopt otherwise.
      */
-    auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
+    inline auto to_uint32 = [](std::string_view s) -> std::optional<uint32_t> {
         return to_unsigned_int<uint32_t>(s);
     };
 
@@ -166,7 +166,7 @@ namespace QaplaHelpers {
      * @param s The string view to convert.
      * @return Optional double if conversion succeeds, nullopt otherwise.
      */
-    auto to_double = [](std::string_view s) -> std::optional<double> {
+    inline auto to_double = [](std::string_view s) -> std::optional<double> {
         try {
             double value = std::stod(std::string(s));
             return value;
@@ -180,7 +180,7 @@ namespace QaplaHelpers {
      * @param s The string view to convert.
      * @return Optional float if conversion succeeds, nullopt otherwise.
      */
-    auto to_float = [](std::string_view s) -> std::optional<float> {
+    inline auto to_float = [](std::string_view s) -> std::optional<float> {
         try {
             float value = std::stof(std::string(s));
             return value;

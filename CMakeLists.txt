@@ -7,12 +7,16 @@ if(APPLE)
   # macOS: libc++ is the system C++ runtime and always present.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 elseif(NOT WIN32)
-  # Linux: build against libc++ as well, but link the C++ runtime into the
-  # binary. Distributions do not install libc++ by default, so a dynamically
-  # linked binary fails to start with "libc++.so.1: cannot open shared object
-  # file". -static-libgcc additionally removes libgcc_s.so.1 and the unwinder.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-  add_link_options(-static-libstdc++ -static-libgcc)
+  # Linux: build against libstdc++, the runtime every distribution ships. libc++
+  # has to be installed on purpose, so a released binary linked against it does
+  # not start, and whoever compiles this has to fetch it first -- g++ cannot even
+  # be used, because it does not know -stdlib. libstdc++ is still linked into the
+  # binary, because its version is the one that travels badly: an older
+  # distribution answers a newer one with "libstdc++.so.6: version GLIBCXX_... not
+  # found". libgcc_s stays dynamic on purpose -- linking it in drags GCC 13's
+  # unwinder along, which calls _dl_find_object and so demands glibc 2.35, locking
+  # out RHEL 9. The library itself is everywhere.
+  add_link_options(-static-libstdc++)
 endif()
 
 # Option to build unit tests

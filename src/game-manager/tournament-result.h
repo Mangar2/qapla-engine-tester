@@ -196,7 +196,7 @@ public:
      */
     EngineDuelResult &operator+=(const EngineDuelResult &other);
 
-    static constexpr std::string_view ANY_ENGINE;
+    static constexpr std::string_view ANY_ENGINE{};
 };
 
 /**

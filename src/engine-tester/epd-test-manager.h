@@ -30,7 +30,12 @@
 
 namespace QaplaTester {
 
-struct EpdTest {
+/**
+ * @brief One position of the built-in EPD test set: a FEN and the move an engine
+ * is expected to find. Not to be confused with EpdTest in epd/epd-test.h, which
+ * runs a whole EPD set -- both names lived in this namespace at once.
+ */
+struct EpdTestPosition {
     std::string fen;
     std::string expectedMove;
     std::string topic;
@@ -125,7 +130,7 @@ public:
     }
 
 private:
-    std::vector<EpdTest> tests_;
+    std::vector<EpdTestPosition> tests_;
     size_t currentIndex_ = 0;
     std::shared_ptr<EngineReport> checklist_;
 };
