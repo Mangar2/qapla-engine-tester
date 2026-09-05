@@ -152,7 +152,9 @@ void ComputeTask::analyze() {
     const auto& gameRecord = gameContext_.gameRecord();
     TimeControl time;
     GoLimits goLimits;
-    goLimits.hasTimeControl = true;
+    // An infinite search is not run against a clock; saying otherwise sends the time
+    // supervision after a move that is meant to run until it is stopped.
+    goLimits.hasTimeControl = false;
 	goLimits.infinite = true;
     for (size_t i = 0; i < gameContext_.getPlayerCount(); ++i) {
         auto* player = gameContext_.player(i);

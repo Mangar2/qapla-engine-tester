@@ -180,7 +180,7 @@ QaplaBasics::Move PlayerContext::handleBestMove(const EngineEvent& event) {
         return {};
     }
 	
-    if (isAnalyzing_) { return {}; }
+    if (engineMoveIsAdvisory_) { return {}; }
 
     checkTime(event);
     // Must be calculated before doMove
@@ -241,7 +241,8 @@ bool PlayerContext::setupPonderState(const std::string& move, const std::string&
 
 void PlayerContext::checkTime(const EngineEvent& event) {
 
-    if (isAnalyzing_) { return; }
+    // Nothing to keep to: the engine was told to search until it is stopped.
+    if (goLimits_.infinite) { return; }
     const uint64_t GRACE_MS = 100;
     const uint64_t GRACE_NODES = 1000;
         
@@ -304,7 +305,9 @@ void PlayerContext::checkTime(const EngineEvent& event) {
 bool PlayerContext::checkEngineTimeout() {
     if (computeState_ != ComputeState::ComputingMove) { return false; }
     if (!engine_) { return false; }
-	if (isAnalyzing_) { return false; }
+    // An unlimited search has no deadline to miss - whether the engine's move counts is a
+    // different question and does not belong here.
+    if (goLimits_.infinite) { return false; }
 
 	const uint64_t GRACE_MS = 1000;
     const uint64_t OVERRUN_TIMEOUT = 5000;
@@ -450,7 +453,8 @@ void PlayerContext::doMove(QaplaBasics::Move move) {
     gameState_.doMove(move);
 }
 
-void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits, bool analyze) {
+void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& goLimits,
+    bool engineMoveIsAdvisory) {
 	if (!engine_) {
 		throw AppError::make("PlayerContext::computeMove; Cannot compute move without an engine.");
 	}
@@ -466,7 +470,7 @@ void PlayerContext::computeMove(const GameRecord& gameRecord, const GoLimits& go
         currentMove_.halfmoveNo_ = gameState_.getHalfmovesPlayed() + 1;
         currentMove_.engineName_ = engine_->getEngineName();
         currentMove_.ponderMove.clear();
-		isAnalyzing_ = analyze;
+		engineMoveIsAdvisory_ = engineMoveIsAdvisory;
     }
     goLimits_ = goLimits;
     // Race-condition safety setting. We will get the true timestamp returned from the EngineProcess sending
@@ -511,7 +515,7 @@ void PlayerContext::allowPonder(const GameRecord& gameRecord, const GoLimits& go
         currentMove_.clear();
         currentMove_.halfmoveNo_ = gameState_.getHalfmovesPlayed() + 1;
         currentMove_.ponderMove = ponderMove_;
-		isAnalyzing_ = false;
+		engineMoveIsAdvisory_ = false;
     }
 
     if (!ponderMove_.empty()) {

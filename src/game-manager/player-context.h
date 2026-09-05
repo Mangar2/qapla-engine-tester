@@ -175,9 +175,14 @@ public:
 	 * @brief Tells the engine to compute a new move
 	 * @param gameRecord The current game with startposition and moves played so far.
 	 * @param goLimits The time limits for the next move
-	 * @param analyze If true, the engine will analyze the position without playing the move.
+	 * @param engineMoveIsAdvisory If true, the move the engine returns is not played. The caller
+	 *        supplies the moves (replay of a recorded game, analysis on the board); everything the
+	 *        engine reports about the position - score, depth, nodes, pv - is still recorded.
+	 *        This says nothing about how long the engine may search: that is the time control's
+	 *        business alone (a fixed limit, a clock, or 'infinite').
      */
-    void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits, bool analyze = false);
+    void computeMove(const GameRecord& gameRecord, const GoLimits& goLimits,
+        bool engineMoveIsAdvisory = false);
 
 
     /**
@@ -475,7 +480,8 @@ private:
     GoLimits goLimits_;
     bool requireLan_;
     std::atomic<ComputeState> computeState_ = ComputeState::Idle;
-	bool isAnalyzing_ = false;
+	// The engine's move is only an opinion here: the caller plays the moves. See computeMove().
+	bool engineMoveIsAdvisory_ = false;
 
     std::string ponderMove_;
     MoveRecord currentMove_;

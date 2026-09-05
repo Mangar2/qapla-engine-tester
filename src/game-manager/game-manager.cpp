@@ -378,14 +378,21 @@ void GameManager::handlePlayGame(const EngineEvent& event) {
 }
 
 void GameManager::handleReplayFollowUp(const EngineEvent& event) {
-    
+
+    // Backward is finished once the move at index 0 has been computed; the rewind afterwards
+    // cannot distinguish "index 0 still to do" from "index 0 done" - both read as 0.
+    const bool backwardDone = managerState_ == ManagerState::ReplayBackward
+        && referenceRecord_.nextMoveIndex() == 0;
+
     handleReplayBestMove(event);
 
     // The game ends once we have recomputed all moves of the reference record.
     const auto nextMoveIndex = referenceRecord_.nextMoveIndex();
     const auto moveCount = referenceRecord_.history().size();
-    if ((managerState_ == ManagerState::ReplayForward && nextMoveIndex >= moveCount)
-        || (managerState_ == ManagerState::ReplayBackward && nextMoveIndex == 0)) {
+    const bool forwardDone = managerState_ == ManagerState::ReplayForward
+        && nextMoveIndex >= moveCount;
+
+    if (forwardDone || backwardDone) {
         finalizeTaskAndContinue();
         return;
     }
@@ -521,16 +528,18 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     const auto& gameRecord = gameContext_.gameRecord();
 	auto* white = gameContext_.getWhite();
 	auto* black = gameContext_.getBlack();
-    const bool analyzeMove = isReplayState();
+    // In a replay the moves come from the reference record, so the engine's own move is only
+    // an opinion. How long it may search is decided by the time control, not by this flag.
+    const bool engineMoveIsAdvisory = isReplayState();
     auto [whiteTime, blackTime] = gameRecord.timeUsed();
     GoLimits goLimits = createGoLimits(
 		white->getTimeControl(), black->getTimeControl(),
         gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
 	if (gameRecord.isWhiteToMove()) {
-        white->computeMove(gameRecord, goLimits, analyzeMove);
+        white->computeMove(gameRecord, goLimits, engineMoveIsAdvisory);
         black->allowPonder(gameRecord, goLimits, event);
     } else {
-		black->computeMove(gameRecord, goLimits, analyzeMove);
+		black->computeMove(gameRecord, goLimits, engineMoveIsAdvisory);
         white->allowPonder(gameRecord, goLimits, event);
     }
 }

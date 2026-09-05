@@ -404,3 +404,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Working documents (plans, notes) - not versioned
+/doc/
