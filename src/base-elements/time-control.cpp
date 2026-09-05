@@ -300,7 +300,7 @@ GoLimits createGoLimits(
     limits.mateIn = white.mateIn();
     limits.infinite = white.infinite();
 
-    if (limits.moveTimeMs || limits.depth || limits.nodes || limits.infinite) {
+    if (limits.moveTimeMs || limits.depth || limits.nodes || limits.mateIn || limits.infinite) {
         limits.hasTimeControl = false;
         return limits;
     }

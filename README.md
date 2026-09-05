@@ -38,6 +38,7 @@ All features are fully configurable and optimized for multi-core systems.
 - [Settings File Support](#️-settings-file-support---settingsfile)
 - [Interactive Mode](#-interactive-mode)
 - [Shared Engine Options (--each)](#️---each-group--shared-engine-options)
+- [Time Control (tc)](#️-time-control--tc)
 - [EPD Position Analysis](#-epd-position-analysis)
 - [PGN Output](#-pgn-output)
 - [Opening Selection](#️-opening-selection)
@@ -327,6 +328,74 @@ Defines default values that apply to **all** engines unless overridden in their 
 --engine name=engineA cmd=./engineA
 --engine name=engineB cmd=./engineB option.Threads=4
 ```
+
+---
+
+## ⏱️ Time Control (`tc`)
+
+The `tc` option of `--engine` and `--each` accepts either a **clock** time control or one of the
+**fixed search limits**. Both are also written to and read back from `.qtour` tournament files and
+from the `.ini` engine configuration, so any form shown here can be used there as well.
+
+### Clock time controls
+
+| Form | Meaning |
+|---|---|
+| `tc=60` | 60 seconds for the whole game, no increment |
+| `tc=60+1` | 60 seconds base, 1 second increment per move |
+| `tc=40/300` | 40 moves in 300 seconds, then the clock restarts with the same segment |
+| `tc=40/300+2` | 40 moves in 300 seconds plus 2 seconds increment per move |
+| `tc=40/7200:3600` | Multiple segments: 40 moves in 7200 seconds, then 3600 seconds for the rest of the game |
+
+Times are given in seconds and may be fractional (`tc=0.5+0.1` = 500 ms + 100 ms). The `M:S` and
+`H:M:S` notations are supported as well: `tc=1:30` is 90 seconds, `tc=1:00:00` is one hour. A colon
+is read as a segment separator unless it looks like part of a time — that is, unless it follows a
+digit and is followed by exactly two digits. `tc=0/0:01+0.1` is therefore one segment of 1 second
+plus 0.1 seconds increment, while `tc=40/7200:3600` is two segments.
+
+The moves part may be `0` (`tc=0/60+1`), which is the same as leaving it out: sudden death.
+
+### Fixed search limits
+
+These replace the clock entirely — no `wtime`/`btime` is sent, the engine receives the limit on
+every `go` command, and no engine can lose on time.
+
+| Form | Meaning |
+|---|---|
+| `tc=depth:5` | Fixed search depth of 5 plies per move (`go depth 5`) |
+| `tc=nodes:100000` | Fixed node limit per move (`go nodes 100000`) |
+| `tc=movetime(ms):500` | Fixed 500 ms per move (`go movetime 500`) |
+| `tc=mate:5` | Search for a mate in 5 moves (`go mate 5`) |
+| `tc=inf` | Search without limit until the engine is stopped (`go infinite`) |
+
+Only one form can be active at a time. A `tc` given on `--engine` overrides the one from `--each`.
+
+Two limitations apply to fixed search limits in **games**:
+
+- A fixed search limit is not a per-engine setting: the limit of the engine playing **white** is
+  applied to both sides. Give both engines the same fixed limit (best via `--each`) — a clock time
+  control set on the opponent is ignored while the white engine plays with a fixed limit.
+- `mate:N` and `inf` only end a move if the engine returns a `bestmove` by itself. Engines that
+  keep searching (which is what `go infinite` asks for) make the game hang, so these two are meant
+  for analysis rather than for tournament play. `depth`, `nodes` and `movetime(ms)` are the forms
+  to use for games.
+
+### Examples
+
+```bash
+# Fixed depth match: both engines search exactly 5 plies per move
+--each tc=depth:5 --engine conf='Qapla 0.4.0' --engine conf='Spike 1.4'
+
+# Fixed node count per move - reproducible regardless of machine load
+--each tc=nodes:200000 --engine conf='Qapla 0.4.0' --engine conf='Spike 1.4'
+
+# Classical two-segment tournament time control
+--each tc=40/7200:3600+30
+```
+
+> ℹ️ Fixed search limits make results reproducible and independent of machine load, but they measure
+> search quality rather than playing strength: an engine that reaches the same depth with a slower
+> search is not penalized for it.
 
 ---
 

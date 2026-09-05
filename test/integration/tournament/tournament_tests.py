@@ -226,4 +226,56 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/tournament/noswap",
         },
+        {
+            "name": "tournament-fixed-depth",
+            "description": "100 games at a fixed search depth - every go carries depth 5 and no clock",
+            # games=2 per encounter over 50 rounds is 100 games between the two engines.
+            # Engine logging stays on (mode=one) so the go commands the engines received can be
+            # checked: a fixed depth must replace the clock, not just accompany it.
+            "args": f"--concurrency=8 {_ENGINES} --tournament type=gauntlet games=2 repeat=2 rounds=50 "
+                    f"{_OPENINGS} --each tc=depth:5 trace=all "
+                    "--engine conf='Qapla 0.4.0' gauntlet=true --engine conf='Spike 1.4' "
+                    "--logging engine=true mode=one path=test/integration/log/tournament/fixeddepth",
+            "log_path": "test/integration/log/tournament/fixeddepth",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    # Both engines must appear with all 100 games in the closing standings.
+                    "type": "stdout",
+                    "content": r"(?s)Tournament result:.*Qapla 0\.4\.0\s+\|[^|]*\|[^|]*\|\s+100\s+\|",
+                    "isRegex": True,
+                    "message": "The gauntlet engine did not play 100 games",
+                },
+                {
+                    "type": "stdout",
+                    "content": r"(?s)Tournament result:.*Spike 1\.4\s+\|[^|]*\|[^|]*\|\s+100\s+\|",
+                    "isRegex": True,
+                    "message": "The opponent did not play 100 games",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-*.log",
+                    "count": 1,
+                    "content": "go depth 5",
+                },
+                {
+                    # A fixed depth replaces the clock: no engine may be given wtime/btime,
+                    # and no game may be decided on time.
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-*.log",
+                    "count": 1,
+                    "content": r"(?s)^(?!.*go wtime)",
+                    "message": "A clock was sent although the time control is a fixed depth",
+                },
+                {
+                    "type": "stdout",
+                    "content": r"(?s)^(?:(?!cause time forfeit).)*$",
+                    "isRegex": True,
+                    "message": "A game was lost on time under a fixed depth time control",
+                },
+            ],
+            "cleanup": "test/integration/log/tournament/fixeddepth",
+        },
     ]

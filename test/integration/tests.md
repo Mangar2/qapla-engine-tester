@@ -181,7 +181,7 @@ All tests currently implemented, grouped by test module
 |---|---|
 | systemtest-basic | NPS stability test with 2 concurrency steps; report produced |
 
-## tournament (8 tests)
+## tournament (9 tests)
 
 | Name | Description |
 |---|---|
@@ -193,6 +193,7 @@ All tests currently implemented, grouped by test module
 | tournament-roundrobin-too-few-engines | Round-robin with one engine; expects InvalidParameters (2) |
 | tournament-gauntlet-fallback | No gauntlet=true; the first engine plays all others, no round-robin pairings |
 | tournament-noswap-event-rating | noswap/event/ratinginterval; colors fixed, event name in the PGN |
+| tournament-fixed-depth | 100 games at `tc=depth:5`; every `go` carries `depth 5`, no clock is sent, no time forfeit |
 
 ## xboard (3 tests)
 
