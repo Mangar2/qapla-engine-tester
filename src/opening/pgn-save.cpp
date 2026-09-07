@@ -19,6 +19,8 @@
 
 #include "pgn-save.h"
 
+#include <set>
+
 #include "../base-elements/time-control.h"
 #include "../chess-game/game-result.h"
 
@@ -119,6 +121,22 @@ void PgnSave::saveTags(std::ostream& out, const GameRecord& game) {
             out << "[TimeControlBlack \"" << to_string(tcBlack) << "\"]\n";
         }
         out << "[PlyCount \"" << game.history().size() << "\"]\n";
+    }
+
+    // Tags the game brought with it or that were set on it - [Annotator] for an analysed game,
+    // and everything a PGN this game was read from carried. They are written even in minimal
+    // mode: nothing puts them here by itself, so whoever set one meant it. Keys written above
+    // are skipped, a tag must not appear twice in one game.
+    static const std::set<std::string, std::less<>> writtenHere = {
+        "Black", "BlackTimeControl", "Event", "EventDate", "FEN", "PlyCount", "Result", "Round",
+        "SetUp", "Termination", "Time", "TimeControl", "TimeControlBlack", "TimeControlWhite",
+        "White", "WhiteTimeControl"
+    };
+    for (const auto& [key, value] : game.getTags()) {
+        if (writtenHere.contains(key)) {
+            continue;
+        }
+        out << "[" << key << " \"" << value << "\"]\n";
     }
 
     out << "\n";
