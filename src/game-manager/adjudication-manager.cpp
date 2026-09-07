@@ -203,6 +203,8 @@ void AdjudicationManager::onGameFinished(const GameRecord& game) {
     const auto& [finalCause, finalResult] = game.getGameResult();
     const auto& moves = game.history();
 
+    std::scoped_lock lock(statsMutex_);
+
     if (drawConfig_.active && drawConfig_.testOnly) {
         drawStats_.totalGames++;
 
@@ -246,6 +248,8 @@ void AdjudicationManager::onGameFinished(const GameRecord& game) {
 
 AdjudicationManager::TestResults AdjudicationManager::computeTestResults() const {
     TestResults results;
+
+    std::scoped_lock lock(statsMutex_);
     
     results.hasDrawTest = drawConfig_.active && drawConfig_.testOnly;
     results.hasResignTest = resignConfig_.active && resignConfig_.testOnly;

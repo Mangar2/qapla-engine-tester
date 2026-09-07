@@ -22,6 +22,7 @@
 #include "../chess-game/game-result.h"
 #include "../base-elements/logger.h"
 
+#include <mutex>
 #include <optional>
 #include <iostream>
 #include <string>
@@ -165,7 +166,15 @@ private:
     AdjudicationTestStats drawStats_;
     AdjudicationTestStats resignStats_;
 
-    std::mutex statsMutex_;
+    /**
+     * @brief Guards the two statistics below.
+     *
+     * Every game manager reports its finished games to this one instance, so the counters and
+     * the lists of games the adjudication got wrong are written from as many threads as there
+     * are games running at the same time. Mutable: reading the statistics has to take the lock
+     * as well, and computeTestResults() is const.
+     */
+    mutable std::mutex statsMutex_;
 };
 
 } // namespace QaplaTester
