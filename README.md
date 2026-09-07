@@ -40,6 +40,7 @@ All features are fully configurable and optimized for multi-core systems.
 - [Shared Engine Options (--each)](#️---each-group--shared-engine-options)
 - [Time Control (tc)](#️-time-control--tc)
 - [EPD Position Analysis](#-epd-position-analysis)
+- [Game Analysis (--analysis)](#-game-analysis--analysis)
 - [PGN Output](#-pgn-output)
 - [Opening Selection](#️-opening-selection)
 - [Tournament Mode](#-tournament-mode)
@@ -436,6 +437,53 @@ The output is saved automatically to a log file named like:
 --epd file="endgames.epd" depth=12
 --epd file="endgames.epd" nodes=500000
 ```
+
+---
+
+## 🔎 Game Analysis (`--analysis`)
+
+Recomputes the games of a PGN file with an engine and writes them out again carrying the
+evaluations the engine produced. Every position is searched with the same limit, taken from the
+engine's `tc`, which has to be a per-move limit — `movetime(ms):N`, `depth:N` or `nodes:N`. A game
+clock is refused, since there is no game clock to run down here.
+
+### Why backwards
+
+`direction=reverse` (the default) recomputes a game from its **last** move to its first. The
+engine keeps what it learns in its transposition table, so by the time it reaches an early
+position it already knows how the game ended: the move that allowed a loss is scored badly there,
+where the engine at the time may have seen nothing wrong with it. That is how you find where a
+game was really decided, rather than where the engine first noticed.
+
+`direction=forward` recomputes the game in playing order, which is what the engine saw at the
+time. Running both over the same file and comparing the two evaluations of a move is the point of
+having the option.
+
+### Options
+
+| Option | Meaning |
+|---|---|
+| `pgn` | Path to the PGN file holding the games (required) |
+| `direction` | `reverse` (default) or `forward` |
+| `maxgames` | Maximum number of games to analyse (0 = all) |
+
+Each game is analysed by one engine from start to end — that is what keeps the transposition table
+useful — and `--concurrency` decides how many games run at the same time. Given several engines,
+every engine analyses the whole file in turn and writes its own copy of each game, marked with
+`[Annotator "<engine>"]`; the players of the analysed games are kept as they stand in the file.
+
+### Example
+
+```bash
+qapla-engine-tester --concurrency=8 \
+  --analysis pgn=games.pgn direction=reverse \
+  --engine conf='Qapla 0.4.0' --engine conf='Stockfish' \
+  --each "tc=movetime(ms):500" \
+  --pgnoutput file=analysed.pgn append=false
+```
+
+Output goes through the normal [PGN Output](#-pgn-output) options, so `includeEval`, `includeDepth`
+and `includePv` decide what ends up in the move comments.
 
 ---
 

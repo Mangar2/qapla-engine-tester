@@ -13,7 +13,7 @@ namespace QaplaTester::Cli {
         Sprt,
         Tournament,
         Epd,
-        Reverse,
+        Analysis,
         Spsa,
         Clop,
         SystemTest,
@@ -28,7 +28,7 @@ namespace QaplaTester::Cli {
             case TaskType::Sprt: return SprtTournamentFile::id;
             case TaskType::Tournament: return TournamentFile::id;
             case TaskType::Epd: return EpdFile::id;
-            case TaskType::Reverse: return "reverse";
+            case TaskType::Analysis: return "analysis";
             case TaskType::Spsa: return SpsaFile::id;
             case TaskType::Clop: return ClopFile::id;
             case TaskType::SystemTest: return "systemtest";
@@ -49,8 +49,8 @@ namespace QaplaTester::Cli {
         if (name == "epd") {
             return TaskType::Epd;
         } 
-        if (name == "reverse") {
-            return TaskType::Reverse;
+        if (name == "analysis") {
+            return TaskType::Analysis;
         }
         if (name == "spsa") {
             return TaskType::Spsa;

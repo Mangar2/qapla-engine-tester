@@ -129,19 +129,22 @@ Results are reported as a success rate and compared against a minimum threshold.
         .keys = Settings::getEpdKeys()
     });
 
-    // Reverse analysis group
+    // Analysis group
     Manager::instance().registerGroup({
-        .name = "reverse",
-        .description = "Recomputes the games of a PGN file from their last move backwards",
-        .longDescription = R"(Analyses each game of a PGN file backwards: the engine recomputes the last
-move first and the first move last, with a fixed limit per half move and no clock.
-Walking backwards means the engine already knows how the game ended when it looks at an earlier
-position - it keeps that knowledge in its transposition table - so the move that allowed a loss is
-scored badly where the engine at the time may have seen nothing wrong with it.
+        .name = "analysis",
+        .description = "Recomputes the games of a PGN file with an engine, move by move",
+        .longDescription = R"(Analyses the games of a PGN file and writes them out again with the
+evaluations the engine produced. Every position is searched with the same limit, taken from the
+engine's time control, which has to be a per-move limit (movetime, depth or nodes).
+direction=reverse recomputes a game from its last move to its first: the engine keeps what it
+learns in its transposition table, so it meets an early position already knowing how the game
+ended, and the move that allowed a loss is scored badly there - where the engine at the time may
+have seen nothing wrong with it. direction=forward recomputes the game in playing order.
 Each game is analysed by one engine from start to end; the concurrency setting decides how many
-games run at the same time.)",
+games run at the same time. Given several engines, every engine analyses the whole file in turn,
+and each writes its games marked with its own name.)",
         .unique = true,
-        .keys = Settings::getReverseKeys()
+        .keys = Settings::getAnalysisKeys()
     });
 
     // SPRT group
@@ -486,23 +489,24 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys() {
     };
 }
 
-QaplaHelpers::StableMap<std::string, ParameterDefinition> getReverseKeys() {
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getAnalysisKeys() {
     return {
         { "id",        { .description = "Identifier for the configuration",
                         .isRequired = false,
-                        .defaultValue = "reverse",
+                        .defaultValue = "analysis",
                         .type = ValueType::String,
                         .isHidden = true } },
-        { "file",      { .description = "Path and file name of the PGN file holding the games to analyse",
+        { "pgn",       { .description = "Path and file name of the PGN file holding the games to analyse",
                         .isRequired = true,
                         .defaultValue = "",
                         .type = ValueType::PathExists } },
-        { "movetime",  { .description = "Fixed time in milliseconds the engine gets for each half move",
-                        .longDescription = "Fixed time in milliseconds per half move. A reverse analysis has no clock: "
-                            "every position is searched with the same limit, so the results of two games are comparable.",
+        { "direction", { .description = "Direction the games are recomputed in (reverse/forward)",
+                        .longDescription = "reverse recomputes a game from its last move to its first, which lets the "
+                            "engine judge an early move knowing how the game ended. forward recomputes it in the order "
+                            "it was played, which is what the engine saw at the time.",
                         .isRequired = false,
-                        .defaultValue = 200,
-                        .type = ValueType::UInt } },
+                        .defaultValue = "reverse",
+                        .type = ValueType::String } },
         { "maxgames",  { .description = "Maximum number of games to analyse (0 = all)",
                         .isRequired = false,
                         .defaultValue = 0,

@@ -35,32 +35,53 @@
 namespace QaplaTester {
 
 /**
- * @brief Settings for a reverse analysis run.
+ * @brief Direction a game is recomputed in.
  */
-struct ReverseAnalysisConfig {
-    std::string file;            ///< Path to the PGN file holding the games to analyse
-    uint32_t moveTimeMs = 200;   ///< Fixed time per half move
-    uint32_t maxGames = 0;       ///< Maximum number of games to analyse (0 = all)
+enum class AnalysisDirection : std::uint8_t {
+    Forward,   ///< From the first move to the last, the order the game was played in
+    Backward   ///< From the last move to the first
 };
 
 /**
- * @brief Hands out one game per task, to be recomputed from its last move backwards.
- *
- * One task is one whole game, which is what makes the analysis work: the engine keeps its
- * transposition table over the whole backward walk and meets each position already knowing how
- * the game continued from it. Several games run in parallel, but each of them on an engine of
- * its own - the pool gives every game manager its own engine process.
+ * @brief Settings for an analysis run.
  */
-class ReverseAnalysis : public GameTaskProvider {
+struct AnalysisConfig {
+    std::string pgnFile;                                          ///< PGN file holding the games
+    AnalysisDirection direction = AnalysisDirection::Backward;    ///< Direction to recompute in
+    uint32_t maxGames = 0;                                        ///< Games to analyse (0 = all)
+};
+
+/**
+ * @brief Hands out one game per task, to be recomputed move by move.
+ *
+ * One task is one whole game, which is what the backward direction lives on: the engine keeps its
+ * transposition table over the whole walk and meets each position already knowing how the game
+ * continued from it. Several games run at the same time, but each of them on an engine of its own
+ * - the pool gives every game manager its own engine process.
+ *
+ * The search limit comes from the engine's time control and has to be a per-move limit; a game
+ * clock has nothing to apply to here, since every position is given the same limit.
+ */
+class AnalysisManager : public GameTaskProvider {
 public:
-    ReverseAnalysis() = default;
+    AnalysisManager() = default;
 
     /**
-     * @brief Loads the games to analyse and fixes the search limit per half move.
+     * @brief Loads the games to analyse.
      * @param config The run's settings.
-     * @return The number of games read.
+     * @return The number of games that can be analysed.
      */
-    size_t initialize(const ReverseAnalysisConfig& config);
+    size_t initialize(const AnalysisConfig& config);
+
+    /**
+     * @brief Sets the engine of the current run and its search limit.
+     *
+     * Called once per engine: the games are analysed again for each engine given, and each run
+     * writes its own copy of every game, marked with the engine that produced the evaluations.
+     *
+     * @param engine The engine that analyses the games in this run.
+     */
+    void startRun(const EngineConfig& engine);
 
     /**
      * @brief Registers this instance as a task provider and starts the run.
@@ -68,7 +89,7 @@ public:
      * @param engine The engine that analyses the games.
      * @param pool Pool used for scheduling and concurrency control.
      */
-    static void schedule(const std::shared_ptr<ReverseAnalysis>& self, const EngineConfig& engine,
+    static void schedule(const std::shared_ptr<AnalysisManager>& self, const EngineConfig& engine,
         GameManagerPool& pool = GameManagerPool::getInstance());
 
     std::optional<GameTask> nextTask() override;
@@ -76,14 +97,16 @@ public:
     void setGameRecord(const std::string& taskId, const GameRecord& record) override;
 
     /**
-     * @brief Returns the games that have been analysed, in the order they were read.
-     */
-    [[nodiscard]] std::vector<GameRecord> getAnalysedGames() const;
-
-    /**
-     * @brief Returns the number of games that have been analysed.
+     * @brief Returns the number of games finished in the current run.
      */
     [[nodiscard]] size_t getFinishedCount() const { return finishedCount_.load(); }
+
+    /**
+     * @brief Checks that the engine's time control is a limit that applies to a single move.
+     * @param engine The engine to check.
+     * @throws AppError if the engine has no per-move limit, naming what to set instead.
+     */
+    static void requirePerMoveLimit(const EngineConfig& engine);
 
 private:
     /**
@@ -92,12 +115,12 @@ private:
     void logGameResult(size_t index, const GameRecord& record) const;
 
     mutable std::mutex mutex_;
-    std::vector<GameRecord> games_;      ///< The games as they were read
-    std::vector<bool> analysed_;         ///< Which of them came back analysed
-    size_t nextIndex_ = 0;               ///< Index of the game handed out next
+    std::vector<GameRecord> games_;   ///< The games as they were read, unchanged between runs
+    size_t nextIndex_ = 0;            ///< Index of the game handed out next in this run
     std::atomic<size_t> finishedCount_ = 0;
-    TimeControl timeControl_;
-    std::string fileName_;
+    AnalysisDirection direction_ = AnalysisDirection::Backward;
+    TimeControl timeControl_;         ///< The current engine's per-move limit
+    std::string engineName_;          ///< The engine of the current run
 };
 
 } // namespace QaplaTester

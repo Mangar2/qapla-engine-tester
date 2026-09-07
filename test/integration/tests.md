@@ -175,11 +175,16 @@ All tests currently implemented, grouped by test module
 |---|---|
 | spsa-basic | SPSA with 2 iterations tuning Hash; expects exit 0 |
 
-## reverse (1 test)
+## analysis (6 tests)
 
 | Name | Description |
 |---|---|
-| reverse-backward-walk | `--reverse` on two short games; both recomputed from the last move back to the first, every half move evaluated, fixed movetime and no clock |
+| analysis-reverse-walks-back-to-the-first-move | `--analysis` on two short games; recomputed from the last move back to the first, every half move evaluated, players kept, `[Annotator]` written |
+| analysis-forward-follows-the-playing-order | `direction=forward`; the same games recomputed in playing order |
+| analysis-every-engine-analyses-the-file | Two engines; each analyses the whole file and writes its own copy of every game |
+| analysis-reads-real-world-pgn-reverse | 16 published games with wrapped multi-line comments; all read in full and recomputed backwards |
+| analysis-reads-real-world-pgn-forward | The same 16 games in playing order |
+| analysis-rejects-a-game-clock | A clock time control is refused before any engine starts; expects InvalidParameters (2) |
 
 ## systemtest (2 tests)
 

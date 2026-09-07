@@ -36,7 +36,7 @@
 #include "../config/pgn-config.h"
 #include "../config/adjudication-config.h"
 #include "../epd/epd-manager.h"
-#include "../reverse-analysis/reverse-analysis.h"
+#include "../analysis/analysis-manager.h"
 #include "../spsa/spsa-optimizer.h"
 #include "../clop/clop-types.h"
 
@@ -201,7 +201,7 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     setSprtConfig(Manager::instance(), "sprt");
     setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
-    setReverseConfig();
+    setAnalysisConfig();
     setSPSAConfig();
     setCLOPConfig();
 }
@@ -432,25 +432,31 @@ std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
     return *m_epdConfig;
 }
 
-void QaplaSettings::setReverseConfig() {
-    auto reverseGroup = Manager::instance().getGroupInstance("reverse");
-    if (!reverseGroup.has_value()) {
-        m_reverseConfig = nullptr;
+void QaplaSettings::setAnalysisConfig() {
+    auto analysisGroup = Manager::instance().getGroupInstance("analysis");
+    if (!analysisGroup.has_value()) {
+        m_analysisConfig = nullptr;
         return;
     }
 
-    m_reverseConfig = std::make_unique<ReverseAnalysisConfig>(ReverseAnalysisConfig{
-        .file = reverseGroup->get<std::string>("file"),
-        .moveTimeMs = reverseGroup->get<unsigned int>("movetime"),
-        .maxGames = reverseGroup->get<unsigned int>("maxgames")
+    const auto direction = analysisGroup->get<std::string>("direction");
+    if (direction != "reverse" && direction != "forward") {
+        throw AppError::makeInvalidParameters(std::format(
+            "Set analysis.direction to 'reverse' or 'forward'; '{}' is neither.", direction));
+    }
+
+    m_analysisConfig = std::make_unique<AnalysisConfig>(AnalysisConfig{
+        .pgnFile = analysisGroup->get<std::string>("pgn"),
+        .direction = direction == "forward" ? AnalysisDirection::Forward : AnalysisDirection::Backward,
+        .maxGames = analysisGroup->get<unsigned int>("maxgames")
     });
 }
 
-std::optional<ReverseAnalysisConfig> QaplaSettings::getReverseConfig() const {
-    if (m_reverseConfig == nullptr) {
+std::optional<AnalysisConfig> QaplaSettings::getAnalysisConfig() const {
+    if (m_analysisConfig == nullptr) {
         return std::nullopt;
     }
-    return *m_reverseConfig;
+    return *m_analysisConfig;
 }
 
 void QaplaSettings::setSPSAConfig() {

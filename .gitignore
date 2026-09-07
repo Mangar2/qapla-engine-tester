@@ -406,3 +406,9 @@ MigrationBackup/
 FodyWeavers.xsd
 # Working documents (plans, notes) - not versioned
 /doc/
+
+# Downloaded PGN material for local experiments - not versioned
+/test/pgn-data/
+
+# Left behind by an ImGui application started in this directory
+imgui.ini
