@@ -41,6 +41,9 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys();
 /// Returns key definitions for epd group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys();
 
+/// Returns key definitions for reverse group
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getReverseKeys();
+
 /// Returns key definitions for sprt group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys();
 

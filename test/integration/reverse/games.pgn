@@ -1,0 +1,19 @@
+[Event "Reverse analysis fixture"]
+[Site "-"]
+[Date "2026.01.01"]
+[Round "1"]
+[White "White Player"]
+[Black "Black Player"]
+[Result "1-0"]
+
+1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7# 1-0
+
+[Event "Reverse analysis fixture"]
+[Site "-"]
+[Date "2026.01.01"]
+[Round "2"]
+[White "White Player"]
+[Black "Black Player"]
+[Result "0-1"]
+
+1. f3 e5 2. g4 Qh4# 0-1

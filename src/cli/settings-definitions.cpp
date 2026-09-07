@@ -129,6 +129,21 @@ Results are reported as a success rate and compared against a minimum threshold.
         .keys = Settings::getEpdKeys()
     });
 
+    // Reverse analysis group
+    Manager::instance().registerGroup({
+        .name = "reverse",
+        .description = "Recomputes the games of a PGN file from their last move backwards",
+        .longDescription = R"(Analyses each game of a PGN file backwards: the engine recomputes the last
+move first and the first move last, with a fixed limit per half move and no clock.
+Walking backwards means the engine already knows how the game ended when it looks at an earlier
+position - it keeps that knowledge in its transposition table - so the move that allowed a loss is
+scored badly where the engine at the time may have seen nothing wrong with it.
+Each game is analysed by one engine from start to end; the concurrency setting decides how many
+games run at the same time.)",
+        .unique = true,
+        .keys = Settings::getReverseKeys()
+    });
+
     // SPRT group
     Manager::instance().registerGroup({
         .name = "sprt", 
@@ -468,6 +483,30 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEachKeys() {
                         .isRequired = false, 
                         .defaultValue = "", 
                         .type = ValueType::String } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getReverseKeys() {
+    return {
+        { "id",        { .description = "Identifier for the configuration",
+                        .isRequired = false,
+                        .defaultValue = "reverse",
+                        .type = ValueType::String,
+                        .isHidden = true } },
+        { "file",      { .description = "Path and file name of the PGN file holding the games to analyse",
+                        .isRequired = true,
+                        .defaultValue = "",
+                        .type = ValueType::PathExists } },
+        { "movetime",  { .description = "Fixed time in milliseconds the engine gets for each half move",
+                        .longDescription = "Fixed time in milliseconds per half move. A reverse analysis has no clock: "
+                            "every position is searched with the same limit, so the results of two games are comparable.",
+                        .isRequired = false,
+                        .defaultValue = 200,
+                        .type = ValueType::UInt } },
+        { "maxgames",  { .description = "Maximum number of games to analyse (0 = all)",
+                        .isRequired = false,
+                        .defaultValue = 0,
+                        .type = ValueType::UInt } }
     };
 }
 

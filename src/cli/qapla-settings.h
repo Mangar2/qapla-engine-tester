@@ -34,6 +34,7 @@ namespace QaplaTester {
     struct TournamentConfig;
     struct SprtConfig;
     struct EpdConfig;
+    struct ReverseAnalysisConfig;
     struct SPSAConfig;
     struct CLOPConfig;
 
@@ -138,6 +139,12 @@ public:
      * @return Optional containing EPD config if configured, nullopt otherwise
      */
     [[nodiscard]] std::optional<EpdConfig> getEpdConfig() const;
+
+    /**
+     * @brief Gets the reverse analysis configuration
+     * @return Optional containing the reverse analysis config if configured, nullopt otherwise
+     */
+    [[nodiscard]] std::optional<ReverseAnalysisConfig> getReverseConfig() const;
 
     /**
      * @brief Gets the SPSA configuration
@@ -262,6 +269,11 @@ private:
     void setEpdConfig();
 
     /**
+     * @brief Reads reverse analysis configuration from CLI settings
+     */
+    void setReverseConfig();
+
+    /**
      * @brief Reads SPSA configuration from CLI settings
      */
     void setSPSAConfig();
@@ -293,6 +305,7 @@ private:
     std::unique_ptr<TournamentConfig> m_tournamentConfig; ///< Tournament configuration
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
+    std::unique_ptr<ReverseAnalysisConfig> m_reverseConfig; ///< Reverse analysis configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
     std::unique_ptr<CLOPConfig> m_clopConfig; ///< CLOP configuration
     std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration

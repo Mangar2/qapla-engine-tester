@@ -31,6 +31,7 @@ namespace QaplaTester {
 
 class Tournament;
 class EpdManager;
+class ReverseAnalysis;
 class SprtManager;
 class SPSAOptimizer;
 class CLOPOptimizer;
@@ -72,6 +73,14 @@ public:
      * @return Updated application return code.
      */
     [[nodiscard]] AppReturnCode runEpd(AppReturnCode code, bool background = false);
+
+    /**
+     * @brief Runs the reverse analysis of a PGN file.
+     * @param code The return code so far.
+     * @param background True if the task is started in the background.
+     * @return The resulting return code.
+     */
+    [[nodiscard]] AppReturnCode runReverse(AppReturnCode code, bool background = false);
 
     /**
      * @brief Runs the tournament mode.
@@ -172,6 +181,7 @@ private:
 
     std::shared_ptr<Tournament> tournament_;
     std::shared_ptr<EpdManager> epdManager_;
+    std::shared_ptr<ReverseAnalysis> reverseAnalysis_;
     std::shared_ptr<SprtManager> sprtManager_;
     std::shared_ptr<SPSAOptimizer> spsaOptimizer_;
     std::shared_ptr<CLOPOptimizer> clopOptimizer_;

@@ -23,6 +23,7 @@
 #include "../engine-tester/engine-test-controller.h"
 #include "../engine-handling/engine-worker-factory.h"
 #include "../epd/epd-manager.h"
+#include "../reverse-analysis/reverse-analysis.h"
 #include "../sprt/sprt-manager.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../spsa/spsa-optimizer.h"
@@ -389,6 +390,57 @@ AppReturnCode AppRunner::runEpd(AppReturnCode code, bool background) {
             code = success ? code : AppReturnCode::MissedTarget;
         }
     }
+    return code;
+}
+
+AppReturnCode AppRunner::runReverse(AppReturnCode code, bool background) {
+    const auto& reverseConfig = Settings::QaplaSettings::instance().getReverseConfig();
+    if (!reverseConfig) {
+        return code;
+    }
+
+    const auto engines = EngineWorkerFactory::getActiveEngines();
+    if (engines.empty()) {
+        throw AppError::makeInvalidParameters("Reverse analysis needs an engine. Define one with --engine.");
+    }
+    if (engines.size() > 1) {
+        throw AppError::makeInvalidParameters(
+            "Reverse analysis runs with exactly one engine, but several are defined.");
+    }
+
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    Settings::QaplaSettings::instance().applyLoggerConfig("reverse-report");
+    logStartConcurrency("reverse", concurrencyResolution);
+
+    reverseAnalysis_ = std::make_shared<ReverseAnalysis>();
+    const auto gameCount = reverseAnalysis_->initialize(*reverseConfig);
+
+    RunHeaderLogger::log("Reverse analysis", { engines.front() }, {
+        { "PGN file", reverseConfig->file },
+        { "Games", std::format("{}", gameCount) },
+        { "Time per move", std::format("{} ms", reverseConfig->moveTimeMs) }
+    });
+
+    if (gameCount == 0) {
+        Logger::reportLogger().log(
+            std::format("No game with moves found in '{}'", reverseConfig->file), TraceLevel::error);
+        return code == AppReturnCode::NoError ? AppReturnCode::InvalidParameters : code;
+    }
+
+    GameManagerPool& pool = GameManagerPool::getInstance();
+    pool.setConcurrency(concurrencyResolution.effectiveConcurrency, true);
+    ReverseAnalysis::schedule(reverseAnalysis_, engines.front(), pool);
+
+    if (background) {
+        Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+        return code;
+    }
+
+    pool.waitForTask();
+    Logger::reportLogger().log(
+        std::format("reverse analysis finished: {} of {} games analysed",
+            reverseAnalysis_->getFinishedCount(), gameCount),
+        TraceLevel::result);
     return code;
 }
 
@@ -789,6 +841,12 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
         hasTask = true;
     }
 
+    if (shouldRunTask(Cli::TaskType::Reverse) && Settings::Manager::instance().getGroupInstance("reverse")) {
+        currentTask_ = Cli::TaskType::Reverse;
+        returnCode = runReverse(returnCode, background);
+        hasTask = true;
+    }
+
     if (shouldRunTask(Cli::TaskType::Tournament) && Settings::Manager::instance().getGroupInstance("tournament")) {
         currentTask_ = Cli::TaskType::Tournament;
         returnCode = runTournament(returnCode, background);
@@ -831,7 +889,7 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
                 "No '{}' task configuration found. The selected task is forced in MCP mode.",
                 Cli::getTaskId(forcedTask)));
         }
-        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --sprt, --tournament, --spsa, --clop, --systemtest, or --perft.");
+        throw AppError::makeInvalidParameters("No task defined. Please specify at least one task like --test, --epd, --reverse, --sprt, --tournament, --spsa, --clop, --systemtest, or --perft.");
     }
 
     hasExecutedDispatcherRun = true;

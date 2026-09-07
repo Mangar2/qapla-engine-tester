@@ -175,11 +175,18 @@ All tests currently implemented, grouped by test module
 |---|---|
 | spsa-basic | SPSA with 2 iterations tuning Hash; expects exit 0 |
 
-## systemtest (1 test)
+## reverse (1 test)
+
+| Name | Description |
+|---|---|
+| reverse-backward-walk | `--reverse` on two short games; both recomputed from the last move back to the first, every half move evaluated, fixed movetime and no clock |
+
+## systemtest (2 tests)
 
 | Name | Description |
 |---|---|
 | systemtest-basic | NPS stability test with 2 concurrency steps; report produced |
+| systemtest-replay-fixed-movetime | System test at a fixed movetime; seed game, replay phase, per-ply samples, no clock |
 
 ## tournament (9 tests)
 

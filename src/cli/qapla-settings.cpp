@@ -36,6 +36,7 @@
 #include "../config/pgn-config.h"
 #include "../config/adjudication-config.h"
 #include "../epd/epd-manager.h"
+#include "../reverse-analysis/reverse-analysis.h"
 #include "../spsa/spsa-optimizer.h"
 #include "../clop/clop-types.h"
 
@@ -200,6 +201,7 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     setSprtConfig(Manager::instance(), "sprt");
     setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
+    setReverseConfig();
     setSPSAConfig();
     setCLOPConfig();
 }
@@ -428,6 +430,27 @@ std::optional<EpdConfig> QaplaSettings::getEpdConfig() const {
         return std::nullopt;
     }
     return *m_epdConfig;
+}
+
+void QaplaSettings::setReverseConfig() {
+    auto reverseGroup = Manager::instance().getGroupInstance("reverse");
+    if (!reverseGroup.has_value()) {
+        m_reverseConfig = nullptr;
+        return;
+    }
+
+    m_reverseConfig = std::make_unique<ReverseAnalysisConfig>(ReverseAnalysisConfig{
+        .file = reverseGroup->get<std::string>("file"),
+        .moveTimeMs = reverseGroup->get<unsigned int>("movetime"),
+        .maxGames = reverseGroup->get<unsigned int>("maxgames")
+    });
+}
+
+std::optional<ReverseAnalysisConfig> QaplaSettings::getReverseConfig() const {
+    if (m_reverseConfig == nullptr) {
+        return std::nullopt;
+    }
+    return *m_reverseConfig;
 }
 
 void QaplaSettings::setSPSAConfig() {
