@@ -607,6 +607,23 @@ ParseMoveLineResult parseMoveLine(const std::vector<std::string>& tokens, bool l
             continue;
         }
 
+        // A comment or a variation can stand where a move is expected: it belongs to the move
+        // before it, and in a file that wraps its lines that is the last move of the line before.
+        // Read as a move it is none, and a handful of them ends the game.
+        if (tokens[pos] == "{") {
+            if (loadComments && !result.moves.empty()) {
+                pos = parseMoveComment(tokens, pos, result.moves.back());
+            }
+            else {
+                pos = skipMoveComment(tokens, pos);
+            }
+            continue;
+        }
+        if (tokens[pos] == "(") {
+            pos = skipRecursiveVariation(tokens, pos);
+            continue;
+        }
+
         auto [move, nextPos] = parseMove(tokens, pos, loadComments);
         if (!move.san_.empty()) {
             // Validate move using MoveScanner
@@ -749,27 +766,82 @@ public:
 
     ProcessFileLinesResult parse() {
         std::string line;
-        
-        while ((currentPos_ = inFile_.tellg()), std::getline(inFile_, line)) {
-            auto tokens = PgnTokenizer::tokenize(line);
-            if (tokens.empty()) {
-                continue;
-            }
+        // A comment may run over several lines - engines write their principal variations that
+        // way, and published game collections carry them so. Read on its own, the tail of such a
+        // comment is a row of words that are no moves, and the game would end where the comment
+        // began. Lines are therefore joined until the comment is closed.
+        std::string pendingMoves;
+        bool inComment = false;
 
-            if (tokens[0] == "[") {
+        while ((currentPos_ = inFile_.tellg()), std::getline(inFile_, line)) {
+            if (!inComment && pendingMoves.empty() && startsTagSection(line)) {
+                auto tokens = PgnTokenizer::tokenize(line);
+                if (tokens.empty()) {
+                    continue;
+                }
                 if (!processTagSection(tokens)) {
                     return result_;
                 }
-            } else {
+                continue;
+            }
+
+            if (!pendingMoves.empty()) {
+                pendingMoves += ' ';
+            }
+            pendingMoves += line;
+            inComment = isInCommentAfter(line, inComment);
+            if (inComment) {
+                continue;
+            }
+
+            auto tokens = PgnTokenizer::tokenize(pendingMoves);
+            pendingMoves.clear();
+            if (tokens.empty()) {
+                continue;
+            }
+            processMoveSection(tokens);
+        }
+
+        // A comment left open at the end of the file: what was read is still worth keeping.
+        if (!pendingMoves.empty()) {
+            auto tokens = PgnTokenizer::tokenize(pendingMoves);
+            if (!tokens.empty()) {
                 processMoveSection(tokens);
             }
         }
-        
+
         finalizeLastGame();
         return result_;
     }
 
 private:
+    /**
+     * @brief True if the line opens a tag pair, which is what separates games from each other.
+     */
+    [[nodiscard]] static bool startsTagSection(const std::string& line) {
+        const auto first = line.find_first_not_of(" \t\r\n");
+        return first != std::string::npos && line[first] == '[';
+    }
+
+    /**
+     * @brief Tells whether a comment is still open after this line.
+     * @param line The line just read.
+     * @param inComment Whether a comment was open before it.
+     */
+    [[nodiscard]] static bool isInCommentAfter(const std::string& line, bool inComment) {
+        for (const char c : line) {
+            if (inComment) {
+                if (c == '}') {
+                    inComment = false;
+                }
+            }
+            else if (c == '{') {
+                inComment = true;
+            }
+        }
+        return inComment;
+    }
+
     bool processTagSection(const std::vector<std::string>& tokens) {
         if (inMoveSection_) {
             if (!finalizeCurrentGame()) {
