@@ -398,6 +398,72 @@ size_t parseGameEndInfo(const std::vector<std::string>& tokens, size_t pos, Move
     return pos;
 }
 
+/**
+ * @brief Reads a bracketed group inside a comment and takes it as a principal variation.
+ *
+ * Live broadcasts write the variation in brackets - "{(Bg5 c6 Bh4) 0.08/25 35}" - and so does
+ * this tester. The brackets alone do not say what is in them: a move that was played from the
+ * book is written "(Book)". The group is therefore only taken as a variation if everything in
+ * it reads as a move.
+ *
+ * @param tokens Token vector holding the comment.
+ * @param start Position of the opening bracket.
+ * @param pv Receives the moves if the group holds a variation; left alone otherwise.
+ * @return The position after the closing bracket.
+ */
+size_t parseBracketedPv(const std::vector<std::string>& tokens, size_t start, std::string& pv) {
+    size_t pos = start + 1;
+    std::string collected;
+    bool allMoves = true;
+
+    for (; pos < tokens.size() && tokens[pos] != ")"; ++pos) {
+        const std::string& tok = tokens[pos];
+        if (tok.empty()) {
+            continue;
+        }
+        if (!QaplaInterface::MoveScanner(tok).isLegal()) {
+            allMoves = false;
+            continue;
+        }
+        if (!collected.empty()) {
+            collected += " ";
+        }
+        collected += tok;
+    }
+
+    if (pos < tokens.size() && tokens[pos] == ")") {
+        ++pos;
+    }
+    if (allMoves && !collected.empty() && pv.empty()) {
+        pv = collected;
+    }
+    return pos;
+}
+
+/**
+ * @brief True if the token is a plain number, with or without a sign or a decimal point.
+ */
+bool isNumber(const std::string& token) {
+    if (token.empty()) {
+        return false;
+    }
+    size_t i = (token[0] == '+' || token[0] == '-') ? 1 : 0;
+    bool digitSeen = false;
+    bool pointSeen = false;
+    for (; i < token.size(); ++i) {
+        if (std::isdigit(static_cast<unsigned char>(token[i])) != 0) {
+            digitSeen = true;
+        }
+        else if (token[i] == '.' && !pointSeen) {
+            pointSeen = true;
+        }
+        else {
+            return false;
+        }
+    }
+    return digitSeen;
+}
+
 size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, MoveRecord& move) { // NOLINT(readability-function-cognitive-complexity)
     if (tokens[start] != "{") {
         return start;
@@ -406,8 +472,11 @@ size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, Mo
     std::string pv;
     size_t pos = start + 1;
 
-    // PGN comment format: {eval/depth time pv, game-end-info}
-    // Example: {+0.31/14 0.89s e2e4 d7d5, White mates}
+    // Two formats are read here, and they differ only in the order of their parts:
+    //   this tester:      {+0.31/14 0.89s (e2e4 d7d5), White mates}
+    //   live broadcasts:  {(Bg5 c6 Bh4) 0.08/25 35}
+    // The score carries a sign in the one and not in the other, and the time is given in seconds
+    // either way - with a trailing "s" here, as a bare number there.
     for (; pos < tokens.size() && tokens[pos] != "}"; ++pos) {
         const std::string& tok = tokens[pos];
         if (tok.empty()) {
@@ -430,6 +499,17 @@ size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, Mo
             parseMateScore(tok, tok[0] == '+' ? 1 : -1, move);
             continue;
         }
+        if (tok == "(") {
+            pos = parseBracketedPv(tokens, pos, pv);
+            --pos; // the loop advances again
+            continue;
+        }
+        // A number followed by "/" is the score, whether it carries a sign or not; the "/" and
+        // the depth behind it are read below.
+        if (isNumber(tok) && pos + 1 < tokens.size() && tokens[pos + 1] == "/") {
+            parseCpScore(tok, move);
+            continue;
+        }
         if (tok[0] == '+' || tok[0] == '-') {
             parseCpScore(tok, move);
             continue;
@@ -450,6 +530,15 @@ size_t parseMoveComment(const std::vector<std::string>& tokens, size_t start, Mo
         }
         if (tok.ends_with("s")) {
             if (auto seconds = QaplaHelpers::to_double(tok.substr(0, tok.size() - 1))) {
+                constexpr double msPerSecond = 1000.0;
+                move.timeMs = static_cast<uint64_t>(*seconds * msPerSecond);
+                continue;
+            }
+        }
+        // A bare number is the time in seconds: the only other number in a comment is the score
+        // with its depth, and both are taken above.
+        if (isNumber(tok)) {
+            if (auto seconds = QaplaHelpers::to_double(tok)) {
                 constexpr double msPerSecond = 1000.0;
                 move.timeMs = static_cast<uint64_t>(*seconds * msPerSecond);
                 continue;

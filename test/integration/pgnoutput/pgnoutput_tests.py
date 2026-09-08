@@ -82,10 +82,10 @@ def get_tests() -> List[Dict[str, Any]]:
                 },
                 {
                     # score/depth, elapsed time, and a principal variation of at
-                    # least two moves: {+0.51/7 0.05s b1c3 e7e5 ...}
+                    # least two moves, in brackets: {+0.51/7 0.05s (b1c3 e7e5 ...)}
                     "type": "fileContent",
                     "path": "test/integration/log/pgnoutput/full/full.pgn",
-                    "content": r"\{[+-][0-9]+\.[0-9]+/[0-9]+ [0-9]+\.[0-9]+s ([a-h][1-8][a-h][1-8][qrbn]? ){2,}",
+                    "content": r"\{[+-][0-9]+\.[0-9]+/[0-9]+ [0-9]+\.[0-9]+s \(([a-h][1-8][a-h][1-8][qrbn]? ?){2,}\)",
                     "isRegex": True,
                     "message": "Comment does not carry eval, depth, clock and principal variation",
                 },

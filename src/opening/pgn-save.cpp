@@ -178,7 +178,9 @@ void PgnSave::saveMove(std::ostream& out, const std::string& san,
         }
 
         if (options_.includePv && !move.pv.empty()) {
-            out << sep << move.pv;
+            // In brackets, the way live broadcasts write it: a reader can tell the variation
+            // from the rest of the comment without knowing which of the two wrote the file.
+            out << sep << "(" << move.pv << ")";
         }
 
         out << "}";

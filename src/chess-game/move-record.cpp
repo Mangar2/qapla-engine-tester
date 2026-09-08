@@ -264,7 +264,8 @@ std::string MoveRecord::toString(const toStringOptions& opts) const { // NOLINT(
         }
 
         if (opts.includePv && !pv.empty()) {
-            out << sep << pv;
+            // In brackets, the way live broadcasts write it - see PgnSave::saveMove().
+            out << sep << "(" << pv << ")";
             sep = " ";
         }
 

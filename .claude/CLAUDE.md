@@ -55,3 +55,20 @@ Objekten in `extern/qapla-engine-tester`. Der Ablauf ist immer dieser:
 
 Ein Commit in qapla-chess-gui darf nie auf einen Commit von qapla-engine-tester verweisen, der
 noch nicht auf origin liegt. Das Submodul bleibt dabei auf seinem Branch, nicht auf detached HEAD.
+
+## Standardablauf nach einer größeren Änderung am qapla-engine-tester
+
+In dieser Reihenfolge, ohne Abkürzung:
+
+1. Unit-Tests und die volle Integrations-Suite laufen lassen.
+2. Erst wenn beide grün sind: committen.
+3. qapla-engine-tester Branch 0.7.0 nach origin pushen.
+4. **Hier anhalten und den Nutzer fragen**, ob die GUI jetzt nachgezogen werden soll.
+5. Nach seinem Ja: in qapla-chess-gui im Submodul `extern/qapla-engine-tester` von origin
+   pullen, den Submodul-Eintrag committen.
+6. Danach GUI bauen und die UI-Tests laufen lassen.
+7. Nur wenn die UI-Tests grün sind: qapla-chess-gui pushen.
+
+Schritt 4 ist verbindlich: die UI-Tests dauern rund zehn Minuten, brauchen den Bildschirm und
+öffnen ein Fenster — der Rechner muss dafür frei sein. Ohne Zusage des Nutzers wird die GUI
+weder gebaut noch getestet noch gepusht.
