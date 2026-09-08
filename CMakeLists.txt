@@ -54,34 +54,39 @@ if(BUILD_UNIT_TESTS)
     )
     FetchContent_MakeAvailable(Catch2)
 
-    # Collect all non-main sources for the library
+    # The same sources the application is built from, minus its main().
     file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
     list(FILTER LIB_SOURCES EXCLUDE REGEX "src/qapla-engine-tester\\.cpp$")
     list(FILTER LIB_SOURCES EXCLUDE REGEX "src/test-system/unit/.*\\.cpp$")
     list(FILTER LIB_SOURCES EXCLUDE REGEX "src/json/test/.*\\.cpp$")
-
-    # Create library from main sources (excluding main)
-    add_library(qapla-lib STATIC ${LIB_SOURCES})
-    target_compile_definitions(qapla-lib PRIVATE _REENTRANT)
-    target_include_directories(qapla-lib PUBLIC . src)
-
-    if(APPLE)
-        target_link_libraries(qapla-lib PRIVATE pthread)
-    elseif(WIN32)
-        target_link_libraries(qapla-lib PRIVATE Threads::Threads)
-    else()
-        target_link_libraries(qapla-lib PRIVATE pthread)
-    endif()
 
     # Collect unit test sources
     file(GLOB_RECURSE UNIT_TEST_SOURCES CONFIGURE_DEPENDS "src/test-system/unit/*.cpp")
     file(GLOB_RECURSE JSON_UNIT_TEST_SOURCES CONFIGURE_DEPENDS "src/json/test/*.cpp")
     list(APPEND UNIT_TEST_SOURCES ${JSON_UNIT_TEST_SOURCES})
 
-    # Create unit test executable
-    add_executable(qapla-unit-tests ${UNIT_TEST_SOURCES})
-    target_link_libraries(qapla-unit-tests PRIVATE qapla-lib Catch2::Catch2WithMain)
+    # Built from the sources, exactly as qapla-engine-tester is, and never from a static library
+    # of them. A library is linked by a different rule: the linker takes only those of its object
+    # files that close an open symbol, and an object file whose only contribution is a static
+    # constructor closes none. bitboardmasks.cpp is such a file -- its tables are inline in the
+    # header, so every user carries its own zero-filled copy and nothing ever refers to the object
+    # file that fills them. It was left out, the knight and king move tables stayed empty, and the
+    # tests ran against a move generator that generates no knight moves. Nothing said so.
+    #
+    # Testing a build that is put together differently from the one being shipped is the mistake
+    # that hides: whatever the difference does, it does it only here.
+    add_executable(qapla-unit-tests ${UNIT_TEST_SOURCES} ${LIB_SOURCES})
+    target_link_libraries(qapla-unit-tests PRIVATE Catch2::Catch2WithMain)
     target_compile_definitions(qapla-unit-tests PRIVATE _REENTRANT)
+    target_include_directories(qapla-unit-tests PRIVATE . src)
+
+    if(APPLE)
+        target_link_libraries(qapla-unit-tests PRIVATE pthread)
+    elseif(WIN32)
+        target_link_libraries(qapla-unit-tests PRIVATE Threads::Threads)
+    else()
+        target_link_libraries(qapla-unit-tests PRIVATE pthread)
+    endif()
 
     # Enable CTest
     enable_testing()
