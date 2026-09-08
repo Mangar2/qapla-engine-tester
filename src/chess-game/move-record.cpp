@@ -47,6 +47,22 @@ void MoveRecord::clear() {
     engineId_.clear();
 }
 
+void MoveRecord::clearSearchInfo() {
+    comment.clear();
+    nag.clear();
+    ponderMove.clear();
+    timeMs = 0;
+    scoreCp.reset();
+    scoreMate.reset();
+    depth = 0;
+    seldepth = 0;
+    multipv = 1;
+    nodes = 0;
+    pv.clear();
+    info.clear();
+    infoUpdateCount = 0;
+}
+
 /**
  * Updates the move record with the best move and time taken from an EngineEvent.
  *

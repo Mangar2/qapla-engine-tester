@@ -79,6 +79,15 @@ struct MoveRecord {
     void clear();
 
     /**
+     * @brief Drops everything a search said about the move, keeping the move itself.
+     *
+     * The move, its notations, the engine that played it and the game end it carries stay; the
+     * evaluation, principal variation, depth, nodes, time and the comment holding them go. What
+     * is left is a move nobody has looked at yet, which is what a recomputation starts from.
+     */
+    void clearSearchInfo();
+
+    /**
      * Updates the move record with the best move and time taken from an EngineEvent.
      *
      * @param event EngineEvent of type BestMove containing the chosen move and timestamp.

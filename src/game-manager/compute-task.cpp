@@ -191,6 +191,15 @@ void ComputeTask::replayGame() {
     });
     if (replayRecord_.history().empty()) { return; }
 
+    // Everything an earlier search said about the moves goes, so that the walk can be seen while
+    // it happens: from here on, a move carrying an evaluation is a move this run has been
+    // through, and one without is a move still ahead of it.
+    GameRecord cleared = replayRecord_;
+    for (auto& move : cleared.history()) {
+        move.clearSearchInfo();
+    }
+    gameContext_.setGameRecord(cleared);
+
     replayReturnIndex_ = replayRecord_.nextMoveIndex();
     replayIndex_ = static_cast<uint32_t>(replayRecord_.history().size()) - 1;
     logMoves_ = false;
