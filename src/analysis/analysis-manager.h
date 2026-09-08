@@ -23,6 +23,7 @@
 #include "../engine-handling/engine-config.h"
 #include "../game-manager/game-manager-pool.h"
 #include "../game-manager/game-task.h"
+#include "../opening/pgn-save.h"
 
 #include <atomic>
 #include <cstdint>
@@ -74,6 +75,37 @@ public:
     size_t initialize(const AnalysisConfig& config);
 
     /**
+     * @brief Takes the games to analyse as they are, without reading a file.
+     *
+     * For a caller that already holds the games and has chosen among them -- a user interface
+     * that has loaded a PGN, filtered it and wants the games that are left analysed. They go
+     * through the same preparation as games read from a file, so a game that does not play out
+     * is left out here as well.
+     *
+     * @param games The games to analyse.
+     * @param direction Direction to recompute in.
+     * @return The number of games that can be analysed.
+     */
+    size_t initialize(std::vector<GameRecord> games, AnalysisDirection direction);
+
+    /**
+     * @brief Chooses where the analysed games are written.
+     *
+     * Without this they go to the tournament's PGN output, which is what the command line wants:
+     * one run, one output file, configured with everything else. A caller running an analysis
+     * beside other things -- a user interface with its own output file and its own append mode --
+     * hands in a writer of its own.
+     *
+     * @param sink The writer to save every finished game with. Must outlive the run.
+     */
+    void setPgnSink(PgnSave& sink) { pgnSink_ = &sink; }
+
+    /**
+     * @brief Returns the number of games this run was given.
+     */
+    [[nodiscard]] size_t getGameCount() const;
+
+    /**
      * @brief Sets the engine of the current run and its search limit.
      *
      * Called once per engine: the games are analysed again for each engine given, and each run
@@ -114,6 +146,21 @@ private:
      */
     void logGameResult(size_t index, const GameRecord& record) const;
 
+    /**
+     * @brief Prepares the games and makes them the ones this run analyses.
+     * @param games The games as they were read or handed in.
+     * @param direction Direction to recompute in.
+     * @param source Named in the warning about a game that had to be left out.
+     * @return The number of games that can be analysed.
+     */
+    size_t adoptGames(std::vector<GameRecord> games, AnalysisDirection direction,
+        const std::string& source);
+
+    /**
+     * @brief The writer every finished game is saved with.
+     */
+    [[nodiscard]] PgnSave& pgnSink() const;
+
     mutable std::mutex mutex_;
     std::vector<GameRecord> games_;   ///< The games as they were read, unchanged between runs
     size_t nextIndex_ = 0;            ///< Index of the game handed out next in this run
@@ -121,6 +168,7 @@ private:
     AnalysisDirection direction_ = AnalysisDirection::Backward;
     TimeControl timeControl_;         ///< The current engine's per-move limit
     std::string engineName_;          ///< The engine of the current run
+    PgnSave* pgnSink_ = nullptr;      ///< Where finished games go; the tournament output if unset
 };
 
 } // namespace QaplaTester

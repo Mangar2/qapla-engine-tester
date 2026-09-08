@@ -78,38 +78,56 @@ size_t AnalysisManager::initialize(const AnalysisConfig& config) {
             TraceLevel::warning);
     }
 
-    direction_ = config.direction;
+    return adoptGames(std::move(result.games), config.direction, config.pgnFile);
+}
+
+size_t AnalysisManager::initialize(std::vector<GameRecord> games, AnalysisDirection direction) {
+    return adoptGames(std::move(games), direction, "the games handed in");
+}
+
+size_t AnalysisManager::adoptGames(std::vector<GameRecord> games, AnalysisDirection direction,
+    const std::string& source) {
+    direction_ = direction;
 
     std::scoped_lock lock(mutex_);
     games_.clear();
-    games_.reserve(result.games.size());
-    for (size_t i = 0; i < result.games.size(); ++i) {
+    games_.reserve(games.size());
+    for (size_t i = 0; i < games.size(); ++i) {
         // A game read from a PGN carries its moves in SAN, and the engine is sent the moves in
         // LAN: replaying the game once fills both, the way a tournament does it with its
         // openings. A game whose moves do not all play out comes back short and is left out
         // rather than analysed up to its broken move.
         GameState state;
-        GameRecord game = state.setFromGameRecordAndCopy(result.games[i], std::nullopt, false);
+        GameRecord game = state.setFromGameRecordAndCopy(games[i], std::nullopt, false);
         // The replay fills the notations but leaves the two fields a game played here would
         // carry: the parsed move, and the move as the mover sent it - which is what replaying a
         // game forward hands back to the players. A game read from a PGN has neither.
         if (!fillPlayedMoveFields(game)) {
             Logger::reportLogger().log(
                 std::format("game {} of '{}' has a move that cannot be played, it is left out",
-                    i + 1, config.pgnFile),
+                    i + 1, source),
                 TraceLevel::warning);
             continue;
         }
-        if (game.history().empty() || game.history().size() != result.games[i].history().size()) {
+        if (game.history().empty() || game.history().size() != games[i].history().size()) {
             Logger::reportLogger().log(
                 std::format("game {} of '{}' has a move that cannot be played, it is left out",
-                    i + 1, config.pgnFile),
+                    i + 1, source),
                 TraceLevel::warning);
             continue;
         }
         games_.push_back(std::move(game));
     }
     return games_.size();
+}
+
+size_t AnalysisManager::getGameCount() const {
+    std::scoped_lock lock(mutex_);
+    return games_.size();
+}
+
+PgnSave& AnalysisManager::pgnSink() const {
+    return pgnSink_ != nullptr ? *pgnSink_ : PgnSave::tournament();
 }
 
 void AnalysisManager::requirePerMoveLimit(const EngineConfig& engine) {
@@ -189,7 +207,7 @@ void AnalysisManager::setGameRecord(const std::string& taskId, const GameRecord&
     // A replay ends with the game rewound, and a game that is not at its last move does not count
     // as finished - which is what the PGN writer asks before it saves anything.
     analysed.setNextMoveIndex(static_cast<uint32_t>(analysed.history().size()));
-    PgnSave::tournament().saveGame(analysed);
+    pgnSink().saveGame(analysed);
 
     finishedCount_++;
     logGameResult(*index, analysed);
