@@ -19,7 +19,10 @@
 
 #include "compute-task.h"
 
+#include "../base-elements/app-error.h"
 #include "../base-elements/logger.h"
+
+#include <format>
 
 namespace QaplaTester {
 
@@ -162,6 +165,92 @@ void ComputeTask::analyze() {
             player->computeMove(gameRecord, goLimits, true);
         }
 	}
+}
+
+void ComputeTask::replayGame() {
+    if (gameContext_.getPlayerCount() == 0) { return; }
+    if (taskType_ != ComputeTaskType::None) { return; }
+
+    auto* player = gameContext_.player(0);
+    if (player == nullptr) { return; }
+
+    const auto& timeControl = player->getTimeControl();
+    if (!timeControl.moveTimeMs() && !timeControl.depth() && !timeControl.nodes()) {
+        throw AppError::makeInvalidParameters(std::format(
+            "Set a per-move search limit before recomputing a game: a time per move, a fixed "
+            "depth or a fixed number of nodes. Every position is given the same limit, so the "
+            "time control the game has ({}) has nothing to apply to.",
+            timeControl.toPgnTimeControlString().empty()
+                ? "none" : timeControl.toPgnTimeControlString()));
+    }
+
+    // The moves of the walk come from here, not from the record being written: the engine's own
+    // moves never enter the game, and the record's moves are replaced as the walk passes them.
+    gameContext_.withGameRecord([this](const GameRecord& record) {
+        replayRecord_ = record;
+    });
+    if (replayRecord_.history().empty()) { return; }
+
+    replayReturnIndex_ = replayRecord_.nextMoveIndex();
+    replayIndex_ = static_cast<uint32_t>(replayRecord_.history().size()) - 1;
+    logMoves_ = false;
+    taskType_ = ComputeTaskType::ReplayBackward;
+    gameContext_.ensureStarted();
+    markRunning();
+    computeReplayMove();
+}
+
+void ComputeTask::computeReplayMove() {
+    // The board is put in front of the move being recomputed, which also tells the engines where
+    // they are. Everything watching this task follows the walk by watching the game.
+    gameContext_.setNextMoveIndex(replayIndex_);
+
+    auto* player = gameContext_.player(0);
+    if (player == nullptr) {
+        markFinished();
+        return;
+    }
+
+    const auto& gameRecord = gameContext_.gameRecord();
+    const auto& timeControl = player->getTimeControl();
+    auto [whiteTime, blackTime] = gameRecord.timeUsed();
+    // One engine answers for both sides here, so it searches under its own limit whichever side
+    // is to move.
+    GoLimits goLimits = createGoLimits(
+        timeControl, timeControl,
+        gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
+    // Advisory: the move comes back as an opinion and is thrown away, what is kept is what the
+    // engine reports about the position.
+    player->computeMove(gameRecord, goLimits, true);
+}
+
+void ComputeTask::handleReplayBestMove(const EngineEvent& event) {
+    PlayerContext* player = gameContext_.findPlayerByEngineId(event.engineIdentifier);
+    if (player == nullptr) {
+        return;
+    }
+    (void)player->handleBestMove(event);
+
+    auto moveCopy = player->getCurrentMoveCopy();
+    const auto& referenceMove = replayRecord_.getMove(replayIndex_);
+    moveCopy.replaceMove(referenceMove);
+    // The engine that played the move is part of what is being looked at, not of the answer: the
+    // analysing engine has written its own name into the move it just searched.
+    moveCopy.engineId_ = referenceMove.engineId_;
+    moveCopy.engineName_ = referenceMove.engineName_;
+    moveCopy.book = referenceMove.book;
+    moveCopy.endCause_ = referenceMove.endCause_;
+    moveCopy.result_ = referenceMove.result_;
+    gameContext_.updateMove(replayIndex_, moveCopy);
+
+    if (replayIndex_ == 0) {
+        // Back where the game stood, so the game is whole again and not left at its first move.
+        gameContext_.setNextMoveIndex(replayReturnIndex_);
+        markFinished();
+        return;
+    }
+    --replayIndex_;
+    computeReplayMove();
 }
 
 void ComputeTask::autoPlay(bool logMoves) {
@@ -323,6 +412,10 @@ void ComputeTask::processEvent(const EngineEvent & event) {
     }
 
     if (event.type == EngineEvent::Type::BestMove) {
+        if (taskType_ == ComputeTaskType::ReplayBackward) {
+            handleReplayBestMove(event);
+            return;
+        }
         handleBestMove(event);
         nextMove(event);
         return;

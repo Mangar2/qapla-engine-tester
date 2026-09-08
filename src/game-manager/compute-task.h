@@ -46,7 +46,8 @@ public:
         Stopped,
         Play,
         Autoplay,
-        Analyze
+        Analyze,
+        ReplayBackward
     };
 
     /**
@@ -179,6 +180,28 @@ public:
     void analyze();
 
     /**
+     * @brief Recomputes the current game, from its last move to its first.
+     *
+     * The moves stay as they were played; what the engine returns is only its opinion of the
+     * position, and everything it reports about the position - score, principal variation, time,
+     * depth, nodes - is written into the move it was asked about. It runs on the engines of this
+     * task, one move at a time and one event at a time, the way autoPlay() plays a game: whoever
+     * watches the task sees the search of the current position while it runs, and each move of
+     * the game carries its evaluation as soon as it has one.
+     *
+     * Walked backwards rather than forwards because that is what makes the evaluations worth
+     * having: the engine keeps what it learned about the later positions and meets each earlier
+     * one already knowing how the game continued from it.
+     *
+     * Only the first engine computes; a walk lives on one engine keeping its transposition table,
+     * and a second one would only halve the table without seeing more.
+     *
+     * @throws AppError if the time control is not a limit that applies to a single move. Every
+     *         position is given the same limit, so a game clock has nothing to apply to.
+     */
+    void replayGame();
+
+    /**
      * @brief Starts playing the game from the current position.
      *        The engine will play as white and black alternately.
      */
@@ -243,6 +266,10 @@ public:
      */
     std::string getStatus() const
     {
+        if (taskType_ == ComputeTaskType::ReplayBackward)
+        {
+            return "Analyze Game";
+        }
         if (taskType_ == ComputeTaskType::Autoplay)
         {
             return "Auto";
@@ -275,9 +302,27 @@ private:
         Analyze,
         Autoplay,
         ComputeMove,
-        PlaySide
+        PlaySide,
+        ReplayBackward
     };
     ComputeTaskType taskType_ = ComputeTaskType::None;
+
+    /** @brief The game as it was played; a replay takes its moves from here. */
+    GameRecord replayRecord_;
+    /** @brief The move a replay is recomputing right now. */
+    uint32_t replayIndex_ = 0;
+    /** @brief The move the game stood at when the replay started, and returns to at its end. */
+    uint32_t replayReturnIndex_ = 0;
+
+    /**
+     * @brief Asks the first engine what it makes of the position before the current replay move.
+     */
+    void computeReplayMove();
+
+    /**
+     * @brief Writes what the engine found into the move of the game, and steps one move back.
+     */
+    void handleReplayBestMove(const EngineEvent& event);
 
     /**
      * @brief Continues the current automatic task after a best move, if applicable.
