@@ -374,6 +374,23 @@ public:
      */
     void ensureStarted();
 
+    /**
+     * @brief Names the two players of the game being recorded.
+     *
+     * Starting a game names them after the engines playing it, which is right for a game and
+     * wrong for a replay: there the players are part of what is being looked at, and the engine
+     * recomputing their moves is not one of them.
+     *
+     * @param whiteName Name to record for white.
+     * @param blackName Name to record for black.
+     */
+    void setEngineNames(const std::string& whiteName, const std::string& blackName)
+    {
+        std::scoped_lock lock(gameRecordMutex_);
+        gameRecord_.setWhiteEngineName(whiteName);
+        gameRecord_.setBlackEngineName(blackName);
+    }
+
 private:
     void updateEngineNames();
     /**

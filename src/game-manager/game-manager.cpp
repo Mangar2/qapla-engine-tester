@@ -352,6 +352,13 @@ void GameManager::handleReplayBestMove(const EngineEvent& event) {
     const auto computedMoveIndex = referenceRecord_.nextMoveIndex();
     const auto& referenceMove = referenceRecord_.getMove(computedMoveIndex);
     moveCopy.replaceMove(referenceMove);
+    // The engine that played the move is part of what is being looked at, not of the answer: the
+    // analysing engine has written its own name into the move it just searched.
+    moveCopy.engineId_ = referenceMove.engineId_;
+    moveCopy.engineName_ = referenceMove.engineName_;
+    moveCopy.book = referenceMove.book;
+    moveCopy.endCause_ = referenceMove.endCause_;
+    moveCopy.result_ = referenceMove.result_;
     gameContext_.updateMove(computedMoveIndex, moveCopy);
 
     if (managerState_ == ManagerState::ReplayForward) {
@@ -542,6 +549,22 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
 		black->computeMove(gameRecord, goLimits, engineMoveIsAdvisory);
         white->allowPonder(gameRecord, goLimits, event);
     }
+    if (engineMoveIsAdvisory) {
+        nameReplayMoveAfterItsPlayer();
+    }
+}
+
+void GameManager::nameReplayMoveAfterItsPlayer() {
+    const auto moveIndex = referenceRecord_.nextMoveIndex();
+    if (moveIndex >= referenceRecord_.history().size()) {
+        return;
+    }
+    const auto& referenceMove = referenceRecord_.getMove(moveIndex);
+    auto* player = gameContext_.gameRecord().isWhiteToMove()
+        ? gameContext_.getWhite() : gameContext_.getBlack();
+    if (player != nullptr) {
+        player->setCurrentMoveEngine(referenceMove.engineId_, referenceMove.engineName_);
+    }
 }
 
 QaplaHelpers::TaskTicketPtr GameManager::stop() {
@@ -588,6 +611,13 @@ void GameManager::executeTask(std::optional<GameTask> task) {
 
     // Notify engines that a new game or task is starting to allow reset of internal state (e.g., memory, hash tables)
     gameContext_.newGame();
+    if (isReplayTaskType(task->taskType)) {
+        // newGame() has just named the players after the engine that will do the recomputing.
+        // In a replay they are the two who played the game, and they stay - on screen while the
+        // walk runs, and in the game that comes back at its end.
+        gameContext_.setEngineNames(referenceRecord_.getWhiteEngineName(),
+            referenceRecord_.getBlackEngineName());
+    }
     computeNextMove();
 }
 

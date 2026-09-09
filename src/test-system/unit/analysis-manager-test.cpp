@@ -86,6 +86,47 @@ TEST_CASE("The games handed in are handed out one task at a time", "[unit][analy
     CHECK_FALSE(manager.nextTask());
 }
 
+TEST_CASE("A game is handed out cleared of what an earlier search said about it",
+    "[unit][analysis]") {
+    auto game = sanGame({ "e4", "e5", "Nf3" });
+    for (auto& move : game.history()) {
+        move.scoreCp = 999;
+        move.depth = 42;
+        move.pv = "stale pv";
+        move.comment = "+9.99/42 stale";
+    }
+
+    AnalysisManager manager;
+    REQUIRE(manager.initialize({ game }, AnalysisDirection::Backward) == 1);
+    manager.startRun(movetimeEngine("Engine", "movetime(ms):50"));
+
+    const auto task = manager.nextTask();
+    REQUIRE(task);
+    // Whoever watches the walk can tell what it has been through from what carries an
+    // evaluation. A game that arrives already evaluated tells them nothing.
+    for (const auto& move : task->gameRecord.history()) {
+        CHECK_FALSE(move.scoreCp.has_value());
+        CHECK(move.depth == 0);
+        CHECK(move.pv.empty());
+        CHECK(move.comment.empty());
+    }
+    // The moves themselves stay, and so does the number the game has in the file.
+    CHECK(task->gameRecord.history().size() == 3);
+    CHECK(task->gameRecord.getMove(0).san_ == "e4");
+    CHECK(task->gameRecord.getTotalGameNo() == 1);
+}
+
+TEST_CASE("The players of the game are handed out with it", "[unit][analysis]") {
+    AnalysisManager manager;
+    REQUIRE(manager.initialize({ sanGame({ "e4", "e5" }) }, AnalysisDirection::Backward) == 1);
+    manager.startRun(movetimeEngine("Analyser", "movetime(ms):50"));
+
+    const auto task = manager.nextTask();
+    REQUIRE(task);
+    CHECK(task->gameRecord.getWhiteEngineName() == "White Player");
+    CHECK(task->gameRecord.getBlackEngineName() == "Black Player");
+}
+
 TEST_CASE("The forward direction is handed out as a forward replay", "[unit][analysis]") {
     AnalysisManager manager;
     REQUIRE(manager.initialize({ sanGame({ "e4", "e5" }) }, AnalysisDirection::Forward) == 1);

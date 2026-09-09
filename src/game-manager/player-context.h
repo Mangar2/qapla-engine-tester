@@ -262,6 +262,22 @@ public:
 	}
 
     /**
+     * @brief Names whoever the move being searched belongs to.
+     *
+     * Starting a search names the move after the engine doing it, which is right for a game and
+     * wrong for a replay: there the move belongs to whoever played it, and everything watching
+     * the search -- the clock, the move list -- reads that name from here while it runs.
+     *
+     * @param engineId Identifier to record for the move being searched.
+     * @param engineName Name to record for the move being searched.
+     */
+    void setCurrentMoveEngine(const std::string& engineId, const std::string& engineName) {
+        std::scoped_lock lock(currentMoveMutex_);
+        currentMove_.engineId_ = engineId;
+        currentMove_.engineName_ = engineName;
+    }
+
+    /**
      * @brief Executes the given callable with thread-safe access to the current move.
      * @param accessFn A callable that takes a const MoveRecord&.
      */

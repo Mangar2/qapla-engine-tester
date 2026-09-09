@@ -175,6 +175,16 @@ std::optional<GameTask> AnalysisManager::nextTask() {
         : GameTask::Type::ReplayForward;
     task.gameRecord = games_[index];
     task.gameRecord.setTimeControl(timeControl_, timeControl_);
+    // The game is numbered as it stands in the file, from the start rather than only when it
+    // comes back: whoever watches the run needs to know which game they are looking at.
+    task.gameRecord.setTotalGameNo(static_cast<uint32_t>(index) + 1);
+    // Everything an earlier search said about the moves goes, so the walk can be seen while it
+    // happens: a move carrying an evaluation is one this run has already been through, and one
+    // without is a move still ahead of it. The copy kept here is untouched, so the players and
+    // the game end can be put back when the game comes home.
+    for (auto& move : task.gameRecord.history()) {
+        move.clearSearchInfo();
+    }
     return task;
 }
 

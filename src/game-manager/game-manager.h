@@ -334,6 +334,11 @@ private:
     [[nodiscard]] static bool isReplayState(ManagerState state);
     [[nodiscard]] static bool isReplayTaskType(GameTask::Type taskType);
     void handleReplayBestMove(const EngineEvent& event);
+
+    /**
+     * @brief Names the move a replay is searching after the player who played it.
+     */
+    void nameReplayMoveAfterItsPlayer();
     void handlePlayGame(const EngineEvent& event);
     void handleReplayFollowUp(const EngineEvent& event);
 
