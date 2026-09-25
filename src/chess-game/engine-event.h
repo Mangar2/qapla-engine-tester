@@ -53,6 +53,17 @@ struct SearchInfo {
 	std::vector<std::string> refutation;
     std::vector<std::string> currline; 
     std::vector<std::string> errors;  // für Parsing-Fehler oder unklare Angaben
+
+    /**
+     * @brief True if no search data field is set (e.g. a pure "info string" line).
+     */
+    [[nodiscard]] bool isEmpty() const {
+        return !depth && !selDepth && !multipv && !scoreCp && !scoreMate
+            && !scoreLowerbound && !scoreUpperbound && !timeMs && !nodes && !nps
+            && !hashFull && !tbhits && !sbhits && !cpuload && !currMoveNumber
+            && !currMove && !refutationIndex && !pvText
+            && pv.empty() && refutation.empty() && currline.empty();
+    }
 };
 
 inline std::ostream& operator<<(std::ostream& outs, const SearchInfo& info) {

@@ -453,7 +453,10 @@ EngineEvent UciAdapter::parseSearchInfo(std::istringstream& iss, uint64_t timest
         }
     }
     assert(!info.scoreCp || !info.scoreMate);
-    event.searchInfo = std::move(info);
+    // A pure "info string" line carries no search data and must not create an info record
+    if (!info.isEmpty()) {
+        event.searchInfo = std::move(info);
+    }
     return event;
 }
 
