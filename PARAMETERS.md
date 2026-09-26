@@ -17,6 +17,25 @@
 | --rapid | <bool> | false | Enables rapid mode (suppresses engine info lines) |
 | --settingsfile | <path> |  | Path to a settings file in INI-style format |
 
+## --analysis
+
+Analyses the games of a PGN file and writes them out again with the
+evaluations the engine produced. Every position is searched with the same limit, taken from the
+engine's time control, which has to be a per-move limit (movetime, depth or nodes).
+direction=reverse recomputes a game from its last move to its first: the engine keeps what it
+learns in its transposition table, so it meets an early position already knowing how the game
+ended, and the move that allowed a loss is scored badly there - where the engine at the time may
+have seen nothing wrong with it. direction=forward recomputes the game in playing order.
+Each game is analysed by one engine from start to end; the concurrency setting decides how many
+games run at the same time. Given several engines, every engine analyses the whole file in turn,
+and each writes its games marked with its own name.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| pgn | <path> | *required* | Path and file name of the PGN file holding the games to analyse |
+| direction | string | reverse | reverse recomputes a game from its last move to its first, which lets the engine judge an early move knowing how the game ended. forward recomputes it in the order it was played, which is what the engine saw at the time. |
+| maxgames | <number> | 0 | Maximum number of games to analyse (0 = all) |
+
 ## --clop
 
 Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression.
@@ -70,7 +89,7 @@ Defines configuration options for all engines
 | --- | --- | --- | --- |
 | dir | <path> | . | Working directory |
 | proto | string | uci | Protocol (uci/xboard) |
-| tc | string | 3+0.02 | Time control in format moves/time+inc or 'inf' |
+| tc | string | 3+0.02 | Time control in format moves/time+inc, or a fixed limit (depth:N, nodes:N, movetime(ms):N, mate:N, 'inf'). Each engine plays under its own tc, so engines may use different kinds |
 | ponder | <bool> | false | Enable pondering, if the engine supports it |
 | trace | string | command | Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work |
 | restart | string | auto | Controls whether the engine process is restarted between the games of one pairing. 'auto' restarts the engine only if it asks for that itself: an XBoard engine reporting 'feature reuse=0' states that it cannot play a second game in the same process. UCI has no equivalent, so 'auto' never restarts a UCI engine. 'on' restarts before every game, 'off' before none. The setting does not reach beyond a single pairing: when a pairing ends - and every round creates its own pairings - its engines are ended, and the next pairing starts engine processes of its own. Restarts forced by an error, such as a crashed engine or one that stops answering, happen regardless of this setting as well. |
@@ -88,7 +107,7 @@ Defines an engine configuration
 | dir | <path> |  | Working directory |
 | args | string |  | Command line arguments passed to the engine executable |
 | proto | string |  | Protocol (uci/xboard) |
-| tc | string |  | Time control in format moves/time+inc or 'inf' |
+| tc | string |  | Time control in format moves/time+inc, or a fixed limit (depth:N, nodes:N, movetime(ms):N, mate:N, 'inf'). Each engine plays under its own tc, so engines may use different kinds |
 | ponder | <bool> |  | Enable pondering, if the engine supports it |
 | gauntlet | <bool> | false | Set if engine is part of the gauntlet group. |
 | trace | string |  | Sets the engine trace level (none/all/command). Requires that enginelog is enabled to work |

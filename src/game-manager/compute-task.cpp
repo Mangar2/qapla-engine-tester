@@ -100,15 +100,15 @@ void ComputeTask::ponderMove(const std::optional<EngineEvent>& event) {
     auto* black = gameContext_.getBlack();
 
     auto [whiteTime, blackTime] = gameRecord.timeUsed();
-    GoLimits goLimits = createGoLimits(
+    GoLimits ponderLimits = createPonderGoLimits(
         white->getTimeControl(), black->getTimeControl(),
         gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
 
     if (gameRecord.isWhiteToMove()) {
-        black->allowPonder(gameRecord, goLimits, event);
+        black->allowPonder(gameRecord, ponderLimits, event);
     }
     else {
-        white->allowPonder(gameRecord, goLimits, event);
+        white->allowPonder(gameRecord, ponderLimits, event);
     }
 }
 
@@ -285,14 +285,17 @@ void ComputeTask::autoPlay(const std::optional<EngineEvent>& event) {
     GoLimits goLimits = createGoLimits(
         white->getTimeControl(), black->getTimeControl(),
         gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
+    GoLimits ponderLimits = createPonderGoLimits(
+        white->getTimeControl(), black->getTimeControl(),
+        gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
 
     if (gameRecord.isWhiteToMove()) {
         white->computeMove(gameRecord, goLimits);
-        black->allowPonder(gameRecord, goLimits, event);
+        black->allowPonder(gameRecord, ponderLimits, event);
     }
     else {
         black->computeMove(gameRecord, goLimits);
-        white->allowPonder(gameRecord, goLimits, event);
+        white->allowPonder(gameRecord, ponderLimits, event);
     }
 }
 

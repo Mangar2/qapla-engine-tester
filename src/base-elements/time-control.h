@@ -216,6 +216,9 @@ std::string to_string(const TimeControl& tc);
 /**
  * @brief Creates GoLimits from two time control definitions.
  *
+ * The fixed limits (movetime, depth, nodes, mate, infinite) are taken from the side to move, so
+ * each engine searches under its own limit even when the two sides use different kinds.
+ *
  * This function evaluates time usage and time control structure separately for white and black.
  * It then computes the respective remaining time, increment, and movesToGo. The result is
  * populated into a GoLimits struct for UCI communication.
@@ -229,6 +232,23 @@ std::string to_string(const TimeControl& tc);
  * @return GoLimits containing time data for both sides.
  */
 GoLimits createGoLimits(
+    const TimeControl& white,
+    const TimeControl& black,
+    uint32_t halfMoves,
+    uint64_t whiteTimeUsedMs,
+    uint64_t blackTimeUsedMs,
+    bool whiteToMove
+);
+
+/**
+ * @brief Creates GoLimits for the side that ponders while the side to move searches.
+ *
+ * The clocks are the same as in createGoLimits; the fixed limits (movetime, depth, nodes, mate,
+ * infinite) are those of the pondering side, so an engine ponders under its own limit.
+ *
+ * Parameters as in createGoLimits.
+ */
+GoLimits createPonderGoLimits(
     const TimeControl& white,
     const TimeControl& black,
     uint32_t halfMoves,

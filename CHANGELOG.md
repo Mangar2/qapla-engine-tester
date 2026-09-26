@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Engines with different kinds of time control play each other**: each engine now searches and
+  ponders under its own `tc` (clock, `movetime(ms):N`, `depth:N`, `nodes:N`). Until now black
+  used white's fixed limit, and a clock against a fixed limit stopped the tournament.
 - **Linux binary starts without an LLVM runtime installed**: The Linux build now uses
   `libstdc++`, the runtime every distribution ships, and links it into the binary. It
   no longer needs `libc++` -- neither to start, where the released binary asked for a

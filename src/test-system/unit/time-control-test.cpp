@@ -336,3 +336,52 @@ TEST_CASE("GoLimits with black to move at start", "[unit][time-control][go-limit
         REQUIRE(limits.movesToGo == 39);
     }
 }
+
+TEST_CASE("createGoLimits with a different limit for each side", "[unit][time-control][go-limits]") {
+    const auto depth = TimeControl::parse("depth:6");
+    const auto moveTime = TimeControl::parse("movetime(ms):500");
+    const auto clock = TimeControl::parse("60+1");
+
+    SECTION("Each side searches under its own fixed limit") {
+        auto whiteLimits = createGoLimits(depth, moveTime, 0, 0, 0, true);
+        CHECK(whiteLimits.depth == 6u);
+        CHECK_FALSE(whiteLimits.moveTimeMs.has_value());
+        CHECK_FALSE(whiteLimits.hasTimeControl);
+
+        auto blackLimits = createGoLimits(depth, moveTime, 1, 0, 0, false);
+        CHECK(blackLimits.moveTimeMs == 500u);
+        CHECK_FALSE(blackLimits.depth.has_value());
+        CHECK_FALSE(blackLimits.hasTimeControl);
+    }
+
+    SECTION("A side on the clock gets its clock while the other has a fixed limit") {
+        auto blackLimits = createGoLimits(depth, clock, 1, 0, 0, false);
+        CHECK(blackLimits.hasTimeControl);
+        CHECK_FALSE(blackLimits.depth.has_value());
+        CHECK(blackLimits.btimeMs == 60000);
+        CHECK(blackLimits.bincMs == 1000);
+        CHECK(blackLimits.wtimeMs == 0);
+
+        auto whiteLimits = createGoLimits(clock, depth, 0, 0, 0, true);
+        CHECK(whiteLimits.hasTimeControl);
+        CHECK(whiteLimits.wtimeMs == 60000);
+        CHECK(whiteLimits.btimeMs == 0);
+    }
+
+    SECTION("The pondering side ponders under its own limit") {
+        auto ponderLimits = createPonderGoLimits(depth, moveTime, 0, 0, 0, true);
+        CHECK(ponderLimits.moveTimeMs == 500u);
+        CHECK_FALSE(ponderLimits.depth.has_value());
+
+        ponderLimits = createPonderGoLimits(depth, clock, 0, 0, 0, true);
+        CHECK(ponderLimits.hasTimeControl);
+        CHECK(ponderLimits.btimeMs == 60000);
+    }
+
+    SECTION("Pondering with the same clock on both sides is unchanged") {
+        CHECK(createPonderGoLimits(clock, clock, 4, 3000, 2000, true).wtimeMs
+            == createGoLimits(clock, clock, 4, 3000, 2000, true).wtimeMs);
+        CHECK(createPonderGoLimits(clock, clock, 4, 3000, 2000, true).btimeMs
+            == createGoLimits(clock, clock, 4, 3000, 2000, true).btimeMs);
+    }
+}

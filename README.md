@@ -358,8 +358,8 @@ The moves part may be `0` (`tc=0/60+1`), which is the same as leaving it out: su
 
 ### Fixed search limits
 
-These replace the clock entirely — no `wtime`/`btime` is sent, the engine receives the limit on
-every `go` command, and no engine can lose on time.
+These replace the clock for the engine they are set on — no `wtime`/`btime` is sent to it, it
+receives the limit on every `go` command, and it cannot lose on time.
 
 | Form | Meaning |
 |---|---|
@@ -369,17 +369,15 @@ every `go` command, and no engine can lose on time.
 | `tc=mate:5` | Search for a mate in 5 moves (`go mate 5`) |
 | `tc=inf` | Search without limit until the engine is stopped (`go infinite`) |
 
-Only one form can be active at a time. A `tc` given on `--engine` overrides the one from `--each`.
+Only one form can be active per engine. A `tc` given on `--engine` overrides the one from `--each`.
 
-Two limitations apply to fixed search limits in **games**:
+Each engine searches, and ponders, under its own `tc`, so the engines of a tournament may use
+different kinds: one on a clock, one on a fixed depth, one on a fixed movetime.
 
-- A fixed search limit is not a per-engine setting: the limit of the engine playing **white** is
-  applied to both sides. Give both engines the same fixed limit (best via `--each`) — a clock time
-  control set on the opponent is ignored while the white engine plays with a fixed limit.
-- `mate:N` and `inf` only end a move if the engine returns a `bestmove` by itself. Engines that
-  keep searching (which is what `go infinite` asks for) make the game hang, so these two are meant
-  for analysis rather than for tournament play. `depth`, `nodes` and `movetime(ms)` are the forms
-  to use for games.
+`mate:N` and `inf` only end a move if the engine returns a `bestmove` by itself. Engines that keep
+searching (which is what `go infinite` asks for) make the game hang, so these two are meant for
+analysis rather than for tournament play. `depth`, `nodes` and `movetime(ms)` are the forms to use
+for games.
 
 ### Examples
 
@@ -389,6 +387,9 @@ Two limitations apply to fixed search limits in **games**:
 
 # Fixed node count per move - reproducible regardless of machine load
 --each tc=nodes:200000 --engine conf='Qapla 0.4.0' --engine conf='Spike 1.4'
+
+# Fixed time per move against fixed depth: each engine under its own limit
+--engine conf='Qapla 0.4.0' tc=movetime(ms):500 --engine conf='Spike 1.4' tc=depth:8
 
 # Classical two-segment tournament time control
 --each tc=40/7200:3600+30

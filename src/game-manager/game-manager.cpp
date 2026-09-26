@@ -542,12 +542,15 @@ void GameManager::computeNextMove(const std::optional<EngineEvent>& event) {
     GoLimits goLimits = createGoLimits(
 		white->getTimeControl(), black->getTimeControl(),
         gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
+    GoLimits ponderLimits = createPonderGoLimits(
+		white->getTimeControl(), black->getTimeControl(),
+        gameRecord.nextMoveIndex(), whiteTime, blackTime, gameRecord.isWhiteToMove());
 	if (gameRecord.isWhiteToMove()) {
         white->computeMove(gameRecord, goLimits, engineMoveIsAdvisory);
-        black->allowPonder(gameRecord, goLimits, event);
+        black->allowPonder(gameRecord, ponderLimits, event);
     } else {
 		black->computeMove(gameRecord, goLimits, engineMoveIsAdvisory);
-        white->allowPonder(gameRecord, goLimits, event);
+        white->allowPonder(gameRecord, ponderLimits, event);
     }
     if (engineMoveIsAdvisory) {
         nameReplayMoveAfterItsPlayer();

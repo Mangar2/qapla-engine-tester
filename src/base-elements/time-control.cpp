@@ -281,7 +281,14 @@ std::string to_string(const TimeControl& tc) {
 	return tc.toPgnTimeControlString();
 }
 
-GoLimits createGoLimits(
+namespace {
+
+/**
+ * The fixed limits (movetime, depth, ...) belong to the engine that searches; the clocks are those
+ * of both sides, as far as a side plays on the clock at all.
+ */
+GoLimits createLimitsFor(
+    const TimeControl& searcher,
     const TimeControl& white,
     const TimeControl& black,
     uint32_t halfMoves,
@@ -294,11 +301,11 @@ GoLimits createGoLimits(
     }
 
     GoLimits limits;
-    limits.moveTimeMs = white.moveTimeMs();
-    limits.depth = white.depth();
-    limits.nodes = white.nodes();
-    limits.mateIn = white.mateIn();
-    limits.infinite = white.infinite();
+    limits.moveTimeMs = searcher.moveTimeMs();
+    limits.depth = searcher.depth();
+    limits.nodes = searcher.nodes();
+    limits.mateIn = searcher.mateIn();
+    limits.infinite = searcher.infinite();
 
     if (limits.moveTimeMs || limits.depth || limits.nodes || limits.mateIn || limits.infinite) {
         limits.hasTimeControl = false;
@@ -325,6 +332,10 @@ GoLimits createGoLimits(
         movesToGo = 0;
 
         const auto& segments = tc.timeSegments();
+        // A side with a fixed limit has no clock to report.
+        if (segments.empty()) {
+            return;
+        }
 
         while (true) {
             const TimeSegment& seg = (i < segments.size()) ? segments[i] : segments.back();
@@ -362,6 +373,32 @@ GoLimits createGoLimits(
     limits.movesToGo = whiteToMove ? wMovesToGo : bMovesToGo;
 
     return limits;
+}
+
+} // namespace
+
+GoLimits createGoLimits(
+    const TimeControl& white,
+    const TimeControl& black,
+    uint32_t halfMoves,
+    uint64_t whiteTimeUsedMs,
+    uint64_t blackTimeUsedMs,
+    bool whiteToMove
+) {
+    return createLimitsFor(whiteToMove ? white : black, white, black,
+        halfMoves, whiteTimeUsedMs, blackTimeUsedMs, whiteToMove);
+}
+
+GoLimits createPonderGoLimits(
+    const TimeControl& white,
+    const TimeControl& black,
+    uint32_t halfMoves,
+    uint64_t whiteTimeUsedMs,
+    uint64_t blackTimeUsedMs,
+    bool whiteToMove
+) {
+    return createLimitsFor(whiteToMove ? black : white, white, black,
+        halfMoves, whiteTimeUsedMs, blackTimeUsedMs, whiteToMove);
 }
 
 } // namespace QaplaTester

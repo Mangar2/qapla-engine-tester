@@ -67,6 +67,67 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/tournament"
         },
+        # Each engine searches and ponders under its own kind of limit. Each used to get the limit
+        # of whoever played white, and a clock against a fixed limit stopped the run in its first
+        # game.
+        {
+            "name": "tournament-mixed-limits-clock-depth",
+            "description": "A clock and a fixed depth, each engine under its own limit",
+            "args": f"--concurrency=1 {_ENGINES} --tournament type=gauntlet games=2 rounds=1 "
+                    f"{_OPENINGS} --each ponder=true trace=all "
+                    "--engine conf='Qapla 0.4.0' tc=1+0.01 "
+                    "--engine conf='Qapla 0.3.2' tc=depth:3 "
+                    "--logging engine=true mode=each path=test/integration/log/tournament/mixedclockdepth",
+            "log_path": "test/integration/log/tournament/mixedclockdepth",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "logFiles", "path": "", "pattern": "tournament-report-*.log", "count": 1},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#0-*.log",
+                    "count": 1,
+                    "content": r"(?s)^(?!.*\bgo [^\n]*(depth|movetime))(?=.*\bgo [wb]time \d+)(?=.*\bgo ponder [wb]time \d+)",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#1-*.log",
+                    "count": 1,
+                    "content": r"(?s)^(?!.*\bgo [^\n]*time)(?=.*\bgo depth 3\b)(?=.*\bgo ponder depth 3\b)",
+                },
+            ],
+            "cleanup": "test/integration/log/tournament/mixedclockdepth",
+        },
+        {
+            "name": "tournament-mixed-limits-depth-movetime",
+            "description": "A fixed depth and a fixed movetime, each engine under its own limit",
+            "args": f"--concurrency=1 {_ENGINES} --tournament type=gauntlet games=2 rounds=1 "
+                    f"{_OPENINGS} --each ponder=true trace=all "
+                    "--engine conf='Qapla 0.4.0' tc=depth:3 "
+                    "--engine conf='Qapla 0.3.2' tc='movetime(ms):50' "
+                    "--logging engine=true mode=each path=test/integration/log/tournament/mixeddepthmovetime",
+            "log_path": "test/integration/log/tournament/mixeddepthmovetime",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "logFiles", "path": "", "pattern": "tournament-report-*.log", "count": 1},
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#0-*.log",
+                    "count": 1,
+                    "content": r"(?s)^(?!.*\bgo [^\n]*time)(?=.*\bgo depth 3\b)(?=.*\bgo ponder depth 3\b)",
+                },
+                {
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-#1-*.log",
+                    "count": 1,
+                    "content": r"(?s)^(?!.*\bgo [^\n]*(depth|[wb]time))(?=.*\bgo movetime 50\b)(?=.*\bgo ponder movetime 50\b)",
+                },
+            ],
+            "cleanup": "test/integration/log/tournament/mixeddepthmovetime",
+        },
         {
             "name": "tournament-round-robin",
             "description": "Round-robin tournament with 3 engines - verifies all pairings complete",
