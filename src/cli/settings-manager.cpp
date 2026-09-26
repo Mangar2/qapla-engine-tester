@@ -24,6 +24,7 @@
 #include "../base-elements/string-helper.h"
 #include "../base-elements/ini-file.h"
 #include "../base-elements/file-helper.h"
+#include "../base-elements/logger.h"
 
 #include <algorithm>
 #include <cstring>
@@ -361,6 +362,10 @@ namespace QaplaTester::Settings
                 showMarkdown();
                 exit(0);
             }
+            if (lowerKey == "version") {
+                showVersion();
+                exit(0);
+            }
         }
     }
 
@@ -678,6 +683,11 @@ namespace QaplaTester::Settings
             return "string";
 		}
 
+    }
+
+    void Manager::showVersion()
+    {
+        std::cout << Logger::getWelcomeMessage();
     }
 
     void Manager::showHelp()

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--version`**: prints the program name and its version to stdout and exits, without starting
+  anything else -- the same line the welcome message and the log header carry.
 - **PGN output in LAN**: `--pgnoutput notation=lan` writes the moves as `e2e4` instead of `e4`;
   `san` stays the default.
 - **`restart=auto` honours the engine's own wish**: an XBoard engine that reports

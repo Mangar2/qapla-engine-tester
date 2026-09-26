@@ -323,6 +323,11 @@ namespace QaplaTester::Settings {
         void showMarkdown();
 
         /**
+         * @brief Writes the program name and its version to stdout.
+         */
+        void showVersion();
+
+        /**
          * @brief Sets a global CLI setting programmatically (e.g., from interactive input).
          * @param name The parameter name (must match a registered global setting).
          * @param value The value to assign, in string form.
@@ -428,8 +433,9 @@ namespace QaplaTester::Settings {
         static ParsedParameter parseParameter(const std::string& raw);
 
         /**
-         * @brief Checks for help request in global parameters and exits if found.
-         * @param configData ConfigData instance to check for help parameter.
+         * @brief Checks for a help, markdown or version request in global parameters
+         *        and exits if one is found.
+         * @param configData ConfigData instance to check for these parameters.
          */
         void handleHelpRequest(const QaplaHelpers::ConfigData& configData);
 
