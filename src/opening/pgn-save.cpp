@@ -206,7 +206,8 @@ void PgnSave::saveGameToStream(std::ostream& out, const GameRecord& game) {
             .includeClock = options_.includeClock,
             .includeEval = options_.includeEval,
             .includePv = options_.includePv,
-            .includeDepth = options_.includeDepth
+            .includeDepth = options_.includeDepth,
+            .lan = options_.lan
         };
         std::string movesStr = game.movesToStringUpToPly(history.size(), opts);
         out << movesStr;

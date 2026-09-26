@@ -247,7 +247,11 @@ std::string MoveRecord::getGameEndText() const {
 
 std::string MoveRecord::toString(const toStringOptions& opts) const { // NOLINT(readability-function-cognitive-complexity)
     std::ostringstream out;
-    out << (san_.empty() ? lan_ : san_);
+    if (opts.lan && !lan_.empty()) {
+        out << lan_;
+    } else {
+        out << (san_.empty() ? lan_ : san_);
+    }
 
     bool hasComment = (opts.includeEval && (scoreCp || scoreMate))
         || (opts.includeDepth && depth > 0)

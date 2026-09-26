@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **PGN output in LAN**: `--pgnoutput notation=lan` writes the moves as `e2e4` instead of `e4`;
+  `san` stays the default.
 - **`restart=auto` honours the engine's own wish**: an XBoard engine that reports
   `feature reuse=0` states that it cannot play a second game in the same process. Such an
   engine is now restarted between games, and the engine log names the reason. Until now the

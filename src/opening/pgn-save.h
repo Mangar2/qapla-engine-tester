@@ -46,6 +46,7 @@ public:
         bool includeEval = true;
         bool includePv = true;
         bool includeDepth = true;
+        bool lan = false;       ///< Write the moves in LAN (e2e4) instead of SAN (e4)
     };
 
     PgnSave() = default;

@@ -18,6 +18,9 @@
  */
 
 #include "pgn-config.h"
+#include "../base-elements/app-error.h"
+
+#include <format>
 
 namespace QaplaTester {
 
@@ -31,6 +34,11 @@ PgnSave::Options PgnConfig::fromManager(
     }
 
     const auto& pgn = *pgnInstance;
+    const auto notation = pgn.get<std::string>("notation");
+    if (notation != "san" && notation != "lan") {
+        throw AppError::makeInvalidParameters(std::format(
+            "Set {}.notation to 'san' or 'lan'; '{}' is neither.", groupName, notation));
+    }
     return PgnSave::Options{
         .file = pgn.get<std::string>("file"),
         .append = pgn.get<bool>("append"),
@@ -39,7 +47,8 @@ PgnSave::Options PgnConfig::fromManager(
         .includeClock = pgn.get<bool>("clock"),
         .includeEval = pgn.get<bool>("eval"),
         .includePv = pgn.get<bool>("pv"),
-        .includeDepth = pgn.get<bool>("depth")
+        .includeDepth = pgn.get<bool>("depth"),
+        .lan = notation == "lan"
     };
 }
 

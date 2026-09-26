@@ -498,6 +498,14 @@ Controls how game results are saved in PGN format. Use this for any game-based t
 --pgnoutput file="games.pgn" append=true eval=true pv=true
 ```
 
+The moves are written in Standard Algebraic Notation (`e4`, `Nf3`, `O-O`). With `notation=lan` they
+are written in the Long Algebraic Notation engines use (`e2e4`, `g1f3`, `e1g1`); such a file can be
+read back, e.g. as an opening file:
+
+```bash
+--pgnoutput file="games.pgn" notation=lan
+```
+
 ---
 
 ## ♟️ Opening Selection

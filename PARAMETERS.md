@@ -192,6 +192,7 @@ PGN output settings
 | eval | <bool> | true | Include evaluation values in the PGN output |
 | depth | <bool> | true | Include search depth in the PGN output |
 | pv | <bool> | false | Include principal variation in the PGN output |
+| notation | string | san | san writes the moves in Standard Algebraic Notation (e4, Nf3, exd5, O-O, e8=Q), lan in the Long Algebraic Notation engines use (e2e4, g1f3, e4d5, e1g1, e7e8q). The principal variation in the comments is written as the engine sent it. |
 
 ## --resign
 

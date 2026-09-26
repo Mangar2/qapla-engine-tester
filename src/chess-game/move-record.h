@@ -37,6 +37,7 @@ struct MoveRecord {
         bool includeEval = false;
         bool includePv = false;
         bool includeDepth = false;
+        bool lan = false;       ///< Write the move in LAN (e2e4) instead of SAN (e4)
     };
     
     std::string original;
@@ -139,13 +140,13 @@ struct MoveRecord {
     void replaceMove(const MoveRecord& referenceMove);
 
     /**
-     * Convert this MoveRecord into a string containing the move (SAN) and
+     * Convert this MoveRecord into a string containing the move (SAN, or LAN if requested) and
      * an optional comment constructed from the provided options. Does NOT
      * include the move number.
      * @param opts Options for what to include in the string.
      * @return The string representation of the move.
      */
-    [[nodiscard]] std::string toString(const toStringOptions& opts = {.includeClock=false, .includeEval=false, .includePv=false, .includeDepth=false}) const;
+    [[nodiscard]] std::string toString(const toStringOptions& opts = {.includeClock=false, .includeEval=false, .includePv=false, .includeDepth=false, .lan=false}) const;
 
     /**
      * @brief Generates the game-end text for the comment.

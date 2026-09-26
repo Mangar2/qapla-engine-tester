@@ -92,4 +92,45 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/pgnoutput/full",
         },
+        {
+            "name": "pgnoutput-lan",
+            "description": "notation=lan writes the moves as e2e4 instead of e4",
+            "args": f"{_SHORT_SPRT} "
+                    "--pgnoutput file=test/integration/log/pgnoutput/lan/lan.pgn notation=lan "
+                    "--logging engine=false path=test/integration/log/pgnoutput/lan",
+            "log_path": "test/integration/log/pgnoutput/lan",
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/lan/lan.pgn",
+                    "content": r"(?m)^[0-9]+\. [a-h][1-8][a-h][1-8] ",
+                    "isRegex": True,
+                    "message": "No move written in LAN",
+                },
+                {
+                    # Outside the tag lines no piece letter and no castling may appear: the
+                    # movetext carries only coordinates, and pv is off, so the comments hold none.
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/lan/lan.pgn",
+                    "content": r"(?m)\A(?![\s\S]*^[^\[\n]*(?:[NBRQK][a-h1-8]?x?[a-h][1-8]|O-O))",
+                    "isRegex": True,
+                    "message": "A move was written in SAN although notation=lan",
+                },
+            ],
+            "cleanup": "test/integration/log/pgnoutput/lan",
+        },
+        {
+            "name": "pgnoutput-notation-invalid",
+            "description": "A notation other than san or lan is rejected before any engine starts",
+            "args": f"{_SHORT_SPRT} "
+                    "--pgnoutput file=test/integration/log/pgnoutput/badnotation/games.pgn notation=uci "
+                    "--logging engine=false path=test/integration/log/pgnoutput/badnotation",
+            "log_path": "test/integration/log/pgnoutput/badnotation",
+            "validators": [
+                {"type": "exitCode", "expected": 2},
+                {"type": "stdout", "content": "Set pgnoutput.notation to 'san' or 'lan'; 'uci' is neither."},
+            ],
+            "cleanup": "test/integration/log/pgnoutput/badnotation",
+        },
     ]

@@ -110,3 +110,26 @@ TEST_CASE("MoveRecord clearSearchInfo drops a mate score too", "[unit][move-reco
     move.clearSearchInfo();
     CHECK_FALSE(move.scoreMate.has_value());
 }
+
+TEST_CASE("GameRecord writes its moves in SAN or LAN", "[unit][game-record]") {
+    GameRecord record;
+    record.setStartPosition(true, "", true, 0);
+    auto addMove = [&record](const std::string& lan, const std::string& san) {
+        MoveRecord move;
+        move.lan_ = lan;
+        move.san_ = san;
+        record.addMove(move);
+    };
+    addMove("e2e4", "e4");
+    addMove("e7e5", "e5");
+    addMove("g1f3", "Nf3");
+
+    CHECK(record.movesToStringUpToPly(2, {}) == "1. e4 e5 2. Nf3");
+    CHECK(record.movesToStringUpToPly(2, {.lan = true}) == "1. e2e4 e7e5 2. g1f3");
+}
+
+TEST_CASE("MoveRecord in LAN falls back to SAN when it has no LAN", "[unit][move-record]") {
+    MoveRecord move;
+    move.san_ = "Nf3";
+    CHECK(move.toString({.lan = true}) == "Nf3");
+}
