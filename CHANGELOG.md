@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Switching a tournament between round-robin and gauntlet keeps its games**: the two types
+  build the same encounter the other way round, and the stored results did not match the
+  turned pairing -- they were dropped silently on continue and on loading a file. The pairing
+  now keeps the orientation its results were stored in.
 - **Engines with different kinds of time control play each other**: each engine now searches and
   ponders under its own `tc` (clock, `movetime(ms):N`, `depth:N`, `nodes:N`). Until now black
   used white's fixed limit, and a clock against a fixed limit stopped the tournament.
