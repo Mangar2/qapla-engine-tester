@@ -250,6 +250,21 @@ private:
      */
     void restoreResults(const std::vector<std::shared_ptr<PairTournament>>& savedPairings);
 
+    /**
+     * @brief The pairing of this round between the two engines, in the orientation the results
+     *        were stored in.
+     *
+     * Which engine is "A" is an artifact of how the pairings were built -- a round-robin takes
+     * the selection order, a gauntlet puts the gauntlet engine first -- so switching the type
+     * turns an existing encounter around. Stored results are only meaningful in their own
+     * orientation (colors and openings follow it), so a pairing that matches only reversed and
+     * has no results of its own is rebuilt with the engines swapped.
+     *
+     * @return The matching pairing, or nullptr if the encounter is not part of the tournament.
+     */
+    PairTournament* findPairingOriented(uint32_t round, const std::string& engineA,
+        const std::string& engineB);
+
     std::vector<EngineConfig> engineConfig_;
 	TournamentConfig config_;
 	std::shared_ptr<StartPositions> startPositions_;

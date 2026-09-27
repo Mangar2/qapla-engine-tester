@@ -287,14 +287,38 @@ std::vector<QaplaHelpers::IniFile::Section> Tournament::getSections() const {
 
 void Tournament::restoreResults(const std::vector<std::shared_ptr<PairTournament>>& savedPairings) {
     for (const auto& saved : savedPairings) {
-        for (const auto& pairing : pairings_) {
-            if (pairing->matches(*saved)) 
-            {
-                pairing->copyResultsFrom(*saved);
-                break;
-            }
+        if (!saved->hasResults()) {
+            continue;
+        }
+        auto* pairing = findPairingOriented(saved->getConfig().round,
+            saved->getEngineA().getName(), saved->getEngineB().getName());
+        if (pairing != nullptr) {
+            pairing->copyResultsFrom(*saved);
         }
     }
+}
+
+PairTournament* Tournament::findPairingOriented(uint32_t round, const std::string& engineA,
+    const std::string& engineB) {
+    for (const auto& pairing : pairings_) {
+        if (pairing->matches(round, engineA, engineB)) {
+            return pairing.get();
+        }
+    }
+    for (auto& pairing : pairings_) {
+        if (!pairing->matches(round, engineB, engineA) || pairing->hasResults()) {
+            continue;
+        }
+        auto turned = std::make_shared<PairTournament>();
+        turned->initialize(pairing->getEngineB(), pairing->getEngineA(), pairing->getConfig(),
+            startPositions_);
+        turned->setGameFinishedCallback([this](PairTournament* sender) {
+            this->onGameFinished(sender);
+        });
+        pairing = std::move(turned);
+        return pairing.get();
+    }
+    return nullptr;
 }
 
 void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
@@ -324,11 +348,8 @@ void Tournament::load(const QaplaHelpers::IniFile::Section& section) {
         return;
     }
 
-    for (const auto& pairing : pairings_) {
-        if (pairing->matches(round, engineA, engineB)) {
-            pairing->fromSection(section);
-            break;
-        }
+    if (auto* pairing = findPairingOriented(round, engineA, engineB)) {
+        pairing->fromSection(section);
     }
 }
 
