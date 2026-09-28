@@ -35,7 +35,7 @@ AdjudicationManager::DrawAdjudicationConfig AdjudicationConfig::fromDrawManager(
         .requiredConsecutiveMoves = draw->get<unsigned int>("movecount"),
         .centipawnThreshold = draw->get<int>("score"),
         .testOnly = draw->get<bool>("test"),
-        .active = true
+        .active = draw->get<bool>("active")
     };
 }
 
@@ -53,7 +53,7 @@ AdjudicationManager::ResignAdjudicationConfig AdjudicationConfig::fromResignMana
         .centipawnThreshold = resign->get<int>("score"),
         .twoSided = resign->get<bool>("twosided"),
         .testOnly = resign->get<bool>("test"),
-        .active = true
+        .active = resign->get<bool>("active")
     };
 }
 

@@ -573,6 +573,13 @@ namespace QaplaTester::Settings
 
             for (const auto& instance : instances) {
                 ValueMap completeGroup = instance.getValues();
+                // A group switched off with active=false asks for nothing else: its settings are
+                // never used, and being made to fill them in only to switch them off is a trap.
+                const auto active = completeGroup.find("active");
+                const bool switchedOff = groupDefinition.keys.contains("active")
+                    && active != completeGroup.end()
+                    && std::holds_alternative<bool>(active->second)
+                    && !std::get<bool>(active->second);
 
                 // Check for required parameters and add defaults
                 for (const auto& [key, def] : groupDefinition.keys) {
@@ -582,7 +589,7 @@ namespace QaplaTester::Settings
                     if (completeGroup.contains(key)) {
                         continue;
                     }
-                    if (def.isRequired) {
+                    if (def.isRequired && !switchedOff) {
                         throw AppError::makeInvalidParameters(
                             std::format(R"(Missing required parameter "{}" in group "{}")", 
                                 key, groupName));
