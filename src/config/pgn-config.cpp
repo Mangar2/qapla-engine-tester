@@ -48,7 +48,8 @@ PgnSave::Options PgnConfig::fromManager(
         .includeEval = pgn.get<bool>("eval"),
         .includePv = pgn.get<bool>("pv"),
         .includeDepth = pgn.get<bool>("depth"),
-        .lan = notation == "lan"
+        .lan = notation == "lan",
+        .perRound = pgn.get<bool>("perround")
     };
 }
 

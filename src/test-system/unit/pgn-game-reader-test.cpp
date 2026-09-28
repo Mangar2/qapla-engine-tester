@@ -19,6 +19,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "../../opening/pgn-io.h"
+#include "../../opening/pgn-save.h"
 
 #include <filesystem>
 #include <fstream>
@@ -112,4 +113,13 @@ TEST_CASE("Loading stops after the requested number of games", "[unit][pgn]") {
     // Where each game read starts, and nothing of the game not read.
     CHECK(loader.getGamePositions().size() == 3);
     CHECK(loader.getRawGameText(1).value_or("").starts_with("[White \"Empty\"]"));
+}
+
+TEST_CASE("The file of a round carries the round number before its extension", "[unit][pgn]") {
+    CHECK(PgnSave::roundFileName("games.pgn", 1) == "games-round-001.pgn");
+    CHECK(PgnSave::roundFileName("games.pgn", 12) == "games-round-012.pgn");
+    CHECK(PgnSave::roundFileName("games.pgn", 1234) == "games-round-1234.pgn");
+    CHECK(PgnSave::roundFileName("out/games.pgn", 3)
+        == (std::filesystem::path("out") / "games-round-003.pgn").string());
+    CHECK(PgnSave::roundFileName("games", 2) == "games-round-002");
 }

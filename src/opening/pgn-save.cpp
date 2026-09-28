@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <filesystem>
 #include <format>
 #include <iomanip>
 
@@ -34,6 +35,16 @@ namespace QaplaTester {
 
 void PgnSave::initialize(const std::string& event, bool isResumingTournament) {
     event_ = event;
+    resuming_ = isResumingTournament;
+    {
+        std::scoped_lock lock(fileMutex_);
+        truncated_.clear();
+    }
+    // With a file per round the files are emptied when their first game arrives: which rounds
+    // there will be is not known here, and the configured file itself may never be written.
+    if (options_.perRound) {
+        return;
+    }
     // Only truncate the file if:
     // - append mode is disabled (overwrite mode)
     // - AND we're starting a fresh tournament (not resuming)
@@ -225,7 +236,25 @@ void PgnSave::saveGame(const GameRecord& game) {
     }
 
     std::scoped_lock lock(fileMutex_);
-    saveGame(options_.file, game);
+    const auto file = fileFor(game);
+    if (options_.perRound && !options_.append && !resuming_ && truncated_.insert(file).second) {
+        std::ofstream out(file, std::ios::trunc | std::ios::binary);
+    }
+    saveGame(file, game);
+}
+
+std::string PgnSave::roundFileName(const std::string& file, uint32_t round) {
+    const std::filesystem::path path(file);
+    const auto name = std::format("{}-round-{:03}{}",
+        path.stem().string(), round, path.extension().string());
+    return (path.parent_path() / name).string();
+}
+
+std::string PgnSave::fileFor(const GameRecord& game) const {
+    if (!options_.perRound || game.getRound() == 0) {
+        return options_.file;
+    }
+    return roundFileName(options_.file, game.getRound());
 }
 
 void PgnSave::saveGame(const std::string& fileName, const GameRecord& game) {

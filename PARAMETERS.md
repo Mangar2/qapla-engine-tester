@@ -193,6 +193,7 @@ PGN output settings
 | depth | <bool> | true | Include search depth in the PGN output |
 | pv | <bool> | false | Include principal variation in the PGN output |
 | notation | string | san | san writes the moves in Standard Algebraic Notation (e4, Nf3, exd5, O-O, e8=Q), lan in the Long Algebraic Notation engines use (e2e4, g1f3, e4d5, e1g1, e7e8q). The principal variation in the comments is written as the engine sent it. |
+| perround | <bool> | false | Every round gets a file of its own, named after 'file' with the round number added: file=games.pgn writes games-round-001.pgn, games-round-002.pgn and so on. A game is written to its round's file as soon as it is finished, so each file holds exactly its round once the round is over. An SPRT plays a single round, and games without a round - those of an analysis - go to 'file' itself. |
 
 ## --resign
 

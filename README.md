@@ -506,6 +506,15 @@ read back, e.g. as an opening file:
 --pgnoutput file="games.pgn" notation=lan
 ```
 
+A long tournament fills one PGN file that soon becomes hard to handle. With `perround=true` every
+round gets a file of its own, named after `file` with the round number added - ten rounds give
+`games-round-001.pgn` to `games-round-010.pgn`. Each game is written to its round's file as soon as
+it is finished:
+
+```bash
+--pgnoutput file="games.pgn" perround=true
+```
+
 ---
 
 ## ♟️ Opening Selection

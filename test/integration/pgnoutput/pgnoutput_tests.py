@@ -133,4 +133,56 @@ def get_tests() -> List[Dict[str, Any]]:
             ],
             "cleanup": "test/integration/log/pgnoutput/badnotation",
         },
+        {
+            "name": "pgnoutput-per-round",
+            "description": "perround=true writes every round to a file of its own, holding that round's games",
+            # Two engines, two games a pairing, three rounds: six games, two in each file.
+            "args": "--concurrency=2 --enginesfile=test/integration/engines/engines.ini "
+                    "--tournament type=round-robin games=2 rounds=3 "
+                    "--openings file=test/opening/book8ply.raw order=sequential --each tc=depth:3 "
+                    "--engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
+                    "--pgnoutput file=test/integration/log/pgnoutput/perround/games.pgn perround=true "
+                    "--logging engine=false path=test/integration/log/pgnoutput/perround",
+            "log_path": "test/integration/log/pgnoutput/perround",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/perround/games-round-001.pgn",
+                    "content": r'(?s)\A(?=.*\[Round "1"\])(?=.*\[Round "2"\])(?:(?!\[Round "[3-6]"\]).)*\Z',
+                    "isRegex": True,
+                    "message": "The file of round 1 does not hold exactly the games of round 1",
+                },
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/perround/games-round-002.pgn",
+                    "content": r'(?s)\A(?=.*\[Round "3"\])(?=.*\[Round "4"\])(?:(?!\[Round "[1256]"\]).)*\Z',
+                    "isRegex": True,
+                    "message": "The file of round 2 does not hold exactly the games of round 2",
+                },
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/perround/games-round-003.pgn",
+                    "content": r'(?s)\A(?=.*\[Round "5"\])(?=.*\[Round "6"\])(?:(?!\[Round "[1-4]"\]).)*\Z',
+                    "isRegex": True,
+                    "message": "The file of round 3 does not hold exactly the games of round 3",
+                },
+                {
+                    # Overwrite mode empties a round's file before its first game, the way it
+                    # empties the single file: nothing of an earlier run is left in it.
+                    "type": "fileContent",
+                    "path": "test/integration/log/pgnoutput/perround/games-round-001.pgn",
+                    "content": r"(?s)^(?:(?!Left over).)*$",
+                    "isRegex": True,
+                    "message": "A round's file still holds a game of an earlier run",
+                },
+            ],
+            "cleanup": "test/integration/log/pgnoutput/perround",
+            "source_files": [
+                {
+                    "source": "test/integration/pgnoutput/pgnoutput-perround-old.pgn",
+                    "target": "test/integration/log/pgnoutput/perround/games-round-001.pgn",
+                }
+            ],
+        },
     ]

@@ -841,7 +841,16 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getPgnOutputKeys() {
                     "The principal variation in the comments is written as the engine sent it.",
                 .isRequired = false,
                 .defaultValue = "san",
-                .type = ValueType::String } }
+                .type = ValueType::String } },
+        { "perround", { .description = "Write the games of each round to a file of their own",
+                .longDescription = "Every round gets a file of its own, named after 'file' with the round "
+                    "number added: file=games.pgn writes games-round-001.pgn, games-round-002.pgn and so on. "
+                    "A game is written to its round's file as soon as it is finished, so each file holds "
+                    "exactly its round once the round is over. An SPRT plays a single round, and games "
+                    "without a round - those of an analysis - go to 'file' itself.",
+                .isRequired = false,
+                .defaultValue = false,
+                .type = ValueType::Bool } }
     };
 }
 

@@ -25,6 +25,7 @@
 #include <string>
 #include <mutex>
 #include <fstream>
+#include <set>
 
 namespace QaplaTester {
 
@@ -47,6 +48,7 @@ public:
         bool includePv = true;
         bool includeDepth = true;
         bool lan = false;       ///< Write the moves in LAN (e2e4) instead of SAN (e4)
+        bool perRound = false;  ///< One file per round, named after file with the round added
     };
 
     PgnSave() = default;
@@ -97,6 +99,14 @@ public:
         return instance;
     }
 
+    /**
+     * @brief Names the file the games of one round are written to.
+     * @param file The configured output file, e.g. "games.pgn".
+     * @param round The round, counted from 1.
+     * @return The file with the round added before its extension, e.g. "games-round-003.pgn".
+     */
+    [[nodiscard]] static std::string roundFileName(const std::string& file, uint32_t round);
+
 private:
     /**
      * @brief Writes PGN tag section for the given game.
@@ -116,9 +126,16 @@ private:
     void saveMove(std::ostream& out, const std::string& san, const MoveRecord& move,
         uint32_t plyIndex, bool isWhiteStart) const;
 
+    /**
+     * @brief The file a game goes to: its round's file with perRound set, the configured one else.
+     */
+    [[nodiscard]] std::string fileFor(const GameRecord& game) const;
+
     Options options_;
     std::mutex fileMutex_;
     std::string event_;
+    bool resuming_ = false;                 ///< The run continues an earlier one; nothing is truncated
+    std::set<std::string> truncated_;       ///< Files of this run already emptied, with perRound set
 };
 
 } // namespace QaplaTester
