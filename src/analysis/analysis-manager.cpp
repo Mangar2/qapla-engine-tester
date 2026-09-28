@@ -54,31 +54,84 @@ bool fillPlayedMoveFields(GameRecord& game) {
     return true;
 }
 
+/**
+ * @brief Prepares a game as it was read or handed in for the analysis.
+ * @return The game, or nullopt if one of its moves does not play out.
+ */
+std::optional<GameRecord> prepareGame(const GameRecord& read) {
+    // A game read from a PGN carries its moves in SAN, and the engine is sent the moves in
+    // LAN: replaying the game once fills both, the way a tournament does it with its
+    // openings. A game whose moves do not all play out comes back short and is left out
+    // rather than analysed up to its broken move.
+    GameState state;
+    GameRecord game = state.setFromGameRecordAndCopy(read, std::nullopt, false);
+    // The replay fills the notations but leaves the two fields a game played here would
+    // carry: the parsed move, and the move as the mover sent it - which is what replaying a
+    // game forward hands back to the players. A game read from a PGN has neither.
+    if (!fillPlayedMoveFields(game)) {
+        return std::nullopt;
+    }
+    if (game.history().empty() || game.history().size() != read.history().size()) {
+        return std::nullopt;
+    }
+    return game;
+}
+
+void logLeftOut(size_t number, const std::string& source) {
+    Logger::reportLogger().log(
+        std::format("game {} of '{}' has a move that cannot be played, it is left out",
+            number, source),
+        TraceLevel::warning);
+}
+
 } // namespace
 
-size_t AnalysisManager::initialize(const AnalysisConfig& config) {
-    PgnIO reader;
+std::unique_ptr<PgnGameReader> AnalysisManager::openPgnFile() const {
     PgnIO::LoadParams params;
-    params.filePath = config.pgnFile;
+    params.filePath = pgnFile_;
     params.loadComments = true;
     params.skipEmptyGames = true;
-    if (config.maxGames != 0) {
-        params.maxGames = config.maxGames;
-    }
+    return std::make_unique<PgnGameReader>(params);
+}
 
-    auto result = reader.loadGamesWithResult(params);
-    if (!result.fileOpened) {
+std::optional<GameRecord> AnalysisManager::readPlayableGame(PgnGameReader& reader,
+    size_t& readCount, bool warn) const {
+    while (maxGames_ == 0 || readCount < maxGames_) {
+        auto read = reader.next();
+        if (!read) {
+            return std::nullopt;
+        }
+        ++readCount;
+        if (auto game = prepareGame(*read)) {
+            return game;
+        }
+        if (warn) {
+            logLeftOut(readCount, pgnFile_);
+        }
+    }
+    return std::nullopt;
+}
+
+size_t AnalysisManager::initialize(const AnalysisConfig& config) {
+    std::scoped_lock lock(mutex_);
+    direction_ = config.direction;
+    games_.clear();
+    reader_.reset();
+    pgnFile_ = config.pgnFile;
+    maxGames_ = config.maxGames;
+
+    auto reader = openPgnFile();
+    if (!reader->isOpen()) {
         throw AppError::makeInvalidParameters(std::format(
             "Give a readable PGN file as analysis.pgn; '{}' could not be opened.", config.pgnFile));
     }
-    if (result.errorCount != 0) {
-        Logger::reportLogger().log(
-            std::format("{} of {} games in '{}' could not be read", result.errorCount,
-                result.getTotalCount(), config.pgnFile),
-            TraceLevel::warning);
-    }
 
-    return adoptGames(std::move(result.games), config.direction, config.pgnFile);
+    gameCount_ = 0;
+    size_t readCount = 0;
+    while (readPlayableGame(*reader, readCount, true)) {
+        ++gameCount_;
+    }
+    return gameCount_;
 }
 
 size_t AnalysisManager::initialize(std::vector<GameRecord> games, AnalysisDirection direction) {
@@ -90,40 +143,26 @@ size_t AnalysisManager::adoptGames(std::vector<GameRecord> games, AnalysisDirect
     direction_ = direction;
 
     std::scoped_lock lock(mutex_);
+    pgnFile_.clear();
+    maxGames_ = 0;
+    reader_.reset();
     games_.clear();
     games_.reserve(games.size());
     for (size_t i = 0; i < games.size(); ++i) {
-        // A game read from a PGN carries its moves in SAN, and the engine is sent the moves in
-        // LAN: replaying the game once fills both, the way a tournament does it with its
-        // openings. A game whose moves do not all play out comes back short and is left out
-        // rather than analysed up to its broken move.
-        GameState state;
-        GameRecord game = state.setFromGameRecordAndCopy(games[i], std::nullopt, false);
-        // The replay fills the notations but leaves the two fields a game played here would
-        // carry: the parsed move, and the move as the mover sent it - which is what replaying a
-        // game forward hands back to the players. A game read from a PGN has neither.
-        if (!fillPlayedMoveFields(game)) {
-            Logger::reportLogger().log(
-                std::format("game {} of '{}' has a move that cannot be played, it is left out",
-                    i + 1, source),
-                TraceLevel::warning);
+        auto game = prepareGame(games[i]);
+        if (!game) {
+            logLeftOut(i + 1, source);
             continue;
         }
-        if (game.history().empty() || game.history().size() != games[i].history().size()) {
-            Logger::reportLogger().log(
-                std::format("game {} of '{}' has a move that cannot be played, it is left out",
-                    i + 1, source),
-                TraceLevel::warning);
-            continue;
-        }
-        games_.push_back(std::move(game));
+        games_.push_back(std::move(*game));
     }
-    return games_.size();
+    gameCount_ = games_.size();
+    return gameCount_;
 }
 
 size_t AnalysisManager::getGameCount() const {
     std::scoped_lock lock(mutex_);
-    return games_.size();
+    return gameCount_;
 }
 
 PgnSave& AnalysisManager::pgnSink() const {
@@ -152,6 +191,22 @@ void AnalysisManager::startRun(const EngineConfig& engine) {
     engineName_ = engine.getName();
     nextIndex_ = 0;
     finishedCount_ = 0;
+    playersInFlight_.clear();
+    // Each run reads the file from its start again: every engine analyses every game.
+    if (!pgnFile_.empty()) {
+        reader_ = openPgnFile();
+        gamesRead_ = 0;
+    }
+}
+
+std::optional<GameRecord> AnalysisManager::takeNextGame() {
+    if (reader_) {
+        return readPlayableGame(*reader_, gamesRead_, false);
+    }
+    if (nextIndex_ >= games_.size()) {
+        return std::nullopt;
+    }
+    return games_[nextIndex_];
 }
 
 void AnalysisManager::schedule(const std::shared_ptr<AnalysisManager>& self, const EngineConfig& engine,
@@ -162,26 +217,28 @@ void AnalysisManager::schedule(const std::shared_ptr<AnalysisManager>& self, con
 
 std::optional<GameTask> AnalysisManager::nextTask() {
     std::scoped_lock lock(mutex_);
-    if (nextIndex_ >= games_.size()) {
+    auto game = takeNextGame();
+    if (!game) {
         return std::nullopt;
     }
 
     const auto index = nextIndex_++;
+    playersInFlight_[index] = { game->getWhiteEngineName(), game->getBlackEngineName() };
 
     GameTask task;
     task.taskId = std::to_string(index);
     task.taskType = direction_ == AnalysisDirection::Backward
         ? GameTask::Type::ReplayBackward
         : GameTask::Type::ReplayForward;
-    task.gameRecord = games_[index];
+    task.gameRecord = std::move(*game);
     task.gameRecord.setTimeControl(timeControl_, timeControl_);
     // The game is numbered as it stands in the file, from the start rather than only when it
     // comes back: whoever watches the run needs to know which game they are looking at.
     task.gameRecord.setTotalGameNo(static_cast<uint32_t>(index) + 1);
     // Everything an earlier search said about the moves goes, so the walk can be seen while it
     // happens: a move carrying an evaluation is one this run has already been through, and one
-    // without is a move still ahead of it. The copy kept here is untouched, so the players and
-    // the game end can be put back when the game comes home.
+    // without is a move still ahead of it. The players are kept aside, so they can be put back
+    // when the game comes home.
     for (auto& move : task.gameRecord.history()) {
         move.clearSearchInfo();
     }
@@ -197,7 +254,8 @@ void AnalysisManager::setGameRecord(const std::string& taskId, const GameRecord&
     GameRecord analysed = record;
     {
         std::scoped_lock lock(mutex_);
-        if (*index >= games_.size()) {
+        const auto players = playersInFlight_.find(*index);
+        if (players == playersInFlight_.end()) {
             return;
         }
         // Starting a game replaces the players with the engines playing it, which is right for a
@@ -205,10 +263,10 @@ void AnalysisManager::setGameRecord(const std::string& taskId, const GameRecord&
         // engine that produced the evaluations is not a player at all, it goes into the tag PGN
         // has for exactly that - without it, two engines analysing the same file would write two
         // indistinguishable copies of every game.
-        const auto& original = games_[*index];
-        analysed.setWhiteEngineName(original.getWhiteEngineName());
-        analysed.setBlackEngineName(original.getBlackEngineName());
+        analysed.setWhiteEngineName(players->second.first);
+        analysed.setBlackEngineName(players->second.second);
         analysed.setTag("Annotator", engineName_);
+        playersInFlight_.erase(players);
     }
     // The games are numbered as they stand in the file; a replayed game brings no number of its
     // own, and every game would be written as round 0.

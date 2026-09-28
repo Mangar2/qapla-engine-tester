@@ -30,6 +30,7 @@
 #include <optional>
 #include <functional>
 #include <chrono>
+#include <memory>
 
 namespace QaplaTester {
 
@@ -223,6 +224,37 @@ private:
     std::vector<std::streampos> gamePositions_;  // Positions of games in the last loaded file
     std::string currentFileName_;  // Name of the last loaded file
     std::mutex mutex_;  // For thread safety
+};
+
+/**
+ * @brief Reads the games of a PGN file one at a time.
+ *
+ * Holds the game being read and nothing else, so a file of any size can be worked through: the
+ * games come out exactly as PgnIO::loadGamesWithResult would return them, one after the other.
+ * Of the load parameters, maxGames and gameCallback are not used - the caller decides when it
+ * has read enough.
+ */
+class PgnGameReader {
+public:
+    explicit PgnGameReader(const PgnIO::LoadParams& params);
+    ~PgnGameReader();
+    PgnGameReader(const PgnGameReader&) = delete;
+    PgnGameReader& operator=(const PgnGameReader&) = delete;
+
+    /**
+     * @brief True if the file could be opened.
+     */
+    [[nodiscard]] bool isOpen() const;
+
+    /**
+     * @brief Reads the next game.
+     * @return The game, or nullopt once the file holds no further game.
+     */
+    std::optional<GameRecord> next();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 } // namespace QaplaTester

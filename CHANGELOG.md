@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   build the same encounter the other way round, and the stored results did not match the
   turned pairing -- they were dropped silently on continue and on loading a file. The pairing
   now keeps the orientation its results were stored in.
+- **`--analysis` works through PGN files of any size**: the games are read one at a time while
+  the run goes on, and only the games being analysed are held in memory. Until now the whole
+  file was loaded first, at roughly a hundred times its size - a 1 GB file was killed by the
+  system before the first game was written. The written games are unchanged. Before the run
+  the file is read once to count its games, which takes a few minutes for a file of a
+  million games.
 - **Engines with different kinds of time control play each other**: each engine now searches and
   ponders under its own `tc` (clock, `movetime(ms):N`, `depth:N`, `nodes:N`). Until now black
   used white's fixed limit, and a clock against a fixed limit stopped the tournament.

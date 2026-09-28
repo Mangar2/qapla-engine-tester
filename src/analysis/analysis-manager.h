@@ -23,10 +23,12 @@
 #include "../engine-handling/engine-config.h"
 #include "../game-manager/game-manager-pool.h"
 #include "../game-manager/game-task.h"
+#include "../opening/pgn-io.h"
 #include "../opening/pgn-save.h"
 
 #include <atomic>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -68,7 +70,13 @@ public:
     AnalysisManager() = default;
 
     /**
-     * @brief Loads the games to analyse.
+     * @brief Takes the PGN file whose games are analysed and counts the games that can be.
+     *
+     * The games are not kept: every run reads the file again, one game at a time, and holds only
+     * the games that are being analysed. A file of any size fits in memory that way. Counting
+     * reads the file once beforehand and reports the games that do not play out, so a run is not
+     * started on a file that has nothing in it.
+     *
      * @param config The run's settings.
      * @return The number of games that can be analysed.
      */
@@ -147,6 +155,26 @@ private:
     void logGameResult(size_t index, const GameRecord& record) const;
 
     /**
+     * @brief Reads on to the next game that plays out and returns it prepared for the analysis.
+     * @param reader The file being read.
+     * @param readCount Games read from the file so far, counted up here.
+     * @param warn True to report every game that has to be left out.
+     * @return The game, or nullopt once the file or the configured number of games is used up.
+     */
+    [[nodiscard]] std::optional<GameRecord> readPlayableGame(PgnGameReader& reader,
+        size_t& readCount, bool warn) const;
+
+    /**
+     * @brief Opens the configured PGN file for reading its games one by one.
+     */
+    [[nodiscard]] std::unique_ptr<PgnGameReader> openPgnFile() const;
+
+    /**
+     * @brief Returns the game handed out next in this run. Called with mutex_ held.
+     */
+    std::optional<GameRecord> takeNextGame();
+
+    /**
      * @brief Prepares the games and makes them the ones this run analyses.
      * @param games The games as they were read or handed in.
      * @param direction Direction to recompute in.
@@ -162,8 +190,16 @@ private:
     [[nodiscard]] PgnSave& pgnSink() const;
 
     mutable std::mutex mutex_;
-    std::vector<GameRecord> games_;   ///< The games as they were read, unchanged between runs
+    std::vector<GameRecord> games_;   ///< The games handed in, unchanged between runs
+    std::string pgnFile_;             ///< The file the games are read from; empty if handed in
+    uint32_t maxGames_ = 0;           ///< Games to read from the file (0 = all)
+    std::unique_ptr<PgnGameReader> reader_;   ///< The file as far as the current run has read it
+    size_t gamesRead_ = 0;            ///< Games the current run has read from the file
+    size_t gameCount_ = 0;            ///< Games that can be analysed
     size_t nextIndex_ = 0;            ///< Index of the game handed out next in this run
+    /// The players of every game handed out and not yet back, by index: a game comes back with
+    /// the engines as its players and gets its own back from here.
+    std::map<size_t, std::pair<std::string, std::string>> playersInFlight_;
     std::atomic<size_t> finishedCount_ = 0;
     AnalysisDirection direction_ = AnalysisDirection::Backward;
     TimeControl timeControl_;         ///< The current engine's per-move limit

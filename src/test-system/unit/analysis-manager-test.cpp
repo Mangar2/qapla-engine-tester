@@ -15,6 +15,8 @@
 #include "../../engine-handling/engine-config.h"
 #include "../../game-manager/game-state.h"
 
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -142,4 +144,77 @@ TEST_CASE("An engine without a per-move limit is refused", "[unit][analysis]") {
     CHECK_NOTHROW(AnalysisManager::requirePerMoveLimit(movetimeEngine("Engine", "depth:8")));
     CHECK_NOTHROW(AnalysisManager::requirePerMoveLimit(movetimeEngine("Engine", "nodes:1000")));
     CHECK_NOTHROW(AnalysisManager::requirePerMoveLimit(movetimeEngine("Engine", "movetime(ms):50")));
+}
+
+namespace {
+
+/**
+ * @brief Writes a PGN file into the temporary directory and removes it again at the end.
+ */
+struct TempPgn {
+    explicit TempPgn(const std::string& name, const std::string& content)
+        : path((std::filesystem::temp_directory_path() / name).string()) {
+        std::ofstream(path, std::ios::binary) << content;
+    }
+    ~TempPgn() {
+        std::error_code ignored;
+        std::filesystem::remove(path, ignored);
+    }
+    TempPgn(const TempPgn&) = delete;
+    TempPgn& operator=(const TempPgn&) = delete;
+
+    std::string path;
+};
+
+// Two games that play out and, between them, one that does not.
+const std::string kFileGames =
+    "[White \"First White\"]\n[Black \"First Black\"]\n\n1. e4 e5 2. Nf3 1-0\n\n"
+    "[White \"Broken\"]\n[Black \"Game\"]\n\n1. e4 Qh8 0-1\n\n"
+    "[White \"Second White\"]\n[Black \"Second Black\"]\n\n1. d4 d5 1/2-1/2\n";
+
+} // namespace
+
+TEST_CASE("Games read from a file are handed out one at a time, in file order",
+    "[unit][analysis]") {
+    const TempPgn file("qapla-analysis-file-test.pgn", kFileGames);
+
+    AnalysisManager manager;
+    REQUIRE(manager.initialize(AnalysisConfig{ .pgnFile = file.path }) == 2);
+    REQUIRE(manager.getGameCount() == 2);
+
+    // Every engine analyses every game: each run reads the file from its start.
+    for (int run = 0; run < 2; ++run) {
+        manager.startRun(movetimeEngine("Engine", "movetime(ms):50"));
+
+        const auto first = manager.nextTask();
+        REQUIRE(first);
+        CHECK(first->gameRecord.getWhiteEngineName() == "First White");
+        CHECK(first->gameRecord.history().size() == 3);
+        CHECK(first->gameRecord.getTotalGameNo() == 1);
+
+        // The game that does not play out is passed over, and the numbering goes on without it.
+        const auto second = manager.nextTask();
+        REQUIRE(second);
+        CHECK(second->gameRecord.getWhiteEngineName() == "Second White");
+        CHECK(second->gameRecord.getTotalGameNo() == 2);
+
+        CHECK_FALSE(manager.nextTask());
+    }
+}
+
+TEST_CASE("A file analysis reads no more than the configured number of games",
+    "[unit][analysis]") {
+    const TempPgn file("qapla-analysis-max-games-test.pgn", kFileGames);
+
+    AnalysisManager manager;
+    REQUIRE(manager.initialize(AnalysisConfig{ .pgnFile = file.path, .maxGames = 1 }) == 1);
+    manager.startRun(movetimeEngine("Engine", "movetime(ms):50"));
+    REQUIRE(manager.nextTask());
+    CHECK_FALSE(manager.nextTask());
+}
+
+TEST_CASE("An analysis of a file that cannot be opened is refused", "[unit][analysis]") {
+    AnalysisManager manager;
+    CHECK_THROWS(manager.initialize(AnalysisConfig{
+        .pgnFile = (std::filesystem::temp_directory_path() / "qapla-no-such-file.pgn").string() }));
 }

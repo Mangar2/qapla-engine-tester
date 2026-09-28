@@ -841,67 +841,108 @@ namespace {
  * 
  * This class encapsulates all state needed during file parsing,
  * making the code cleaner and easier to maintain.
+ *
+ * The file is read one game at a time: next() hands out a game as soon as it is complete, and
+ * keeps nothing of it. Loading a whole file is only one way to use that - reading a file far
+ * larger than the memory its games would take is the other.
  */
 class PgnFileParser {
 public:
-    PgnFileParser(std::ifstream& inFile, 
+    /**
+     * @param gamePositions Receives where each game starts in the file; nullptr keeps nothing,
+     *        which is what a reader that holds no more than one game at a time wants.
+     */
+    PgnFileParser(std::istream& inFile,
                   std::streamsize fileSize,
                   const PgnIO::LoadParams& params,
-                  std::vector<std::streampos>& gamePositions)
+                  std::vector<std::streampos>* gamePositions)
         : inFile_(inFile)
         , fileSize_(fileSize)
         , params_(params)
         , gamePositions_(gamePositions) {}
 
     ProcessFileLinesResult parse() {
-        std::string line;
-        // A comment may run over several lines - engines write their principal variations that
-        // way, and published game collections carry them so. Read on its own, the tail of such a
-        // comment is a row of words that are no moves, and the game would end where the comment
-        // began. Lines are therefore joined until the comment is closed.
-        std::string pendingMoves;
-        bool inComment = false;
+        while (auto game = next()) {
+            result_.games.push_back(std::move(*game));
+            // The last game of the file is reported as complete, and stopping after it leaves
+            // nothing unread.
+            const float progress = atEnd_ ? 100.0F : readyProgress_;
+            const bool stop = (params_.gameCallback && !params_.gameCallback(result_.games.back(), progress))
+                || (params_.maxGames && result_.games.size() >= *params_.maxGames);
+            if (stop) {
+                if (!atEnd_) {
+                    result_.completed = false;
+                    // The start of the game after it was recorded with it, and that game is
+                    // never read.
+                    if (gamePositions_ != nullptr) {
+                        gamePositions_->pop_back();
+                    }
+                }
+                break;
+            }
+        }
+        return std::move(result_);
+    }
 
-        while ((currentPos_ = inFile_.tellg()), std::getline(inFile_, line)) {
-            if (!inComment && pendingMoves.empty() && startsTagSection(line)) {
+    /**
+     * @brief Reads on until the next game is complete.
+     * @return The game, or nullopt once the file holds no further game.
+     */
+    std::optional<GameRecord> next() {
+        ready_.reset();
+        if (atEnd_) {
+            return std::nullopt;
+        }
+
+        std::string line;
+        while (!ready_ && ((currentPos_ = inFile_.tellg()), std::getline(inFile_, line))) {
+            if (!inComment_ && pendingMoves_.empty() && startsTagSection(line)) {
                 auto tokens = PgnTokenizer::tokenize(line);
                 if (tokens.empty()) {
                     continue;
                 }
-                if (!processTagSection(tokens)) {
-                    return result_;
-                }
+                processTagSection(tokens);
                 continue;
             }
 
-            if (!pendingMoves.empty()) {
-                pendingMoves += ' ';
+            if (!pendingMoves_.empty()) {
+                pendingMoves_ += ' ';
             }
-            pendingMoves += line;
-            inComment = isInCommentAfter(line, inComment);
-            if (inComment) {
+            pendingMoves_ += line;
+            inComment_ = isInCommentAfter(line, inComment_);
+            if (inComment_) {
                 continue;
             }
 
-            auto tokens = PgnTokenizer::tokenize(pendingMoves);
-            pendingMoves.clear();
+            auto tokens = PgnTokenizer::tokenize(pendingMoves_);
+            pendingMoves_.clear();
             if (tokens.empty()) {
                 continue;
             }
             processMoveSection(tokens);
         }
+        if (ready_) {
+            return std::move(ready_);
+        }
 
         // A comment left open at the end of the file: what was read is still worth keeping.
-        if (!pendingMoves.empty()) {
-            auto tokens = PgnTokenizer::tokenize(pendingMoves);
+        if (!pendingMoves_.empty()) {
+            auto tokens = PgnTokenizer::tokenize(pendingMoves_);
+            pendingMoves_.clear();
             if (!tokens.empty()) {
                 processMoveSection(tokens);
             }
         }
 
+        atEnd_ = true;
         finalizeLastGame();
-        return result_;
+        return std::move(ready_);
     }
+
+    /**
+     * @brief Trace lines collected so far, at most as many as the parameters allow.
+     */
+    [[nodiscard]] const std::vector<std::string>& traceLines() const { return result_.traceLines; }
 
 private:
     /**
@@ -931,17 +972,14 @@ private:
         return inComment;
     }
 
-    bool processTagSection(const std::vector<std::string>& tokens) {
+    void processTagSection(const std::vector<std::string>& tokens) {
         if (inMoveSection_) {
-            if (!finalizeCurrentGame()) {
-                return false;
-            }
+            finalizeCurrentGame();
         }
         
         auto tagResult = parseTag(tokens);
         applyTag(tagResult);
         collectTraceLines(tagResult);
-        return true;
     }
 
     void processMoveSection(const std::vector<std::string>& tokens) {
@@ -994,30 +1032,18 @@ private:
         }
     }
 
-    bool finalizeCurrentGame() {
+    void finalizeCurrentGame() {
         finalizeParsedTags(currentGame_);
         
         // Skip empty games if requested
         if (params_.skipEmptyGames && isEmptyGame(currentGame_)) {
             resetForNextGame();
-            return true;
+            return;
         }
         
-        result_.games.push_back(std::move(currentGame_));
-        
-        float progress = calculateProgress();
-        if (params_.gameCallback && !params_.gameCallback(result_.games.back(), progress)) {
-            result_.completed = false;
-            return false;
-        }
-        
-        if (params_.maxGames && result_.games.size() >= *params_.maxGames) {
-            result_.completed = false;
-            return false;
-        }
-        
+        readyProgress_ = calculateProgress();
+        ready_ = std::move(currentGame_);
         resetForNextGame();
-        return true;
     }
     
     void resetForNextGame() {
@@ -1025,7 +1051,9 @@ private:
         inMoveSection_ = false;
         illegalMoveCount_ = 0;
         currentGame_ = {};
-        gamePositions_.push_back(currentPos_);
+        if (gamePositions_ != nullptr) {
+            gamePositions_->push_back(currentPos_);
+        }
     }
     
     [[nodiscard]] static bool isEmptyGame(const GameRecord& game) {
@@ -1036,9 +1064,6 @@ private:
         if (!inMoveSection_ && currentGame_.getTags().empty()) {
             return;
         }
-        if (params_.maxGames && result_.games.size() >= *params_.maxGames) {
-            return;
-        }
         
         finalizeParsedTags(currentGame_);
         
@@ -1047,11 +1072,7 @@ private:
             return;
         }
         
-        result_.games.push_back(std::move(currentGame_));
-        
-        if (params_.gameCallback) {
-            params_.gameCallback(result_.games.back(), 100.0F);
-        }
+        ready_ = std::move(currentGame_);
     }
 
     [[nodiscard]] float calculateProgress() const {
@@ -1062,14 +1083,19 @@ private:
     }
 
     // Input references
-    std::ifstream& inFile_;
+    std::istream& inFile_;
     std::streamsize fileSize_;
     const PgnIO::LoadParams& params_;
-    std::vector<std::streampos>& gamePositions_;
+    std::vector<std::streampos>* gamePositions_;
 
     // State
-    ProcessFileLinesResult result_;
+    ProcessFileLinesResult result_;         ///< Games of a whole-file load, and the trace lines
     GameRecord currentGame_;
+    std::optional<GameRecord> ready_;       ///< The game completed by the last line read
+    float readyProgress_ = 0.0F;            ///< How far into the file that game was complete
+    bool atEnd_ = false;                    ///< The file is read to its end
+    std::string pendingMoves_;              ///< Move lines joined while a comment runs on
+    bool inComment_ = false;
     bool inMoveSection_ = false;
     size_t gameNumber_ = 0;
     size_t illegalMoveCount_ = 0;  ///< Counter for illegal moves in current game
@@ -1082,8 +1108,42 @@ ProcessFileLinesResult PgnIO::processFileLines(std::ifstream& inFile,
     std::streamsize fileSize, 
     const LoadParams& params) 
 {
-    PgnFileParser parser(inFile, fileSize, params, gamePositions_);
+    PgnFileParser parser(inFile, fileSize, params, &gamePositions_);
     return parser.parse();
+}
+
+struct PgnGameReader::Impl {
+    explicit Impl(PgnIO::LoadParams loadParams)
+        : params(std::move(loadParams))
+        , inFile(params.filePath, std::ios::binary) {
+        if (inFile) {
+            inFile.seekg(0, std::ios::end);
+            fileSize = inFile.tellg();
+            inFile.seekg(0, std::ios::beg);
+        }
+        parser.emplace(inFile, fileSize, params, nullptr);
+    }
+
+    PgnIO::LoadParams params;
+    std::ifstream inFile;
+    std::streamsize fileSize = 0;
+    std::optional<PgnFileParser> parser;
+};
+
+PgnGameReader::PgnGameReader(const PgnIO::LoadParams& params)
+    : impl_(std::make_unique<Impl>(params)) {}
+
+PgnGameReader::~PgnGameReader() = default;
+
+bool PgnGameReader::isOpen() const {
+    return impl_->inFile.is_open();
+}
+
+std::optional<GameRecord> PgnGameReader::next() {
+    if (!isOpen()) {
+        return std::nullopt;
+    }
+    return impl_->parser->next();
 }
 
 } // namespace QaplaTester
