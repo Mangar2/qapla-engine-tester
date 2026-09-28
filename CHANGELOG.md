@@ -45,9 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   system before the first game was written. The written games are unchanged. Before the run
   the file is read once to count its games, which takes a few minutes for a file of a
   million games.
-- **`active=false` switches draw and resign adjudication off**: a `[draw]` or `[resign]` block
-  used to switch adjudication on whatever `active` said. A block switched off no longer asks
-  for its other settings either - `[resign]` without `movecount` was refused.
+- **Adjudication switched off in the GUI stays off**: the GUI keeps the `[draw]` and `[resign]`
+  blocks in its tournament and SPRT files and marks a switched-off one with `active=false`. qet
+  ignored that flag, so continuing such a file switched the adjudication on. It is honoured
+  now, and a switched-off block no longer asks for its other settings - `[resign]` without
+  `movecount` was refused. `active` exists for compatibility with the GUI only and is not
+  meant to be set by hand; to run without adjudication, leave the block out.
 - **Engines with different kinds of time control play each other**: each engine now searches and
   ponders under its own `tc` (clock, `movetime(ms):N`, `depth:N`, `nodes:N`). Until now black
   used white's fixed limit, and a clock against a fixed limit stopped the tournament.
