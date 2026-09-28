@@ -1,0 +1,7 @@
+; A tournament file as the GUI writes it: resign adjudication switched off with active=false.
+; The flag exists for the GUI only; qet itself switches a block on by its presence.
+[resign]
+id=tournament
+active=false
+movecount=1
+score=100

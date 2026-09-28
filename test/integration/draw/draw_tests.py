@@ -36,21 +36,24 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/draw/draw-adjudicates",
         },
         {
-            "name": "draw-inactive-adjudicates-nothing",
-            "description": "active=false switches draw adjudication off",
-            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
-                    "--draw active=false movenumber=1 movecount=1 score=5000 --pgnoutput file=test/integration/log/draw/draw-inactive-adjudicates-nothing/out.pgn append=false --logging engine=false path=test/integration/log/draw/draw-inactive-adjudicates-nothing",
-            "log_path": "test/integration/log/draw/draw-inactive-adjudicates-nothing",
+            "name": "draw-off-in-tournament-file",
+            "description": "A tournament file with draw switched off (active=false, GUI compatibility) adjudicates nothing",
+            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 file=test/integration/log/draw/draw-off-in-tournament-file/state.qtour --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
+                    "--pgnoutput file=test/integration/log/draw/draw-off-in-tournament-file/out.pgn append=false --logging engine=false path=test/integration/log/draw/draw-off-in-tournament-file",
+            "log_path": "test/integration/log/draw/draw-off-in-tournament-file",
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "fileContent",
-                    "path": "test/integration/log/draw/draw-inactive-adjudicates-nothing/out.pgn",
+                    "path": "test/integration/log/draw/draw-off-in-tournament-file/out.pgn",
                     "content": r'(?s)^(?:(?!\[Termination "adjudication"\]).)*$',
                     "isRegex": True,
-                    "message": "A game was adjudicated although the block is switched off",
+                    "message": "A game was adjudicated although the tournament file switches it off",
                 },
             ],
-            "cleanup": "test/integration/log/draw/draw-inactive-adjudicates-nothing",
+            "cleanup": "test/integration/log/draw/draw-off-in-tournament-file",
+            "source_files": [
+                {"source": "test/integration/draw/draw-off.qtour", "target": "test/integration/log/draw/draw-off-in-tournament-file/state.qtour"}
+            ],
         },
     ]

@@ -36,57 +36,45 @@ def get_tests() -> List[Dict[str, Any]]:
             "cleanup": "test/integration/log/resign/resign-adjudicates",
         },
         {
-            "name": "resign-inactive-adjudicates-nothing",
-            "description": "active=false switches resign adjudication off, and movecount is not asked for",
-            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
-                    "--resign active=false score=100 --pgnoutput file=test/integration/log/resign/resign-inactive-adjudicates-nothing/out.pgn append=false --logging engine=false path=test/integration/log/resign/resign-inactive-adjudicates-nothing",
-            "log_path": "test/integration/log/resign/resign-inactive-adjudicates-nothing",
+            "name": "resign-off-in-tournament-file",
+            "description": "A tournament file with resign switched off (active=false, GUI compatibility) adjudicates nothing",
+            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 file=test/integration/log/resign/resign-off-in-tournament-file/state.qtour --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
+                    "--pgnoutput file=test/integration/log/resign/resign-off-in-tournament-file/out.pgn append=false --logging engine=false path=test/integration/log/resign/resign-off-in-tournament-file",
+            "log_path": "test/integration/log/resign/resign-off-in-tournament-file",
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "fileContent",
-                    "path": "test/integration/log/resign/resign-inactive-adjudicates-nothing/out.pgn",
+                    "path": "test/integration/log/resign/resign-off-in-tournament-file/out.pgn",
                     "content": r'(?s)^(?:(?!\[Termination "adjudication"\]).)*$',
                     "isRegex": True,
-                    "message": "A game was adjudicated although the block is switched off",
+                    "message": "A game was adjudicated although the tournament file switches it off",
                 },
             ],
-            "cleanup": "test/integration/log/resign/resign-inactive-adjudicates-nothing",
+            "cleanup": "test/integration/log/resign/resign-off-in-tournament-file",
+            "source_files": [
+                {"source": "test/integration/resign/resign-off.qtour", "target": "test/integration/log/resign/resign-off-in-tournament-file/state.qtour"}
+            ],
         },
         {
-            "name": "resign-inactive-with-all-settings",
-            "description": "active=false switches resign adjudication off even with every other setting given",
-            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
-                    "--resign active=false movecount=1 score=100 --pgnoutput file=test/integration/log/resign/resign-inactive-with-all-settings/out.pgn append=false --logging engine=false path=test/integration/log/resign/resign-inactive-with-all-settings",
-            "log_path": "test/integration/log/resign/resign-inactive-with-all-settings",
+            "name": "resign-off-needs-no-movecount",
+            "description": "A switched-off resign block in a tournament file does not ask for movecount",
+            "args": "--concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 file=test/integration/log/resign/resign-off-needs-no-movecount/state.qtour --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
+                    "--pgnoutput file=test/integration/log/resign/resign-off-needs-no-movecount/out.pgn append=false --logging engine=false path=test/integration/log/resign/resign-off-needs-no-movecount",
+            "log_path": "test/integration/log/resign/resign-off-needs-no-movecount",
             "validators": [
                 {"type": "exitCode", "expected": 0},
                 {
                     "type": "fileContent",
-                    "path": "test/integration/log/resign/resign-inactive-with-all-settings/out.pgn",
+                    "path": "test/integration/log/resign/resign-off-needs-no-movecount/out.pgn",
                     "content": r'(?s)^(?:(?!\[Termination "adjudication"\]).)*$',
                     "isRegex": True,
-                    "message": "A game was adjudicated although the block is switched off",
+                    "message": "A game was adjudicated although the tournament file switches it off",
                 },
             ],
-            "cleanup": "test/integration/log/resign/resign-inactive-with-all-settings",
-        },
-        {
-            "name": "resign-inactive-in-settings-file",
-            "description": "A [resign] block in a settings file with active=false and no movecount adjudicates nothing",
-            "args": "--settingsfile=test/integration/resign/resign-off.ini --concurrency=4 --enginesfile=test/integration/engines/engines.ini --tournament type=round-robin games=6 --openings file=test/opening/book8ply.raw order=sequential --each tc=depth:4 trace=none --engine conf='Qapla 0.4.0' --engine conf='Qapla 0.3.2' "
-                    "--pgnoutput file=test/integration/log/resign/resign-inactive-in-settings-file/out.pgn append=false --logging engine=false path=test/integration/log/resign/resign-inactive-in-settings-file",
-            "log_path": "test/integration/log/resign/resign-inactive-in-settings-file",
-            "validators": [
-                {"type": "exitCode", "expected": 0},
-                {
-                    "type": "fileContent",
-                    "path": "test/integration/log/resign/resign-inactive-in-settings-file/out.pgn",
-                    "content": r'(?s)^(?:(?!\[Termination "adjudication"\]).)*$',
-                    "isRegex": True,
-                    "message": "A game was adjudicated although the block is switched off",
-                },
+            "cleanup": "test/integration/log/resign/resign-off-needs-no-movecount",
+            "source_files": [
+                {"source": "test/integration/resign/resign-off-minimal.qtour", "target": "test/integration/log/resign/resign-off-needs-no-movecount/state.qtour"}
             ],
-            "cleanup": "test/integration/log/resign/resign-inactive-in-settings-file",
         },
     ]

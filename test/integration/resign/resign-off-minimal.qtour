@@ -1,0 +1,5 @@
+; A tournament file with resign adjudication switched off and nothing else set: a block
+; switched off does not ask for its required movecount.
+[resign]
+id=tournament
+active=false
