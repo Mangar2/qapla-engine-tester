@@ -66,6 +66,16 @@ TEST_CASE("Move comments of this tester", "[unit][pgn]") {
         REQUIRE(game.history()[0].timeMs == 890);
     }
 
+    SECTION("The score is rounded to centipawns, not cut off") {
+        // As a double 0.29 is 0.28999..., a hundred times that cut off would be 28.
+        const auto game = parse("1. e4 {+0.29/14} e5 {-0.29/12} 2. Nf3 {+0.57/14} Nc6 {-9.95/12}");
+        REQUIRE(game.history().size() == 4);
+        REQUIRE(game.history()[0].scoreCp == 29);
+        REQUIRE(game.history()[1].scoreCp == -29);
+        REQUIRE(game.history()[2].scoreCp == 57);
+        REQUIRE(game.history()[3].scoreCp == -995);
+    }
+
     SECTION("Game end information after the variation") {
         const auto game = parse("1. e4 {+0.31/14 0.89s (e2e4), White mates}");
         REQUIRE(game.history().size() == 1);

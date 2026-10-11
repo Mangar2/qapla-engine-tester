@@ -17,6 +17,7 @@
  * @copyright Copyright (c) 2025 Volker Böhm
  */
 #include <chrono>
+#include <cmath>
 
 #include "pgn-io.h"
 #include "pgn-tokenizer.h"
@@ -307,7 +308,8 @@ void parseCpScore(const std::string& token, MoveRecord& move) {
     // Centipawn score, e.g. +0.21 or -1.5
     auto cp =QaplaHelpers::to_double(token); 
     if (cp) {
-        move.scoreCp = static_cast<int>(*cp * 100.0);
+        // Rounded, not cut off: 0.29 is 0.28999... as a double, and cut off it would be 28.
+        move.scoreCp = static_cast<int>(std::lround(*cp * 100.0));
     }
 }
 

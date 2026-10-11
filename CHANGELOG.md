@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The score of a PGN comment is rounded to centipawns**: it was cut off, and since a value
+  such as 0.29 is 0.28999... as a double, `+0.29` was read as 28 -- about one score in fifteen
+  came out a centipawn too small in its amount.
 - **Switching a tournament between round-robin and gauntlet keeps its games**: the two types
   build the same encounter the other way round, and the stored results did not match the
   turned pairing -- they were dropped silently on continue and on loading a file. The pairing
