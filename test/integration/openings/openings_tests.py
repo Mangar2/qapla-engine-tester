@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Opening Tests - Validates --openings book formats, order, start index and policies.
 
+book8ply.bok is the 9 bit book made from book8ply.raw with gamefile of qapla-chess-tools
+(--pgn2book in=book8ply.raw), the same openings in the same order.
+
 Every other game based test uses the same combination (a .raw book read
 sequentially from position 1), so neither the PGN reader, the EPD reader, random
 order, the start index nor the switch policies are covered anywhere else.
@@ -41,6 +44,28 @@ def get_tests() -> List[Dict[str, Any]]:
                     "content": r"(?m)^1\. d4 d5 2\. c4 e6 3\. Nc3 Nf6 4\. Nf3 Nc6 \{",
                     "isRegex": True,
                     "message": "Games did not start from the PGN book's first 8 plies",
+                },
+            ],
+            "cleanup": _LOG,
+        },
+        {
+            "name": "openings-9bit-book",
+            "description": "9 bit book of Qapla - games start from the moves of its first line",
+            "args": f"{_BASE} --openings file=test/opening/book8ply.bok order=sequential "
+                    f"--pgnoutput file={_LOG}/book9.pgn "
+                    f"--logging engine=false path={_LOG}",
+            "log_path": _LOG,
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "fileContent",
+                    "path": f"{_LOG}/book9.pgn",
+                    # The first line of the book, made from the first line of book8ply.raw, played
+                    # out without an engine comment, and the first engine move with one: the book
+                    # was found by its extension, read and replayed from the start position.
+                    "content": r"(?m)^1\. e4 c5 2\. Nf3 d6 3\. d4 cxd4 4\. Nxd4 Nf6 5\. \S+ \{",
+                    "isRegex": True,
+                    "message": "Games did not start from the first line of the 9 bit book",
                 },
             ],
             "cleanup": _LOG,

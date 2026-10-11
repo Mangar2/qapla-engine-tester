@@ -1,0 +1,4 @@
+book/ and book9/ are copied from the Qapla engine (https://github.com/Mangar2/Qapla), src/book and
+src/book9, commit 66b4cd32e1cd94e0da21a8cf4677a5598276e5b8: the files the 9 bit book needs to read
+a book file, without the views on the engine's own board (board-position.h). The only change is the
+include of types.h, which lies in basics/ in the engine and in qapla-engine/ here.

@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **9 bit books of Qapla as openings**: `--openings file=` takes a book of the Qapla engine
+  (`src/book9`, file version 9) beside pgn, epd and raw files, for every task that plays from
+  openings - tournament, SPRT, SPSA and CLOP. Every line from the start position to a leaf is one
+  opening, so order, start, srand, plies and policy work as for a pgn; a move of priority 0 is
+  left out with its lines, and a payload of any size is skipped. The format is found by the file,
+  under any name. The engine's book code is copied to `src/qapla-engine/book` and `book9`.
 - **`--version`**: prints the program name and its version to stdout and exits, without starting
   anything else -- the same line the welcome message and the log header carry.
 - **One PGN file per round**: `--pgnoutput perround=true` writes the games of every round to a

@@ -18,6 +18,7 @@
  */
 
 #include "opening-parser.h"
+#include "book-reader.h"
 #include "epd-reader.h"
 #include "pgn-io.h"
 
@@ -99,6 +100,7 @@ namespace {
 OpeningParser::OpeningParser() {
     registerEpdParser();
     registerPgnParser();
+    registerBookParser();
 }
 
 void OpeningParser::registerEpdParser() {
@@ -237,6 +239,28 @@ void OpeningParser::registerPgnParser() {
             trace.messages.emplace_back("Unknown exception");
             return std::nullopt;
         }
+    });
+}
+
+void OpeningParser::registerBookParser() {
+    addParser("Book", {".bok"}, [](const std::filesystem::path& filePath,
+                                   ParserTraceEntry& trace,
+                                   const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
+        auto result = readBookLines(filePath.string(), params.maxGames);
+        if (!result.error.empty()) {
+            trace.messages.push_back(std::format("Not a 9 bit book: {}", result.error));
+            return std::nullopt;
+        }
+        trace.messages.push_back(std::format("Book: {} moves, {} lines{}", result.moves, result.games.size(),
+            result.neverPlayed == 0 ? std::string()
+                : std::format(", {} moves of priority 0 left out", result.neverPlayed)));
+        if (result.games.empty()) {
+            trace.messages.emplace_back("Book holds no line");
+            return std::nullopt;
+        }
+        trace.messages.push_back(std::format("Success: {} lines loaded", result.games.size()));
+        trace.success = true;
+        return std::move(result.games);
     });
 }
 

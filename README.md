@@ -15,7 +15,7 @@ Qapla Engine Tester is a command-line tool for running tournaments and analyzing
 - **NPS stability system test** to evaluate platform stability for parallel engine games  
 - **Perft (move generator node count test)** with parallel root-move divide  
 - **Full WinBoard/XBoard engine support** alongside UCI  
-- **Opening book support** via PGN, EPD, or raw formats  
+- **Opening book support** via PGN, EPD, raw formats, or 9 bit books of the Qapla engine  
 - **Pondering** support and **fully parallel gameplay** across any number of games  
 - **Interactive mode** to change concurrency, inspect status, or stop runs gracefully  
 - **MCP server mode** for AI-assisted engine testing  
@@ -519,12 +519,15 @@ it is finished:
 
 ## ♟️ Opening Selection
 
-Controls how opening positions are assigned to games. Required for all game-based test types such as SPRT, tournaments, or SPSA. Supports `.epd`, `.pgn`, and raw FEN files as input, with configurable selection order (sequential or random), ply depth for PGN openings, and policies for when to switch to the next opening.
+Controls how opening positions are assigned to games. Required for all game-based test types such as SPRT, tournaments, or SPSA. Supports `.epd`, `.pgn`, raw FEN files and 9 bit books of the Qapla engine (`.bok`) as input, with configurable selection order (sequential or random), ply depth for PGN openings and books, and policies for when to switch to the next opening.
+
+The format is found by the file itself: the parser that belongs to the extension is tried first, then the others, so no format has to be named. A book is a tree of moves; every line from the start position to a leaf is one opening, played out from the start position as a PGN opening is, and a move of priority 0 is left out with the lines below it. The size of the payload of its nodes does not matter. Books are made from a PGN or a raw file with `gamefile --pgn2book` of [qapla-chess-tools](https://github.com/Mangar2/qapla-chess-tools); the 11 bit books of earlier versions (file version 3 and below) are not read.
 
 ### Example
 
 ```bash
 --openings file="openings.pgn" order=random plies=8 policy=round
+--openings file="book8ply.bok" order=random policy=encounter
 ```
 
 ---

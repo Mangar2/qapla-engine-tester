@@ -625,7 +625,8 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getOpeningsKeys() {
                     .defaultValue = "all", 
                     .type = ValueType::String,
                     .isHidden = true } },
-        { "file",  { .description = "Path to file with opening positions", 
+        { "file",  { .description = "Path to file with opening positions: pgn, epd, raw or a 9 bit book of "
+                    "Qapla, the format found by the content", 
                     .isRequired = true, 
                     .defaultValue = "", 
                     .type = ValueType::PathExists } },

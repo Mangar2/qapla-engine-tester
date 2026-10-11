@@ -138,6 +138,11 @@ private:
      */
     void registerPgnParser();
 
+    /**
+     * @brief Registers the parser of 9 bit books, see book-reader.h.
+     */
+    void registerBookParser();
+
     std::vector<ParserEntry> parsers_;
 };
 

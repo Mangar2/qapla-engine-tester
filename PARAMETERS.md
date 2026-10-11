@@ -157,7 +157,7 @@ Defines how start positions are selected
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| file | <path> | *required* | Path to file with opening positions |
+| file | <path> | *required* | Path to file with opening positions: pgn, epd, raw or a 9 bit book of Qapla, the format found by the content |
 | order | string | sequential | Order of position selection: random, sequential |
 | srand | <number> | 5489 | Seed for random opening selection |
 | plies | string | all | Max number of plies per opening (all = unlimited) |
