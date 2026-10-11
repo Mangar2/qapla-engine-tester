@@ -39,9 +39,9 @@ def get_tests() -> List[Dict[str, Any]]:
                     "type": "fileContent",
                     "path": f"{_LOG}/pgnbook.pgn",
                     # Exactly the first 8 plies of the book's first game, played out
-                    # without an engine comment - i.e. the book was replayed, and
-                    # plies=8 cut it at the right move.
-                    "content": r"(?m)^1\. d4 d5 2\. c4 e6 3\. Nc3 Nf6 4\. Nf3 Nc6 \{",
+                    # without an engine comment, and the ninth the first engine move with
+                    # one - i.e. the book was replayed, and plies=8 cut it at the right move.
+                    "content": r"(?m)^1\. d4 d5 2\. c4 e6 3\. Nc3 Nf6 4\. Nf3 c5 5\. \S+ \{",
                     "isRegex": True,
                     "message": "Games did not start from the PGN book's first 8 plies",
                 },
@@ -66,6 +66,28 @@ def get_tests() -> List[Dict[str, Any]]:
                     "content": r"(?m)^1\. e4 c5 2\. Nf3 d6 3\. d4 cxd4 4\. Nxd4 Nf6 5\. \S+ \{",
                     "isRegex": True,
                     "message": "Games did not start from the first line of the 9 bit book",
+                },
+            ],
+            "cleanup": _LOG,
+        },
+        {
+            "name": "openings-9bit-book-plies",
+            "description": "9 bit book with plies=4 - exactly four book plies, then the engines",
+            "args": f"{_BASE} --openings file=test/opening/book8ply.bok order=sequential plies=4 "
+                    f"--pgnoutput file={_LOG}/book9plies.pgn "
+                    f"--logging engine=false path={_LOG}",
+            "log_path": _LOG,
+            "validators": [
+                {"type": "exitCode", "expected": 16},
+                {
+                    "type": "fileContent",
+                    "path": f"{_LOG}/book9plies.pgn",
+                    # The first four plies of the book's first line without an engine comment,
+                    # the fifth the first engine move with one. plies counts the plies played
+                    # from the opening, so plies=4 has to leave exactly four.
+                    "content": r"(?m)^1\. e4 c5 2\. Nf3 d6 3\. \S+ \{",
+                    "isRegex": True,
+                    "message": "plies=4 did not play exactly four plies of the book line",
                 },
             ],
             "cleanup": _LOG,

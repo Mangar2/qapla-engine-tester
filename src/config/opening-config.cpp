@@ -40,7 +40,8 @@ Openings OpeningConfig::fromManager(
             if (val < 0) {
                 throw AppError::makeInvalidParameters("Openings: Ply count must be at least 0, but got " + pliesStr);
             }
-            plies = val - 1;
+            // The number of plies played from the opening, not the index of the last one.
+            plies = val;
         }
         catch (const std::exception&) {
             throw AppError::makeInvalidParameters(
