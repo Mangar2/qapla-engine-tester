@@ -147,6 +147,24 @@ and each writes its games marked with its own name.)",
         .keys = Settings::getAnalysisKeys()
     });
 
+    // Book evaluation group
+    Manager::instance().registerGroup({
+        .name = "bookeval",
+        .description = "Searches every position of a 9 bit book once and writes the scores into a new book",
+        .longDescription = R"(Evaluates the positions of a 9 bit book of Qapla: every position a move
+of the book is played from - the start position included - is searched once with the engine, with
+the limit of its time control (movetime, depth or nodes), and the scores go into the payload of a
+new book. Every node carries the score of the position its move is played from, from the side to
+move there, in centipawns - the evaluation a pgn comment gives the move. Each search starts with a
+new game, so a score is that of a cold engine, whatever was searched before and however many
+engines run; it equals the score --analysis gives the last move of a game ending in that move.
+The output book is the state of the run: it is written every saveintervalS seconds and at the end,
+and a run with the same out continues where the last one stopped - quit in interactive mode, a
+crash, or maxpositions.)",
+        .unique = true,
+        .keys = Settings::getBookEvalKeys()
+    });
+
     // SPRT group
     Manager::instance().registerGroup({
         .name = "sprt", 
@@ -511,6 +529,32 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getAnalysisKeys() {
                         .isRequired = false,
                         .defaultValue = 0,
                         .type = ValueType::UInt } }
+    };
+}
+
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getBookEvalKeys() {
+    return {
+        { "id",            { .description = "Identifier for the configuration",
+                            .isRequired = false,
+                            .defaultValue = "bookeval",
+                            .type = ValueType::String,
+                            .isHidden = true } },
+        { "book",          { .description = "The 9 bit book whose positions are evaluated",
+                            .isRequired = true,
+                            .defaultValue = "",
+                            .type = ValueType::PathExists } },
+        { "out",           { .description = "The evaluated book to write; an existing one is continued",
+                            .isRequired = true,
+                            .defaultValue = "",
+                            .type = ValueType::ValidateOutputPath } },
+        { "saveintervalS", { .description = "Interval in seconds to save the evaluated book",
+                            .isRequired = false,
+                            .defaultValue = 60,
+                            .type = ValueType::UInt } },
+        { "maxpositions",  { .description = "Positions to search in this run, the rest stays open (0 = all)",
+                            .isRequired = false,
+                            .defaultValue = 0,
+                            .type = ValueType::UInt } }
     };
 }
 

@@ -41,6 +41,7 @@ All features are fully configurable and optimized for multi-core systems.
 - [Time Control (tc)](#️-time-control--tc)
 - [EPD Position Analysis](#-epd-position-analysis)
 - [Game Analysis (--analysis)](#-game-analysis--analysis)
+- [Book Evaluation (--bookeval)](#-book-evaluation--bookeval)
 - [PGN Output](#-pgn-output)
 - [Opening Selection](#️-opening-selection)
 - [Tournament Mode](#-tournament-mode)
@@ -151,7 +152,7 @@ The engine codes `10`–`12` are reported by the engine test suite (`--test`) on
 | 13   | `MissedTarget`       | EPD target success threshold was not reached (`--epd`)                  |
 | 14   | `H1Accepted`         | SPRT result: H₁ (stronger engine) accepted (`--sprt`)                   |
 | 15   | `H0Accepted`         | SPRT result: H₀ (no significant difference) accepted (`--sprt`)         |
-| 16   | `UndefinedResult`    | SPRT result could not be decided within maxGames (`--sprt`)             |
+| 16   | `UndefinedResult`    | SPRT result could not be decided within maxGames (`--sprt`); positions of the book left open (`--bookeval`) |
 
 ### Prioritization Rules
 
@@ -485,6 +486,68 @@ qapla-engine-tester --concurrency=8 \
 
 Output goes through the normal [PGN Output](#-pgn-output) options, so `includeEval`, `includeDepth`
 and `includePv` decide what ends up in the move comments.
+
+---
+
+## 📚 Book Evaluation (`--bookeval`)
+
+Searches every position of a 9 bit book of the Qapla engine once and writes the scores into a new
+book. A position is searched if a move of the book is played from it: the start position and every
+position after a move that has moves below it - a book of 10 million lines and 17.5 million moves
+has 7.5 million of them. The limit is the engine's `tc`, a per-move limit as for `--analysis`, and
+`--concurrency` decides how many engines search at the same time.
+
+Every search starts with a new game: the engine gets `ucinewgame`, then the position as the moves
+from the start position, then the limit. A score is therefore that of a cold engine, independent
+of what was searched before, of the order and of the number of engines - two runs give the same
+book to the byte. It is exactly the score `--analysis` gives the last move of a game that ends in
+that move, the position its backward walk searches first. Positions in the middle of a longer game
+are searched by `--analysis` with a transposition table that already knows how the game went on, so
+their scores there differ a little.
+
+### The evaluated book
+
+The output is a book with the same tree and the payload id `qapla-search-score-v1`: every node
+carries two bytes, little endian, signed - the score of the position **its move is played from**,
+seen from the side to move there, the evaluation a PGN comment gives that move. All moves played
+from one position carry the same score.
+
+| Value | Meaning |
+|---|---|
+| -30000 ... 30000 | centipawns as the engine reports them, beyond that clamped |
+| 31001 ... 31999 | mate in 32000 - value moves |
+| -31999 ... -31001 | mated in 32000 + value moves |
+| -32768 | no score: the position is not evaluated (yet) |
+
+The header names the search in its version record, e.g. `engine=hce tc=depth: 9`.
+
+### Stopping and continuing
+
+The output book is the state of the run. It is written every `saveintervalS` seconds and at the end,
+with no score for the positions still open, and a run given the same `out` continues where the last
+one stopped - after `quit` in interactive mode, a crash or `maxpositions`. It is only continued with
+the same book, engine and limit. A run that ends with positions left open returns
+`UndefinedResult` (16), a complete one `NoError` (0).
+
+| Option | Meaning |
+|---|---|
+| `book` | The 9 bit book whose positions are evaluated (required) |
+| `out` | The evaluated book; an existing one is continued (required) |
+| `saveintervalS` | Seconds between two saves of the evaluated book (default 60) |
+| `maxpositions` | Positions to search in this run, the rest stays open (0 = all) |
+
+### Example
+
+```bash
+qapla-engine-tester --concurrency=30 \
+  --engine name=hce cmd=/path/to/Qapla-hce proto=uci tc=depth:9 \
+  --bookeval book=start-positions.bok out=start-positions-eval.bok
+```
+
+The book is made from a PGN or raw file with `gamefile --pgn2book` of
+[qapla-chess-tools](https://github.com/Mangar2/qapla-chess-tools), which also reads the evaluated
+book: `--pgn2gam book=` fills the plies of the opening, the ones without an evaluation, with its
+scores.
 
 ---
 

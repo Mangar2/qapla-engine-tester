@@ -14,6 +14,7 @@ namespace QaplaTester::Cli {
         Tournament,
         Epd,
         Analysis,
+        BookEval,
         Spsa,
         Clop,
         SystemTest,
@@ -29,6 +30,7 @@ namespace QaplaTester::Cli {
             case TaskType::Tournament: return TournamentFile::id;
             case TaskType::Epd: return EpdFile::id;
             case TaskType::Analysis: return "analysis";
+            case TaskType::BookEval: return "bookeval";
             case TaskType::Spsa: return SpsaFile::id;
             case TaskType::Clop: return ClopFile::id;
             case TaskType::SystemTest: return "systemtest";
@@ -51,6 +53,9 @@ namespace QaplaTester::Cli {
         } 
         if (name == "analysis") {
             return TaskType::Analysis;
+        }
+        if (name == "bookeval") {
+            return TaskType::BookEval;
         }
         if (name == "spsa") {
             return TaskType::Spsa;

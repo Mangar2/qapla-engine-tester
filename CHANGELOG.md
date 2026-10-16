@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--bookeval`: every position of a 9 bit book searched once**: the start position and every
+  position after a move with moves below it, each with a new game before it, so a score does not
+  depend on the order or the number of engines. The scores go into the payload of a new book, as
+  the score of the position each move is played from (`qapla-search-score-v1`, signed centipawns,
+  mates and "no score" coded beyond 30000). The output book is the state of the run: saved every
+  `saveintervalS` and at the end, continued by the next run with the same `out`; `maxpositions`
+  stops a run early, a run with positions left open returns `UndefinedResult`.
 - **9 bit books of Qapla as openings**: `--openings file=` takes a book of the Qapla engine
   (`src/book9`, file version 9) beside pgn, epd and raw files, for every task that plays from
   openings - tournament, SPRT, SPSA and CLOP. Every line from the start position to a leaf is one

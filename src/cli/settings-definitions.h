@@ -43,6 +43,7 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getEpdKeys();
 
 /// Returns key definitions for analysis group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getAnalysisKeys();
+QaplaHelpers::StableMap<std::string, ParameterDefinition> getBookEvalKeys();
 
 /// Returns key definitions for sprt group
 QaplaHelpers::StableMap<std::string, ParameterDefinition> getSprtKeys();

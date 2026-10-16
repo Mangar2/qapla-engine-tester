@@ -24,6 +24,7 @@
 #include "../engine-handling/engine-worker-factory.h"
 #include "../epd/epd-manager.h"
 #include "../analysis/analysis-manager.h"
+#include "../book-eval/book-eval-manager.h"
 #include "../sprt/sprt-manager.h"
 #include "../sprt/sprt-tournament-file.h"
 #include "../spsa/spsa-optimizer.h"
@@ -454,6 +455,56 @@ AppReturnCode AppRunner::runAnalysis(AppReturnCode code, bool background) {
     return code;
 }
 
+AppReturnCode AppRunner::runBookEval(AppReturnCode code, bool background) {
+    const auto& config = Settings::QaplaSettings::instance().getBookEvalConfig();
+    if (!config) {
+        return code;
+    }
+
+    const auto engines = EngineWorkerFactory::getActiveEngines();
+    if (engines.size() != 1) {
+        throw AppError::makeInvalidParameters(
+            "Define exactly one engine with --engine; it searches every position of the book.");
+    }
+    const auto& engine = engines.front();
+    AnalysisManager::requirePerMoveLimit(engine);
+
+    const auto concurrencyResolution = resolveConfiguredConcurrency();
+    Settings::QaplaSettings::instance().applyLoggerConfig("bookeval-report");
+    logStartConcurrency("bookeval", concurrencyResolution);
+
+    bookEvalManager_ = std::make_shared<BookEvalManager>();
+    const auto open = bookEvalManager_->initialize(*config, engine);
+    RunHeaderLogger::log("Book evaluation", engines, {
+        { "Book", config->bookFile },
+        { "Evaluated book", config->outFile },
+        { "Positions", std::format("{}", bookEvalManager_->getPositionCount()) },
+        { "Open", std::format("{}", open) }
+    });
+
+    if (open != 0) {
+        GameManagerPool& pool = GameManagerPool::getInstance();
+        pool.setConcurrency(concurrencyResolution.effectiveConcurrency, true);
+        BookEvalManager::schedule(bookEvalManager_, engine, pool);
+        if (background) {
+            Logger::reportLogger().log("Task started in background.", TraceLevel::result);
+            return code;
+        }
+        pool.waitForTask();
+    }
+    bookEvalManager_->save();
+    bookEvalManager_->logProgress();
+    if (!bookEvalManager_->isComplete()) {
+        Logger::reportLogger().log(std::format(
+            "bookeval stopped with {} of {} positions evaluated; call it again with the same out to continue",
+            bookEvalManager_->getEvaluatedCount(), bookEvalManager_->getPositionCount()), TraceLevel::result);
+        return code == AppReturnCode::NoError ? AppReturnCode::UndefinedResult : code;
+    }
+    Logger::reportLogger().log(std::format("bookeval complete: {} positions evaluated, written to {}",
+        bookEvalManager_->getPositionCount(), config->outFile), TraceLevel::result);
+    return code;
+}
+
 AppReturnCode AppRunner::runTournament(AppReturnCode code, bool background) {
     const auto& tournamentConfig = Settings::QaplaSettings::instance().getTournamentConfig();
     if (!tournamentConfig) {
@@ -854,6 +905,12 @@ AppReturnCode AppRunner::runDispatcher(bool background, Cli::TaskType forcedTask
     if (shouldRunTask(Cli::TaskType::Analysis) && Settings::Manager::instance().getGroupInstance("analysis")) {
         currentTask_ = Cli::TaskType::Analysis;
         returnCode = runAnalysis(returnCode, background);
+        hasTask = true;
+    }
+
+    if (shouldRunTask(Cli::TaskType::BookEval) && Settings::Manager::instance().getGroupInstance("bookeval")) {
+        currentTask_ = Cli::TaskType::BookEval;
+        returnCode = runBookEval(returnCode, background);
         hasTask = true;
     }
 

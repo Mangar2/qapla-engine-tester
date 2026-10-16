@@ -35,6 +35,7 @@ namespace QaplaTester {
     struct SprtConfig;
     struct EpdConfig;
     struct AnalysisConfig;
+    struct BookEvalConfig;
     struct SPSAConfig;
     struct CLOPConfig;
 
@@ -145,6 +146,12 @@ public:
      * @return Optional containing the analysis config if configured, nullopt otherwise
      */
     [[nodiscard]] std::optional<AnalysisConfig> getAnalysisConfig() const;
+
+    /**
+     * @brief Gets the book evaluation configuration
+     * @return Optional containing the config if configured, nullopt otherwise
+     */
+    [[nodiscard]] std::optional<BookEvalConfig> getBookEvalConfig() const;
 
     /**
      * @brief Gets the SPSA configuration
@@ -274,6 +281,11 @@ private:
     void setAnalysisConfig();
 
     /**
+     * @brief Reads the book evaluation configuration from CLI settings
+     */
+    void setBookEvalConfig();
+
+    /**
      * @brief Reads SPSA configuration from CLI settings
      */
     void setSPSAConfig();
@@ -306,6 +318,7 @@ private:
     std::unique_ptr<SprtConfig> m_sprtConfig; ///< SPRT configuration
     std::unique_ptr<EpdConfig> m_epdConfig; ///< EPD configuration
     std::unique_ptr<AnalysisConfig> m_analysisConfig; ///< Analysis configuration
+    std::unique_ptr<BookEvalConfig> m_bookEvalConfig; ///< Book evaluation configuration
     std::unique_ptr<SPSAConfig> m_spsaConfig; ///< SPSA configuration
     std::unique_ptr<CLOPConfig> m_clopConfig; ///< CLOP configuration
     std::unique_ptr<LoggerConfig> m_loggerConfig; ///< Logger configuration

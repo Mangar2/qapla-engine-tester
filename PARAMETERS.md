@@ -36,6 +36,26 @@ and each writes its games marked with its own name.
 | direction | string | reverse | reverse recomputes a game from its last move to its first, which lets the engine judge an early move knowing how the game ended. forward recomputes it in the order it was played, which is what the engine saw at the time. |
 | maxgames | <number> | 0 | Maximum number of games to analyse (0 = all) |
 
+## --bookeval
+
+Evaluates the positions of a 9 bit book of Qapla: every position a move
+of the book is played from - the start position included - is searched once with the engine, with
+the limit of its time control (movetime, depth or nodes), and the scores go into the payload of a
+new book. Every node carries the score of the position its move is played from, from the side to
+move there, in centipawns - the evaluation a pgn comment gives the move. Each search starts with a
+new game, so a score is that of a cold engine, whatever was searched before and however many
+engines run; it equals the score --analysis gives the last move of a game ending in that move.
+The output book is the state of the run: it is written every saveintervalS seconds and at the end,
+and a run with the same out continues where the last one stopped - quit in interactive mode, a
+crash, or maxpositions.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| book | <path> | *required* | The 9 bit book whose positions are evaluated |
+| out | <path> | *required* | The evaluated book to write; an existing one is continued |
+| saveintervals | <number> | 60 | Interval in seconds to save the evaluated book |
+| maxpositions | <number> | 0 | Positions to search in this run, the rest stays open (0 = all) |
+
 ## --clop
 
 Runs CLOP (Confident Local Optimization) with weighted quadratic logistic regression.

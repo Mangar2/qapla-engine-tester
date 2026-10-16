@@ -37,6 +37,7 @@
 #include "../config/adjudication-config.h"
 #include "../epd/epd-manager.h"
 #include "../analysis/analysis-manager.h"
+#include "../book-eval/book-eval-manager.h"
 #include "../spsa/spsa-optimizer.h"
 #include "../clop/clop-types.h"
 
@@ -202,6 +203,7 @@ void QaplaSettings::applyConfig(std::optional<QaplaHelpers::ConfigData> configDa
     setTournamentConfig(Manager::instance(), "tournament");
     setEpdConfig();
     setAnalysisConfig();
+    setBookEvalConfig();
     setSPSAConfig();
     setCLOPConfig();
 }
@@ -457,6 +459,27 @@ std::optional<AnalysisConfig> QaplaSettings::getAnalysisConfig() const {
         return std::nullopt;
     }
     return *m_analysisConfig;
+}
+
+void QaplaSettings::setBookEvalConfig() {
+    auto group = Manager::instance().getGroupInstance("bookeval");
+    if (!group.has_value()) {
+        m_bookEvalConfig = nullptr;
+        return;
+    }
+    m_bookEvalConfig = std::make_unique<BookEvalConfig>(BookEvalConfig{
+        .bookFile = group->get<std::string>("book"),
+        .outFile = group->get<std::string>("out"),
+        .saveIntervalMs = group->get<unsigned int>("saveintervalS") * 1000,
+        .maxPositions = group->get<unsigned int>("maxpositions")
+    });
+}
+
+std::optional<BookEvalConfig> QaplaSettings::getBookEvalConfig() const {
+    if (m_bookEvalConfig == nullptr) {
+        return std::nullopt;
+    }
+    return *m_bookEvalConfig;
 }
 
 void QaplaSettings::setSPSAConfig() {
