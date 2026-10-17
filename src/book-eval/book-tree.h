@@ -31,9 +31,24 @@ namespace QaplaTester {
 
 /**
  * @brief The payload id of a book whose nodes carry the search score of the position they are
- *        played from, see BookScore.
+ *        played from, see BookScore. Written by --bookeval version=1.
  */
 inline constexpr const char* BOOK_SCORE_PAYLOAD_ID = "qapla-search-score-v1";
+
+/**
+ * @brief The payload id of a book whose nodes carry the search score of the position after their
+ *        move, seen from the side that played it, see BookScore - the position a node stands for,
+ *        as the counts of a book trained with games do. The start position has no node; its score,
+ *        from white, is the header record BOOK_ROOT_SCORE_TAG. Written by --bookeval version=2, the
+ *        default.
+ */
+inline constexpr const char* BOOK_SCORE_V2_PAYLOAD_ID = "qapla-search-score-v2";
+
+/**
+ * @brief The header record of the score of the start position, a decimal number coded as BookScore.
+ *        A reader that does not know it skips it, as every book reader of Qapla does.
+ */
+inline constexpr int32_t BOOK_ROOT_SCORE_TAG = 7;
 
 /**
  * @brief The search score a node of an evaluated book carries, two bytes, little endian, signed.
@@ -46,6 +61,8 @@ inline constexpr const char* BOOK_SCORE_PAYLOAD_ID = "qapla-search-score-v1";
  *   -30000 ... 30000       centipawns, as the engine reports them; beyond that range clamped
  *   31001 ... 31999        mate in 32000 - score moves for the side to move
  *  -31999 ... -31001       mated in 32000 + score moves
+ *
+ * The coding is symmetric: the negated score is the same position seen from the other side.
  */
 struct BookScore {
     static constexpr int16_t NONE = INT16_MIN;
@@ -56,6 +73,10 @@ struct BookScore {
     [[nodiscard]] static bool isMate(int16_t score) { return score != NONE && (score > MAX_CENTIPAWNS || score < -MAX_CENTIPAWNS); }
     /** @brief Moves to mate, negative if the side to move is mated; only for a mate score. */
     [[nodiscard]] static int mateInMoves(int16_t score) { return score > 0 ? MATE - score : -(MATE + score); }
+    /** @brief The score seen from the other side; no score stays no score. */
+    [[nodiscard]] static int16_t negate(int16_t score) {
+        return score == NONE ? NONE : static_cast<int16_t>(-score);
+    }
 };
 
 /**
@@ -63,9 +84,11 @@ struct BookScore {
  *
  * A position of the book is the start position or the position after the move of a node. Position
  * 0 is the start position, position i + 1 the one after node i, the nodes counted in the order of
- * the file. Only the positions some move is played from need a score: the start position and those
- * after a node that has children. The score of position p goes into the payload of every node
- * played from p.
+ * the file. The tree keeps one score per position, seen from the side to move there; how it goes
+ * into a file depends on the version. Version 1 needs the positions some move is played from - the
+ * start position and those after a node with children - and gives the score of position p to every
+ * node played from p. Version 2 needs every position: node i carries the score of position i + 1,
+ * negated to the side that played the move, the start position goes into the header.
  *
  * The tree is kept as the two bytes of every node and the index of its parent: that is all that
  * is needed to name the moves leading to a position, and small enough for a book of many millions
@@ -86,8 +109,16 @@ public:
     /** @brief Positions of the book, searched or not: the start position and one per node. */
     [[nodiscard]] size_t positionCount() const { return bits_.size() + 1; }
 
-    /** @brief True for the positions a move is played from, the ones that get a score. */
+    /** @brief True for the positions a move is played from, the ones version 1 gives a score. */
     [[nodiscard]] bool isPlayedFrom(uint32_t position) const;
+
+    /** @brief True for the positions a book of the version gives a score: version 2 all of them. */
+    [[nodiscard]] bool isScored(uint32_t position, uint32_t version) const {
+        return version == 1 ? isPlayedFrom(position) : !bits_.empty();
+    }
+
+    /** @brief 1 or 2 for a book with scores of that version, 0 for any other book. */
+    [[nodiscard]] uint32_t scoreVersion() const { return scoreVersion_; }
 
     /** @brief The moves from the start position to a position, in long notation. */
     [[nodiscard]] std::vector<std::string> lineTo(uint32_t position) const;
@@ -105,7 +136,8 @@ public:
      *        write never leaves half a book behind.
      * @throws std::runtime_error if the file cannot be written.
      */
-    void writeWithScores(const std::string& path, const QaplaBook::BookHeader& header) const;
+    void writeWithScores(const std::string& path, const QaplaBook::BookHeader& header,
+        uint32_t version = 2) const;
 
 private:
     /** @brief The position a node's move is played from. */
@@ -116,7 +148,8 @@ private:
     QaplaBook::BookHeader header_;
     std::vector<uint16_t> bits_;      ///< The 16 bit part of every node, in the order of the file
     std::vector<uint32_t> parent_;    ///< The parent of every node, NO_NODE below the start position
-    std::vector<int16_t> scores_;     ///< The score of every position
+    std::vector<int16_t> scores_;     ///< The score of every position, from the side to move there
+    uint32_t scoreVersion_ = 0;       ///< The version of the scores the file had, 0 for none
 };
 
 } // namespace QaplaTester

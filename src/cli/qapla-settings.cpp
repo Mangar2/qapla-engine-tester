@@ -471,8 +471,13 @@ void QaplaSettings::setBookEvalConfig() {
         .bookFile = group->get<std::string>("book"),
         .outFile = group->get<std::string>("out"),
         .saveIntervalMs = group->get<unsigned int>("saveintervalS") * 1000,
-        .maxPositions = group->get<unsigned int>("maxpositions")
+        .maxPositions = group->get<unsigned int>("maxpositions"),
+        .version = group->get<unsigned int>("version")
     });
+    if (m_bookEvalConfig->version != 1 && m_bookEvalConfig->version != 2) {
+        throw AppError::makeInvalidParameters(std::format(
+            "Set bookeval.version to 1 or 2; {} is neither.", m_bookEvalConfig->version));
+    }
 }
 
 std::optional<BookEvalConfig> QaplaSettings::getBookEvalConfig() const {

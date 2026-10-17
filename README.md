@@ -492,10 +492,8 @@ and `includePv` decide what ends up in the move comments.
 ## 📚 Book Evaluation (`--bookeval`)
 
 Searches every position of a 9 bit book of the Qapla engine once and writes the scores into a new
-book. A position is searched if a move of the book is played from it: the start position and every
-position after a move that has moves below it - a book of 10 million lines and 17.5 million moves
-has 7.5 million of them. The limit is the engine's `tc`, a per-move limit as for `--analysis`, and
-`--concurrency` decides how many engines search at the same time.
+book. The limit is the engine's `tc`, a per-move limit as for `--analysis`, and `--concurrency`
+decides how many engines search at the same time.
 
 Every search starts with a new game: the engine gets `ucinewgame`, then the position as the moves
 from the start position, then the limit. A score is therefore that of a cold engine, independent
@@ -507,10 +505,18 @@ their scores there differ a little.
 
 ### The evaluated book
 
-The output is a book with the same tree and the payload id `qapla-search-score-v1`: every node
-carries two bytes, little endian, signed - the score of the position **its move is played from**,
-seen from the side to move there, the evaluation a PGN comment gives that move. All moves played
-from one position carry the same score.
+`version=2`, the default, gives a node the position it stands for - the one **after** its move, as
+the counts of a book trained with games do (`gamefile --bookwdl`): every node and the start position
+are searched, a book of 10 million lines and 17.5 million moves has 17.5 million positions to
+search. The payload id is `qapla-search-score-v2`: two bytes per node, little endian, signed - the
+score of the position after the node's move, **seen from the side that played it**. The start
+position has no node; its score, from white, is the header record 7, a decimal number, which every
+book reader of Qapla skips if it does not know it.
+
+`version=1` gives a node the score of the position **its move is played from**, seen from the side
+to move there - the evaluation a PGN comment gives that move - and only searches the positions a
+move is played from: the start position and every position after a move with moves below it, 7.5
+million in the book above. The payload id is `qapla-search-score-v1`.
 
 | Value | Meaning |
 |---|---|
@@ -519,7 +525,14 @@ from one position carry the same score.
 | -31999 ... -31001 | mated in 32000 + value moves |
 | -32768 | no score: the position is not evaluated (yet) |
 
-The header names the search in its version record, e.g. `engine=hce tc=depth: 9`.
+The coding is symmetric: the negated value is the same position seen from the other side, so a
+version 2 node carries the negated score its children carry in version 1. The header names the
+search in its version record, e.g. `engine=hce tc=depth: 9`.
+
+A book evaluated before with the same engine and limit - in either version - brings its scores
+into a run: `book=` a version 1 book and the default version 2 only searches its leaves, every other
+position was searched with the same moves before it and gives the same score. Scores of another
+engine or limit are dropped and searched again.
 
 ### Stopping and continuing
 
@@ -535,6 +548,7 @@ the same book, engine and limit. A run that ends with positions left open return
 | `out` | The evaluated book; an existing one is continued (required) |
 | `saveintervalS` | Seconds between two saves of the evaluated book (default 60) |
 | `maxpositions` | Positions to search in this run, the rest stays open (0 = all) |
+| `version` | `2` (default): every node the position after its move; `1`: the position before it |
 
 ### Example
 

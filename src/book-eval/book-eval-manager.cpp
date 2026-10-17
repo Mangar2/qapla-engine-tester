@@ -61,10 +61,10 @@ size_t BookEvalManager::initialize(const BookEvalConfig& config, const EngineCon
             throw AppError::makeInvalidParameters(std::format(
                 "bookeval.out exists and is no book to continue from: {}", error.what()));
         }
-        if (evaluated.header().payloadId != BOOK_SCORE_PAYLOAD_ID || !evaluated.sameTree(tree)) {
+        if (evaluated.scoreVersion() != config.version || !evaluated.sameTree(tree)) {
             throw AppError::makeInvalidParameters(std::format(
-                "bookeval.out '{}' is not the evaluation of '{}'; remove it or name another file.",
-                config.outFile, config.bookFile));
+                "bookeval.out '{}' is not an evaluation of version {} of '{}'; remove it or name another "
+                "file.", config.outFile, config.version, config.bookFile));
         }
         if (evaluated.header().version != search) {
             throw AppError::makeInvalidParameters(std::format(
@@ -73,6 +73,21 @@ size_t BookEvalManager::initialize(const BookEvalConfig& config, const EngineCon
                 config.outFile, evaluated.header().version, search));
         }
         tree = std::move(evaluated);
+    }
+    // An evaluated book brings its scores, if they come from the same search: a score depends on
+    // nothing but the position, the moves before it, the engine and its limit. Scores of another
+    // search are dropped, and those positions searched again.
+    const bool continued = std::filesystem::exists(config.outFile);
+    size_t taken = 0;
+    for (uint32_t position = 0; position < tree.positionCount(); ++position) {
+        if (tree.score(position) == BookScore::NONE) {
+            continue;
+        }
+        if (tree.header().version != search) {
+            tree.setScore(position, BookScore::NONE);
+        } else if (!continued) {
+            ++taken;
+        }
     }
 
     std::scoped_lock lock(mutex_);
@@ -92,8 +107,9 @@ size_t BookEvalManager::initialize(const BookEvalConfig& config, const EngineCon
     evaluatedCount_ = 0;
     searchedInRun_ = 0;
     failedCount_ = 0;
+    takenCount_ = taken;
     for (uint32_t position = 0; position < tree_.positionCount(); ++position) {
-        if (!tree_.isPlayedFrom(position)) {
+        if (!tree_.isScored(position, config.version)) {
             continue;
         }
         ++positionCount_;
@@ -105,7 +121,7 @@ size_t BookEvalManager::initialize(const BookEvalConfig& config, const EngineCon
     }
     startTime_ = std::chrono::steady_clock::now();
     saveTimer_ = QaplaHelpers::CallbackTimer(config.saveIntervalMs, [this] {
-        tree_.writeWithScores(config_.outFile, outHeader_);
+        tree_.writeWithScores(config_.outFile, outHeader_, config_.version);
     });
     progressTimer_ = QaplaHelpers::CallbackTimer(PROGRESS_INTERVAL_MS, [this] { logProgressLocked(); });
     return open_.size();
@@ -175,7 +191,12 @@ void BookEvalManager::setGameRecord(const std::string& taskId, const GameRecord&
 
 void BookEvalManager::save() {
     std::scoped_lock lock(mutex_);
-    tree_.writeWithScores(config_.outFile, outHeader_);
+    tree_.writeWithScores(config_.outFile, outHeader_, config_.version);
+}
+
+size_t BookEvalManager::getTakenCount() const {
+    std::scoped_lock lock(mutex_);
+    return takenCount_;
 }
 
 size_t BookEvalManager::getPositionCount() const {

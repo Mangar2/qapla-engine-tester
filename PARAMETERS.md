@@ -38,13 +38,17 @@ and each writes its games marked with its own name.
 
 ## --bookeval
 
-Evaluates the positions of a 9 bit book of Qapla: every position a move
-of the book is played from - the start position included - is searched once with the engine, with
-the limit of its time control (movetime, depth or nodes), and the scores go into the payload of a
-new book. Every node carries the score of the position its move is played from, from the side to
-move there, in centipawns - the evaluation a pgn comment gives the move. Each search starts with a
-new game, so a score is that of a cold engine, whatever was searched before and however many
-engines run; it equals the score --analysis gives the last move of a game ending in that move.
+Evaluates the positions of a 9 bit book of Qapla: every position is
+searched once with the engine, with the limit of its time control (movetime, depth or nodes), and
+the scores go into the payload of a new book, in centipawns. version=2, the default: every node
+carries the score of the position after its move, from the side that played it, and the start
+position's is a record of the header - every node and the start position are searched.
+version=1: every node carries the score of the position its move is played from, from the side to
+move there, the evaluation a pgn comment gives the move - the positions a move is played from are
+searched. Each search starts with a new game, so a score is that of a cold engine, whatever was
+searched before and however many engines run; it equals the score --analysis gives the last move of
+a game ending in that move. A book evaluated before with the same engine and limit, in either
+version, brings its scores: a version 2 run of a version 1 book only searches the leaves.
 The output book is the state of the run: it is written every saveintervalS seconds and at the end,
 and a run with the same out continues where the last one stopped - quit in interactive mode, a
 crash, or maxpositions.
@@ -55,6 +59,7 @@ crash, or maxpositions.
 | out | <path> | *required* | The evaluated book to write; an existing one is continued |
 | saveintervals | <number> | 60 | Interval in seconds to save the evaluated book |
 | maxpositions | <number> | 0 | Positions to search in this run, the rest stays open (0 = all) |
+| version | <number> | 2 | 2: every node carries the score of the position after its move, from the side that played it; 1: the score of the position it is played from |
 
 ## --clop
 

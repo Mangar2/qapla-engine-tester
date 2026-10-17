@@ -136,7 +136,7 @@ TEST_CASE("The positions of a book are the ones its moves are played from", "[un
     REQUIRE(tree.lineTo(10) == std::vector<std::string>{ "d2d4", "d7d5" });
 }
 
-TEST_CASE("Every node carries the score of the position its move is played from", "[unit][bookeval]") {
+TEST_CASE("Version 1: every node carries the score of the position its move is played from", "[unit][bookeval]") {
     TempFile file("qapla-book-eval-in.bok");
     TempFile out("qapla-book-eval-out.bok");
     writeBook(file.path);
@@ -146,12 +146,13 @@ TEST_CASE("Every node carries the score of the position its move is played from"
     tree.setScore(10, 31990);   // after d2d4 d7d5: c2c4
     QaplaBook::BookHeader header;
     header.version = "engine=E tc=depth: 4";
-    tree.writeWithScores(out.path, header);
+    tree.writeWithScores(out.path, header, 1);
     REQUIRE_FALSE(std::filesystem::exists(out.path + ".part"));
 
     SECTION("read back by the tree") {
         const auto evaluated = BookTree::read(out.path);
         REQUIRE(evaluated.header().payloadId == BOOK_SCORE_PAYLOAD_ID);
+        REQUIRE(evaluated.scoreVersion() == 1);
         REQUIRE(evaluated.header().version == header.version);
         REQUIRE(evaluated.sameTree(tree));
         REQUIRE(evaluated.score(0) == 12);
@@ -175,6 +176,74 @@ TEST_CASE("Every node carries the score of the position its move is played from"
     }
 }
 
+TEST_CASE("Version 2: every node carries the score of the position after its move", "[unit][bookeval]") {
+    TempFile file("qapla-book-eval-v2-in.bok");
+    TempFile out("qapla-book-eval-v2-out.bok");
+    writeBook(file.path);
+    auto tree = BookTree::read(file.path);
+    // Scores of positions, from the side to move there: the start position, after e2e4 (node 0,
+    // black to move), after e1g1 (node 6, a leaf) and after d2d4 d7d5 (node 9).
+    tree.setScore(0, 12);
+    tree.setScore(1, -30);
+    tree.setScore(7, 31990);
+    tree.setScore(10, 55);
+    QaplaBook::BookHeader header;
+    header.version = "engine=E tc=depth: 4";
+    tree.writeWithScores(out.path, header, 2);
+
+    SECTION("read back by the tree, the start position from the header") {
+        const auto evaluated = BookTree::read(out.path);
+        REQUIRE(evaluated.header().payloadId == BOOK_SCORE_V2_PAYLOAD_ID);
+        REQUIRE(evaluated.scoreVersion() == 2);
+        REQUIRE(evaluated.sameTree(tree));
+        REQUIRE(evaluated.score(0) == 12);
+        REQUIRE(evaluated.score(1) == -30);
+        REQUIRE(evaluated.score(7) == 31990);
+        REQUIRE(evaluated.score(10) == 55);
+        REQUIRE(evaluated.score(2) == BookScore::NONE);
+    }
+
+    SECTION("read by the engine's own book: a node is the position after its move, from its mover") {
+        QaplaBook9::Book<ScorePayload> book;
+        REQUIRE(book.readFromFile(out.path));
+        const auto e2e4 = book.firstChild(decltype(book)::ROOT);
+        REQUIRE(book.payload(e2e4).score == 30);
+        // Node 6, e1g1 at the end of the first line: black mates in 10 there, white is mated.
+        auto node = e2e4;
+        for (int depth = 0; depth < 6; ++depth) {
+            node = book.firstChild(node);
+        }
+        REQUIRE(book.payload(node).score == -31990);
+        const auto d7d5 = book.firstChild(book.nextSibling(e2e4));
+        REQUIRE(book.payload(d7d5).score == -55);
+    }
+
+    SECTION("a version 1 book of the same search brings its scores into a version 2 run") {
+        TempFile v1("qapla-book-eval-v1-source.bok");
+        TempFile v2("qapla-book-eval-v2-from-v1.bok");
+        auto source = BookTree::read(file.path);
+        for (uint32_t position = 0; position < source.positionCount(); ++position) {
+            if (source.isPlayedFrom(position)) {
+                source.setScore(position, static_cast<int16_t>(position));
+            }
+        }
+        QaplaBook::BookHeader searched;
+        searched.version = BookEvalManager::describeSearch(depthEngine("E"));
+        source.writeWithScores(v1.path, searched, 1);
+
+        BookEvalManager manager;
+        // Twelve positions, nine of them searched for version 1: only the three leaves are left.
+        REQUIRE(manager.initialize({ .bookFile = v1.path, .outFile = v2.path }, depthEngine("E")) == 3);
+        REQUIRE(manager.getTakenCount() == 9);
+        REQUIRE(manager.getPositionCount() == 12);
+
+        BookEvalManager other;
+        TempFile v2other("qapla-book-eval-v2-other.bok");
+        REQUIRE(other.initialize({ .bookFile = v1.path, .outFile = v2other.path }, depthEngine("F")) == 12);
+        REQUIRE(other.getTakenCount() == 0);
+    }
+}
+
 TEST_CASE("A book evaluation hands out every position once and keeps the scores", "[unit][bookeval]") {
     TempFile file("qapla-book-eval-run.bok");
     TempFile out("qapla-book-eval-run-out.bok");
@@ -182,7 +251,8 @@ TEST_CASE("A book evaluation hands out every position once and keeps the scores"
     const auto engine = depthEngine("E");
 
     BookEvalManager manager;
-    REQUIRE(manager.initialize({ .bookFile = file.path, .outFile = out.path }, engine) == 9);
+    // Version 1 here: the nine positions a move is played from; version 2 would add the three leaves.
+    REQUIRE(manager.initialize({ .bookFile = file.path, .outFile = out.path, .version = 1 }, engine) == 9);
     REQUIRE(manager.getPositionCount() == 9);
 
     std::vector<GameTask> tasks;
@@ -208,7 +278,7 @@ TEST_CASE("A book evaluation hands out every position once and keeps the scores"
 
     SECTION("a new run continues with the positions left open") {
         BookEvalManager resumed;
-        REQUIRE(resumed.initialize({ .bookFile = file.path, .outFile = out.path }, engine) == 4);
+        REQUIRE(resumed.initialize({ .bookFile = file.path, .outFile = out.path, .version = 1 }, engine) == 4);
         REQUIRE(resumed.getEvaluatedCount() == 5);
         size_t handedOut = 0;
         while (auto task = resumed.nextTask()) {
@@ -226,7 +296,8 @@ TEST_CASE("A book evaluation hands out every position once and keeps the scores"
 
     SECTION("maxpositions ends a run early") {
         BookEvalManager limited;
-        REQUIRE(limited.initialize({ .bookFile = file.path, .outFile = out.path, .maxPositions = 2 }, engine) == 4);
+        REQUIRE(limited.initialize({ .bookFile = file.path, .outFile = out.path, .maxPositions = 2,
+            .version = 1 }, engine) == 4);
         REQUIRE(limited.nextTask());
         REQUIRE(limited.nextTask());
         REQUIRE_FALSE(limited.nextTask());
@@ -234,10 +305,13 @@ TEST_CASE("A book evaluation hands out every position once and keeps the scores"
 
     SECTION("it is not continued with another engine or limit") {
         BookEvalManager other;
-        REQUIRE_THROWS_AS(other.initialize({ .bookFile = file.path, .outFile = out.path },
+        REQUIRE_THROWS_AS(other.initialize({ .bookFile = file.path, .outFile = out.path, .version = 1 },
             depthEngine("E", "depth:5")), AppError);
-        REQUIRE_THROWS_AS(other.initialize({ .bookFile = file.path, .outFile = out.path },
+        REQUIRE_THROWS_AS(other.initialize({ .bookFile = file.path, .outFile = out.path, .version = 1 },
             depthEngine("F")), AppError);
+        // Nor as the other version.
+        REQUIRE_THROWS_AS(other.initialize({ .bookFile = file.path, .outFile = out.path, .version = 2 },
+            engine), AppError);
     }
 
     SECTION("nor from the evaluation of another book") {
@@ -246,7 +320,8 @@ TEST_CASE("A book evaluation hands out every position once and keeps the scores"
         book.addLine(movesOf(kSicilian));
         book.writeToFile(otherBook.path);
         BookEvalManager other;
-        REQUIRE_THROWS_AS(other.initialize({ .bookFile = otherBook.path, .outFile = out.path }, engine), AppError);
+        REQUIRE_THROWS_AS(other.initialize({ .bookFile = otherBook.path, .outFile = out.path, .version = 1 },
+            engine), AppError);
     }
 }
 

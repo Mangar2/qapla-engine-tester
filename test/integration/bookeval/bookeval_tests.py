@@ -3,7 +3,8 @@
 
 book8ply-30.bok holds the first 30 openings of test/opening/book8ply.raw, made with gamefile of
 qapla-chess-tools (--pgn2book in=book8ply.raw maxgames=30): 127 moves, played from 98 positions -
-the start position and every position after a move with moves below it.
+the start position and every position after a move with moves below it. Version 2, the default,
+searches all 128 positions: the start position and the one after each of the 127 moves.
 """
 
 from typing import Any, Dict, List
@@ -25,8 +26,8 @@ def get_tests() -> List[Dict[str, Any]]:
             "log_path": f"{_LOG}/whole",
             "validators": [
                 {"type": "exitCode", "expected": 0},
-                {"type": "stdout", "content": "Positions:      98"},
-                {"type": "stdout", "content": "bookeval complete: 98 positions evaluated"},
+                {"type": "stdout", "content": "Positions:           128"},
+                {"type": "stdout", "content": "bookeval complete: 128 positions evaluated"},
                 {"type": "fileExists", "path": f"{_LOG}/whole/out.bok"},
                 {
                     # A new game before every position, then the moves from the start position:
@@ -60,8 +61,8 @@ def get_tests() -> List[Dict[str, Any]]:
             "log_path": f"{_LOG}/continue",
             "validators": [
                 {"type": "exitCode", "expected": 0},
-                {"type": "stdout", "content": "Open:           58"},
-                {"type": "stdout", "content": "bookeval complete: 98 positions evaluated"},
+                {"type": "stdout", "content": "Open:                88"},
+                {"type": "stdout", "content": "bookeval complete: 128 positions evaluated"},
             ],
             "cleanup": f"{_LOG}/continue",
         },
@@ -73,10 +74,38 @@ def get_tests() -> List[Dict[str, Any]]:
             "log_path": f"{_LOG}/early",
             "validators": [
                 {"type": "exitCode", "expected": 16},
-                {"type": "stdout", "content": "bookeval stopped with 40 of 98 positions evaluated"},
+                {"type": "stdout", "content": "bookeval stopped with 40 of 128 positions evaluated"},
                 {"type": "fileExists", "path": f"{_LOG}/early/out.bok"},
             ],
             "cleanup": f"{_LOG}/early",
+        },
+        {
+            "name": "bookeval-version-1",
+            "description": "version=1 searches the 98 positions a move is played from",
+            "args": f"{_BASE} --bookeval book={_BOOK} out={_LOG}/v1/out.bok version=1 "
+                    f"--logging engine=false path={_LOG}/v1",
+            "log_path": f"{_LOG}/v1",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "bookeval complete: 98 positions evaluated"},
+            ],
+            "cleanup": f"{_LOG}/v1",
+        },
+        {
+            "name": "bookeval-version-2-from-version-1",
+            "description": "A version 1 book of the same search brings its 98 scores, only the 30 leaves are searched",
+            "setup_args": f"{_BASE} --bookeval book={_BOOK} out={_LOG}/reuse/v1.bok version=1 "
+                          f"--logging engine=false path={_LOG}/reuse",
+            "args": f"{_BASE} --bookeval book={_LOG}/reuse/v1.bok out={_LOG}/reuse/v2.bok "
+                    f"--logging engine=false path={_LOG}/reuse",
+            "log_path": f"{_LOG}/reuse",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                {"type": "stdout", "content": "Taken from the book: 98"},
+                {"type": "stdout", "content": "Open:                30"},
+                {"type": "stdout", "content": "bookeval complete: 128 positions evaluated"},
+            ],
+            "cleanup": f"{_LOG}/reuse",
         },
         {
             "name": "bookeval-needs-per-move-limit",

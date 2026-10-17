@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--bookeval version=2`, the default: a node carries the position after its move**, the one it
+  stands for, as the counts of a book trained with games do: every node and the start position are
+  searched, a node carries the score from the side that played its move (`qapla-search-score-v2`),
+  the start position's score is the header record 7. `version=1` writes the book as before, the
+  score of the position a move is played from. A book evaluated with the same engine and limit, in
+  either version, brings its scores into a run: version 2 of a version 1 book only searches its
+  leaves.
 - **`--bookeval`: every position of a 9 bit book searched once**: the start position and every
   position after a move with moves below it, each with a new game before it, so a score does not
   depend on the order or the number of engines. The scores go into the payload of a new book, as

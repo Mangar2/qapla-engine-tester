@@ -478,7 +478,9 @@ AppReturnCode AppRunner::runBookEval(AppReturnCode code, bool background) {
     RunHeaderLogger::log("Book evaluation", engines, {
         { "Book", config->bookFile },
         { "Evaluated book", config->outFile },
+        { "Version", std::format("{}", config->version) },
         { "Positions", std::format("{}", bookEvalManager_->getPositionCount()) },
+        { "Taken from the book", std::format("{}", bookEvalManager_->getTakenCount()) },
         { "Open", std::format("{}", open) }
     });
 

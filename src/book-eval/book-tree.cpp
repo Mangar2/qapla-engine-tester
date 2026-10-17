@@ -23,6 +23,7 @@
 #include "../qapla-engine/types.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cstring>
 #include <filesystem>
 #include <format>
@@ -38,6 +39,87 @@ Node nodeOf(uint16_t bits) {
     Node node;
     node._bits = bits;
     return node;
+}
+
+/** The longest string a header record may hold, a broken file must not allocate. */
+constexpr int32_t MAX_RECORD_LENGTH = 1 << 16;
+
+int32_t readInt32(std::istream& stream) {
+    int32_t value = 0;
+    stream.read(reinterpret_cast<char*>(&value), sizeof(value));
+    if (!stream) {
+        throw QaplaBook::BookFormatError("file ends inside the header");
+    }
+    return value;
+}
+
+void writeInt32(std::ostream& stream, int32_t value) {
+    stream.write(reinterpret_cast<const char*>(&value), sizeof(value));
+}
+
+void writeRecord(std::ostream& stream, int32_t tag, const std::string& value) {
+    writeInt32(stream, tag);
+    writeInt32(stream, static_cast<int32_t>(value.size() + 1));
+    stream.write(value.c_str(), static_cast<std::streamsize>(value.size() + 1));
+}
+
+/**
+ * @brief Reads the header as QaplaBook::readBookHeader does, and the record of the score of the
+ *        start position beside it, which that one skips.
+ * @return The number of nodes.
+ */
+uint32_t readHeader(std::istream& stream, QaplaBook::BookHeader& header, int16_t& rootScore) {
+    using Tag = QaplaBook::BookHeaderTag;
+    header = QaplaBook::BookHeader{};
+    header.fileVersion = "1";
+    header.nodeSize = 2;
+    rootScore = BookScore::NONE;
+    for (int32_t tag = readInt32(stream); tag != static_cast<int32_t>(Tag::END_OF_HEADER); tag = readInt32(stream)) {
+        const int32_t length = readInt32(stream);
+        if (length < 0 || length > MAX_RECORD_LENGTH) {
+            throw QaplaBook::BookFormatError("header record with an implausible length");
+        }
+        std::string value(static_cast<size_t>(length), '\0');
+        stream.read(value.data(), length);
+        if (!stream) {
+            throw QaplaBook::BookFormatError("file ends inside a header record");
+        }
+        if (!value.empty() && value.back() == '\0') {
+            value.pop_back();
+        }
+        switch (tag) {
+            case static_cast<int32_t>(Tag::AUTHOR): header.author = value; break;
+            case static_cast<int32_t>(Tag::NAME): header.name = value; break;
+            case static_cast<int32_t>(Tag::BOOK_VERSION): header.version = value; break;
+            case static_cast<int32_t>(Tag::FILE_VERSION): header.fileVersion = value; break;
+            case static_cast<int32_t>(Tag::PAYLOAD_ID): header.payloadId = value; break;
+            case static_cast<int32_t>(Tag::NODE_SIZE): {
+                uint32_t size = 0;
+                const auto result = std::from_chars(value.data(), value.data() + value.size(), size);
+                if (result.ec != std::errc() || size == 0) {
+                    throw QaplaBook::BookFormatError("node size record is not a number");
+                }
+                header.nodeSize = size;
+                break;
+            }
+            case BOOK_ROOT_SCORE_TAG: {
+                int score = 0;
+                const auto result = std::from_chars(value.data(), value.data() + value.size(), score);
+                if (result.ec != std::errc() || score < INT16_MIN || score > INT16_MAX) {
+                    throw QaplaBook::BookFormatError("score record of the start position is not a number");
+                }
+                rootScore = static_cast<int16_t>(score);
+                break;
+            }
+            default:
+                break;  // unknown records are skipped
+        }
+    }
+    const int32_t count = readInt32(stream);
+    if (count < 0) {
+        throw QaplaBook::BookFormatError("negative node count");
+    }
+    return static_cast<uint32_t>(count);
 }
 
 std::string toLan(const QaplaBook9::BookMove& move) {
@@ -67,7 +149,8 @@ BookTree BookTree::read(const std::string& path) {
         throw QaplaBook::BookFormatError("cannot open " + path);
     }
     BookTree tree;
-    const uint32_t count = QaplaBook::readBookHeader(stream, tree.header_);
+    int16_t rootScore = BookScore::NONE;
+    const uint32_t count = readHeader(stream, tree.header_, rootScore);
     if (tree.header_.fileVersion != QaplaBook9::BOOK9_FILE_VERSION) {
         throw QaplaBook::BookFormatError(std::format("{} has file version {}, a 9 bit book has {}",
             path, tree.header_.fileVersion, QaplaBook9::BOOK9_FILE_VERSION));
@@ -78,11 +161,18 @@ BookTree BookTree::read(const std::string& path) {
         throw QaplaBook::BookFormatError(std::format("{}: {} nodes of {} bytes do not fit into the file",
             path, count, nodeSize));
     }
-    const bool withScores = tree.header_.payloadId == BOOK_SCORE_PAYLOAD_ID && nodeSize >= 4;
+    if (nodeSize >= 4 && tree.header_.payloadId == BOOK_SCORE_PAYLOAD_ID) {
+        tree.scoreVersion_ = 1;
+    } else if (nodeSize >= 4 && tree.header_.payloadId == BOOK_SCORE_V2_PAYLOAD_ID) {
+        tree.scoreVersion_ = 2;
+    }
 
     tree.bits_.resize(count);
     tree.parent_.resize(count);
     tree.scores_.assign(static_cast<size_t>(count) + 1, BookScore::NONE);
+    if (tree.scoreVersion_ == 2) {
+        tree.scores_[0] = rootScore;
+    }
 
     // The parents follow from the two tree bits, as in Book::fromPreorder of the engine: one frame
     // per level still being filled, holding the node the level hangs below and whether that node
@@ -105,8 +195,12 @@ BookTree BookTree::read(const std::string& path) {
         const auto bits = static_cast<uint16_t>(byte(0) | (byte(1) << 8));
         tree.bits_[index] = bits;
         tree.parent_[index] = frames.back().parent;
-        if (withScores) {
-            tree.scores_[tree.positionBefore(index)] = static_cast<int16_t>(byte(2) | (byte(3) << 8));
+        const auto payload = static_cast<int16_t>(byte(2) | (byte(3) << 8));
+        if (tree.scoreVersion_ == 1) {
+            tree.scores_[tree.positionBefore(index)] = payload;
+        } else if (tree.scoreVersion_ == 2) {
+            // The node carries the position after its move from the side that played it.
+            tree.scores_[index + 1] = BookScore::negate(payload);
         }
         const Node node = nodeOf(bits);
         if (node.hasChild()) {
@@ -148,23 +242,33 @@ std::vector<std::string> BookTree::lineTo(uint32_t position) const {
     return line;
 }
 
-void BookTree::writeWithScores(const std::string& path, const QaplaBook::BookHeader& header) const {
+void BookTree::writeWithScores(const std::string& path, const QaplaBook::BookHeader& header,
+    uint32_t version) const {
     const std::string partPath = path + ".part";
     {
         std::ofstream stream(partPath, std::ios::binary | std::ios::trunc);
         if (!stream) {
             throw std::runtime_error("cannot write " + partPath);
         }
-        QaplaBook::BookHeader written = header;
-        written.fileVersion = QaplaBook9::BOOK9_FILE_VERSION;
-        written.payloadId = BOOK_SCORE_PAYLOAD_ID;
-        written.nodeSize = 4;
-        QaplaBook::writeBookHeader(stream, written, static_cast<uint32_t>(bits_.size()));
+        using Tag = QaplaBook::BookHeaderTag;
+        writeRecord(stream, static_cast<int32_t>(Tag::AUTHOR), header.author);
+        writeRecord(stream, static_cast<int32_t>(Tag::NAME), header.name);
+        writeRecord(stream, static_cast<int32_t>(Tag::BOOK_VERSION), header.version);
+        writeRecord(stream, static_cast<int32_t>(Tag::FILE_VERSION), QaplaBook9::BOOK9_FILE_VERSION);
+        writeRecord(stream, static_cast<int32_t>(Tag::PAYLOAD_ID),
+            version == 1 ? BOOK_SCORE_PAYLOAD_ID : BOOK_SCORE_V2_PAYLOAD_ID);
+        writeRecord(stream, static_cast<int32_t>(Tag::NODE_SIZE), "4");
+        if (version == 2 && !scores_.empty() && scores_[0] != BookScore::NONE) {
+            writeRecord(stream, BOOK_ROOT_SCORE_TAG, std::to_string(scores_[0]));
+        }
+        writeInt32(stream, static_cast<int32_t>(Tag::END_OF_HEADER));
+        writeInt32(stream, static_cast<int32_t>(bits_.size()));
         std::vector<char> data;
         data.reserve(bits_.size() * 4);
         for (uint32_t index = 0; index < bits_.size(); ++index) {
             const auto bits = bits_[index];
-            const auto score = static_cast<uint16_t>(scores_[positionBefore(index)]);
+            const auto score = static_cast<uint16_t>(version == 1 ? scores_[positionBefore(index)]
+                : BookScore::negate(scores_[index + 1]));
             data.push_back(static_cast<char>(bits & 0xFF));
             data.push_back(static_cast<char>(bits >> 8));
             data.push_back(static_cast<char>(score & 0xFF));

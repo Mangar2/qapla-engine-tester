@@ -46,13 +46,21 @@ struct BookEvalConfig {
     std::string outFile;            ///< The evaluated book; also the state a run continues from
     uint32_t saveIntervalMs = 60000; ///< Time between two saves of the evaluated book
     uint64_t maxPositions = 0;      ///< Positions to search in this run (0 = all that are left)
+    /**
+     * Version of the evaluated book: 2 (the default) gives every node the score of the position
+     * after its move, 1 every node the score of the position it is played from.
+     */
+    uint32_t version = 2;
 };
 
 /**
  * @brief Searches every position of a 9 bit book once and writes the scores into a new book.
  *
- * A position is searched if a move of the book is played from it - the start position and every
- * position after a move that has moves below it. Each search is a task of its own, with a new game
+ * Version 2, the default, searches every position: the start position and the one after every node,
+ * which carries the score from the side that played its move (qapla-search-score-v2). Version 1
+ * searches the positions a move of the book is played from - the start position and every position
+ * after a move that has moves below it - and gives every node the score of the position before its
+ * move (qapla-search-score-v1). Each search is a task of its own, with a new game
  * before it: the engine starts cold, from the position and the moves leading to it, so a score
  * does not depend on what the engine searched before, and therefore neither on the order of the
  * positions nor on the number of engines. It is the search --analysis makes of the last move of a
@@ -62,6 +70,10 @@ struct BookEvalConfig {
  * with no score for the positions still open, and a run given the same output file continues from
  * there: the tree has to be the one of the input book and the engine and its limit those of the
  * book's header.
+ *
+ * A book that is evaluated already - in either version, with the same engine and limit - brings its
+ * scores into a new run: a version 2 run of a version 1 book only searches the leaves, every other
+ * position was searched with the same moves before it and gives the same score.
  */
 class BookEvalManager : public GameTaskProvider {
 public:
@@ -92,6 +104,8 @@ public:
      */
     void save();
 
+    /** @brief Positions whose score was taken from the input book instead of searched. */
+    [[nodiscard]] size_t getTakenCount() const;
     /** @brief Positions that get a score, in the whole book. */
     [[nodiscard]] size_t getPositionCount() const;
     /** @brief Positions that have their score. */
@@ -131,6 +145,7 @@ private:
     size_t evaluatedCount_ = 0;
     size_t searchedInRun_ = 0;
     size_t failedCount_ = 0;
+    size_t takenCount_ = 0;
     std::chrono::steady_clock::time_point startTime_;
     QaplaHelpers::CallbackTimer saveTimer_;
     QaplaHelpers::CallbackTimer progressTimer_;
