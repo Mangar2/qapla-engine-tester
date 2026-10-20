@@ -243,6 +243,25 @@ void OpeningParser::registerPgnParser() {
 }
 
 void OpeningParser::registerBookParser() {
+    // The compact form a run takes a book in: the lines, made games one at a time.
+    const OpeningCompactFunction compact = [](const std::filesystem::path& filePath, ParserTraceEntry& trace,
+                             const OpeningParserParams& params) -> std::shared_ptr<const BookLines> {
+        try {
+            auto lines = std::make_shared<BookLines>(BookLines::read(filePath.string(), params.maxGames));
+            trace.messages.push_back(std::format("Book: {} moves, {} lines{}, kept as the book", lines->moveCount(),
+                lines->size(), lines->neverPlayedCount() == 0 ? std::string()
+                    : std::format(", {} moves of priority 0 left out", lines->neverPlayedCount())));
+            if (lines->empty()) {
+                trace.messages.emplace_back("Book holds no line");
+                return nullptr;
+            }
+            trace.success = true;
+            return lines;
+        } catch (const std::exception& exc) {
+            trace.messages.push_back(std::format("Not a 9 bit book: {}", exc.what()));
+            return nullptr;
+        }
+    };
     addParser("Book", {".bok"}, [](const std::filesystem::path& filePath,
                                    ParserTraceEntry& trace,
                                    const OpeningParserParams& params) -> std::optional<std::vector<GameRecord>> {
@@ -262,6 +281,7 @@ void OpeningParser::registerBookParser() {
         trace.success = true;
         return std::move(result.games);
     });
+    parsers_.back().compact = compact;
 }
 
 void OpeningParser::addParser(const std::string& name, const std::vector<std::string>& extensions, const OpeningParserFunction& parser) {
@@ -278,6 +298,19 @@ std::vector<GameRecord> OpeningParser::parse(const std::filesystem::path& filePa
 
 OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& filePath,
                                                    std::optional<size_t> maxGames) const {
+    return run(filePath, maxGames, false);
+}
+
+StartPositions OpeningParser::load(const std::filesystem::path& filePath) const {
+    auto result = run(filePath, std::nullopt, true);
+    StartPositions positions;
+    positions.games = std::move(result.games);
+    positions.book = std::move(result.book);
+    return positions;
+}
+
+OpeningParserResult OpeningParser::run(const std::filesystem::path& filePath,
+                                       std::optional<size_t> maxGames, bool compact) const {
     OpeningParserResult result;
     result.filePath = filePath.string();
     
@@ -302,6 +335,16 @@ OpeningParserResult OpeningParser::parseWithTrace(const std::filesystem::path& f
         traceEntry.parserName = entry.name;
         traceEntry.messages.push_back(std::format("Parser selection: {}", selectionReason));
         
+        if (compact && entry.compact) {
+            if (auto lines = entry.compact(filePath, traceEntry, params)) {
+                result.book = std::move(lines);
+                result.successfulParser = entry.name;
+                result.trace.push_back(std::move(traceEntry));
+                return true;
+            }
+            result.trace.push_back(std::move(traceEntry));
+            return false;
+        }
         if (auto games = entry.parser(filePath, traceEntry, params); games) {
             result.games = std::move(*games);
             result.successfulParser = entry.name;

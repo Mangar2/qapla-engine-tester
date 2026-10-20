@@ -297,8 +297,8 @@ void CLOPOptimizer::createCLOP(const std::vector<EngineConfig>& engines, const C
 
     startPositions_ = std::make_shared<StartPositions>();
     OpeningParser parser;
-    startPositions_->games = parser.parse(config.openingsFile);
-    if (startPositions_->games.empty()) {
+    *startPositions_ = parser.load(config.openingsFile);
+    if (startPositions_->empty()) {
         throw AppError::makeInvalidParameters(
             std::format("No valid openings found in file: {}", config.openingsFile));
     }

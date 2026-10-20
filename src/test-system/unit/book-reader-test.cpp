@@ -19,6 +19,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include "../../opening/book-lines.h"
 #include "../../opening/book-reader.h"
 #include "../../opening/opening-parser.h"
 #include "../../game-manager/game-state.h"
@@ -201,4 +202,58 @@ TEST_CASE("What is no 9 bit book is refused with a reason", "[unit][opening][boo
         REQUIRE(result.games.empty());
         REQUIRE_FALSE(result.error.empty());
     }
+}
+
+TEST_CASE("A run keeps a book as its lines and makes a game of one only when asked", "[unit][opening][book]") {
+    TempFile file("qapla-book-lines-test.bok");
+    QaplaBook9::Book<> book;
+    book.addLine(movesOf(kItalian));
+    const auto sicilian = book.addLine(movesOf(kSicilian));
+    book.addLine(movesOf(kQueensPawn));
+    book.writeToFile(file.path);
+
+    SECTION("the lines are those of the book reader, in the same order") {
+        const auto lines = BookLines::read(file.path);
+        const auto games = readBookLines(file.path).games;
+        REQUIRE(lines.size() == games.size());
+        REQUIRE(lines.moveCount() == 11);
+        for (size_t i = 0; i < lines.size(); ++i) {
+            REQUIRE(lansOf(lines.game(i)) == lansOf(games[i]));
+        }
+        REQUIRE(lansOf(lines.game(0)) == kItalian);
+        REQUIRE(lansOf(lines.game(2)) == kQueensPawn);
+        REQUIRE(BookLines::read(file.path, 2).size() == 2);
+    }
+
+    SECTION("load keeps a book compact, under any name") {
+        const auto positions = OpeningParser().load(file.path);
+        REQUIRE(positions.book);
+        REQUIRE(positions.games.empty());
+        REQUIRE(positions.size() == 3);
+        REQUIRE(lansOf(positions.game(1)) == kSicilian);
+
+        TempFile renamed("qapla-book-lines-test.openings");
+        std::filesystem::copy_file(file.path, renamed.path, std::filesystem::copy_options::overwrite_existing);
+        const auto found = OpeningParser().load(renamed.path);
+        REQUIRE(found.book);
+        REQUIRE(found.size() == 3);
+    }
+
+    SECTION("a move of priority 0 leaves its lines out, as in the reader") {
+        book.setPriority(sicilian, QaplaBook9::PRIORITY_NEVER);
+        book.writeToFile(file.path);
+        const auto lines = BookLines::read(file.path);
+        REQUIRE(lines.size() == 2);
+        REQUIRE(lines.neverPlayedCount() == 1);
+        REQUIRE(lansOf(lines.game(1)) == kQueensPawn);
+    }
+}
+
+TEST_CASE("load keeps a pgn as its games", "[unit][opening][book]") {
+    TempFile file("qapla-book-lines-pgn-test.pgn");
+    std::ofstream(file.path, std::ios::binary) << "[White \"A\"]\n[Black \"B\"]\n\n1. e4 e5 2. Nf3 *\n";
+    const auto positions = OpeningParser().load(file.path);
+    REQUIRE_FALSE(positions.book);
+    REQUIRE(positions.size() == 1);
+    REQUIRE(positions.game(0).history().size() == 3);
 }

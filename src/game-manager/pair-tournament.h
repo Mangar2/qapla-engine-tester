@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "../opening/start-positions.h"
 #include "tournament-result.h"
 
 #include "game-task.h"
@@ -40,18 +41,6 @@
 
 namespace QaplaTester {
 
-/**
- * @brief Represents a collection of chess openings for a tournament.
- */
-struct StartPositions {
-    std::vector<GameRecord> games;
-	[[nodiscard]] uint32_t size() const {
-		return static_cast<uint32_t>(games.size());
-	}
-	[[nodiscard]] bool empty() const {
-		return games.empty();
-	}
-};
 
 /**
 * @brief Configuration parameters for a PairTournament.

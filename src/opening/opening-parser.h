@@ -20,6 +20,7 @@
 #pragma once
 
 #include "../chess-game/game-record.h"
+#include "start-positions.h"
 
 #include <filesystem>
 #include <functional>
@@ -50,6 +51,7 @@ struct OpeningParserParams {
  */
 struct OpeningParserResult {
     std::vector<GameRecord> games;              ///< Parsed game records
+    std::shared_ptr<const BookLines> book;      ///< The lines of a book, kept compact, if asked for
     std::string filePath;                       ///< Path to the parsed file
     std::string successfulParser;               ///< Name of the parser that succeeded (empty if none)
     std::vector<ParserTraceEntry> trace;        ///< Trace information from all attempted parsers
@@ -59,7 +61,7 @@ struct OpeningParserResult {
      * @return true if at least one game was parsed.
      */
     [[nodiscard]] bool success() const {
-        return !games.empty();
+        return !games.empty() || (book && !book->empty());
     }
 };
 
@@ -72,6 +74,12 @@ struct OpeningParserResult {
  * cannot handle the file or fails.
  */
 using OpeningParserFunction = std::function<std::optional<std::vector<GameRecord>>(
+    const std::filesystem::path&, ParserTraceEntry&, const OpeningParserParams&)>;
+
+/**
+ * @brief Function type for reading a format compactly, as a book is kept: the lines, not games.
+ */
+using OpeningCompactFunction = std::function<std::shared_ptr<const BookLines>(
     const std::filesystem::path&, ParserTraceEntry&, const OpeningParserParams&)>;
 
 /**
@@ -121,12 +129,30 @@ public:
     [[nodiscard]] OpeningParserResult parseWithTrace(const std::filesystem::path& filePath,
                                                       std::optional<size_t> maxGames = std::nullopt) const;
 
+    /**
+     * @brief Loads the openings of a file for a run.
+     *
+     * The format is found as by parse(). A 9 bit book is kept as its lines, see BookLines - a book
+     * of ten million lines in some 150 MB instead of tens of gigabytes of games - every other format
+     * as the games it is read as.
+     * @param filePath The path to the file to read.
+     * @return The openings; empty if the file holds none or cannot be read.
+     */
+    [[nodiscard]] StartPositions load(const std::filesystem::path& filePath) const;
+
 private:
     struct ParserEntry {
         std::string name;
         std::vector<std::string> extensions;
         OpeningParserFunction parser;
+        OpeningCompactFunction compact;     ///< Reads the format compactly; empty if it has no such form
     };
+
+    /**
+     * @brief Finds the format and reads the file, with the compact form where it has one if asked.
+     */
+    [[nodiscard]] OpeningParserResult run(const std::filesystem::path& filePath,
+                                          std::optional<size_t> maxGames, bool compact) const;
 
     /**
      * @brief Registers the EPD parser.

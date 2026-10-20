@@ -45,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A book as openings is kept as its tree, not as games**: a run loaded every line of a book as a
+  complete game record, a move record of some 300 bytes for every move - a book of 1 M lines took
+  5.3 GB and 17 s, one of 10 M lines would have taken some 50 GB. The book is now kept as the two
+  bytes and the parent of every node, and a line made a game only when a game starts from it: 48 MB
+  and 0.3 s for 1 M lines, 221 MB for 10 M. The games are the same as before, for tournament, SPRT,
+  SPSA and CLOP; pgn and epd openings are read as before.
 - **Every quit sent to an engine states its reason** in the engine log. Engines are closed at
   the end of a pairing and when a game manager runs out of tasks; both used to appear as a
   bare `quit` with no explanation, while restarts have named their reason since 0.6.0.

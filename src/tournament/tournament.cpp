@@ -80,9 +80,9 @@ void Tournament::createTournament(const std::vector<EngineConfig>& engines,
     config_ = config;
 
     OpeningParser parser;
-    startPositions_->games = parser.parse(config.openings.file);
+    *startPositions_ = parser.load(config.openings.file);
 
-    if (startPositions_->games.empty()) {
+    if (startPositions_->empty()) {
 		throw AppError::makeInvalidParameters(
 			"No valid openings found in file: " + config.openings.file);
     }

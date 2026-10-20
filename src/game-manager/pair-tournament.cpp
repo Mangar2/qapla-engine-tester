@@ -116,7 +116,7 @@ uint32_t PairTournament::newOpeningIndex(size_t gameInEncounter) {
 void PairTournament::updateOpening(uint32_t openingIndex) {
     GameState gameState;
     openingIndex_ = openingIndex;
-    curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->games[openingIndex], config_.openings.plies);
+    curRecord_ = gameState.setFromGameRecordAndCopy(startPositions_->game(openingIndex), config_.openings.plies);
 }
 
 std::optional<GameTask> PairTournament::nextTask() {

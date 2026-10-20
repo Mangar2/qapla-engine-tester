@@ -80,9 +80,9 @@ void SPSAOptimizer::createSPSA(const EngineConfig& engine, const SPSAConfig& con
     }
 
     OpeningParser parser;
-    startPositions_->games = parser.parse(config.openingsFile);
+    *startPositions_ = parser.load(config.openingsFile);
 
-    if (startPositions_->games.empty()) {
+    if (startPositions_->empty()) {
         throw AppError::makeInvalidParameters(
             "No valid openings found in file: " + config.openingsFile);
     }
