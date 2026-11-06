@@ -35,6 +35,7 @@ and each writes its games marked with its own name.
 | pgn | <path> | *required* | Path and file name of the PGN file holding the games to analyse |
 | direction | string | reverse | reverse recomputes a game from its last move to its first, which lets the engine judge an early move knowing how the game ended. forward recomputes it in the order it was played, which is what the engine saw at the time. |
 | maxgames | <number> | 0 | Maximum number of games to analyse (0 = all) |
+| book | string | analyse | skip leaves the book of a game unsearched: the moves before the first one the PGN gives an evaluation, the way this tester writes its book moves. They are written out as they are, without an evaluation; a move without an evaluation after the first evaluated one is searched like every other. A game without any evaluation is left out and counted in the report. analyse, the default, searches every move. |
 
 ## --bookeval
 

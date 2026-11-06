@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`--analysis book=skip` leaves the opening book unsearched**: the moves before the first one
+  the PGN gives an evaluation are taken as the book, the way this tester writes its book moves, and
+  are not searched - a reverse analysis stops at the first evaluated move. A gap after it is
+  searched. The book moves are written out without an evaluation, as they were read; a game without
+  any evaluation is left out and counted in the report. `book=analyse`, the default, searches every
+  move as before.
 - **`--bookeval version=2`, the default: a node carries the position after its move**, the one it
   stands for, as the counts of a book trained with games do: every node and the start position are
   searched, a node carries the score from the side that played its move (`qapla-search-score-v2`),

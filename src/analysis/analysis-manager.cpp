@@ -77,6 +77,23 @@ std::optional<GameRecord> prepareGame(const GameRecord& read) {
     return game;
 }
 
+/**
+ * @brief The first move the PGN gives an evaluation, or nullopt if it gives none.
+ *
+ * The moves before it are taken as the opening book: a game played by this tester writes its
+ * book moves without an evaluation and every move an engine searched with one. A gap further on
+ * - a move whose comment was lost - is no book and is searched like every other move.
+ */
+std::optional<uint32_t> firstEvaluatedMove(const GameRecord& game) {
+    const auto& history = game.history();
+    for (size_t ply = 0; ply < history.size(); ++ply) {
+        if (history[ply].scoreCp || history[ply].scoreMate) {
+            return static_cast<uint32_t>(ply);
+        }
+    }
+    return std::nullopt;
+}
+
 void logLeftOut(size_t number, const std::string& source) {
     Logger::reportLogger().log(
         std::format("game {} of '{}' has a move that cannot be played, it is left out",
@@ -95,19 +112,28 @@ std::unique_ptr<PgnGameReader> AnalysisManager::openPgnFile() const {
 }
 
 std::optional<GameRecord> AnalysisManager::readPlayableGame(PgnGameReader& reader,
-    size_t& readCount, bool warn) const {
+    size_t& readCount, bool warn) {
     while (maxGames_ == 0 || readCount < maxGames_) {
         auto read = reader.next();
         if (!read) {
             return std::nullopt;
         }
         ++readCount;
-        if (auto game = prepareGame(*read)) {
-            return game;
+        auto game = prepareGame(*read);
+        if (!game) {
+            if (warn) {
+                logLeftOut(readCount, pgnFile_);
+            }
+            continue;
         }
-        if (warn) {
-            logLeftOut(readCount, pgnFile_);
+        // A game with no evaluation at all is book from its first move to its last.
+        if (skipBook_ && !firstEvaluatedMove(*game)) {
+            if (warn) {
+                ++unevaluatedCount_;
+            }
+            continue;
         }
+        return game;
     }
     return std::nullopt;
 }
@@ -119,6 +145,8 @@ size_t AnalysisManager::initialize(const AnalysisConfig& config) {
     reader_.reset();
     pgnFile_ = config.pgnFile;
     maxGames_ = config.maxGames;
+    skipBook_ = config.skipBook;
+    unevaluatedCount_ = 0;
 
     auto reader = openPgnFile();
     if (!reader->isOpen()) {
@@ -130,6 +158,12 @@ size_t AnalysisManager::initialize(const AnalysisConfig& config) {
     size_t readCount = 0;
     while (readPlayableGame(*reader, readCount, true)) {
         ++gameCount_;
+    }
+    if (unevaluatedCount_ != 0) {
+        Logger::reportLogger().log(
+            std::format("{} games of '{}' carry no evaluation, they are left out as book",
+                unevaluatedCount_, pgnFile_),
+            TraceLevel::warning);
     }
     return gameCount_;
 }
@@ -145,6 +179,8 @@ size_t AnalysisManager::adoptGames(std::vector<GameRecord> games, AnalysisDirect
     std::scoped_lock lock(mutex_);
     pgnFile_.clear();
     maxGames_ = 0;
+    skipBook_ = false;
+    unevaluatedCount_ = 0;
     reader_.reset();
     games_.clear();
     games_.reserve(games.size());
@@ -230,6 +266,10 @@ std::optional<GameTask> AnalysisManager::nextTask() {
     task.taskType = direction_ == AnalysisDirection::Backward
         ? GameTask::Type::ReplayBackward
         : GameTask::Type::ReplayForward;
+    // Taken before the evaluations are cleared below: they are what tells the book from the rest.
+    if (skipBook_) {
+        task.replayFrom = firstEvaluatedMove(*game).value_or(0);
+    }
     task.gameRecord = std::move(*game);
     task.gameRecord.setTimeControl(timeControl_, timeControl_);
     // The game is numbered as it stands in the file, from the start rather than only when it

@@ -422,7 +422,8 @@ AppReturnCode AppRunner::runAnalysis(AppReturnCode code, bool background) {
     RunHeaderLogger::log("Analysis", engines, {
         { "PGN file", analysisConfig->pgnFile },
         { "Games", std::format("{}", gameCount) },
-        { "Direction", backward ? "reverse (last move first)" : "forward (playing order)" }
+        { "Direction", backward ? "reverse (last move first)" : "forward (playing order)" },
+        { "Book", analysisConfig->skipBook ? "skip (moves before the first evaluation)" : "analyse" }
     });
 
     if (gameCount == 0) {

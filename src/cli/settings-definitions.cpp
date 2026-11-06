@@ -532,7 +532,16 @@ QaplaHelpers::StableMap<std::string, ParameterDefinition> getAnalysisKeys() {
         { "maxgames",  { .description = "Maximum number of games to analyse (0 = all)",
                         .isRequired = false,
                         .defaultValue = 0,
-                        .type = ValueType::UInt } }
+                        .type = ValueType::UInt } },
+        { "book",      { .description = "Whether the opening book is searched as well (analyse/skip)",
+                        .longDescription = "skip leaves the book of a game unsearched: the moves before the first one "
+                            "the PGN gives an evaluation, the way this tester writes its book moves. They are written "
+                            "out as they are, without an evaluation; a move without an evaluation after the first "
+                            "evaluated one is searched like every other. A game without any evaluation is left out "
+                            "and counted in the report. analyse, the default, searches every move.",
+                        .isRequired = false,
+                        .defaultValue = "analyse",
+                        .type = ValueType::String } }
     };
 }
 

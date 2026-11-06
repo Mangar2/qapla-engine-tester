@@ -218,3 +218,46 @@ TEST_CASE("An analysis of a file that cannot be opened is refused", "[unit][anal
     CHECK_THROWS(manager.initialize(AnalysisConfig{
         .pgnFile = (std::filesystem::temp_directory_path() / "qapla-no-such-file.pgn").string() }));
 }
+
+namespace {
+
+// Two book moves without an evaluation, then evaluated moves with a gap; then a game without any
+// evaluation.
+const std::string kBookGames =
+    "[White \"Book\"]\n[Black \"Game\"]\n\n"
+    "1. e4 e5 2. Nf3 {+0.30/8} Nc6 3. Bc4 {+0.20/8} 1-0\n\n"
+    "[White \"No\"]\n[Black \"Evaluation\"]\n\n1. d4 d5 2. c4 1/2-1/2\n";
+
+} // namespace
+
+TEST_CASE("book=skip starts the search at the first evaluated move", "[unit][analysis]") {
+    const TempPgn file("qapla-analysis-book-test.pgn", kBookGames);
+
+    AnalysisManager manager;
+    // The game without any evaluation is book throughout and is left out.
+    REQUIRE(manager.initialize(AnalysisConfig{ .pgnFile = file.path, .skipBook = true }) == 1);
+    manager.startRun(movetimeEngine("Engine", "movetime(ms):50"));
+
+    const auto task = manager.nextTask();
+    REQUIRE(task);
+    CHECK(task->gameRecord.getWhiteEngineName() == "Book");
+    CHECK(task->gameRecord.history().size() == 5);
+    // e4 and e5 are the book; Nc6, the gap after the first evaluation, is searched.
+    CHECK(task->replayFrom == 2);
+    CHECK_FALSE(manager.nextTask());
+}
+
+TEST_CASE("Without book=skip every move is searched", "[unit][analysis]") {
+    const TempPgn file("qapla-analysis-no-book-test.pgn", kBookGames);
+
+    AnalysisManager manager;
+    REQUIRE(manager.initialize(AnalysisConfig{ .pgnFile = file.path }) == 2);
+    manager.startRun(movetimeEngine("Engine", "movetime(ms):50"));
+
+    const auto first = manager.nextTask();
+    REQUIRE(first);
+    CHECK(first->replayFrom == 0);
+    const auto second = manager.nextTask();
+    REQUIRE(second);
+    CHECK(second->replayFrom == 0);
+}

@@ -11,6 +11,9 @@ _GAMES = "test/integration/analysis/games.pgn"
 # 16 games of a public tournament collection, in the format such collections publish:
 # wrapped lines, comments holding principal variations, no Event tag.
 _CCRL = "test/integration/analysis/ccrl-126th-amateur-qapla.pgn"
+# Two games for book=skip: four book moves without an evaluation and a gap behind them, and a
+# game with no evaluation at all.
+_BOOK = "test/integration/analysis/book-games.pgn"
 _MOVETIME = '--each "tc=movetime(ms):50" trace=all'
 
 
@@ -221,5 +224,61 @@ def get_tests() -> List[Dict[str, Any]]:
                 {"type": "stdout", "content": "tc=movetime(ms):500"},
             ],
             "cleanup": "test/integration/log/analysis/clock",
+        },
+        {
+            "name": "analysis-book-skip",
+            "description": "book=skip searches from the last move back to the first evaluated one, gaps included",
+            # The first game has four book moves without an evaluation and a gap at 4. Ng5; the
+            # second has no evaluation at all and is left out as book.
+            "args": f"--concurrency=1 {_ENGINES} --analysis pgn={_BOOK} book=skip "
+                    f"--engine conf='Qapla 0.4.0' {_MOVETIME} "
+                    "--pgnoutput file=test/integration/log/analysis/book/out.pgn append=false clock=false "
+                    "--logging engine=true mode=one path=test/integration/log/analysis/book",
+            "log_path": "test/integration/log/analysis/book",
+            "validators": [
+                {"type": "exitCode", "expected": 0},
+                # Ten half moves, the four of the book left out - the gap is searched.
+                {"type": "stdout", "content": "analysis game 1 moves 10 evaluated 6"},
+                {"type": "stdout", "content": "analysis with Qapla 0.4.0 finished: 1 of 1 games analysed"},
+                {
+                    # The last position searched is the one before the first evaluated move; the
+                    # positions of the book are never sent with a go.
+                    "type": "logFiles",
+                    "path": "",
+                    "pattern": "engine-*.log",
+                    "count": 1,
+                    "content": (r"(?s)position startpos moves e2e4 e7e5 g1f3 b8c6\n"
+                                r"(?:(?!position startpos moves e2e4 e7e5 g1f3\n).)*\Z"),
+                    "message": "A position of the book was searched",
+                },
+                {
+                    # The book is written as it was read: the moves without an evaluation.
+                    "type": "fileContent",
+                    "path": "test/integration/log/analysis/book/out.pgn",
+                    "content": r"1\. e4 e5 2\. Nf3 Nc6 3\. Bc4 \{[-+]?\d+\.\d+",
+                    "isRegex": True,
+                    "message": "The book moves were not written as they are, or 3. Bc4 was not evaluated",
+                },
+                {
+                    "type": "fileContent",
+                    "path": "test/integration/log/analysis/book/out.pgn",
+                    "content": r"(?s)^(?:(?!Unevaluated).)*$",
+                    "isRegex": True,
+                    "message": "The game without any evaluation was analysed",
+                },
+            ],
+            "cleanup": "test/integration/log/analysis/book",
+        },
+        {
+            "name": "analysis-book-invalid",
+            "description": "A book value other than analyse or skip is rejected",
+            "args": f"--concurrency=1 {_ENGINES} --analysis pgn={_BOOK} book=keep "
+                    f"--engine conf='Qapla 0.4.0' {_MOVETIME} --logging path=test/integration/log/analysis/badbook",
+            "log_path": "test/integration/log/analysis/badbook",
+            "validators": [
+                {"type": "exitCode", "expected": 2},
+                {"type": "stdout", "content": "Set analysis.book to 'analyse' or 'skip'; 'keep' is neither."},
+            ],
+            "cleanup": "test/integration/log/analysis/badbook",
         },
     ]

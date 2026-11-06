@@ -386,10 +386,10 @@ void GameManager::handlePlayGame(const EngineEvent& event) {
 
 void GameManager::handleReplayFollowUp(const EngineEvent& event) {
 
-    // Backward is finished once the move at index 0 has been computed; the rewind afterwards
-    // cannot distinguish "index 0 still to do" from "index 0 done" - both read as 0.
+    // Backward is finished once the first move to recompute has been computed; the rewind
+    // afterwards cannot distinguish "index 0 still to do" from "index 0 done" - both read as 0.
     const bool backwardDone = managerState_ == ManagerState::ReplayBackward
-        && referenceRecord_.nextMoveIndex() == 0;
+        && referenceRecord_.nextMoveIndex() <= replayFrom_;
 
     handleReplayBestMove(event);
 
@@ -587,13 +587,14 @@ void GameManager::executeTask(std::optional<GameTask> task) {
 
     if (isReplayTaskType(task->taskType)) {
         auto size = referenceRecord_.history().size();
-        if (size == 0) {
+        replayFrom_ = task->replayFrom;
+        if (size == 0 || replayFrom_ >= size) {
             // Replay tasks require predefined moves
             finalizeTaskAndContinue();
             return;
         } 
         if (task->taskType == GameTask::Type::ReplayForward) {
-            referenceRecord_.setNextMoveIndex(0);
+            referenceRecord_.setNextMoveIndex(replayFrom_);
         }
         else {
             referenceRecord_.setNextMoveIndex(static_cast<uint32_t>(size - 1));

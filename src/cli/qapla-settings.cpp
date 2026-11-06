@@ -447,10 +447,17 @@ void QaplaSettings::setAnalysisConfig() {
             "Set analysis.direction to 'reverse' or 'forward'; '{}' is neither.", direction));
     }
 
+    const auto book = analysisGroup->get<std::string>("book");
+    if (book != "analyse" && book != "skip") {
+        throw AppError::makeInvalidParameters(std::format(
+            "Set analysis.book to 'analyse' or 'skip'; '{}' is neither.", book));
+    }
+
     m_analysisConfig = std::make_unique<AnalysisConfig>(AnalysisConfig{
         .pgnFile = analysisGroup->get<std::string>("pgn"),
         .direction = direction == "forward" ? AnalysisDirection::Forward : AnalysisDirection::Backward,
-        .maxGames = analysisGroup->get<unsigned int>("maxgames")
+        .maxGames = analysisGroup->get<unsigned int>("maxgames"),
+        .skipBook = book == "skip"
     });
 }
 

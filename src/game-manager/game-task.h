@@ -39,6 +39,8 @@ struct GameTask {
     bool switchSide = false;
     Type taskType = Type::None;
     GameRecord gameRecord;
+    /** First move a replay recomputes; the moves before it are handed back as they are. */
+    uint32_t replayFrom = 0;
 };
 
 class GameTaskProvider {

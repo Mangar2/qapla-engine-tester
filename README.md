@@ -468,6 +468,18 @@ having the option.
 | `pgn` | Path to the PGN file holding the games (required) |
 | `direction` | `reverse` (default) or `forward` |
 | `maxgames` | Maximum number of games to analyse (0 = all) |
+| `book` | `analyse` (default) searches every move; `skip` leaves the opening book unsearched |
+
+### Leaving the book out
+
+A game played by this tester writes its book moves without an evaluation and every move an engine
+searched with one. `book=skip` takes the moves before the first evaluated one as the book and does
+not search them: a reverse analysis walks back from the last move to the first evaluated one and
+stops there. A move without an evaluation further on - a gap - is no book and is searched like any
+other. The book moves are written out as they were read, without an evaluation, so the analysed
+file looks like the played one. A game without any evaluation is book from start to end; it is
+left out, and the report counts how many were. The evaluations of the searched moves are the same
+as those of a full reverse analysis, since the book is the last part a reverse walk would search.
 
 Each game is analysed by one engine from start to end — that is what keeps the transposition table
 useful — and `--concurrency` decides how many games run at the same time. Given several engines,

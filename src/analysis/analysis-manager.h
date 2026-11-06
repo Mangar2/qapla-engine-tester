@@ -52,6 +52,9 @@ struct AnalysisConfig {
     std::string pgnFile;                                          ///< PGN file holding the games
     AnalysisDirection direction = AnalysisDirection::Backward;    ///< Direction to recompute in
     uint32_t maxGames = 0;                                        ///< Games to analyse (0 = all)
+    /// Leaves the opening book unsearched: the moves before the first one the PGN gives an
+    /// evaluation, and games without any evaluation altogether.
+    bool skipBook = false;
 };
 
 /**
@@ -158,11 +161,12 @@ private:
      * @brief Reads on to the next game that plays out and returns it prepared for the analysis.
      * @param reader The file being read.
      * @param readCount Games read from the file so far, counted up here.
-     * @param warn True to report every game that has to be left out.
+     * @param warn True to report every game that has to be left out, and to count those that
+     *        are left out as book.
      * @return The game, or nullopt once the file or the configured number of games is used up.
      */
     [[nodiscard]] std::optional<GameRecord> readPlayableGame(PgnGameReader& reader,
-        size_t& readCount, bool warn) const;
+        size_t& readCount, bool warn);
 
     /**
      * @brief Opens the configured PGN file for reading its games one by one.
@@ -193,6 +197,8 @@ private:
     std::vector<GameRecord> games_;   ///< The games handed in, unchanged between runs
     std::string pgnFile_;             ///< The file the games are read from; empty if handed in
     uint32_t maxGames_ = 0;           ///< Games to read from the file (0 = all)
+    bool skipBook_ = false;           ///< Search no move before the first evaluated one
+    size_t unevaluatedCount_ = 0;     ///< Games left out for carrying no evaluation at all
     std::unique_ptr<PgnGameReader> reader_;   ///< The file as far as the current run has read it
     size_t gamesRead_ = 0;            ///< Games the current run has read from the file
     size_t gameCount_ = 0;            ///< Games that can be analysed

@@ -427,6 +427,7 @@ private:
 	std::atomic<ManagerState> managerState_ = ManagerState::NotRunning;
     std::string taskId_;
     GameRecord referenceRecord_;
+    uint32_t replayFrom_ = 0;   ///< First move the current replay recomputes
 
     std::thread eventThread_;
     std::atomic<bool> stopThread_{ false };
