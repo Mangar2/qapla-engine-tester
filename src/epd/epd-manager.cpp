@@ -24,6 +24,8 @@
 #include "../base-elements/string-helper.h"
 #include "../base-elements/app-error.h"
 
+#include <unordered_map>
+
 namespace QaplaTester {
 
 std::string EpdManager::generateHeaderLine() const {
@@ -40,10 +42,10 @@ std::string EpdManager::generateHeaderLine() const {
         return std::string(leftPad, ' ') + name + std::string(rightPad, ' ');
         };
     header << std::setw(20) << std::left << "TestId";
-    auto results = getResultsCopy();
-    for (const auto& result : results) {
-        if (result.testSetName == epdFileName_) {
-            header << "|" << formatEngineName(result.engineName);
+    // Names only: copying every engine's results to read them cost as much as the set is large.
+    for (const auto& instance : testInstances_) {
+        if (instance->getTestSetName() == epdFileName_) {
+            header << "|" << formatEngineName(instance->getEngineName());
         }
     }
     
@@ -61,15 +63,16 @@ static void formatInlineResult(std::ostream& os, const EpdTestCase& test) {
         << ", M: " << std::setw(5) << std::left << test.playedMove;
 }
 
-std::string EpdManager::generateResultLine(const EpdTestCase& current, const TestResults& results) {
+std::string EpdManager::generateResultLine(const EpdTestCase& current,
+    const std::vector<const EpdTestCase*>& engineResults) {
     std::ostringstream line;
     line << std::setw(20) << std::left << current.id;
-    for (const auto& result : results) {
-        const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
-            return t.id == current.id;
-            });
-        if (it != result.result.end()) {
-            formatInlineResult(line, *it);
+    for (const auto* result : engineResults) {
+        // A position not analysed yet is written as having no result. Written like an analysed
+        // one, without a move, loading it back marked it analysed, and a run continued after a
+        // restart never searched it.
+        if (result != nullptr && result->tested) {
+            formatInlineResult(line, *result);
         }
         else {
             line << "|" << std::setw(23) << "?";
@@ -83,43 +86,18 @@ std::string EpdManager::generateResultLine(const EpdTestCase& current, const Tes
     return line.str();
 }
 
-void EpdManager::logResultLine(const EpdTestCase& current) const {
-	auto results = getResultsCopy();
-
-    BaseLogger::Table table;
-    table.columnWidths = { 20, 24 };
-    table.headers = { "TestId", "BestMoves" };
-        std::vector<TableCell> rowValues;
-    rowValues.emplace_back(current.id);
-    std::string bestMoveList;
-    for (size_t moveIndex = 0; moveIndex < current.bestMoves.size(); ++moveIndex) {
-        if (moveIndex > 0) {
-            bestMoveList += " ";
-        }
-        bestMoveList += current.bestMoves[moveIndex];
-    }
-    rowValues.emplace_back(std::move(bestMoveList));
-
+std::vector<const EpdTestCase*> EpdManager::engineResultsAt(size_t index,
+    const TestResults& results) const {
+    std::vector<const EpdTestCase*> engineResults;
+    engineResults.reserve(results.size());
+    const auto& current = testsRead_[index];
     for (const auto& result : results) {
-        const auto it = std::ranges::find_if(result.result, [&](const EpdTestCase& t) {
-            return t.id == current.id;
-        });
-        if (it != result.result.end()) {
-            table.columnWidths.push_back(30);
-            table.headers.push_back(result.engineName);
-            rowValues.emplace_back(std::format(
-                "{} | {}ms | D:{} | M:{}",
-                it->correct ? "ok" : "miss",
-                it->correctAtTimeInMs,
-                it->correctAtDepth,
-                it->playedMove
-            ));
-        }
+        // The id is compared as a guard only: an engine's results that are not in the order of
+        // testsRead_ would otherwise put another position's result into this line.
+        const bool present = index < result.result.size() && result.result[index].id == current.id;
+        engineResults.push_back(present ? &result.result[index] : nullptr);
     }
-
-    table.body.push_back(std::move(rowValues));
-
-	Logger::reportLogger().logTable("epdResult", table, TraceLevel::result);
+    return engineResults;
 }
 
 void EpdManager::saveResults(std::ostream& os) const {
@@ -127,10 +105,11 @@ void EpdManager::saveResults(std::ostream& os) const {
     if (results.empty()) {
         return;
     }
-    os << generateHeaderLine() << "\n" << std::flush;
-    for (const auto& testCase : testsRead_) {
-        os << generateResultLine(testCase, results) << "\n" << std::flush;
+    os << generateHeaderLine() << "\n";
+    for (size_t index = 0; index < testsRead_.size(); ++index) {
+        os << generateResultLine(testsRead_[index], engineResultsAt(index, results)) << "\n";
     }
+    os.flush();
 }
 
 static uint64_t timeColumnToMs(const std::string& timeStr) {
@@ -225,7 +204,7 @@ std::vector<std::string> parseEngineResult(const std::string& column) {
 }
 
 static std::vector<EpdTestResult> 
-loadTestResults(std::istream& is, const TimeControl& tc, std::vector<EpdTestCase>& testsRead) {
+loadTestResults(std::istream& is, const TimeControl& tc, const std::vector<EpdTestCase>& testsRead) {
     std::vector<EpdTestResult> results;
     std::string headerLine;
     if (!std::getline(is, headerLine)) {
@@ -235,11 +214,23 @@ loadTestResults(std::istream& is, const TimeControl& tc, std::vector<EpdTestCase
     if (headers.size() < 2 || headers[0] != "TestId") {
         return results;
     }
+    // Every engine starts with every position of the set, untested, in the order of testsRead:
+    // the order the rest of the manager relies on to find a position's result by its index.
+    // A position the file does not mention stays untested and is analysed when the run goes on.
     for (size_t i = 1; i < headers.size(); ++i) {
         results.push_back(EpdTestResult{});
         results.back().engineName = headers[i];
         results.back().tc_ = tc; 
+        results.back().result = testsRead;
     }
+
+    // The positions by id, built once: searching the set for every line made loading quadratic.
+    // An id that occurs more than once is matched in file order, its n-th line to its n-th position.
+    std::unordered_map<std::string, std::vector<size_t>> indicesById;
+    for (size_t index = 0; index < testsRead.size(); ++index) {
+        indicesById[testsRead[index].id].push_back(index);
+    }
+    std::unordered_map<std::string, size_t> linesSeenById;
 
     std::string line;
     while (std::getline(is, line)) {
@@ -251,17 +242,19 @@ loadTestResults(std::istream& is, const TimeControl& tc, std::vector<EpdTestCase
             continue; // No BM field, invalid line
         }
         const auto& testId = columns[0];
-        auto it = std::ranges::find_if(testsRead, [&](const EpdTestCase& t) {
-            return t.id == testId;
-            });
-        if (it == testsRead.end()) {
+        const auto indices = indicesById.find(testId);
+        if (indices == indicesById.end()) {
             continue; // No matching test case found, skip
         }
+        auto& linesSeen = linesSeenById[testId];
+        if (linesSeen >= indices->second.size()) {
+            continue; // More lines with this id than positions carrying it
+        }
+        const size_t index = indices->second[linesSeen++];
         const auto columnsWithoutBm = columns.size() - 1;
         for (size_t i = 1; i < columnsWithoutBm && i - 1 < results.size(); ++i) {
             auto engineResults = parseEngineResult(columns[i]);
-            EpdTestCase testCase = *it; // Copy original test case
-            testCase.id = testId;
+            auto& testCase = results[i - 1].result[index];
             if (engineResults.size() >= 3) {
                 testCase.tested = true;
                 testCase.correctAtTimeInMs = engineResults[0] != "-" ? timeColumnToMs(engineResults[0]) : 0;
@@ -269,7 +262,6 @@ loadTestResults(std::istream& is, const TimeControl& tc, std::vector<EpdTestCase
                 testCase.playedMove = moveColumnToStr(engineResults[2]);
                 testCase.correct = testCase.correctAtDepth != -1; // If depth is known, we assume correctness
             }
-            results[i - 1].result.push_back(testCase);
         }
     }
 
@@ -285,8 +277,7 @@ bool EpdManager::loadResults(std::istream& is) {
         test.testSetName = epdFileName_;
         // Find existing instance or create new one
         auto it = std::ranges::find_if(testInstances_, [&](const std::shared_ptr<EpdTest>& instance) {
-            auto results = instance->getResultsCopy();
-            return results.engineName == test.engineName;
+            return instance->getEngineName() == test.engineName;
             });
         if (it != testInstances_.end()) {
             // Update existing instance
@@ -364,6 +355,9 @@ void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, u
 
     (*reader_).reset();
     testInstances_.clear();
+    // Read again from the start, so the set is replaced, not appended to: initialize() on a
+    // manager that already holds the set (loading stored results does that) doubled it.
+    testsRead_.clear();
 
     while (true) {
         auto testCase = nextTestCaseFromReader();
@@ -427,11 +421,24 @@ void EpdManager::schedule(const EngineConfig& engineConfig, GameManagerPool& poo
 	newTest->initialize(test);
 	testInstances_.emplace_back(newTest);
     newTest->setTestResultCallback([this]([[maybe_unused]] EpdTest* test, size_t first, size_t last) {
-        auto results = getResultsCopy();
-        for (size_t i = first; i < last && i < testsRead_.size(); ++i) {
+        // Only the positions just finished, from every engine: copying every engine's whole set
+        // here, once for every position finished, cost as much as the set is large.
+        last = std::min(last, testsRead_.size());
+        std::vector<std::vector<EpdTestCase>> finished;
+        finished.reserve(testInstances_.size());
+        for (const auto& instance : testInstances_) {
+            finished.push_back(instance->getResultsCopy(first, last));
+        }
+        std::vector<const EpdTestCase*> engineResults(finished.size());
+        for (size_t i = first; i < last; ++i) {
             const auto& current = testsRead_[i];
-            auto line = generateResultLine(current, results);
-            Logger::reportLogger().log(line, TraceLevel::result);
+            for (size_t engine = 0; engine < finished.size(); ++engine) {
+                const auto offset = i - first;
+                const bool present = offset < finished[engine].size()
+                    && finished[engine][offset].id == current.id;
+                engineResults[engine] = present ? &finished[engine][offset] : nullptr;
+            }
+            Logger::reportLogger().log(generateResultLine(current, engineResults), TraceLevel::result);
         }
     });
     logHeaderLine();

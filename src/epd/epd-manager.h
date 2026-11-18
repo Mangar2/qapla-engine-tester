@@ -159,8 +159,26 @@ private:
    [[nodiscard]] std::string generateHeaderLine() const;
     void logHeaderLine() const;
 
-    static std::string generateResultLine(const EpdTestCase& current, const TestResults& results);
-    void logResultLine(const EpdTestCase& current) const;
+    /**
+     * @brief One line of the result table: the position, then what each engine found for it.
+     *
+     * Every engine's results hold the positions in the order of testsRead_, so the caller hands in
+     * each engine's entry for the position directly. A search by id per line made writing the
+     * table quadratic in the number of positions: 600 000 positions never finished.
+     *
+     * @param current The position as read from the EPD file.
+     * @param engineResults Per engine its result for this position, nullptr where it has none.
+     */
+    static std::string generateResultLine(const EpdTestCase& current,
+        const std::vector<const EpdTestCase*>& engineResults);
+
+    /**
+     * @brief Each engine's result for the position at index, nullptr where it has none.
+     * @param index Position in testsRead_.
+     * @param results Results of all engines, each in the order of testsRead_.
+     */
+    [[nodiscard]] std::vector<const EpdTestCase*> engineResultsAt(size_t index,
+        const TestResults& results) const;
 
     std::unique_ptr<EpdReader> reader_;
     std::vector<EpdTestCase> testsRead_;

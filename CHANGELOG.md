@@ -67,6 +67,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **EPD results of a large position set are written and read in linear time**: every line of the
+  result table searched the whole set for its position by id, so writing and reading it was
+  quadratic - 600 000 positions never finished saving, and the GUI that autosaves them froze. A
+  position's result is now taken by its index; loading finds the positions through a map from id
+  to index, a repeated id matched line by line in file order. Reporting a finished position no
+  longer copies every engine's whole set, and initializing again replaces the positions instead of
+  adding to them.
+- **An EPD position not analysed yet stays to be analysed after saving and loading**: it was
+  written like an analysed one without a move and read back as analysed, so a run continued after
+  a restart never searched it. It is written as `?`, having no result.
 - **`--openings plies=N` plays N plies of the opening**: it played one less - `plies=8` left the
   engines the eighth ply - and `plies=0` played the whole opening instead of none. The count was
   turned into the index of the last ply on reading, while it is used as a count. Tournament files

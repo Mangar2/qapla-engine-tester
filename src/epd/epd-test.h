@@ -23,6 +23,8 @@
 #include "../opening/epd-reader.h"
 #include "../engine-handling/engine-config.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <string>
 #include <optional>
@@ -157,6 +159,42 @@ public:
 		std::scoped_lock lock(testResultMutex_);
         return result_;
 	}
+
+    /**
+     * @brief Copies the results of the positions from fromIndex up to, not including, toIndex.
+     *
+     * For reporting the positions just finished: the whole set is copied only where the whole set
+     * is needed, not once for every position an engine completes.
+     *
+     * @param fromIndex First position to copy.
+     * @param toIndex Position after the last one to copy; clipped to the number of positions.
+     */
+    std::vector<EpdTestCase> getResultsCopy(size_t fromIndex, size_t toIndex) const {
+        std::scoped_lock lock(testResultMutex_);
+        const auto& cases = result_.result;
+        toIndex = std::min(toIndex, cases.size());
+        if (fromIndex >= toIndex) {
+            return {};
+        }
+        return { cases.begin() + static_cast<std::ptrdiff_t>(fromIndex),
+                 cases.begin() + static_cast<std::ptrdiff_t>(toIndex) };
+    }
+
+    /**
+     * @brief The name of the engine these results belong to.
+     */
+    std::string getEngineName() const {
+        std::scoped_lock lock(testResultMutex_);
+        return result_.engineName;
+    }
+
+    /**
+     * @brief The name of the position set these results belong to.
+     */
+    std::string getTestSetName() const {
+        std::scoped_lock lock(testResultMutex_);
+        return result_.testSetName;
+    }
 
     uint64_t getUpdateCount() const {
         return updateCnt_;
