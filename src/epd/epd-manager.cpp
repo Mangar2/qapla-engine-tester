@@ -387,16 +387,18 @@ void EpdManager::initializeTestCases(uint64_t maxTimeInS, uint64_t minTimeInS, u
 }
 
 void EpdManager::initialize(const std::string& filepath, 
-    uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies, uint32_t depth, uint32_t nodes)
+    uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies, uint32_t depth, uint32_t nodes,
+    std::optional<size_t> maxPositions)
 {
     if (depth != 0 && nodes != 0) {
         throw AppError::makeInvalidParameters("EPD configuration error: 'depth' and 'nodes' cannot both be greater than 0.");
 	}
 
 	epdFileName_ = filepath;
-    bool sameFile = reader_ && reader_->getFilePath() == filepath;
-    if (!sameFile) {
-        reader_ = std::make_unique<EpdReader>(filepath);
+    bool sameRead = reader_ && reader_->getFilePath() == filepath && maxPositions_ == maxPositions;
+    if (!sameRead) {
+        reader_ = std::make_unique<EpdReader>(filepath, maxPositions);
+        maxPositions_ = maxPositions;
     }
 
     initializeTestCases(maxTimeInS, minTimeInS, seenPlies, depth, nodes);

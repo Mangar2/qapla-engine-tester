@@ -84,6 +84,7 @@ EpdReader::EpdReader(const std::string& filePath,
         }
         ++processedCount;
         if (maxEntries.has_value() && processedCount > maxEntries.value()) {
+            truncated_ = true;
             trace_.emplace_back(TraceEntry::Level::Info, 
                 "Reached maximum entry limit", lineNumber, 
                 "max=" + std::to_string(maxEntries.value()));

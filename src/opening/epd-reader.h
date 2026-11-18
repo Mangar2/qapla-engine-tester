@@ -181,6 +181,13 @@ public:
     }
 
     /**
+     * @brief Whether the file holds more entries than maxEntries allowed, so the rest was not read.
+     */
+    [[nodiscard]] bool wasTruncated() const {
+        return truncated_;
+    }
+
+    /**
      * @brief Returns the trace entries collected during parsing.
      * @return const reference to the vector of trace entries.
      */
@@ -214,6 +221,7 @@ private:
     std::chrono::steady_clock::time_point startTime_;
     std::chrono::milliseconds duration_{0};
     bool fileOpened_ = false;
+    bool truncated_ = false;
 
     /**
      * @brief Parses a single EPD line into FEN and opcode-operand pairs.

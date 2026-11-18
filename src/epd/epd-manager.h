@@ -77,9 +77,19 @@ public:
 	 * @param seenPlies Minimum number of plies one of the expected moves must be shown to stop early.
 	 * @param depth Fixed depth limit for each position. 0 means disabled.
 	 * @param nodes Fixed node limit for each position. 0 means disabled.
+	 * @param maxPositions Reads at most this many positions from the file (empty lines not
+	 *        counted) and leaves the rest out; unset reads all. See wasTruncated().
      */
     void initialize(const std::string& filepath, uint64_t maxTimeInS, uint64_t minTimeInS, uint32_t seenPlies,
-        uint32_t depth, uint32_t nodes);
+        uint32_t depth, uint32_t nodes, std::optional<size_t> maxPositions = std::nullopt);
+
+    /**
+     * @brief Whether the last initialize() left positions of the file out because of its
+     *        maxPositions: the file holds more than that, and only the first ones were read.
+     */
+    [[nodiscard]] bool wasTruncated() const {
+        return reader_ && reader_->wasTruncated();
+    }
 
     /**
      * @brief Continues the analysis from the current state.
@@ -194,6 +204,7 @@ private:
         const TestResults& results) const;
 
     std::unique_ptr<EpdReader> reader_;
+    std::optional<size_t> maxPositions_;    ///< The limit reader_ was read with
     std::vector<EpdTestCase> testsRead_;
     std::vector<std::shared_ptr<EpdTest>> testInstances_;
     TimeControl tc_;

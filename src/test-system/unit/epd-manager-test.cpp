@@ -189,6 +189,34 @@ TEST_CASE("A position not analysed yet is still to be analysed after saving and 
     CHECK_FALSE(cases[1].tested);
 }
 
+TEST_CASE("A position limit reads only the first positions and says that it cut the file", "[unit][epd]") {
+    const TempEpdFile file("qapla-epd-limit.epd", { "a", "b", "c" });
+    EpdManager manager;
+    // Reads the file with the limit; the positions held are the lines of one engine's results.
+    const auto readWith = [&manager, &file](std::optional<size_t> maxPositions) {
+        manager.initialize(file.path(), 10, 1, 3, 0, 0, maxPositions);
+        std::istringstream in("TestId | Engine\n" + storedLine("a", "e4"));
+        REQUIRE(manager.loadResults(in));
+        return bodyLines(saved(manager));
+    };
+
+    auto lines = readWith(2);
+    CHECK(manager.wasTruncated());
+    REQUIRE(lines.size() == 2);
+    CHECK(lines[1].starts_with("b "));
+
+    // Exactly as many positions as the limit: nothing left out.
+    lines = readWith(3);
+    CHECK_FALSE(manager.wasTruncated());
+    CHECK(lines.size() == 3);
+
+    // The same file without a limit is read again, completely.
+    readWith(1);
+    lines = readWith(std::nullopt);
+    CHECK_FALSE(manager.wasTruncated());
+    CHECK(lines.size() == 3);
+}
+
 namespace {
 
 /**

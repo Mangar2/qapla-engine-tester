@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **EPD position limit** (`EpdManager::initialize(..., maxPositions)`, `EpdManager::wasTruncated()`):
+  a caller can read only the first positions of a large EPD file and learn whether the rest was
+  left out. Without a limit everything is read, as before.
 - **EPD results: only what changed since a caller looked** (`EpdManager::getChangesSince`): a
   caller that keeps a copy of the results, as the GUI does, applies the positions finished since
   instead of copying the whole set on every update - with 600 000 positions a third of a second,
