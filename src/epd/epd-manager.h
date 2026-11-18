@@ -122,6 +122,19 @@ public:
         return count;
 	}
 
+    /**
+     * @brief Per engine, what changed in its results since the update counts a caller has seen.
+     *
+     * For a caller that keeps a copy of the results: it applies the changed positions instead of
+     * copying the whole set on every update.
+     *
+     * @param seenCounts Per engine, in the order of the answer, the updateCount it last returned;
+     *        an engine without one counts as nothing seen.
+     * @return One entry per engine; an engine's whole results where the caller's copy is void.
+     */
+    [[nodiscard]] std::vector<EpdResultChanges> getChangesSince(
+        const std::vector<uint64_t>& seenCounts) const;
+
     [[nodiscard]] TableData getStatusTable() const;
 
     [[nodiscard]] EpdStatusResult getStatusResult() const;

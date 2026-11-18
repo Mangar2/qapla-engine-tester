@@ -301,6 +301,17 @@ TestResults EpdManager::getResultsCopy() const {
         return results;
 	}
 
+std::vector<EpdResultChanges> EpdManager::getChangesSince(
+    const std::vector<uint64_t>& seenCounts) const {
+    std::vector<EpdResultChanges> changes;
+    changes.reserve(testInstances_.size());
+    for (size_t engine = 0; engine < testInstances_.size(); ++engine) {
+        const uint64_t seen = engine < seenCounts.size() ? seenCounts[engine] : 0;
+        changes.push_back(testInstances_[engine]->getChangesSince(seen));
+    }
+    return changes;
+}
+
 TableData EpdManager::getStatusTable() const {
     return getStatusResult().statusTable;
 }

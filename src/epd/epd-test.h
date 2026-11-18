@@ -67,6 +67,21 @@ struct EpdTestResult {
 	std::string testSetName;
 	std::vector<EpdTestCase> result;
 };
+
+/**
+ * @brief What changed in one engine's results since a caller last looked.
+ *
+ * A caller that keeps its own copy of the results takes this instead of a new copy on every
+ * update: with 600 000 positions a copy costs a third of a second, and there is an update for
+ * every position an engine finishes.
+ */
+struct EpdResultChanges {
+    /** True if the results were replaced since: `all` holds them, and the caller's copy is void. */
+    bool complete = false;
+    EpdTestResult all;                                      ///< Every result, if complete
+    std::vector<std::pair<size_t, EpdTestCase>> changed;    ///< Otherwise: index and new result
+    uint64_t updateCount = 0;                               ///< To hand in next time
+};
  
 /**
   * Manages the analysis of EPD test sets using multiple chess engines in parallel.
@@ -200,6 +215,15 @@ public:
         return updateCnt_;
 	}
 
+    /**
+     * @brief The results that changed after the update count a caller has seen.
+     *
+     * @param seenCount The updateCount of the previous answer, 0 if there was none.
+     * @return Only the changed positions, or every result (complete) if the caller's copy cannot
+     *         be brought up to date by them: nothing seen yet, or the results replaced since.
+     */
+    EpdResultChanges getChangesSince(uint64_t seenCount) const;
+
 private:
 
     static bool isSameMove(const std::string& fen, const std::string& move1str, const std::string& move2str);
@@ -211,6 +235,10 @@ private:
     std::atomic<size_t> oldestIndexInUse_ = 0;
     std::atomic<size_t> testIndex_ = 0;
 	std::atomic<uint64_t> updateCnt_ = 0;
+    /// Update count of the last initialize(); a caller that saw less needs every result.
+    uint64_t replacedAtCount_ = 0;
+    /// Per finished position since initialize(): the update count it made and its index.
+    std::vector<std::pair<uint64_t, size_t>> changeLog_;
 
 };
 

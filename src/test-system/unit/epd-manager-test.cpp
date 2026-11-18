@@ -188,3 +188,71 @@ TEST_CASE("A position not analysed yet is still to be analysed after saving and 
     CHECK(cases[0].playedMove == "e4");
     CHECK_FALSE(cases[1].tested);
 }
+
+namespace {
+
+/**
+ * @brief An engine's answer to a position: the start position with the move it played.
+ */
+GameRecord playedFromStart(const std::string& san) {
+    GameRecord record;
+    record.setStartPosition(false, START_FEN, true, 0);
+    MoveRecord move(1);
+    move.san_ = san;
+    move.depth = 9;
+    move.timeMs = 120;
+    record.addMove(move);
+    return record;
+}
+
+} // namespace
+
+TEST_CASE("An EPD test hands out only what changed since the caller looked", "[unit][epd]") {
+    EpdTestResult tests;
+    tests.engineName = "Engine";
+    for (const auto* id : { "a", "b", "c" }) {
+        EpdTestCase testCase;
+        testCase.id = id;
+        testCase.fen = START_FEN;
+        testCase.bestMoves = { "e4" };
+        tests.result.push_back(testCase);
+    }
+    EpdTest test;
+    test.initialize(tests);
+
+    // Nothing seen yet: everything.
+    auto changes = test.getChangesSince(0);
+    REQUIRE(changes.complete);
+    CHECK(changes.all.result.size() == 3);
+    const auto seen = changes.updateCount;
+
+    // Nothing finished since: nothing.
+    changes = test.getChangesSince(seen);
+    CHECK_FALSE(changes.complete);
+    CHECK(changes.changed.empty());
+
+    // Two positions finished: exactly those two, with their results.
+    test.setGameRecord("1", playedFromStart("e4"));
+    test.setGameRecord("2", playedFromStart("d4"));
+    changes = test.getChangesSince(seen);
+    REQUIRE_FALSE(changes.complete);
+    REQUIRE(changes.changed.size() == 2);
+    CHECK(changes.changed[0].first == 1);
+    CHECK(changes.changed[0].second.playedMove == "e4");
+    CHECK(changes.changed[0].second.correct);
+    CHECK(changes.changed[1].first == 2);
+    CHECK_FALSE(changes.changed[1].second.correct);
+
+    // Asked again from there: only what came after.
+    const auto later = changes.updateCount;
+    test.setGameRecord("0", playedFromStart("e4"));
+    changes = test.getChangesSince(later);
+    REQUIRE(changes.changed.size() == 1);
+    CHECK(changes.changed[0].first == 0);
+
+    // Replaced: the caller's copy is void, everything again.
+    test.initialize(tests);
+    changes = test.getChangesSince(changes.updateCount);
+    CHECK(changes.complete);
+    CHECK(changes.all.result.size() == 3);
+}

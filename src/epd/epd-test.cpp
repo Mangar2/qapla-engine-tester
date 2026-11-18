@@ -28,10 +28,31 @@ namespace QaplaTester {
 
 void EpdTest::initialize(const EpdTestResult& tests)
 {
+    std::scoped_lock lock(testResultMutex_);
     result_ = tests;
 	updateCnt_++;
+    replacedAtCount_ = updateCnt_;
+    changeLog_.clear();
     testIndex_ = 0;
     oldestIndexInUse_ = 0;
+}
+
+EpdResultChanges EpdTest::getChangesSince(uint64_t seenCount) const {
+    std::scoped_lock lock(testResultMutex_);
+    EpdResultChanges changes;
+    changes.updateCount = updateCnt_;
+    if (seenCount < replacedAtCount_) {
+        changes.complete = true;
+        changes.all = result_;
+        return changes;
+    }
+    // The log is in the order of the update counts, so the part not seen yet is its end.
+    const auto firstUnseen = std::ranges::upper_bound(changeLog_, seenCount, {},
+        [](const auto& entry) { return entry.first; });
+    for (auto entry = firstUnseen; entry != changeLog_.end(); ++entry) {
+        changes.changed.emplace_back(entry->second, result_.result[entry->second]);
+    }
+    return changes;
 }
 
 void EpdTest::schedule(const std::shared_ptr<EpdTest>& self, const EngineConfig& engine, 
@@ -184,6 +205,7 @@ void EpdTest::setGameRecord(const std::string& taskId, const GameRecord& record)
             }
         }
         updateCnt_++;
+        changeLog_.emplace_back(updateCnt_, *taskIndex);
     }
     if (recentOldestIndex != oldestIndexInUse_ && testResultCallback_) {
         testResultCallback_(this, recentOldestIndex, oldestIndexInUse_);

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **EPD results: only what changed since a caller looked** (`EpdManager::getChangesSince`): a
+  caller that keeps a copy of the results, as the GUI does, applies the positions finished since
+  instead of copying the whole set on every update - with 600 000 positions a third of a second,
+  for every position an engine finishes.
 - **`--analysis book=skip` leaves the opening book unsearched**: the moves before the first one
   the PGN gives an evaluation are taken as the book, the way this tester writes its book moves, and
   are not searched - a reverse analysis stops at the first evaluated move. A gap after it is
